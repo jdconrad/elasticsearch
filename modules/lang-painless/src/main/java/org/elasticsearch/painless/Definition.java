@@ -602,7 +602,39 @@ public final class Definition {
             return "def";
         }
 
-        return clazz.getCanonicalName();
+        return clazz.getCanonicalName().replace('$', '.');
+    }
+
+    public Type ClassToType(Class<?> clazz) {
+        if (clazz == null) {
+            return null;
+        } else if (clazz.isArray()) {
+            Class<?> component = clazz.getComponentType();
+            int dimensions = 1;
+
+            while (component.isArray()) {
+                component = component.getComponentType();
+                ++dimensions;
+            }
+
+            if (clazz == def.class) {
+                return getType(structsMap.get("def"), dimensions);
+            } else {
+                return getType(runtimeMap.get(clazz).struct, dimensions);
+            }
+        } else if (clazz == def.class) {
+            return getType(structsMap.get("def"), 0);
+        }
+
+        return getType(structsMap.get(ClassToName(clazz)), 0);
+    }
+
+    public static Class<?> TypeToClass (Type type) {
+        if (type.dynamic) {
+            return ObjectClassTodefClass(type.clazz);
+        }
+
+        return type.clazz;
     }
 
     public RuntimeClass getRuntimeClass(Class<?> clazz) {
@@ -619,8 +651,6 @@ public final class Definition {
     private final Map<Class<?>, RuntimeClass> runtimeMap;
     private final Map<String, Struct> structsMap;
     private final Map<String, Type> simpleTypesMap;
-
-    public AnalyzerCaster caster;
 
     private Definition(List<Whitelist> whitelists) {
         structsMap = new HashMap<>();
@@ -802,8 +832,6 @@ public final class Definition {
         IteratorType = getType("Iterator");
         ArrayListType = getType("ArrayList");
         HashMapType = getType("HashMap");
-
-        caster = new AnalyzerCaster(this);
     }
 
     private void addStruct(ClassLoader whitelistClassLoader, Whitelist.Struct whitelistStruct) {
