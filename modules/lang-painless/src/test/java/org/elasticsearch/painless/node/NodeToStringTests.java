@@ -396,7 +396,7 @@ public class NodeToStringTests extends ESTestCase {
 
     public void testPSubBrace() {
         Location l = new Location(getTestName(), 0);
-        PSubBrace node = new PSubBrace(l, Definition.DEFINITION.intType, new ENumeric(l, "1", 10));
+        PSubBrace node = new PSubBrace(l, int.class, new ENumeric(l, "1", 10));
         node.prefix = new EVariable(l, "a");
         assertEquals("(PSubBrace (EVariable a) (ENumeric 1))", node.toString());
     }
