@@ -151,13 +151,13 @@ public final class Definition {
         public final String name;
         public final Struct owner;
         public final Class<?> augmentation;
-        public final Type rtn;
-        public final List<Type> arguments;
+        public final Class<?> rtn;
+        public final List<Class<?>> arguments;
         public final org.objectweb.asm.commons.Method method;
         public final int modifiers;
         public final MethodHandle handle;
 
-        public Method(String name, Struct owner, Class<?> augmentation, Type rtn, List<Type> arguments,
+        public Method(String name, Struct owner, Class<?> augmentation, Class<?> rtn, List<Class<?>> arguments,
                       org.objectweb.asm.commons.Method method, int modifiers, MethodHandle handle) {
             this.name = name;
             this.augmentation = augmentation;
@@ -188,21 +188,21 @@ public final class Definition {
                 params = new Class<?>[1 + arguments.size()];
                 params[0] = augmentation;
                 for (int i = 0; i < arguments.size(); i++) {
-                    params[i + 1] = arguments.get(i).clazz;
+                    params[i + 1] = defClassToObjectClass(arguments.get(i));
                 }
-                returnValue = rtn.clazz;
+                returnValue = defClassToObjectClass(rtn);
             } else if (Modifier.isStatic(modifiers)) {
                 // static method: straightforward copy
                 params = new Class<?>[arguments.size()];
                 for (int i = 0; i < arguments.size(); i++) {
-                    params[i] = arguments.get(i).clazz;
+                    params[i] = defClassToObjectClass(arguments.get(i));
                 }
-                returnValue = rtn.clazz;
+                returnValue = defClassToObjectClass(rtn);
             } else if ("<init>".equals(name)) {
                 // constructor: returns the owner class
                 params = new Class<?>[arguments.size()];
                 for (int i = 0; i < arguments.size(); i++) {
-                    params[i] = arguments.get(i).clazz;
+                    params[i] = defClassToObjectClass(arguments.get(i));
                 }
                 returnValue = owner.clazz;
             } else {
@@ -210,9 +210,9 @@ public final class Definition {
                 params = new Class<?>[1 + arguments.size()];
                 params[0] = owner.clazz;
                 for (int i = 0; i < arguments.size(); i++) {
-                    params[i + 1] = arguments.get(i).clazz;
+                    params[i + 1] = defClassToObjectClass(arguments.get(i));
                 }
-                returnValue = rtn.clazz;
+                returnValue = defClassToObjectClass(rtn);
             }
             return MethodType.methodType(returnValue, params);
         }
@@ -908,17 +908,17 @@ public final class Definition {
                     "parameters " + whitelistConstructor.painlessParameterTypeNames);
         }
 
-        List<Type> painlessParametersTypes = new ArrayList<>(whitelistConstructor.painlessParameterTypeNames.size());
+        List<Class<?>> painlessParametersTypes = new ArrayList<>(whitelistConstructor.painlessParameterTypeNames.size());
         Class<?>[] javaClassParameters = new Class<?>[whitelistConstructor.painlessParameterTypeNames.size()];
 
         for (int parameterCount = 0; parameterCount < whitelistConstructor.painlessParameterTypeNames.size(); ++parameterCount) {
             String painlessParameterTypeName = whitelistConstructor.painlessParameterTypeNames.get(parameterCount);
 
             try {
-                Type painlessParameterType = getTypeInternal(painlessParameterTypeName);
+                Class<?> painlessParameterClass = TypeToClass(getTypeInternal(painlessParameterTypeName));
 
-                painlessParametersTypes.add(painlessParameterType);
-                javaClassParameters[parameterCount] = painlessParameterType.clazz;
+                painlessParametersTypes.add(painlessParameterClass);
+                javaClassParameters[parameterCount] = defClassToObjectClass(painlessParameterClass);
             } catch (IllegalArgumentException iae) {
                 throw new IllegalArgumentException("struct not defined for constructor parameter [" + painlessParameterTypeName + "] " +
                         "with owner struct [" + ownerStructName + "] and constructor parameters " +
@@ -949,7 +949,7 @@ public final class Definition {
                         " with constructor parameters " + whitelistConstructor.painlessParameterTypeNames);
             }
 
-            painlessConstructor = new Method("<init>", ownerStruct, null, getTypeInternal("void"), painlessParametersTypes,
+            painlessConstructor = new Method("<init>", ownerStruct, null, void.class, painlessParametersTypes,
                 asmConstructor, javaConstructor.getModifiers(), javaHandle);
             ownerStruct.constructors.put(painlessMethodKey, painlessConstructor);
         } else if (painlessConstructor.equals(painlessParametersTypes) == false){
@@ -986,7 +986,7 @@ public final class Definition {
 
         int augmentedOffset = javaAugmentedClass == null ? 0 : 1;
 
-        List<Type> painlessParametersTypes = new ArrayList<>(whitelistMethod.painlessParameterTypeNames.size());
+        List<Class<?>> painlessParametersTypes = new ArrayList<>(whitelistMethod.painlessParameterTypeNames.size());
         Class<?>[] javaClassParameters = new Class<?>[whitelistMethod.painlessParameterTypeNames.size() + augmentedOffset];
 
         if (javaAugmentedClass != null) {
@@ -997,10 +997,10 @@ public final class Definition {
             String painlessParameterTypeName = whitelistMethod.painlessParameterTypeNames.get(parameterCount);
 
             try {
-                Type painlessParameterType = getTypeInternal(painlessParameterTypeName);
+                Class<?> painlessParameterClass = TypeToClass(getTypeInternal(painlessParameterTypeName));
 
-                painlessParametersTypes.add(painlessParameterType);
-                javaClassParameters[parameterCount + augmentedOffset] = painlessParameterType.clazz;
+                painlessParametersTypes.add(painlessParameterClass);
+                javaClassParameters[parameterCount + augmentedOffset] = defClassToObjectClass(painlessParameterClass);
             } catch (IllegalArgumentException iae) {
                 throw new IllegalArgumentException("struct not defined for method parameter [" + painlessParameterTypeName + "] " +
                         "with owner struct [" + ownerStructName + "] and method with name [" + whitelistMethod.javaMethodName + "] " +
@@ -1019,18 +1019,18 @@ public final class Definition {
                     javaImplClass.getName() + "]", nsme);
         }
 
-        Type painlessReturnType;
+        Class<?> painlessReturnClass;
 
         try {
-            painlessReturnType = getTypeInternal(whitelistMethod.painlessReturnTypeName);
+            painlessReturnClass = TypeToClass(getTypeInternal(whitelistMethod.painlessReturnTypeName));
         } catch (IllegalArgumentException iae) {
             throw new IllegalArgumentException("struct not defined for return type [" + whitelistMethod.painlessReturnTypeName + "] " +
                     "with owner struct [" + ownerStructName + "] and method with name [" + whitelistMethod.javaMethodName + "] " +
                     "and parameters " + whitelistMethod.painlessParameterTypeNames, iae);
         }
 
-        if (javaMethod.getReturnType().equals(painlessReturnType.clazz) == false) {
-            throw new IllegalArgumentException("specified return type class [" + painlessReturnType.clazz + "] " +
+        if (javaMethod.getReturnType() != defClassToObjectClass(painlessReturnClass)) {
+            throw new IllegalArgumentException("specified return type class [" + painlessReturnClass + "] " +
                     "does not match the return type class [" + javaMethod.getReturnType() + "] for the " +
                     "method with name [" + whitelistMethod.javaMethodName + "] " +
                     "and parameters " + whitelistMethod.painlessParameterTypeNames);
@@ -1052,14 +1052,14 @@ public final class Definition {
                         "[" + whitelistMethod.javaMethodName + "] and parameters " + whitelistMethod.painlessParameterTypeNames);
                 }
 
-                painlessMethod = new Method(whitelistMethod.javaMethodName, ownerStruct, null, painlessReturnType,
+                painlessMethod = new Method(whitelistMethod.javaMethodName, ownerStruct, null, painlessReturnClass,
                     painlessParametersTypes, asmMethod, javaMethod.getModifiers(), javaMethodHandle);
                 ownerStruct.staticMethods.put(painlessMethodKey, painlessMethod);
-            } else if ((painlessMethod.name.equals(whitelistMethod.javaMethodName) && painlessMethod.rtn.equals(painlessReturnType) &&
+            } else if ((painlessMethod.name.equals(whitelistMethod.javaMethodName) && painlessMethod.rtn == painlessReturnClass &&
                     painlessMethod.arguments.equals(painlessParametersTypes)) == false) {
                 throw new IllegalArgumentException("illegal duplicate static methods [" + painlessMethodKey + "] " +
                         "found within the struct [" + ownerStruct.name + "] with name [" + whitelistMethod.javaMethodName + "], " +
-                        "return types [" + painlessReturnType + "] and [" + painlessMethod.rtn.name + "], " +
+                        "return types [" + painlessReturnClass + "] and [" + painlessMethod.rtn + "], " +
                         "and parameters " + painlessParametersTypes + " and " + painlessMethod.arguments);
             }
         } else {
@@ -1076,14 +1076,14 @@ public final class Definition {
                         "[" + whitelistMethod.javaMethodName + "] and parameters " + whitelistMethod.painlessParameterTypeNames);
                 }
 
-                painlessMethod = new Method(whitelistMethod.javaMethodName, ownerStruct, javaAugmentedClass, painlessReturnType,
+                painlessMethod = new Method(whitelistMethod.javaMethodName, ownerStruct, javaAugmentedClass, painlessReturnClass,
                     painlessParametersTypes, asmMethod, javaMethod.getModifiers(), javaMethodHandle);
                 ownerStruct.methods.put(painlessMethodKey, painlessMethod);
-            } else if ((painlessMethod.name.equals(whitelistMethod.javaMethodName) && painlessMethod.rtn.equals(painlessReturnType) &&
+            } else if ((painlessMethod.name.equals(whitelistMethod.javaMethodName) && painlessMethod.rtn.equals(painlessReturnClass) &&
                 painlessMethod.arguments.equals(painlessParametersTypes)) == false) {
                 throw new IllegalArgumentException("illegal duplicate member methods [" + painlessMethodKey + "] " +
                     "found within the struct [" + ownerStruct.name + "] with name [" + whitelistMethod.javaMethodName + "], " +
-                    "return types [" + painlessReturnType + "] and [" + painlessMethod.rtn.name + "], " +
+                    "return types [" + painlessReturnClass + "] and [" + painlessMethod.rtn + "], " +
                     "and parameters " + painlessParametersTypes + " and " + painlessMethod.arguments);
             }
         }

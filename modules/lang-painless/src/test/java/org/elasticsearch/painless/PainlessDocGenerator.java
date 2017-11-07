@@ -27,7 +27,6 @@ import org.elasticsearch.painless.Definition.Field;
 import org.elasticsearch.painless.Definition.Method;
 import org.elasticsearch.painless.Definition.Struct;
 import org.elasticsearch.painless.Definition.Type;
-import org.elasticsearch.painless.api.Augmentation;
 
 import java.io.IOException;
 import java.io.PrintStream;
@@ -170,7 +169,7 @@ public class PainlessDocGenerator {
         }
 
         if (false == method.name.equals("<init>")) {
-            emitType(stream, method.rtn);
+            emitType(stream, DEFINITION.ClassToType(method.rtn));
             stream.print(' ');
         }
 
@@ -182,13 +181,13 @@ public class PainlessDocGenerator {
 
         stream.print("](");
         boolean first = true;
-        for (Type arg : method.arguments) {
+        for (Class<?> arg : method.arguments) {
             if (first) {
                 first = false;
             } else {
                 stream.print(", ");
             }
-            emitType(stream, arg);
+            emitType(stream, DEFINITION.ClassToType(arg));
         }
         stream.print(")++");
 
@@ -278,7 +277,8 @@ public class PainlessDocGenerator {
             first = false;
             stream.print(method.owner.clazz.getName());
         }
-        for (Type arg: method.arguments) {
+        for (Class<?> clazz: method.arguments) {
+            Type arg = DEFINITION.ClassToType(clazz);
             if (first) {
                 first = false;
             } else {

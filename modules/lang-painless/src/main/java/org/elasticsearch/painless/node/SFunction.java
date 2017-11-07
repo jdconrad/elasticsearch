@@ -24,7 +24,6 @@ import org.elasticsearch.painless.Constant;
 import org.elasticsearch.painless.Def;
 import org.elasticsearch.painless.Definition;
 import org.elasticsearch.painless.Definition.Method;
-import org.elasticsearch.painless.Definition.Type;
 import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Locals.Parameter;
@@ -79,7 +78,7 @@ public final class SFunction extends AStatement {
     private final List<AStatement> statements;
     public final boolean synthetic;
 
-    Type rtnType = null;
+    Class<?> rtnType = null;
     List<Parameter> parameters = new ArrayList<>();
     Method method = null;
 
@@ -107,7 +106,7 @@ public final class SFunction extends AStatement {
 
     void generateSignature(Definition definition) {
         try {
-            rtnType = definition.getType(rtnTypeStr);
+            rtnType = Definition.TypeToClass(definition.getType(rtnTypeStr));
         } catch (IllegalArgumentException exception) {
             throw createError(new IllegalArgumentException("Illegal return type [" + rtnTypeStr + "] for function [" + name + "]."));
         }
@@ -117,23 +116,23 @@ public final class SFunction extends AStatement {
         }
 
         Class<?>[] paramClasses = new Class<?>[this.paramTypeStrs.size()];
-        List<Type> paramTypes = new ArrayList<>();
+        List<Class<?>> paramTypes = new ArrayList<>();
 
         for (int param = 0; param < this.paramTypeStrs.size(); ++param) {
             try {
-                Type paramType = definition.getType(this.paramTypeStrs.get(param));
+                Class<?> paramType = Definition.TypeToClass(definition.getType(this.paramTypeStrs.get(param)));
 
-                paramClasses[param] = paramType.clazz;
+                paramClasses[param] = Definition.defClassToObjectClass(paramType);
                 paramTypes.add(paramType);
-                parameters.add(new Parameter(location, paramNameStrs.get(param), paramType));
+                parameters.add(new Parameter(location, paramNameStrs.get(param), definition.ClassToType(paramType)));
             } catch (IllegalArgumentException exception) {
                 throw createError(new IllegalArgumentException(
                     "Illegal parameter type [" + this.paramTypeStrs.get(param) + "] for function [" + name + "]."));
             }
         }
 
-        org.objectweb.asm.commons.Method method =
-            new org.objectweb.asm.commons.Method(name, MethodType.methodType(rtnType.clazz, paramClasses).toMethodDescriptorString());
+        org.objectweb.asm.commons.Method method = new org.objectweb.asm.commons.Method(
+            name, MethodType.methodType(Definition.defClassToObjectClass(rtnType), paramClasses).toMethodDescriptorString());
         this.method = new Method(name, null, null, rtnType, paramTypes, method, Modifier.STATIC | Modifier.PRIVATE, null);
     }
 
@@ -162,7 +161,7 @@ public final class SFunction extends AStatement {
             allEscape = statement.allEscape;
         }
 
-        if (!methodEscape && rtnType.clazz != void.class) {
+        if (!methodEscape && rtnType != void.class) {
             throw createError(new IllegalArgumentException("Not all paths provide a return value for method [" + name + "]."));
         }
 
@@ -197,7 +196,7 @@ public final class SFunction extends AStatement {
         }
 
         if (!methodEscape) {
-            if (rtnType.clazz == void.class) {
+            if (rtnType == void.class) {
                 function.returnValue();
             } else {
                 throw createError(new IllegalStateException("Illegal tree structure."));
