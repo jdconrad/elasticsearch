@@ -138,7 +138,7 @@ public class PainlessDocGenerator {
             stream.print("static ");
         }
 
-        emitType(stream, field.type);
+        emitType(stream, DEFINITION.ClassToType(field.clazz));
         stream.print(' ');
 
         String javadocRoot = javadocRoot(field);
