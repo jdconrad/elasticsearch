@@ -20,7 +20,6 @@
 package org.elasticsearch.painless;
 
 import org.elasticsearch.painless.Definition.Cast;
-import org.elasticsearch.painless.Definition.Type;
 import org.elasticsearch.test.ESTestCase;
 
 public class AnalyzerCasterTests extends ESTestCase {
