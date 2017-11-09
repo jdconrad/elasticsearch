@@ -429,11 +429,6 @@ public final class Definition {
         }
     }
 
-    /** Returns whether or not a non-array type exists. */
-    public boolean isSimpleType(final String name) {
-        return structsMap.containsKey(name);
-    }
-
     /** Gets the type given by its name */
     public Type getType(final String name) {
         return getTypeInternal(name);
@@ -624,19 +619,10 @@ public final class Definition {
         return type.clazz;
     }
 
-    /** Collection of all simple types. Used by {@code PainlessDocGenerator} to generate an API reference. */
-    Collection<Type> allSimpleTypes() {
-        return simpleTypesMap.values();
-    }
-
-    // INTERNAL IMPLEMENTATION:
-
-    private final Map<String, Struct> structsMap;
-    private final Map<String, Type> simpleTypesMap;
+    public final Map<String, Struct> structsMap;
 
     private Definition(List<Whitelist> whitelists) {
         structsMap = new HashMap<>();
-        simpleTypesMap = new HashMap<>();
 
         Map<Class<?>, Struct> javaClassesToPainlessStructs = new HashMap<>();
         String origin = null;
@@ -843,10 +829,6 @@ public final class Definition {
         if (existingStruct == null) {
             Struct struct = new Struct(painlessTypeName, javaClass, org.objectweb.asm.Type.getType(javaClass));
             structsMap.put(painlessTypeName, struct);
-
-            if (simpleTypesMap.containsKey(painlessTypeName) == false && simpleTypesMap.containsKey(importedPainlessTypeName) == false) {
-                simpleTypesMap.put(painlessTypeName, getTypeInternal(painlessTypeName));
-            }
         } else if (existingStruct.clazz.equals(javaClass) == false) {
             throw new IllegalArgumentException("struct [" + painlessTypeName + "] is used to " +
                     "illegally represent multiple java classes [" + whitelistStruct.javaClassName + "] and " +
@@ -858,11 +840,6 @@ public final class Definition {
 
             if (existingStruct == null) {
                 structsMap.put(importedPainlessTypeName, structsMap.get(painlessTypeName));
-                Type painlessType = simpleTypesMap.remove(painlessTypeName);
-
-                if (simpleTypesMap.containsKey(importedPainlessTypeName) == false) {
-                    simpleTypesMap.put(importedPainlessTypeName, painlessType);
-                }
             } else if (existingStruct.clazz.equals(javaClass) == false) {
                 throw new IllegalArgumentException("imported name [" + painlessTypeName + "] is used to " +
                     "illegally represent multiple java classes [" + whitelistStruct.javaClassName + "] " +
@@ -1307,13 +1284,6 @@ public final class Definition {
     }
 
     private Type getTypeInternal(String name) {
-        // simple types (e.g. 0 array dimensions) are a simple hash lookup for speed
-        Type simple = simpleTypesMap.get(name);
-
-        if (simple != null) {
-            return simple;
-        }
-
         int dimensions = getDimensions(name);
         String structstr = dimensions == 0 ? name : name.substring(0, name.indexOf('['));
         Struct struct = structsMap.get(structstr);
