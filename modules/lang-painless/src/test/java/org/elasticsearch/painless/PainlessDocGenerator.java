@@ -26,8 +26,6 @@ import org.elasticsearch.common.logging.ESLoggerFactory;
 import org.elasticsearch.painless.Definition.Field;
 import org.elasticsearch.painless.Definition.Method;
 import org.elasticsearch.painless.Definition.Struct;
-import org.elasticsearch.painless.Definition.Type;
-
 import java.io.IOException;
 import java.io.PrintStream;
 import java.lang.reflect.Modifier;
