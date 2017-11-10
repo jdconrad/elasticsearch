@@ -496,37 +496,26 @@ public final class Definition {
         return clazz.getCanonicalName().replace('$', '.');
     }
 
-    private final Map<String, Class<?>> painlessTypesToJavaClasses;
+    private final Map<String, Class<?>> painlessStructNamesToJavaClasses;
     private final Map<Class<?>, Struct> javaClassesToPainlessStructs;
 
     private Definition(List<Whitelist> whitelists) {
-        painlessTypesToJavaClasses = new HashMap<>();
+        painlessStructNamesToJavaClasses = new HashMap<>();
         javaClassesToPainlessStructs = new HashMap<>();
 
-        String origin = null;
-
         // add the universal def type
-        painlessTypesToJavaClasses.put("def", def.class);
+        painlessStructNamesToJavaClasses.put("def", def.class);
         javaClassesToPainlessStructs.put(def.class, new Struct("def", Object.class, Type.getType(Object.class)));
 
+        String origin = "";
+
         try {
-            // first iteration collects all the Painless type names that
-            // are used for validation during the second iteration
+            // first iteration collects all the painless structs that
+            // are necessary for validation during the second iteration
             for (Whitelist whitelist : whitelists) {
                 for (Whitelist.Struct whitelistStruct : whitelist.whitelistStructs) {
-                    String painlessTypeName = whitelistStruct.javaClassName.replace('$', '.');
-                    Struct painlessStruct = javaClassesToPainlessStructs.get(painlessTypesToJavaClasses.get(painlessTypeName));
-
-                    if (painlessStruct != null && painlessStruct.clazz.getName().equals(whitelistStruct.javaClassName) == false) {
-                        throw new IllegalArgumentException("struct [" + painlessStruct.name + "] cannot represent multiple classes " +
-                            "[" + painlessStruct.clazz.getName() + "] and [" + whitelistStruct.javaClassName + "]");
-                    }
-
                     origin = whitelistStruct.origin;
                     addStruct(whitelist.javaClassLoader, whitelistStruct);
-
-                    painlessStruct = javaClassesToPainlessStructs.get(painlessTypesToJavaClasses.get(painlessTypeName));
-                    javaClassesToPainlessStructs.put(painlessStruct.clazz, painlessStruct);
                 }
             }
 
@@ -554,7 +543,7 @@ public final class Definition {
                 }
             }
         } catch (Exception exception) {
-            throw new IllegalArgumentException("error loading whitelist(s) " + origin, exception);
+            throw new IllegalArgumentException("error loading painless whitelist " + origin, exception);
         }
 
         // goes through each Painless struct and determines the inheritance list,
@@ -656,66 +645,64 @@ public final class Definition {
     }
 
     private void addStruct(ClassLoader whitelistClassLoader, Whitelist.Struct whitelistStruct) {
-        String painlessTypeName = whitelistStruct.javaClassName.replace('$', '.');
-        String importedPainlessTypeName = painlessTypeName;
+        Class<?> newJavaClass;
 
-        if (painlessTypeName.matches("^[_a-zA-Z][._a-zA-Z0-9]*") == false) {
-            throw new IllegalArgumentException("invalid struct type name [" + painlessTypeName + "]");
-        }
-
-        int index = whitelistStruct.javaClassName.lastIndexOf('.');
-
-        if (index != -1) {
-            importedPainlessTypeName = whitelistStruct.javaClassName.substring(index + 1).replace('$', '.');
-        }
-
-        Class<?> javaClass;
-
-        if      ("void".equals(whitelistStruct.javaClassName))    javaClass = void.class;
-        else if ("boolean".equals(whitelistStruct.javaClassName)) javaClass = boolean.class;
-        else if ("byte".equals(whitelistStruct.javaClassName))    javaClass = byte.class;
-        else if ("short".equals(whitelistStruct.javaClassName))   javaClass = short.class;
-        else if ("char".equals(whitelistStruct.javaClassName))    javaClass = char.class;
-        else if ("int".equals(whitelistStruct.javaClassName))     javaClass = int.class;
-        else if ("long".equals(whitelistStruct.javaClassName))    javaClass = long.class;
-        else if ("float".equals(whitelistStruct.javaClassName))   javaClass = float.class;
-        else if ("double".equals(whitelistStruct.javaClassName))  javaClass = double.class;
+        if      (void   .class.getName().equals(whitelistStruct.javaClassName)) newJavaClass = void.class   ;
+        else if (boolean.class.getName().equals(whitelistStruct.javaClassName)) newJavaClass = boolean.class;
+        else if (byte   .class.getName().equals(whitelistStruct.javaClassName)) newJavaClass = byte.class   ;
+        else if (short  .class.getName().equals(whitelistStruct.javaClassName)) newJavaClass = short.class  ;
+        else if (char   .class.getName().equals(whitelistStruct.javaClassName)) newJavaClass = char.class   ;
+        else if (int    .class.getName().equals(whitelistStruct.javaClassName)) newJavaClass = int.class    ;
+        else if (long   .class.getName().equals(whitelistStruct.javaClassName)) newJavaClass = long.class   ;
+        else if (float  .class.getName().equals(whitelistStruct.javaClassName)) newJavaClass = float.class  ;
+        else if (double .class.getName().equals(whitelistStruct.javaClassName)) newJavaClass = double.class ;
         else {
             try {
-                javaClass = Class.forName(whitelistStruct.javaClassName, true, whitelistClassLoader);
+                newJavaClass = Class.forName(whitelistStruct.javaClassName, true, whitelistClassLoader);
             } catch (ClassNotFoundException cnfe) {
-                throw new IllegalArgumentException("invalid java class name [" + whitelistStruct.javaClassName + "]" +
-                        " for struct [" + painlessTypeName + "]");
+                throw new IllegalArgumentException("invalid java class name [" + whitelistStruct.javaClassName + "]", cnfe);
             }
         }
 
-        Struct existingStruct = javaClassesToPainlessStructs.get(javaClass);
+        String faqPainlessStructName = newJavaClass.getCanonicalName();
 
-        if (existingStruct == null) {
-            Struct struct = new Struct(painlessTypeName, javaClass, org.objectweb.asm.Type.getType(javaClass));
-            painlessTypesToJavaClasses.put(painlessTypeName, javaClass);
-            javaClassesToPainlessStructs.put(javaClass, struct);
-        } else if (existingStruct.clazz.equals(javaClass) == false) {
-            throw new IllegalArgumentException("struct [" + painlessTypeName + "] is used to " +
-                    "illegally represent multiple java classes [" + whitelistStruct.javaClassName + "] and " +
-                    "[" + existingStruct.clazz.getName() + "]");
+        if (faqPainlessStructName.matches("^[_a-zA-Z][._a-zA-Z0-9]*") == false) {
+            throw new IllegalArgumentException(
+                "invalid painless struct name [" + faqPainlessStructName + "]; must match [_a-zA-Z][._a-zA-Z0-9]*");
+        }
+
+        Struct existingPainlessStruct = javaClassesToPainlessStructs.get(newJavaClass);
+
+        if (existingPainlessStruct == null) {
+            Struct newPainlessStruct = new Struct(faqPainlessStructName, newJavaClass, Type.getType(newJavaClass));
+            painlessStructNamesToJavaClasses.put(faqPainlessStructName, newJavaClass);
+            javaClassesToPainlessStructs.put(newJavaClass, newPainlessStruct);
         }
 
         if (whitelistStruct.importJavaClassName) {
-            Class<?> existingClass = painlessTypesToJavaClasses.get(importedPainlessTypeName);
+            String simplePainlessStructName = newJavaClass.getName();
+            int index = simplePainlessStructName.lastIndexOf('.');
 
-            if (existingStruct == null) {
-                painlessTypesToJavaClasses.put(importedPainlessTypeName, javaClass);
-            } else if (existingClass == javaClass) {
-                throw new IllegalArgumentException("imported name [" + painlessTypeName + "] is used to " +
-                    "illegally represent multiple java classes [" + whitelistStruct.javaClassName + "] " +
-                    "and [" + existingStruct.clazz.getName() + "]");
+            if (index != -1) {
+                simplePainlessStructName = simplePainlessStructName.substring(index + 1);
+            }
+
+            simplePainlessStructName = simplePainlessStructName.replace('$', '.');
+
+            Class<?> existingJavaClass = painlessStructNamesToJavaClasses.get(simplePainlessStructName);
+
+            if (existingJavaClass == null) {
+                painlessStructNamesToJavaClasses.put(simplePainlessStructName, newJavaClass);
+            } else if (newJavaClass != existingJavaClass) {
+                throw new IllegalArgumentException("simple painless struct name [" + simplePainlessStructName + "] found " +
+                    "for multiple java classes [" + newJavaClass.getName() + "] and [" + existingJavaClass.getName() + "]; " +
+                    "at least one whitelisted java class must require the fully qualified name parameter [only_fqn]");
             }
         }
     }
 
     private void addConstructor(String ownerStructName, Whitelist.Constructor whitelistConstructor) {
-        Struct ownerStruct = javaClassesToPainlessStructs.get(painlessTypesToJavaClasses.get(ownerStructName));
+        Struct ownerStruct = javaClassesToPainlessStructs.get(painlessStructNamesToJavaClasses.get(ownerStructName));
 
         if (ownerStruct == null) {
             throw new IllegalArgumentException("owner struct [" + ownerStructName + "] not defined for constructor with " +
@@ -774,7 +761,7 @@ public final class Definition {
     }
 
     private void addMethod(ClassLoader whitelistClassLoader, String ownerStructName, Whitelist.Method whitelistMethod) {
-        Struct ownerStruct = javaClassesToPainlessStructs.get(painlessTypesToJavaClasses.get(ownerStructName));
+        Struct ownerStruct = javaClassesToPainlessStructs.get(painlessStructNamesToJavaClasses.get(ownerStructName));
 
         if (ownerStruct == null) {
             throw new IllegalArgumentException("owner struct [" + ownerStructName + "] not defined for method with " +
@@ -904,7 +891,7 @@ public final class Definition {
     }
 
     private void addField(String ownerStructName, Whitelist.Field whitelistField) {
-        Struct ownerStruct = javaClassesToPainlessStructs.get(painlessTypesToJavaClasses.get(ownerStructName));
+        Struct ownerStruct = javaClassesToPainlessStructs.get(painlessStructNamesToJavaClasses.get(ownerStructName));
 
         if (ownerStruct == null) {
             throw new IllegalArgumentException("owner struct [" + ownerStructName + "] not defined for method with " +
@@ -978,14 +965,14 @@ public final class Definition {
     }
 
     private void copyStruct(String struct, List<String> children) {
-        final Struct owner = javaClassesToPainlessStructs.get(painlessTypesToJavaClasses.get(struct));
+        final Struct owner = javaClassesToPainlessStructs.get(painlessStructNamesToJavaClasses.get(struct));
 
         if (owner == null) {
             throw new IllegalArgumentException("Owner struct [" + struct + "] not defined for copy.");
         }
 
         for (int count = 0; count < children.size(); ++count) {
-            final Struct child = javaClassesToPainlessStructs.get(painlessTypesToJavaClasses.get(children.get(count)));
+            final Struct child = javaClassesToPainlessStructs.get(painlessStructNamesToJavaClasses.get(children.get(count)));
 
             if (child == null) {
                 throw new IllegalArgumentException("Child struct [" + children.get(count) + "]" +
@@ -1150,7 +1137,7 @@ public final class Definition {
     }
 
     public boolean isSimplePainlessType(String painlessType) {
-        return painlessTypesToJavaClasses.containsKey(painlessType);
+        return painlessStructNamesToJavaClasses.containsKey(painlessType);
     }
 
     public Struct getPainlessStructFromJavaClass(Class<?> clazz) {
@@ -1158,7 +1145,7 @@ public final class Definition {
     }
 
     public Class<?> getJavaClassFromPainlessType(String painlessType) {
-        Class<?> javaClass = painlessTypesToJavaClasses.get(painlessType);
+        Class<?> javaClass = painlessStructNamesToJavaClasses.get(painlessType);
 
         if (javaClass != null) {
             return javaClass;
@@ -1179,29 +1166,21 @@ public final class Definition {
             }
 
             painlessType = painlessType.substring(0, painlessType.indexOf('['));
-            javaClass = painlessTypesToJavaClasses.get(painlessType);
+            javaClass = painlessStructNamesToJavaClasses.get(painlessType);
 
             char braces[] = new char[arrayDimensions];
             Arrays.fill(braces, '[');
             String descriptor = new String(braces);
 
-            if (javaClass == boolean.class) {
-                descriptor += "Z";
-            } else if (javaClass == byte.class) {
-                descriptor += "B";
-            } else if (javaClass == short.class) {
-                descriptor += "S";
-            } else if (javaClass == char.class) {
-                descriptor += "C";
-            } else if (javaClass == int.class) {
-                descriptor += "I";
-            } else if (javaClass == long.class) {
-                descriptor += "J";
-            } else if (javaClass == float.class) {
-                descriptor += "F";
-            } else if (javaClass == double.class) {
-                descriptor += "D";
-            } else {
+            if (javaClass == boolean.class)     descriptor += "Z";
+            else if (javaClass == byte.class)   descriptor += "B";
+            else if (javaClass == short.class)  descriptor += "S";
+            else if (javaClass == char.class)   descriptor += "C";
+            else if (javaClass == int.class)    descriptor += "I";
+            else if (javaClass == long.class)   descriptor += "J";
+            else if (javaClass == float.class)  descriptor += "F";
+            else if (javaClass == double.class) descriptor += "D";
+            else {
                 descriptor += "L" + javaClass.getName() + ";";
             }
 
