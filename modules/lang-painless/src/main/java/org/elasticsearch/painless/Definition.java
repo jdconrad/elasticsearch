@@ -499,6 +499,10 @@ public final class Definition {
     private final Map<String, Class<?>> painlessStructNamesToJavaClasses;
     private final Map<Class<?>, Struct> javaClassesToPainlessStructs;
 
+    public static Definition create(List<Whitelist> whitelists) {
+        return new Definition(whitelists).freeze();
+    }
+
     private Definition(List<Whitelist> whitelists) {
         painlessStructNamesToJavaClasses = new HashMap<>();
         javaClassesToPainlessStructs = new HashMap<>();
@@ -507,46 +511,7 @@ public final class Definition {
         painlessStructNamesToJavaClasses.put("def", def.class);
         javaClassesToPainlessStructs.put(def.class, new Struct("def", Object.class, Type.getType(Object.class)));
 
-        String origin = "";
-
-        try {
-            // first iteration collects all the painless structs that
-            // are necessary for validation during the second iteration
-            for (Whitelist whitelist : whitelists) {
-                for (Whitelist.Struct whitelistStruct : whitelist.whitelistStructs) {
-                    origin = whitelistStruct.origin;
-                    addStruct(whitelist.javaClassLoader, whitelistStruct);
-                }
-            }
-
-            // second iteration adds all the constructors, methods, and fields that will
-            // be available in Painless along with validating they exist and all their types have
-            // been white-listed during the first iteration
-            for (Whitelist whitelist : whitelists) {
-                for (Whitelist.Struct whitelistStruct : whitelist.whitelistStructs) {
-                    String painlessStructName = whitelistStruct.javaClassName.replace('$', '.');
-                    Class<?> javaClass = painlessStructNamesToJavaClasses.get(painlessStructName);
-                    Struct painlessStruct = javaClassesToPainlessStructs.get(javaClass);
-
-                    for (Whitelist.Constructor whitelistConstructor : whitelistStruct.whitelistConstructors) {
-                        origin = whitelistConstructor.origin;
-                        addConstructor(whitelistConstructor, javaClass, painlessStruct);
-                    }
-
-                    for (Whitelist.Method whitelistMethod : whitelistStruct.whitelistMethods) {
-                        origin = whitelistMethod.origin;
-                        addMethod(whitelist.javaClassLoader, whitelistMethod, javaClass, painlessStruct);
-                    }
-
-                    for (Whitelist.Field whitelistField : whitelistStruct.whitelistFields) {
-                        origin = whitelistField.origin;
-                        addField(whitelistField, javaClass, painlessStruct);
-                    }
-                }
-            }
-        } catch (Exception exception) {
-            throw new IllegalArgumentException("error loading painless whitelist " + origin, exception);
-        }
+        addFromWhitelists(whitelists);
 
         // goes through each Painless struct and determines the inheritance list,
         // and then adds all inherited types to the Painless struct's whitelist
@@ -639,6 +604,58 @@ public final class Definition {
         IteratorType = getType("Iterator");
         ArrayListType = getType("ArrayList");
         HashMapType = getType("HashMap");*/
+    }
+
+    private Definition(Definition definition) {
+        this.painlessStructNamesToJavaClasses = Collections.unmodifiableMap(definition.painlessStructNamesToJavaClasses);
+        this.javaClassesToPainlessStructs = Collections.unmodifiableMap(definition.javaClassesToPainlessStructs);
+    }
+
+    private Definition freeze() {
+        return new Definition(this);
+    }
+
+    private void addFromWhitelists(List<Whitelist> whitelists) {
+        String origin = "";
+
+        try {
+            // first iteration collects all the painless structs that
+            // are necessary for validation during the second iteration
+            for (Whitelist whitelist : whitelists) {
+                for (Whitelist.Struct whitelistStruct : whitelist.whitelistStructs) {
+                    origin = whitelistStruct.origin;
+                    addStruct(whitelist.javaClassLoader, whitelistStruct);
+                }
+            }
+
+            // second iteration adds all the constructors, methods, and fields that will
+            // be available in Painless along with validating they exist and all their types have
+            // been white-listed during the first iteration
+            for (Whitelist whitelist : whitelists) {
+                for (Whitelist.Struct whitelistStruct : whitelist.whitelistStructs) {
+                    String painlessStructName = whitelistStruct.javaClassName.replace('$', '.');
+                    Class<?> javaClass = painlessStructNamesToJavaClasses.get(painlessStructName);
+                    Struct painlessStruct = javaClassesToPainlessStructs.get(javaClass);
+
+                    for (Whitelist.Constructor whitelistConstructor : whitelistStruct.whitelistConstructors) {
+                        origin = whitelistConstructor.origin;
+                        addConstructor(whitelistConstructor, javaClass, painlessStruct);
+                    }
+
+                    for (Whitelist.Method whitelistMethod : whitelistStruct.whitelistMethods) {
+                        origin = whitelistMethod.origin;
+                        addMethod(whitelist.javaClassLoader, whitelistMethod, javaClass, painlessStruct);
+                    }
+
+                    for (Whitelist.Field whitelistField : whitelistStruct.whitelistFields) {
+                        origin = whitelistField.origin;
+                        addField(whitelistField, javaClass, painlessStruct);
+                    }
+                }
+            }
+        } catch (Exception exception) {
+            throw new IllegalArgumentException("error loading painless whitelist " + origin, exception);
+        }
     }
 
     private void addStruct(ClassLoader whitelistClassLoader, Whitelist.Struct whitelistStruct) {
