@@ -19,8 +19,6 @@
 
 package org.elasticsearch.painless;
 
-import org.elasticsearch.painless.Definition.def;
-
 import java.lang.invoke.MethodType;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
@@ -192,7 +190,7 @@ public class ScriptClassInfo {
             componentType = componentType.getComponentType();
         }
 
-        if (definition.getPainlessStructFromJavaClass(componentType) == null) {
+        if (definition.getPainlessStruct(componentType) == null) {
             throw new IllegalArgumentException(unknownErrorMessageSource.apply(componentType));
         }
 

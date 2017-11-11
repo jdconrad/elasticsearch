@@ -185,7 +185,7 @@ public final class Def {
         Definition.MethodKey key = new Definition.MethodKey(name, arity);
         // check whitelist for matching method
         for (Class<?> clazz = receiverClass; clazz != null; clazz = clazz.getSuperclass()) {
-            Struct struct = definition.getPainlessStructFromJavaClass(clazz);
+            Struct struct = definition.getPainlessStruct(clazz);
 
             if (struct != null) {
                 Method method = struct.methods.get(key);
@@ -195,7 +195,7 @@ public final class Def {
             }
 
             for (Class<?> iface : clazz.getInterfaces()) {
-                struct = definition.getPainlessStructFromJavaClass(iface);
+                struct = definition.getPainlessStruct(iface);
 
                 if (struct != null) {
                     Method method = struct.methods.get(key);
@@ -324,8 +324,8 @@ public final class Def {
       */
     static MethodHandle lookupReference(Definition definition, Lookup lookup, String interfaceClass,
             Class<?> receiverClass, String name) throws Throwable {
-         Class<?> interfaceType = definition.getJavaClassFromPainlessType(interfaceClass);
-         Method interfaceMethod = definition.getPainlessStructFromJavaClass(interfaceType).functionalMethod;
+         Class<?> interfaceType = definition.getPainlessType(interfaceClass);
+         Method interfaceMethod = definition.getPainlessStruct(interfaceType).functionalMethod;
          if (interfaceMethod == null) {
              throw new IllegalArgumentException("Class [" + interfaceClass + "] is not a functional interface");
          }
@@ -342,7 +342,7 @@ public final class Def {
          final FunctionRef ref;
          if ("this".equals(type)) {
              // user written method
-             Method interfaceMethod = definition.getPainlessStructFromJavaClass(clazz).functionalMethod;
+             Method interfaceMethod = definition.getPainlessStruct(clazz).functionalMethod;
              if (interfaceMethod == null) {
                  throw new IllegalArgumentException("Cannot convert function reference [" + type + "::" + call + "] " +
                                                     "to [" + Definition.ClassToName(clazz) + "], not a functional interface");
@@ -415,7 +415,7 @@ public final class Def {
     static MethodHandle lookupGetter(Definition definition, Class<?> receiverClass, String name) {
         // first try whitelist
         for (Class<?> clazz = receiverClass; clazz != null; clazz = clazz.getSuperclass()) {
-            Struct struct = definition.getPainlessStructFromJavaClass(clazz);
+            Struct struct = definition.getPainlessStruct(clazz);
 
             if (struct != null) {
                 MethodHandle handle = struct.getters.get(name);
@@ -425,7 +425,7 @@ public final class Def {
             }
 
             for (final Class<?> iface : clazz.getInterfaces()) {
-                struct = definition.getPainlessStructFromJavaClass(iface);
+                struct = definition.getPainlessStruct(iface);
 
                 if (struct != null) {
                     MethodHandle handle = struct.getters.get(name);
@@ -486,7 +486,7 @@ public final class Def {
     static MethodHandle lookupSetter(Definition definition, Class<?> receiverClass, String name) {
         // first try whitelist
         for (Class<?> clazz = receiverClass; clazz != null; clazz = clazz.getSuperclass()) {
-            Struct struct = definition.getPainlessStructFromJavaClass(clazz);
+            Struct struct = definition.getPainlessStruct(clazz);
 
             if (struct != null) {
                 MethodHandle handle = struct.setters.get(name);
@@ -496,7 +496,7 @@ public final class Def {
             }
 
             for (final Class<?> iface : clazz.getInterfaces()) {
-                struct = definition.getPainlessStructFromJavaClass(iface);
+                struct = definition.getPainlessStruct(iface);
 
                 if (struct != null) {
                     MethodHandle handle = struct.setters.get(name);

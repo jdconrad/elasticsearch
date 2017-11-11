@@ -75,7 +75,7 @@ public class FunctionRef {
      * @param numCaptures number of captured arguments
      */
     public FunctionRef(Definition definition, Class<?> expected, String type, String call, int numCaptures) {
-        this(expected, definition.getPainlessStructFromJavaClass(expected).functionalMethod,
+        this(expected, definition.getPainlessStruct(expected).functionalMethod,
                 lookup(definition, expected, type, call, numCaptures > 0), numCaptures);
     }
 
@@ -155,14 +155,14 @@ public class FunctionRef {
                                             String type, String call, boolean receiverCaptured) {
         // check its really a functional interface
         // for e.g. Comparable
-        Method method = definition.getPainlessStructFromJavaClass(expected).functionalMethod;
+        Method method = definition.getPainlessStruct(expected).functionalMethod;
         if (method == null) {
             throw new IllegalArgumentException("Cannot convert function reference [" + type + "::" + call + "] " +
                                                "to [" + Definition.ClassToName(expected) + "], not a functional interface");
         }
 
         // lookup requested method
-        Definition.Struct struct = definition.getPainlessStructFromJavaClass(definition.getJavaClassFromPainlessType(type));
+        Definition.Struct struct = definition.getPainlessStruct(definition.getPainlessType(type));
         final Definition.Method impl;
         // ctor ref
         if ("new".equals(call)) {

@@ -106,7 +106,7 @@ public final class SFunction extends AStatement {
 
     void generateSignature(Definition definition) {
         try {
-            rtnType = definition.getJavaClassFromPainlessType(rtnTypeStr);
+            rtnType = definition.getPainlessType(rtnTypeStr);
         } catch (IllegalArgumentException exception) {
             throw createError(new IllegalArgumentException("Illegal return type [" + rtnTypeStr + "] for function [" + name + "]."));
         }
@@ -120,9 +120,9 @@ public final class SFunction extends AStatement {
 
         for (int param = 0; param < this.paramTypeStrs.size(); ++param) {
             try {
-                Class<?> paramType = definition.getJavaClassFromPainlessType(this.paramTypeStrs.get(param));
+                Class<?> paramType = definition.getPainlessType(this.paramTypeStrs.get(param));
 
-                paramClasses[param] = Definition.defClassToObjectClass(paramType);
+                paramClasses[param] = Definition.convertPainlessTypeToJavaType(paramType);
                 paramTypes.add(paramType);
                 parameters.add(new Parameter(location, paramNameStrs.get(param), paramType));
             } catch (IllegalArgumentException exception) {
@@ -132,7 +132,7 @@ public final class SFunction extends AStatement {
         }
 
         org.objectweb.asm.commons.Method method = new org.objectweb.asm.commons.Method(
-            name, MethodType.methodType(Definition.defClassToObjectClass(rtnType), paramClasses).toMethodDescriptorString());
+            name, MethodType.methodType(Definition.convertPainlessTypeToJavaType(rtnType), paramClasses).toMethodDescriptorString());
         this.method = new Method(name, null, null, rtnType, paramTypes, method, Modifier.STATIC | Modifier.PRIVATE, null);
     }
 

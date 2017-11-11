@@ -77,7 +77,7 @@ final class SSubEachIterable extends AStatement {
         if (expression.actual == def.class) {
             method = null;
         } else {
-            method = locals.getDefinition().getPainlessStructFromJavaClass(expression.actual).methods.get(new MethodKey("iterator", 0));
+            method = locals.getDefinition().getPainlessStruct(expression.actual).methods.get(new MethodKey("iterator", 0));
 
             if (method == null) {
                 throw createError(new IllegalArgumentException(

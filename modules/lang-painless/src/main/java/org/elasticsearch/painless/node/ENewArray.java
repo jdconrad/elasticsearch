@@ -19,7 +19,6 @@
 
 package org.elasticsearch.painless.node;
 
-import org.elasticsearch.painless.Definition;
 import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
@@ -62,7 +61,7 @@ public final class ENewArray extends AExpression {
         Class<?> clazz;
 
         try {
-            clazz = locals.getDefinition().getJavaClassFromPainlessType(this.type);
+            clazz = locals.getDefinition().getPainlessType(this.type);
         } catch (IllegalArgumentException exception) {
             throw createError(new IllegalArgumentException("Not a type [" + this.type + "]."));
         }

@@ -402,7 +402,7 @@ public class NodeToStringTests extends ESTestCase {
 
     public void testPSubCallInvoke() {
         Location l = new Location(getTestName(), 0);
-        Struct c = definition.getPainlessStructFromJavaClass(Integer.class);
+        Struct c = definition.getPainlessStruct(Integer.class);
         Method m = c.methods.get(new MethodKey("toString", 0));
         PSubCallInvoke node = new PSubCallInvoke(l, m, null, emptyList());
         node.prefix = new EVariable(l, "a");
@@ -457,7 +457,7 @@ public class NodeToStringTests extends ESTestCase {
 
     public void testPSubField() {
         Location l = new Location(getTestName(), 0);
-        Struct s = definition.getPainlessStructFromJavaClass(Boolean.class);
+        Struct s = definition.getPainlessStruct(Boolean.class);
         Field f = s.staticMembers.get("TRUE");
         PSubField node = new PSubField(l, f);
         node.prefix = new EStatic(l, "Boolean");
@@ -467,7 +467,7 @@ public class NodeToStringTests extends ESTestCase {
 
     public void testPSubListShortcut() {
         Location l = new Location(getTestName(), 0);
-        Struct s = definition.getPainlessStructFromJavaClass(List.class);
+        Struct s = definition.getPainlessStruct(List.class);
         PSubListShortcut node = new PSubListShortcut(l, s, new EConstant(l, 1));
         node.prefix = new EVariable(l, "a");
         assertEquals("(PSubListShortcut (EVariable a) (EConstant Integer 1))", node.toString());
@@ -475,7 +475,7 @@ public class NodeToStringTests extends ESTestCase {
                 new PSubNullSafeCallInvoke(l, node).toString());
 
         l = new Location(getTestName(), 0);
-        s = definition.getPainlessStructFromJavaClass(List.class);
+        s = definition.getPainlessStruct(List.class);
         node = new PSubListShortcut(l, s, new EBinary(l, Operation.ADD, new EConstant(l, 1), new EConstant(l, 4)));
         node.prefix = new EVariable(l, "a");
         assertEquals("(PSubListShortcut (EVariable a) (EBinary (EConstant Integer 1) + (EConstant Integer 4)))", node.toString());
@@ -483,7 +483,7 @@ public class NodeToStringTests extends ESTestCase {
 
     public void testPSubMapShortcut() {
         Location l = new Location(getTestName(), 0);
-        Struct s = definition.getPainlessStructFromJavaClass(Map.class);
+        Struct s = definition.getPainlessStruct(Map.class);
         PSubMapShortcut node = new PSubMapShortcut(l, s, new EConstant(l, "cat"));
         node.prefix = new EVariable(l, "a");
         assertEquals("(PSubMapShortcut (EVariable a) (EConstant String 'cat'))", node.toString());
@@ -491,7 +491,7 @@ public class NodeToStringTests extends ESTestCase {
                 new PSubNullSafeCallInvoke(l, node).toString());
 
         l = new Location(getTestName(), 1);
-        s = definition.getPainlessStructFromJavaClass(Map.class);
+        s = definition.getPainlessStruct(Map.class);
         node = new PSubMapShortcut(l, s, new EBinary(l, Operation.ADD, new EConstant(l, 1), new EConstant(l, 4)));
         node.prefix = new EVariable(l, "a");
         assertEquals("(PSubMapShortcut (EVariable a) (EBinary (EConstant Integer 1) + (EConstant Integer 4)))", node.toString());
@@ -499,7 +499,7 @@ public class NodeToStringTests extends ESTestCase {
 
     public void testPSubShortcut() {
         Location l = new Location(getTestName(), 0);
-        Struct s = definition.getPainlessStructFromJavaClass(FeatureTest.class);
+        Struct s = definition.getPainlessStruct(FeatureTest.class);
         Method getter = s.methods.get(new MethodKey("getX", 0));
         Method setter = s.methods.get(new MethodKey("setX", 1));
         PSubShortcut node = new PSubShortcut(l, "x", FeatureTest.class.getName(), getter, setter);
