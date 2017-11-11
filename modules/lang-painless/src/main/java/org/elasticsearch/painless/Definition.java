@@ -540,7 +540,7 @@ public final class Definition {
 
                     for (Whitelist.Field whitelistField : whitelistStruct.whitelistFields) {
                         origin = whitelistField.origin;
-                        addField(painlessTypeName, whitelistField);
+                        addField(painlessStructName, whitelistField);
                     }
                 }
             }
@@ -716,7 +716,7 @@ public final class Definition {
                 Class<?> javaType = convertPainlessTypeToJavaType(painlessType);
 
                 painlessTypeParameters.add(painlessType);
-                javaTypeParameters[parametersLength] = javaType;
+                javaTypeParameters[parametersCount] = javaType;
             } catch (IllegalArgumentException iae) {
                 throw new IllegalArgumentException("invalid painless type name [" + painlessTypeName + "] " +
                         "for painless constructor with painless struct [" + javaClass.getCanonicalName() + "] " +
@@ -784,15 +784,15 @@ public final class Definition {
             javaTypeParameters[0] = javaClass;
         }
 
-        for (int parameterCount = 0; parameterCount < parametersLength; ++parameterCount) {
-            String painlessTypeName = whitelistMethod.painlessParameterTypeNames.get(parameterCount);
+        for (int parametersCount = 0; parametersCount < parametersLength; ++parametersCount) {
+            String painlessTypeName = whitelistMethod.painlessParameterTypeNames.get(parametersCount);
 
             try {
                 Class<?> painlessType = getPainlessType(painlessTypeName);
                 Class<?> javaType = convertPainlessTypeToJavaType(painlessType);
 
                 painlessTypeParameters.add(painlessType);
-                javaTypeParameters[parameterCount + augmentedOffset] = javaType;
+                javaTypeParameters[parametersCount + augmentedOffset] = javaType;
             } catch (IllegalArgumentException iae) {
                 throw new IllegalArgumentException("invalid painless type name [" + painlessTypeName + "] " +
                         "for painless method [" + whitelistMethod.javaMethodName + "] " +
@@ -824,62 +824,38 @@ public final class Definition {
         }
 
         if (javaMethod.getReturnType() != convertPainlessTypeToJavaType(painlessTypeReturn)) {
-            throw new IllegalArgumentException("whitelisted painless type return [" + painlessTypeReturn.getCanonicalName() + "] " +
-                    "does not match the java return type [" + javaMethod.getReturnType().getCanonicalName() + "] for the " +
-                    "method with name [" + whitelistMethod.javaMethodName + "] " +
-                    "and parameters " + whitelistMethod.painlessParameterTypeNames);
+            throw new IllegalArgumentException("painless type return [" + painlessTypeReturn.getCanonicalName() + "] " +
+                    "does not match the java type return [" + javaMethod.getReturnType().getCanonicalName() + "] " +
+                    "for painless method [" + whitelistMethod.javaMethodName + "] " +
+                    "with painless struct [" + javaClass.getCanonicalName() + "] " +
+                    "and painless type parameters " + whitelistMethod.painlessParameterTypeNames);
         }
 
         MethodKey painlessMethodKey = new MethodKey(whitelistMethod.javaMethodName, whitelistMethod.painlessParameterTypeNames.size());
+        Map<MethodKey, Method> painlessMethods =
+                augmentedJavaClass == null && Modifier.isStatic(javaMethod.getModifiers()) ?
+                painlessStruct.staticMethods : painlessStruct.methods;
 
-        if (javaAugmentedClass == null && Modifier.isStatic(javaMethod.getModifiers())) {
-            Method painlessMethod = ownerStruct.staticMethods.get(painlessMethodKey);
+        Method painlessMethod = painlessMethods.get(painlessMethodKey);
 
-            if (painlessMethod == null) {
-                org.objectweb.asm.commons.Method asmMethod = org.objectweb.asm.commons.Method.getMethod(javaMethod);
-                MethodHandle javaMethodHandle;
+        if (painlessMethod == null) {
+            org.objectweb.asm.commons.Method asmMethod = org.objectweb.asm.commons.Method.getMethod(javaMethod);
+            MethodHandle javaMethodHandle;
 
-                try {
-                    javaMethodHandle = MethodHandles.publicLookup().in(javaImplClass).unreflect(javaMethod);
-                } catch (IllegalAccessException exception) {
-                    throw new IllegalArgumentException("method handle not found for method with name " +
-                        "[" + whitelistMethod.javaMethodName + "] and parameters " + whitelistMethod.painlessParameterTypeNames);
-                }
-
-                painlessMethod = new Method(whitelistMethod.javaMethodName, ownerStruct, null, painlessTypeReturn,
-                    painlessTypeParameters, asmMethod, javaMethod.getModifiers(), javaMethodHandle);
-                ownerStruct.staticMethods.put(painlessMethodKey, painlessMethod);
-            } else if ((painlessMethod.name.equals(whitelistMethod.javaMethodName) && painlessMethod.rtn == painlessTypeReturn &&
-                    painlessMethod.arguments.equals(painlessTypeParameters)) == false) {
-                throw new IllegalArgumentException("illegal duplicate static methods [" + painlessMethodKey + "] " +
-                        "found within the struct [" + ownerStruct.name + "] with name [" + whitelistMethod.javaMethodName + "], " +
-                        "return types [" + painlessTypeReturn + "] and [" + painlessMethod.rtn + "], " +
-                        "and parameters " + painlessTypeParameters + " and " + painlessMethod.arguments);
+            try {
+                javaMethodHandle = MethodHandles.publicLookup().in(javaClassImpl).unreflect(javaMethod);
+            } catch (IllegalAccessException exception) {
+                throw new IllegalArgumentException("method handle not found for method with name " +
+                    "[" + whitelistMethod.javaMethodName + "] and parameters " + whitelistMethod.painlessParameterTypeNames);
             }
-        } else {
-            Method painlessMethod = ownerStruct.methods.get(painlessMethodKey);
 
-            if (painlessMethod == null) {
-                org.objectweb.asm.commons.Method asmMethod = org.objectweb.asm.commons.Method.getMethod(javaMethod);
-                MethodHandle javaMethodHandle;
-
-                try {
-                    javaMethodHandle = MethodHandles.publicLookup().in(javaImplClass).unreflect(javaMethod);
-                } catch (IllegalAccessException exception) {
-                    throw new IllegalArgumentException("method handle not found for method with name " +
-                        "[" + whitelistMethod.javaMethodName + "] and parameters " + whitelistMethod.painlessParameterTypeNames);
-                }
-
-                painlessMethod = new Method(whitelistMethod.javaMethodName, ownerStruct, javaAugmentedClass, painlessTypeReturn,
-                    painlessTypeParameters, asmMethod, javaMethod.getModifiers(), javaMethodHandle);
-                ownerStruct.methods.put(painlessMethodKey, painlessMethod);
-            } else if ((painlessMethod.name.equals(whitelistMethod.javaMethodName) && painlessMethod.rtn.equals(painlessTypeReturn) &&
-                painlessMethod.arguments.equals(painlessTypeParameters)) == false) {
-                throw new IllegalArgumentException("illegal duplicate member methods [" + painlessMethodKey + "] " +
-                    "found within the struct [" + ownerStruct.name + "] with name [" + whitelistMethod.javaMethodName + "], " +
-                    "return types [" + painlessTypeReturn + "] and [" + painlessMethod.rtn + "], " +
-                    "and parameters " + painlessTypeParameters + " and " + painlessMethod.arguments);
-            }
+            painlessMethod = new Method(whitelistMethod.javaMethodName, painlessStruct, augmentedJavaClass, painlessTypeReturn,
+                painlessTypeParameters, asmMethod, javaMethod.getModifiers(), javaMethodHandle);
+            painlessMethods.put(painlessMethodKey, painlessMethod);
+        } else if ((painlessMethod.rtn == painlessTypeReturn && painlessMethod.arguments.equals(painlessTypeParameters)) == false) {
+            throw new IllegalArgumentException("duplicate painless methods [" + painlessMethodKey + "]" +
+                "defined for painless struct [" + javaClass.getCanonicalName() + "] " +
+                "with painless type parameters " + painlessTypeParameters + " and " + painlessMethod.arguments);
         }
     }
 
