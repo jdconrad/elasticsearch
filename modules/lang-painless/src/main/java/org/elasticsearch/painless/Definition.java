@@ -524,7 +524,9 @@ public final class Definition {
             // been white-listed during the first iteration
             for (Whitelist whitelist : whitelists) {
                 for (Whitelist.Struct whitelistStruct : whitelist.whitelistStructs) {
-                    String painlessTypeName = whitelistStruct.javaClassName.replace('$', '.');
+                    String painlessStructName = whitelistStruct.javaClassName.replace('$', '.');
+                    Class<?> javaClass = painlessStructNamesToJavaClasses.get(painlessStructName);
+                    Struct painlessStruct = javaClassesToPainlessStructs.get(javaClass);
 
                     for (Whitelist.Constructor whitelistConstructor : whitelistStruct.whitelistConstructors) {
                         origin = whitelistConstructor.origin;
@@ -701,25 +703,18 @@ public final class Definition {
         }
     }
 
-    private void addConstructor(String ownerStructName, Whitelist.Constructor whitelistConstructor) {
-        Struct ownerStruct = javaClassesToPainlessStructs.get(painlessStructNamesToJavaClasses.get(ownerStructName));
-
-        if (ownerStruct == null) {
-            throw new IllegalArgumentException("owner struct [" + ownerStructName + "] not defined for constructor with " +
-                    "parameters " + whitelistConstructor.painlessParameterTypeNames);
-        }
-
-        List<Class<?>> painlessParametersTypes = new ArrayList<>(whitelistConstructor.painlessParameterTypeNames.size());
+    private void addConstructor(Whitelist.Constructor whitelistConstructor, Class<?> javaClass, Struct painlessStruct) {
+        List<Class<?>> painlessTypeParameters = new ArrayList<>(whitelistConstructor.painlessParameterTypeNames.size());
         Class<?>[] javaClassParameters = new Class<?>[whitelistConstructor.painlessParameterTypeNames.size()];
 
-        for (int parameterCount = 0; parameterCount < whitelistConstructor.painlessParameterTypeNames.size(); ++parameterCount) {
-            String painlessParameterTypeName = whitelistConstructor.painlessParameterTypeNames.get(parameterCount);
+        for (int parametersCount = 0; parametersCount < whitelistConstructor.painlessParameterTypeNames.size(); ++parametersCount) {
+            String painlessTypeName = whitelistConstructor.painlessParameterTypeNames.get(parametersCount);
 
             try {
-                Class<?> painlessParameterClass = getJavaClassFromPainlessType(painlessParameterTypeName);
+                Class<?> painlessParameterClass = getJavaClassFromPainlessType(painlessTypeName);
 
-                painlessParametersTypes.add(painlessParameterClass);
-                javaClassParameters[parameterCount] = defClassToObjectClass(painlessParameterClass);
+                painlessTypeParameters.add(painlessParameterClass);
+                javaClassParameters[parametersCount] = defClassToObjectClass(painlessParameterClass);
             } catch (IllegalArgumentException iae) {
                 throw new IllegalArgumentException("struct not defined for constructor parameter [" + painlessParameterTypeName + "] " +
                         "with owner struct [" + ownerStructName + "] and constructor parameters " +
