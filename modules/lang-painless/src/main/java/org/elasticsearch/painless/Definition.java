@@ -27,11 +27,16 @@ import java.lang.invoke.MethodType;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.Stack;
 
 /**
@@ -512,65 +517,7 @@ public final class Definition {
         javaClassesToPainlessStructs.put(def.class, new Struct("def", Object.class, Type.getType(Object.class)));
 
         addFromWhitelists(whitelists);
-
-        // goes through each Painless struct and determines the inheritance list,
-        // and then adds all inherited types to the Painless struct's whitelist
-        for (Class<?> javaClass : javaClassesToPainlessStructs.keySet()) {
-            Struct painlessStruct = javaClassesToPainlessStructs.get(javaClass);
-
-            List<String> painlessSuperStructs = new ArrayList<>();
-            Class<?> javaSuperClass = painlessStruct.clazz.getSuperclass();
-
-            Stack<Class<?>> javaInteraceLookups = new Stack<>();
-            javaInteraceLookups.push(painlessStruct.clazz);
-
-            // adds super classes to the inheritance list
-            if (javaSuperClass != null && javaSuperClass.isInterface() == false) {
-                while (javaSuperClass != null) {
-                    Struct painlessSuperStruct = javaClassesToPainlessStructs.get(javaSuperClass);
-
-                    if (painlessSuperStruct != null) {
-                        painlessSuperStructs.add(painlessSuperStruct.name);
-                    }
-
-                    javaInteraceLookups.push(javaSuperClass);
-                    javaSuperClass = javaSuperClass.getSuperclass();
-                }
-            }
-
-            // adds all super interfaces to the inheritance list
-            while (javaInteraceLookups.isEmpty() == false) {
-                Class<?> javaInterfaceLookup = javaInteraceLookups.pop();
-
-                for (Class<?> javaSuperInterface : javaInterfaceLookup.getInterfaces()) {
-                    Struct painlessInterfaceStruct = javaClassesToPainlessStructs.get(javaSuperInterface);
-
-                    if (painlessInterfaceStruct != null) {
-                        String painlessInterfaceStructName = painlessInterfaceStruct.name;
-
-                        if (painlessSuperStructs.contains(painlessInterfaceStructName) == false) {
-                            painlessSuperStructs.add(painlessInterfaceStructName);
-                        }
-
-                        for (Class<?> javaPushInterface : javaInterfaceLookup.getInterfaces()) {
-                            javaInteraceLookups.push(javaPushInterface);
-                        }
-                    }
-                }
-            }
-
-            // copies methods and fields from super structs to the parent struct
-            copyStruct(painlessStruct.name, painlessSuperStructs);
-
-            // copies methods and fields from Object into interface types
-            if (painlessStruct.clazz.isInterface() || ("def").equals(painlessStruct.name)) {
-                Struct painlessObjectStruct = javaClassesToPainlessStructs.get(Object.class);
-
-                if (painlessObjectStruct != null) {
-                    copyStruct(painlessStruct.name, Collections.singletonList(painlessObjectStruct.name));
-                }
-            }
-        }
+        buildInheritance();
 
         // copy all structs to make them unmodifiable for outside users:
         for (Map.Entry<Class<?>,Struct> entry : javaClassesToPainlessStructs.entrySet()) {
@@ -616,7 +563,7 @@ public final class Definition {
     }
 
     private void addFromWhitelists(List<Whitelist> whitelists) {
-        String origin = "";
+        String origin = "[none]";
 
         try {
             // first iteration collects all the painless structs that
@@ -951,6 +898,59 @@ public final class Definition {
             throw new IllegalArgumentException("duplicate painless fields [" + painlessFieldName + "]" +
                 "defined for painless struct [" + javaClass.getCanonicalName() + "] " +
                 "with painless types [" + fieldPainlessType.getCanonicalName() + " and " + painlessField.clazz.getCanonicalName());
+        }
+    }
+
+    private void buildInheritance() {
+        Set<Class<?>> javaClasses = new HashSet<>(javaClassesToPainlessStructs.keySet());
+        javaClasses.removeIf(javaClass -> javaClass == def.class || javaClass.isPrimitive());
+
+        List<Class<?>> javaClassesHierarchy = new ArrayList<>();
+
+        for (Class<?> newJavaClass : javaClasses) {
+            if (newJavaClass.isInterface()) {
+                int javaClassIndex = 0;
+
+                for (Class<?> existingJavaClass : javaClassesHierarchy) {
+                    if (newJavaClass.isAssignableFrom(existingJavaClass)) {
+                        break;
+                    }
+
+                    ++javaClassIndex;
+                }
+
+                javaClassesHierarchy.add(javaClassIndex, newJavaClass);
+            }
+        }
+
+        for (Class<?> newJavaClass : javaClasses) {
+            if (newJavaClass.isInterface() == false) {
+                int javaClassIndex = 0;
+
+                for (Class<?> existingJavaClass : javaClassesHierarchy) {
+                    if (newJavaClass.isAssignableFrom(existingJavaClass)) {
+                        break;
+                    }
+
+                    ++javaClassIndex;
+                }
+
+                javaClassesHierarchy.add(javaClassIndex, newJavaClass);
+            }
+        }
+
+        for (int copyToIndex = javaClassesHierarchy.size() - 1; copyToIndex >= 0; --copyToIndex) {
+            Class<?> javaClassCopyTo = javaClassesHierarchy.get(copyToIndex);
+            Struct painlessStructCopyTo = javaClassesToPainlessStructs.get(javaClassCopyTo);
+
+            for (int copyFromIndex = copyToIndex - 1; copyFromIndex >= 0; --copyFromIndex) {
+                Class<?> javaClassCopyFrom = javaClassesHierarchy.get(copyFromIndex);
+
+                if (javaClassCopyFrom.isAssignableFrom(javaClassCopyTo)) {
+                    Struct painlessStructCopyFrom = javaClassesToPainlessStructs.get(javaClassCopyFrom);
+                    copyStruct(painlessStructCopyTo.name, Collections.singletonList(painlessStructCopyFrom.name));
+                }
+            }
         }
     }
 
