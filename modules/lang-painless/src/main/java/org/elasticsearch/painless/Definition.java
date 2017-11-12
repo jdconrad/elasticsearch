@@ -948,90 +948,38 @@ public final class Definition {
 
                 if (javaClassCopyFrom.isAssignableFrom(javaClassCopyTo)) {
                     Struct painlessStructCopyFrom = javaClassesToPainlessStructs.get(javaClassCopyFrom);
-                    copyStruct(painlessStructCopyTo.name, Collections.singletonList(painlessStructCopyFrom.name));
-                }
-            }
-        }
-    }
 
-    private void copyStruct(String struct, List<String> children) {
-        final Struct owner = javaClassesToPainlessStructs.get(painlessStructNamesToJavaClasses.get(struct));
-
-        if (owner == null) {
-            throw new IllegalArgumentException("Owner struct [" + struct + "] not defined for copy.");
-        }
-
-        for (int count = 0; count < children.size(); ++count) {
-            final Struct child = javaClassesToPainlessStructs.get(painlessStructNamesToJavaClasses.get(children.get(count)));
-
-            if (child == null) {
-                throw new IllegalArgumentException("Child struct [" + children.get(count) + "]" +
-                    " not defined for copy to owner struct [" + owner.name + "].");
-            }
-
-            if (!child.clazz.isAssignableFrom(owner.clazz)) {
-                throw new ClassCastException("Child struct [" + child.name + "]" +
-                    " is not a super type of owner struct [" + owner.name + "] in copy.");
-            }
-
-            for (Map.Entry<MethodKey,Method> kvPair : child.methods.entrySet()) {
-                MethodKey methodKey = kvPair.getKey();
-                Method method = kvPair.getValue();
-                if (owner.methods.get(methodKey) == null) {
-                    // TODO: some of these are no longer valid or outright don't work
-                    // TODO: since classes may not come from the Painless classloader
-                    // TODO: and it was dependent on the order of the extends which
-                    // TODO: which no longer exists since this is generated automatically
-                    // sanity check, look for missing covariant/generic override
-                    /*if (owner.clazz.isInterface() && child.clazz == Object.class) {
-                        // ok
-                    } else if (child.clazz == Spliterator.OfPrimitive.class || child.clazz == PrimitiveIterator.class) {
-                        // ok, we rely on generics erasure for these (its guaranteed in the javadocs though!!!!)
-                    } else if (Constants.JRE_IS_MINIMUM_JAVA9 && owner.clazz == LocalDate.class) {
-                        // ok, java 9 added covariant override for LocalDate.getEra() to return IsoEra:
-                        // https://bugs.openjdk.java.net/browse/JDK-8072746
-                    } else {
-                        try {
-                            // TODO: we *have* to remove all these public members and use getter methods to encapsulate!
-                            final Class<?> impl;
-                            final Class<?> arguments[];
-                            if (method.augmentation != null) {
-                                impl = method.augmentation;
-                                arguments = new Class<?>[method.arguments.size() + 1];
-                                arguments[0] = method.owner.clazz;
-                                for (int i = 0; i < method.arguments.size(); i++) {
-                                    arguments[i + 1] = method.arguments.get(i).clazz;
-                                }
-                            } else {
-                                impl = owner.clazz;
-                                arguments = new Class<?>[method.arguments.size()];
-                                for (int i = 0; i < method.arguments.size(); i++) {
-                                    arguments[i] = method.arguments.get(i).clazz;
-                                }
-                            }
-                            java.lang.reflect.Method m = impl.getMethod(method.method.getName(), arguments);
-                            if (m.getReturnType() != method.rtn.clazz) {
-                                throw new IllegalStateException("missing covariant override for: " + m + " in " + owner.name);
-                            }
-                            if (m.isBridge() && !Modifier.isVolatile(method.modifiers)) {
-                                // its a bridge in the destination, but not in the source, but it might still be ok, check generics:
-                                java.lang.reflect.Method source = child.clazz.getMethod(method.method.getName(), arguments);
-                                if (!Arrays.equals(source.getGenericParameterTypes(), source.getParameterTypes())) {
-                                    throw new IllegalStateException("missing generic override for: " + m + " in " + owner.name);
-                                }
-                            }
-                        } catch (ReflectiveOperationException e) {
-                            throw new AssertionError(e);
+                    for (Map.Entry<MethodKey, Method> painlessMethodEntry : painlessStructCopyFrom.methods.entrySet()) {
+                        if (painlessStructCopyTo.methods.containsKey(painlessMethodEntry.getKey()) == false) {
+                            painlessStructCopyTo.methods.put(painlessMethodEntry.getKey(), painlessMethodEntry.getValue());
+                        } else {
+                            throw new IllegalStateException("WTF method");
                         }
-                    }*/
-                    owner.methods.put(methodKey, method);
-                }
-            }
+                    }
 
-            for (Field field : child.members.values()) {
-                if (owner.members.get(field.name) == null) {
-                    owner.members.put(field.name,
-                        new Field(field.name, field.javaName, owner, field.clazz, field.modifiers, field.getter, field.setter));
+                    for (Map.Entry<String, Field> painlessFieldEntry : painlessStructCopyFrom.members.entrySet()) {
+                        if (painlessStructCopyTo.members.containsKey(painlessFieldEntry.getKey()) == false) {
+                            painlessStructCopyTo.members.put(painlessFieldEntry.getKey(), painlessFieldEntry.getValue());
+                        } else {
+                            throw new IllegalStateException("WTF member");
+                        }
+                    }
+
+                    for (Map.Entry<String, MethodHandle> painlessGetterEntry : painlessStructCopyFrom.getters.entrySet()) {
+                        if (painlessStructCopyTo.getters.containsKey(painlessGetterEntry.getKey()) == false) {
+                            painlessStructCopyTo.getters.put(painlessGetterEntry.getKey(), painlessGetterEntry.getValue());
+                        } else {
+                            throw new IllegalStateException("WTF getter");
+                        }
+                    }
+
+                    for (Map.Entry<String, MethodHandle> painlessSetterEntry : painlessStructCopyFrom.setters.entrySet()) {
+                        if (painlessStructCopyTo.setters.containsKey(painlessSetterEntry.getKey()) == false) {
+                            painlessStructCopyTo.setters.put(painlessSetterEntry.getKey(), painlessSetterEntry.getValue());
+                        } else {
+                            throw new IllegalStateException("WTF setter");
+                        }
+                    }
                 }
             }
         }
