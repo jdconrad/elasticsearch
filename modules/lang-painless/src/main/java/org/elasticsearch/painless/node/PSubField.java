@@ -50,7 +50,7 @@ final class PSubField extends AStoreable {
 
     @Override
     void analyze(Locals locals) {
-         if (write && Modifier.isFinal(field.modifiers)) {
+         if (write && Modifier.isFinal(field.javaField.getModifiers())) {
              throw createError(new IllegalArgumentException(
                  "Cannot write to read-only field [" + field.name + "] for type [" + Definition.ClassToName(field.clazz) + "]."));
          }
@@ -62,7 +62,7 @@ final class PSubField extends AStoreable {
     void write(MethodWriter writer, Globals globals) {
         writer.writeDebugInfo(location);
 
-        if (java.lang.reflect.Modifier.isStatic(field.modifiers)) {
+        if (java.lang.reflect.Modifier.isStatic(field.javaField.getModifiers())) {
             writer.getStatic(field.owner.type, field.javaName, MethodWriter.getType(field.clazz));
         } else {
             writer.getField(field.owner.type, field.javaName, MethodWriter.getType(field.clazz));
@@ -93,7 +93,7 @@ final class PSubField extends AStoreable {
     void load(MethodWriter writer, Globals globals) {
         writer.writeDebugInfo(location);
 
-        if (java.lang.reflect.Modifier.isStatic(field.modifiers)) {
+        if (java.lang.reflect.Modifier.isStatic(field.javaField.getModifiers())) {
             writer.getStatic(field.owner.type, field.javaName, MethodWriter.getType(field.clazz));
         } else {
             writer.getField(field.owner.type, field.javaName, MethodWriter.getType(field.clazz));
@@ -104,7 +104,7 @@ final class PSubField extends AStoreable {
     void store(MethodWriter writer, Globals globals) {
         writer.writeDebugInfo(location);
 
-        if (java.lang.reflect.Modifier.isStatic(field.modifiers)) {
+        if (java.lang.reflect.Modifier.isStatic(field.javaField.getModifiers())) {
             writer.putStatic(field.owner.type, field.javaName, MethodWriter.getType(field.clazz));
         } else {
             writer.putField(field.owner.type, field.javaName, MethodWriter.getType(field.clazz));

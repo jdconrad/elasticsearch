@@ -133,7 +133,7 @@ public final class SFunction extends AStatement {
 
         org.objectweb.asm.commons.Method method = new org.objectweb.asm.commons.Method(
             name, MethodType.methodType(Definition.convertPainlessTypeToJavaType(rtnType), paramClasses).toMethodDescriptorString());
-        this.method = new Method(name, null, null, rtnType, paramTypes, method, Modifier.STATIC | Modifier.PRIVATE, null);
+        this.method = new Method(name, null, null, rtnType, paramTypes, method, null, null);
     }
 
     @Override

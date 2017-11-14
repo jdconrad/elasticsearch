@@ -24,19 +24,15 @@ import org.objectweb.asm.Type;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
+import java.lang.reflect.Executable;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.Stack;
 
 /**
@@ -82,18 +78,18 @@ public final class Definition {
         public final Class<?> rtn;
         public final List<Class<?>> arguments;
         public final org.objectweb.asm.commons.Method method;
-        public final int modifiers;
+        public final Executable javaExecutable;
         public final MethodHandle handle;
 
         public Method(String name, Struct owner, Class<?> augmentation, Class<?> rtn, List<Class<?>> arguments,
-                      org.objectweb.asm.commons.Method method, int modifiers, MethodHandle handle) {
+                      org.objectweb.asm.commons.Method method, Executable javaMethod, MethodHandle handle) {
             this.name = name;
             this.augmentation = augmentation;
             this.owner = owner;
             this.rtn = rtn;
             this.arguments = Collections.unmodifiableList(arguments);
             this.method = method;
-            this.modifiers = modifiers;
+            this.javaExecutable = javaMethod;
             this.handle = handle;
         }
 
@@ -119,7 +115,7 @@ public final class Definition {
                     params[i + 1] = convertPainlessTypeToJavaType(arguments.get(i));
                 }
                 returnValue = convertPainlessTypeToJavaType(rtn);
-            } else if (Modifier.isStatic(modifiers)) {
+            } else if (owner == null || Modifier.isStatic(javaExecutable.getModifiers())) {
                 // static method: straightforward copy
                 params = new Class<?>[arguments.size()];
                 for (int i = 0; i < arguments.size(); i++) {
@@ -148,13 +144,13 @@ public final class Definition {
         public void write(MethodWriter writer) {
             final org.objectweb.asm.Type type;
             if (augmentation != null) {
-                assert java.lang.reflect.Modifier.isStatic(modifiers);
+                assert java.lang.reflect.Modifier.isStatic(javaExecutable.getModifiers());
                 type = org.objectweb.asm.Type.getType(augmentation);
             } else {
                 type = owner.type;
             }
 
-            if (java.lang.reflect.Modifier.isStatic(modifiers)) {
+            if (java.lang.reflect.Modifier.isStatic(javaExecutable.getModifiers())) {
                 writer.invokeStatic(type, method);
             } else if (java.lang.reflect.Modifier.isInterface(owner.clazz.getModifiers())) {
                 writer.invokeInterface(type, method);
@@ -169,18 +165,14 @@ public final class Definition {
         public final Struct owner;
         public final Class<?> clazz;
         public final String javaName;
-        public final int modifiers;
-        private final MethodHandle getter;
-        private final MethodHandle setter;
+        public final java.lang.reflect.Field javaField;
 
-        private Field(String name, String javaName, Struct owner, Class<?> clazz, int modifiers, MethodHandle getter, MethodHandle setter) {
+        private Field(String name, String javaName, Struct owner, Class<?> clazz, java.lang.reflect.Field javaField) {
             this.name = name;
             this.javaName = javaName;
             this.owner = owner;
             this.clazz = clazz;
-            this.modifiers = modifiers;
-            this.getter = getter;
-            this.setter = setter;
+            this.javaField = javaField;
         }
     }
 
@@ -517,7 +509,8 @@ public final class Definition {
         javaClassesToPainlessStructs.put(def.class, new Struct("def", Object.class, Type.getType(Object.class)));
 
         addFromWhitelists(whitelists);
-        buildInheritance();
+        addStructInheritance();
+        addRuntimeOptimizations();
 
         // copy all structs to make them unmodifiable for outside users:
         for (Map.Entry<Class<?>,Struct> entry : javaClassesToPainlessStructs.entrySet()) {
@@ -563,7 +556,7 @@ public final class Definition {
     }
 
     private void addFromWhitelists(List<Whitelist> whitelists) {
-        String origin = "[none]";
+        String origin = null;
 
         try {
             // first iteration collects all the painless structs that
@@ -707,7 +700,7 @@ public final class Definition {
             }
 
             painlessConstructor = new Method("<init>", painlessStruct, null, void.class, painlessTypeParameters,
-                asmConstructor, javaConstructor.getModifiers(), javaHandle);
+                asmConstructor, javaConstructor, javaHandle);
             painlessStruct.constructors.put(painlessMethodKey, painlessConstructor);
         } else if (painlessConstructor.arguments.equals(painlessTypeParameters) == false){
             throw new IllegalArgumentException("duplicate painless constructors [" + painlessMethodKey + "]" +
@@ -717,10 +710,10 @@ public final class Definition {
     }
 
     private void addMethod(ClassLoader whitelistClassLoader, Whitelist.Method whitelistMethod, Class<?> javaClass, Struct painlessStruct) {
-        String painlessMethodName = whitelistMethod.javaMethodName;
+        String javaMethodName = whitelistMethod.javaMethodName;
 
-        if (painlessMethodName.matches("^[_a-zA-Z][_a-zA-Z0-9]*$") == false) {
-            throw new IllegalArgumentException("invalid painless method name [" + painlessMethodName + "] " +
+        if (javaMethodName.matches("^[_a-zA-Z][_a-zA-Z0-9]*$") == false) {
+            throw new IllegalArgumentException("invalid painless method name [" + javaMethodName + "] " +
                     "for painless struct [" + javaClass.getCanonicalName() + "]; must match [_a-zA-Z][_a-zA-Z0-9]*");
         }
 
@@ -731,7 +724,7 @@ public final class Definition {
                 augmentedJavaClass = Class.forName(whitelistMethod.javaAugmentedClassName, true, whitelistClassLoader);
             } catch (ClassNotFoundException cnfe) {
                 throw new IllegalArgumentException("invalid java class name [" + whitelistMethod.javaAugmentedClassName + "] " +
-                        "for augmented painless method [" + painlessMethodName + "] " +
+                        "for augmented painless method [" + javaMethodName + "] " +
                         "with painless struct [" + javaClass.getCanonicalName() + "] " +
                         "and painless type parameters " + whitelistMethod.painlessParameterTypeNames, cnfe);
             }
@@ -757,7 +750,7 @@ public final class Definition {
                 javaTypeParameters[augmentedOffset + parametersCount] = javaType;
             } catch (IllegalArgumentException iae) {
                 throw new IllegalArgumentException("invalid painless type name [" + painlessTypeName + "] " +
-                        "for painless method [" + painlessMethodName + "] " +
+                        "for painless method [" + javaMethodName + "] " +
                         "with painless struct [" + javaClass.getCanonicalName() + "] " +
                         "and painless type parameters " + whitelistMethod.painlessParameterTypeNames, iae);
             }
@@ -767,9 +760,9 @@ public final class Definition {
         java.lang.reflect.Method javaMethod;
 
         try {
-            javaMethod = javaClassImpl.getMethod(painlessMethodName, javaTypeParameters);
+            javaMethod = javaClassImpl.getMethod(javaMethodName, javaTypeParameters);
         } catch (NoSuchMethodException nsme) {
-            throw new IllegalArgumentException("java method [" + painlessMethodName + "] " +
+            throw new IllegalArgumentException("java method [" + javaMethodName + "] " +
                     "not defined for painless struct [" + javaClass.getCanonicalName() + "] " +
                     "with java type parameters " + Arrays.asList(javaTypeParameters), nsme);
         }
@@ -780,7 +773,7 @@ public final class Definition {
             returnPainlessType = getPainlessType(whitelistMethod.painlessReturnTypeName);
         } catch (IllegalArgumentException iae) {
             throw new IllegalArgumentException("invalid painless type name [" + whitelistMethod.painlessReturnTypeName + "] " +
-                    "for painless method [" + painlessMethodName + "] " +
+                    "for painless method [" + javaMethodName + "] " +
                     "with painless struct [" + javaClass.getCanonicalName() + "] " +
                     "and painless type parameters " + whitelistMethod.painlessParameterTypeNames, iae);
         }
@@ -788,12 +781,12 @@ public final class Definition {
         if (javaMethod.getReturnType() != convertPainlessTypeToJavaType(returnPainlessType)) {
             throw new IllegalArgumentException("return painless type [" + returnPainlessType.getCanonicalName() + "] " +
                     "does not match the return java type [" + javaMethod.getReturnType().getCanonicalName() + "] " +
-                    "for painless method [" + painlessMethodName + "] " +
+                    "for painless method [" + javaMethodName + "] " +
                     "with painless struct [" + javaClass.getCanonicalName() + "] " +
                     "and painless type parameters " + whitelistMethod.painlessParameterTypeNames);
         }
 
-        MethodKey painlessMethodKey = new MethodKey(painlessMethodName, whitelistMethod.painlessParameterTypeNames.size());
+        MethodKey painlessMethodKey = new MethodKey(javaMethodName, whitelistMethod.painlessParameterTypeNames.size());
         Map<MethodKey, Method> painlessMethods =
                 augmentedJavaClass == null && Modifier.isStatic(javaMethod.getModifiers()) ?
                 painlessStruct.staticMethods : painlessStruct.methods;
@@ -807,28 +800,14 @@ public final class Definition {
             try {
                 javaMethodHandle = MethodHandles.publicLookup().in(javaClassImpl).unreflect(javaMethod);
             } catch (IllegalAccessException exception) {
-                throw new IllegalArgumentException("java handle not found for painless method [" + painlessMethodName + "]" +
+                throw new IllegalArgumentException("java handle not found for painless method [" + javaMethodName + "]" +
                         "with painless struct [" + javaClass.getCanonicalName() + "] " +
                         "and painless type parameters " + whitelistMethod.painlessParameterTypeNames);
             }
 
-            painlessMethod = new Method(painlessMethodName, painlessStruct, augmentedJavaClass, returnPainlessType,
-                painlessTypeParameters, asmMethod, javaMethod.getModifiers(), javaMethodHandle);
+            painlessMethod = new Method(javaMethodName, painlessStruct, augmentedJavaClass, returnPainlessType,
+                painlessTypeParameters, asmMethod, javaMethod, javaMethodHandle);
             painlessMethods.put(painlessMethodKey, painlessMethod);
-
-            if (parametersLength == 0 && painlessMethodName.startsWith("get") && painlessMethodName.length() > 3 &&
-                    Character.isUpperCase(painlessMethodName.charAt(3)) && returnPainlessType != void.class) {
-                String shortcutPainlessMethodName = Character.toLowerCase(painlessMethodName.charAt(3)) + painlessMethodName.substring(4);
-                painlessStruct.getters.put(shortcutPainlessMethodName, javaMethodHandle);
-            } else if (parametersLength == 0 && painlessMethodName.startsWith("is") && painlessMethodName.length() > 2 &&
-                    Character.isUpperCase(painlessMethodName.charAt(2)) && returnPainlessType != void.class) {
-                String shortcutPainlessMethodName = Character.toLowerCase(painlessMethodName.charAt(2)) + painlessMethodName.substring(3);
-                painlessStruct.getters.putIfAbsent(shortcutPainlessMethodName, javaMethodHandle);
-            } else if (parametersLength == 1 && painlessMethodName.startsWith("set") && painlessMethodName.length() > 3 &&
-                Character.isUpperCase(painlessMethodName.charAt(3)) && returnPainlessType == void.class) {
-                String shortcutPainlessMethodName = Character.toLowerCase(painlessMethodName.charAt(3)) + painlessMethodName.substring(4);
-                painlessStruct.setters.put(shortcutPainlessMethodName, javaMethodHandle);
-            }
         } else if ((painlessMethod.rtn == returnPainlessType && painlessMethod.arguments.equals(painlessTypeParameters)) == false) {
             throw new IllegalArgumentException("duplicate painless methods [" + painlessMethodKey + "]" +
                 "defined for painless struct [" + javaClass.getCanonicalName() + "] " +
@@ -837,10 +816,10 @@ public final class Definition {
     }
 
     private void addField(Whitelist.Field whitelistField, Class<?> javaClass, Struct painlessStruct) {
-        String painlessFieldName = whitelistField.javaFieldName;
+        String javaFieldName = whitelistField.javaFieldName;
 
-        if (painlessFieldName.matches("^[_a-zA-Z][_a-zA-Z0-9]*$") == false) {
-            throw new IllegalArgumentException("invalid painless field name [" + painlessFieldName + "] " +
+        if (javaFieldName.matches("^[_a-zA-Z][_a-zA-Z0-9]*$") == false) {
+            throw new IllegalArgumentException("invalid painless field name [" + javaFieldName + "] " +
                     "for painless struct [" + javaClass.getCanonicalName() + "]; must match [_a-zA-Z][_a-zA-Z0-9]*");
         }
 
@@ -850,135 +829,183 @@ public final class Definition {
             fieldPainlessType = getPainlessType(whitelistField.painlessFieldTypeName);
         } catch (IllegalArgumentException iae) {
             throw new IllegalArgumentException("invalid painless type name [" + whitelistField.painlessFieldTypeName + "] " +
-                    "for painless field [" + painlessFieldName + "] " +
+                    "for painless field [" + javaFieldName + "] " +
                     "with painless struct [" + javaClass.getCanonicalName() + "] ", iae);
         }
 
         java.lang.reflect.Field javaField;
 
         try {
-            javaField = javaClass.getField(painlessFieldName);
+            javaField = javaClass.getField(javaFieldName);
         } catch (NoSuchFieldException nsme) {
-            throw new IllegalArgumentException("java field [" + painlessFieldName + "] " +
-                "not defined for painless struct [" + javaClass.getCanonicalName() + "] " +
-                "with java type [" + convertPainlessTypeToJavaType(fieldPainlessType) +"]", nsme);
+            throw new IllegalArgumentException("java field [" + javaFieldName + "] " +
+                    "not defined for painless struct [" + javaClass.getCanonicalName() + "] " +
+                    "with java type [" + convertPainlessTypeToJavaType(fieldPainlessType) +"]", nsme);
         }
 
-        MethodHandle javaMethodHandleGetter = null;
-        MethodHandle javaMethodHandleSetter = null;
-
-        if (Modifier.isStatic(javaField.getModifiers()) == false) {
-            try {
-                javaMethodHandleGetter = MethodHandles.publicLookup().unreflectGetter(javaField);
-                javaMethodHandleSetter = MethodHandles.publicLookup().unreflectSetter(javaField);
-
-                painlessStruct.getters.put(painlessFieldName, javaMethodHandleGetter);
-                painlessStruct.setters.put(painlessFieldName, javaMethodHandleSetter);
-            } catch (IllegalAccessException exception) {
-                throw new IllegalArgumentException("java handles [getter] and [setter] not defined " +
-                        "for painless field [" + painlessFieldName + "]" +
-                        "with painless struct [" + javaClass.getCanonicalName() + "]" +
-                        "and painless type [" + whitelistField.painlessFieldTypeName + "]");
-            }
-        } else if (Modifier.isFinal(javaField.getModifiers()) == false) {
-            throw new IllegalArgumentException("static painless field [" + painlessFieldName + "] must be final " +
-                "with painless struct [" + javaClass.getCanonicalName() + "]" +
-                "and painless type [" + whitelistField.painlessFieldTypeName + "]");
+        if (Modifier.isStatic(javaField.getModifiers()) && Modifier.isFinal(javaField.getModifiers()) == false) {
+            throw new IllegalArgumentException("static painless field [" + javaFieldName + "] must be final " +
+                    "with painless struct [" + javaClass.getCanonicalName() + "]" +
+                    "and painless type [" + whitelistField.painlessFieldTypeName + "]");
         }
 
         Map<String, Field> painlessFields =
             Modifier.isStatic(javaField.getModifiers()) ? painlessStruct.staticMembers : painlessStruct.members;
-        Field painlessField = painlessFields.get(painlessFieldName);
+        Field painlessField = painlessFields.get(javaFieldName);
 
         if (painlessField == null) {
-            painlessField = new Field(painlessFieldName, javaField.getName(),
-                painlessStruct, fieldPainlessType, javaField.getModifiers(), javaMethodHandleGetter, javaMethodHandleSetter);
-            painlessFields.put(painlessFieldName, painlessField);
+            painlessField = new Field(javaFieldName, javaField.getName(), painlessStruct, fieldPainlessType, javaField);
+            painlessFields.put(javaFieldName, painlessField);
         } else if (painlessField.clazz != fieldPainlessType) {
-            throw new IllegalArgumentException("duplicate painless fields [" + painlessFieldName + "]" +
-                "defined for painless struct [" + javaClass.getCanonicalName() + "] " +
-                "with painless types [" + fieldPainlessType.getCanonicalName() + " and " + painlessField.clazz.getCanonicalName());
+            throw new IllegalArgumentException("duplicate painless fields [" + javaFieldName + "] " +
+                    "defined for painless struct [" + javaClass.getCanonicalName() + "] " +
+                    "with painless types [" + fieldPainlessType.getCanonicalName() + " and " + painlessField.clazz.getCanonicalName());
         }
     }
 
-    private void buildInheritance() {
-        Set<Class<?>> javaClasses = new HashSet<>(javaClassesToPainlessStructs.keySet());
-        javaClasses.removeIf(javaClass -> javaClass == def.class || javaClass.isPrimitive());
+    private void addStructInheritance() {
+        for (Map.Entry<Class<?>, Struct> javaClassToPainlessStruct : javaClassesToPainlessStructs.entrySet()) {
+            Class<?> javaClass = javaClassToPainlessStruct.getKey();
 
-        List<Class<?>> javaClassesHierarchy = new ArrayList<>();
+            if (javaClass.isPrimitive() || javaClass == def.class) {
+                continue;
+            }
 
-        for (Class<?> newJavaClass : javaClasses) {
-            if (newJavaClass.isInterface()) {
-                int javaClassIndex = 0;
+            Struct painlessStructCopyTo = javaClassToPainlessStruct.getValue();
 
-                for (Class<?> existingJavaClass : javaClassesHierarchy) {
-                    if (newJavaClass.isAssignableFrom(existingJavaClass)) {
-                        break;
+            Stack<Class<?>> javaInterfaceStack = new Stack<>();
+            javaInterfaceStack.addAll(Arrays.asList(javaClass.getInterfaces()));
+
+            if (javaClass.isInterface() == false) {
+                javaClass = javaClass.getSuperclass();
+
+                while (javaClass != null) {
+                    Struct painlessStructCopyFrom = javaClassesToPainlessStructs.get(javaClass);
+
+                    if (painlessStructCopyFrom != null) {
+                        copyStruct(painlessStructCopyFrom, painlessStructCopyTo);
                     }
 
-                    ++javaClassIndex;
+                    javaInterfaceStack.addAll(Arrays.asList(javaClass.getInterfaces()));
+                    javaClass = javaClass.getSuperclass();
+                }
+            } else {
+                Struct painlessStructCopyFrom = javaClassesToPainlessStructs.get(Object.class);
+                copyStruct(painlessStructCopyFrom, painlessStructCopyTo);
+            }
+
+            while (javaInterfaceStack.empty() == false) {
+                javaClass = javaInterfaceStack.pop();
+
+                Struct painlessStructCopyFrom = javaClassesToPainlessStructs.get(javaClass);
+
+                if (painlessStructCopyFrom != null) {
+                    copyStruct(painlessStructCopyFrom, painlessStructCopyTo);
                 }
 
-                javaClassesHierarchy.add(javaClassIndex, newJavaClass);
+                javaInterfaceStack.addAll(Arrays.asList(javaClass.getInterfaces()));
+            }
+        }
+    }
+
+    private void copyStruct(Struct painlessStructCopyFrom, Struct painlessStructCopyTo) {
+        Map<MethodKey, Method> painlessMethodsCopyFrom = painlessStructCopyFrom.methods;
+        Map<MethodKey, Method> painlessMethodsCopyTo = painlessStructCopyTo.methods;
+
+        for (Map.Entry<MethodKey, Method> painlessMethodKeyToPainlessMethod : painlessMethodsCopyFrom.entrySet()) {
+            MethodKey painlessMethodKey = painlessMethodKeyToPainlessMethod.getKey();
+            Method painlessMethodCopyFrom = painlessMethodKeyToPainlessMethod.getValue();
+            Method painlessMethodCopyTo = painlessMethodsCopyTo.get(painlessMethodKey);
+
+            if (painlessMethodCopyTo == null) {
+                painlessMethodsCopyTo.put(painlessMethodKey, painlessMethodCopyFrom);
+            } else {
+                java.lang.reflect.Method javaMethodCopyFrom = (java.lang.reflect.Method) painlessMethodCopyFrom.javaExecutable;
+                java.lang.reflect.Method javaMethodCopyTo = (java.lang.reflect.Method) painlessMethodCopyTo.javaExecutable;
+
+                if (painlessMethodCopyFrom.augmentation != painlessMethodCopyTo.augmentation) {
+                    throw new IllegalArgumentException("invalid inheritance for augmented painless methods " +
+                        "[" + javaMethodCopyFrom.getName() + "] and [" + javaMethodCopyTo.getName() +"] " +
+                        "for painless structs [" + painlessMethodCopyTo.name + "] and [" + painlessMethodCopyTo.name +"] " +
+                        "where augmented java classes [" + painlessMethodCopyFrom.augmentation.getCanonicalName() + "] " +
+                        "and [" + painlessMethodCopyTo.augmentation.getCanonicalName() + "] are different for the same method");
+                }
+
+                if (javaMethodCopyTo.getDeclaringClass() != javaMethodCopyFrom.getDeclaringClass() &&
+                        javaMethodCopyTo.getDeclaringClass().isAssignableFrom(javaMethodCopyFrom.getDeclaringClass())) {
+                    painlessMethodsCopyTo.put(painlessMethodKey, painlessMethodCopyFrom);
+                }
             }
         }
 
-        for (Class<?> newJavaClass : javaClasses) {
-            if (newJavaClass.isInterface() == false) {
-                int javaClassIndex = 0;
+        Map<String, Field> painlessFieldsCopyFrom = painlessStructCopyFrom.members;
+        Map<String, Field> painlessFieldsCopyTo = painlessStructCopyTo.members;
 
-                for (Class<?> existingJavaClass : javaClassesHierarchy) {
-                    if (newJavaClass.isAssignableFrom(existingJavaClass)) {
-                        break;
-                    }
+        for (Map.Entry<String, Field> painlessFieldNameToPainlessField : painlessFieldsCopyFrom.entrySet()) {
+            String painlessFieldKey = painlessFieldNameToPainlessField.getKey();
+            Field painlessFieldCopyFrom = painlessFieldNameToPainlessField.getValue();
+            Field painlessFieldCopyTo = painlessFieldsCopyTo.get(painlessFieldKey);
 
-                    ++javaClassIndex;
+            if (painlessFieldCopyTo == null) {
+                painlessFieldsCopyTo.put(painlessFieldKey, painlessFieldCopyFrom);
+            } else {
+                java.lang.reflect.Field javaFieldCopyFrom = painlessFieldCopyFrom.javaField;
+                java.lang.reflect.Field javaFieldCopyTo = painlessFieldCopyTo.javaField;
+
+                if (javaFieldCopyTo.getDeclaringClass() != javaFieldCopyFrom.getDeclaringClass() &&
+                    javaFieldCopyTo.getDeclaringClass().isAssignableFrom(javaFieldCopyFrom.getDeclaringClass())) {
+                    painlessFieldsCopyTo.put(painlessFieldKey, painlessFieldCopyFrom);
                 }
-
-                javaClassesHierarchy.add(javaClassIndex, newJavaClass);
             }
         }
+    }
 
-        for (int copyToIndex = javaClassesHierarchy.size() - 1; copyToIndex >= 0; --copyToIndex) {
-            Class<?> javaClassCopyTo = javaClassesHierarchy.get(copyToIndex);
-            Struct painlessStructCopyTo = javaClassesToPainlessStructs.get(javaClassCopyTo);
+    private void addRuntimeOptimizations() {
+        for (Map.Entry<Class<?>, Struct> javaClassToPainlessStruct : javaClassesToPainlessStructs.entrySet()) {
+            Class<?> javaClass = javaClassToPainlessStruct.getKey();
+            Struct painlessStruct = javaClassToPainlessStruct.getValue();
 
-            for (int copyFromIndex = copyToIndex - 1; copyFromIndex >= 0; --copyFromIndex) {
-                Class<?> javaClassCopyFrom = javaClassesHierarchy.get(copyFromIndex);
+            for (Method painlessMethod : painlessStruct.methods.values()) {
+                java.lang.reflect.Method javaMethod = (java.lang.reflect.Method)painlessMethod.javaExecutable;
+                String javaMethodName = javaMethod.getName();
+                int parametersLength = painlessMethod.arguments.size();
+                Class<?> returnPainlessType = painlessMethod.rtn;
+                MethodHandle javaMethodHandle = painlessMethod.handle;
 
-                if (javaClassCopyFrom.isAssignableFrom(javaClassCopyTo)) {
-                    Struct painlessStructCopyFrom = javaClassesToPainlessStructs.get(javaClassCopyFrom);
+                if (parametersLength == 0 && javaMethodName.startsWith("get") && javaMethodName.length() > 3 &&
+                        Character.isUpperCase(javaMethodName.charAt(3)) && returnPainlessType != void.class) {
+                    String shortcutPainlessMethodName = Character.toLowerCase(javaMethodName.charAt(3)) + javaMethodName.substring(4);
+                    painlessStruct.getters.put(shortcutPainlessMethodName, javaMethodHandle);
+                } else if (parametersLength == 0 && javaMethodName.startsWith("is") && javaMethodName.length() > 2 &&
+                        Character.isUpperCase(javaMethodName.charAt(2)) && returnPainlessType != void.class) {
+                    String shortcutPainlessMethodName = Character.toLowerCase(javaMethodName.charAt(2)) + javaMethodName.substring(3);
+                    painlessStruct.getters.putIfAbsent(shortcutPainlessMethodName, javaMethodHandle);
+                } else if (parametersLength == 1 && javaMethodName.startsWith("set") && javaMethodName.length() > 3 &&
+                        Character.isUpperCase(javaMethodName.charAt(3)) && returnPainlessType == void.class) {
+                    String shortcutPainlessMethodName = Character.toLowerCase(javaMethodName.charAt(3)) + javaMethodName.substring(4);
+                    painlessStruct.setters.put(shortcutPainlessMethodName, javaMethodHandle);
+                }
+            }
 
-                    for (Map.Entry<MethodKey, Method> painlessMethodEntry : painlessStructCopyFrom.methods.entrySet()) {
-                        if (painlessStructCopyTo.methods.containsKey(painlessMethodEntry.getKey()) == false) {
-                            painlessStructCopyTo.methods.put(painlessMethodEntry.getKey(), painlessMethodEntry.getValue());
-                        } else {
-                            throw new IllegalStateException("WTF method");
-                        }
-                    }
+            for (Field painlessField : painlessStruct.members.values()) {
+                java.lang.reflect.Field javaField = painlessField.javaField;
+                String javaFieldName = painlessField.javaField.getName();
 
-                    for (Map.Entry<String, Field> painlessFieldEntry : painlessStructCopyFrom.members.entrySet()) {
-                        if (painlessStructCopyTo.members.containsKey(painlessFieldEntry.getKey()) == false) {
-                            painlessStructCopyTo.members.put(painlessFieldEntry.getKey(), painlessFieldEntry.getValue());
-                        } else {
-                            throw new IllegalStateException("WTF member");
-                        }
-                    }
+                MethodHandle javaMethodHandleGetter;
+                MethodHandle javaMethodHandleSetter;
 
-                    for (Map.Entry<String, MethodHandle> painlessGetterEntry : painlessStructCopyFrom.getters.entrySet()) {
-                        if (painlessStructCopyTo.getters.containsKey(painlessGetterEntry.getKey()) == false) {
-                            painlessStructCopyTo.getters.put(painlessGetterEntry.getKey(), painlessGetterEntry.getValue());
-                        } else {
-                            throw new IllegalStateException("WTF getter");
-                        }
-                    }
+                if (Modifier.isStatic(javaField.getModifiers()) == false) {
+                    try {
+                        javaMethodHandleGetter = MethodHandles.publicLookup().unreflectGetter(javaField);
+                        javaMethodHandleSetter = MethodHandles.publicLookup().unreflectSetter(javaField);
 
-                    for (Map.Entry<String, MethodHandle> painlessSetterEntry : painlessStructCopyFrom.setters.entrySet()) {
-                        if (painlessStructCopyTo.setters.containsKey(painlessSetterEntry.getKey()) == false) {
-                            painlessStructCopyTo.setters.put(painlessSetterEntry.getKey(), painlessSetterEntry.getValue());
-                        } else {
-                            throw new IllegalStateException("WTF setter");
-                        }
+                        painlessStruct.getters.put(javaFieldName, javaMethodHandleGetter);
+                        painlessStruct.setters.put(javaFieldName, javaMethodHandleSetter);
+                    } catch (IllegalAccessException exception) {
+                        throw new IllegalArgumentException("java handles [getter] and [setter] not defined " +
+                            "for painless field [" + javaFieldName + "] " +
+                            "with painless struct [" + ClassToName(javaClass) + "] " +
+                            "and painless type [" + ClassToName(painlessField.clazz) + "]");
                     }
                 }
             }

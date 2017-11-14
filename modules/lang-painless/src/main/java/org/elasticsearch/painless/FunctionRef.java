@@ -105,7 +105,7 @@ public class FunctionRef {
 
         if ("<init>".equals(delegateMethod.name)) {
             delegateInvokeType = H_NEWINVOKESPECIAL;
-        } else if (Modifier.isStatic(delegateMethod.modifiers)) {
+        } else if (delegateMethod.owner == null || Modifier.isStatic(delegateMethod.javaExecutable.getModifiers())) {
             delegateInvokeType = H_INVOKESTATIC;
         } else if (delegateMethod.owner.clazz.isInterface()) {
             delegateInvokeType = H_INVOKEINTERFACE;
