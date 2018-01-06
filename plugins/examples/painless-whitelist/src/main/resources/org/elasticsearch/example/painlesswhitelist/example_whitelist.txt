@@ -1,0 +1,18 @@
+# TODO: add explanations
+
+class org.elasticsearch.example.painlesswhitelist.ExampleWhitelistedClass {
+  # constructor
+  (int, int)
+
+  # static constants and methods look the same as instance members and methods
+  int CONSTANT
+  void staticMethod()
+
+
+  # public members lack parenthesis that methods have
+  int publicMember
+
+  # getter and setter
+  int getPrivateMember()
+  void setPrivateMember(int)
+}

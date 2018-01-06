@@ -82,7 +82,7 @@ public final class PainlessScriptEngine extends AbstractComponent implements Scr
 
     /**
      * Default compiler settings to be used. Note that {@link CompilerSettings} is mutable but this instance shouldn't be mutated outside
-     * of {@link PainlessScriptEngine#PainlessScriptEngine(Settings, Collection)}.
+     * of {@link PainlessScriptEngine#PainlessScriptEngine(Settings, Map)}.
      */
     private final CompilerSettings defaultCompilerSettings = new CompilerSettings();
 
