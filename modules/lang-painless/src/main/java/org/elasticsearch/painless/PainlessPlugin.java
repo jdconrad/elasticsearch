@@ -43,14 +43,14 @@ import java.util.ServiceLoader;
  */
 public final class PainlessPlugin extends Plugin implements ScriptPlugin, ExtensiblePlugin {
 
-    private final SetOnce<Map<ScriptContext<?>, List<Whitelist>>> extendedWhitelists = new SetOnce<>();
+    private final Map<ScriptContext<?>, List<Whitelist>> extendedWhitelists = new HashMap<>();
 
     @Override
     public ScriptEngine getScriptEngine(Settings settings, Collection<ScriptContext<?>> contexts) {
         Map<ScriptContext<?>, List<Whitelist>> contextsWithWhitelists = new HashMap<>();
         for (ScriptContext<?> context : contexts) {
             // we might have a context that only uses the base whitelists, so would not have been filled in by reloadSPI
-            List<Whitelist> whitelists = extendedWhitelists.get().get(context);
+            List<Whitelist> whitelists = extendedWhitelists.get(context);
             if (whitelists == null) {
                 whitelists = new ArrayList<>(Whitelist.BASE_WHITELISTS);
             }
@@ -66,14 +66,12 @@ public final class PainlessPlugin extends Plugin implements ScriptPlugin, Extens
 
     @Override
     public void reloadSPI(ClassLoader loader) {
-        Map<ScriptContext<?>, List<Whitelist>> tmpWhitelists = new HashMap<>();
         for (PainlessExtension extension : ServiceLoader.load(PainlessExtension.class, loader)) {
             for (Map.Entry<ScriptContext<?>, List<Whitelist>> entry : extension.getContextWhitelists().entrySet()) {
-                List<Whitelist> existing = tmpWhitelists.computeIfAbsent(entry.getKey(), c ->  new ArrayList<>(Whitelist.BASE_WHITELISTS));
+                List<Whitelist> existing = extendedWhitelists.computeIfAbsent(entry.getKey(),
+                    c -> new ArrayList<>(Whitelist.BASE_WHITELISTS));
                 existing.addAll(entry.getValue());
             }
         }
-        tmpWhitelists.replaceAll((k, v) -> Collections.unmodifiableList(v));
-        this.extendedWhitelists.set(Collections.unmodifiableMap(tmpWhitelists));
     }
 }
