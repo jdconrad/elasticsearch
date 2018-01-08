@@ -17,21 +17,30 @@
  * under the License.
  */
 
-apply plugin: 'elasticsearch.esplugin'
+package org.elasticsearch.example.painlesswhitelist;
 
-esplugin {
-  name 'painless-whitelist'
-  description 'An example whitelisting additional classes and methods in painless'
-  classname 'org.elasticsearch.example.painlesswhitelist.MyWhitelistPlugin'
-  extendedPlugins = ['lang-painless']
+public class ExampleWhitelistedClass {
+
+    public static final int CONSTANT = 42;
+
+    public int publicMember;
+
+    private int privateMember;
+
+    public ExampleWhitelistedClass(int publicMember, int privateMember) {
+        this.publicMember = publicMember;
+        this.privateMember = privateMember;
+    }
+
+    public int getPrivateMember() {
+        return this.privateMember;
+    }
+
+    public void setPrivateMember(int privateMember) {
+        this.privateMember = privateMember;
+    }
+
+    public static void staticMethod() {
+        // electricity
+    }
 }
-
-dependencies {
-  compileOnly project(':modules:lang-painless')
-}
-
-integTestCluster {
-  distribution = 'zip'
-}
-
-test.enabled = false
