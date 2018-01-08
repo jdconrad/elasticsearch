@@ -44,14 +44,14 @@ import java.util.Map;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
+import static org.elasticsearch.painless.Whitelist.BASE_WHITELISTS;
 import static org.elasticsearch.painless.node.SSource.MainMethodReserved;
 
 /**
  * Tests {@link Object#toString} implementations on all extensions of {@link ANode}.
  */
 public class NodeToStringTests extends ESTestCase {
-    private final Definition definition = new Definition(
-        Collections.singletonList(WhitelistLoader.loadFromResourceFiles(Definition.class, Definition.DEFINITION_FILES)));
+    private final Definition definition = new Definition(BASE_WHITELISTS);
 
     public void testEAssignment() {
         assertToString(

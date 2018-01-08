@@ -28,6 +28,7 @@ import java.util.Map;
 
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonMap;
+import static org.elasticsearch.painless.Whitelist.BASE_WHITELISTS;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.startsWith;
@@ -37,8 +38,7 @@ import static org.hamcrest.Matchers.startsWith;
  */
 public class BaseClassTests extends ScriptTestCase {
 
-    private final Definition definition = new Definition(
-        Collections.singletonList(WhitelistLoader.loadFromResourceFiles(Definition.class, Definition.DEFINITION_FILES)));
+    private final Definition definition = new Definition(BASE_WHITELISTS);
 
     public abstract static class Gets {
 

@@ -29,9 +29,10 @@ import java.util.HashMap;
 
 import org.elasticsearch.test.ESTestCase;
 
+import static org.elasticsearch.painless.Whitelist.BASE_WHITELISTS;
+
 public class DefBootstrapTests extends ESTestCase {
-    private final Definition definition = new Definition(
-        Collections.singletonList(WhitelistLoader.loadFromResourceFiles(Definition.class, Definition.DEFINITION_FILES)));
+    private final Definition definition = new Definition(BASE_WHITELISTS);
 
     /** calls toString() on integers, twice */
     public void testOneType() throws Throwable {

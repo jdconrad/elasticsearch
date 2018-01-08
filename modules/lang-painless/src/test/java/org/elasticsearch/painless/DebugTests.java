@@ -30,13 +30,13 @@ import java.util.Map;
 
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
+import static org.elasticsearch.painless.Whitelist.BASE_WHITELISTS;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.not;
 
 public class DebugTests extends ScriptTestCase {
-    private final Definition definition = new Definition(
-        Collections.singletonList(WhitelistLoader.loadFromResourceFiles(Definition.class, Definition.DEFINITION_FILES)));
+    private final Definition definition = new Definition(BASE_WHITELISTS);
 
     public void testExplain() {
         // Debug.explain can explain an object

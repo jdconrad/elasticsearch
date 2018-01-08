@@ -35,8 +35,10 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
+import static org.elasticsearch.painless.Whitelist.BASE_WHITELISTS;
 import static org.elasticsearch.painless.node.SSource.MainMethodReserved;
 import static org.hamcrest.Matchers.hasSize;
 
@@ -63,10 +65,10 @@ public abstract class ScriptTestCase extends ESTestCase {
     /**
      * Script contexts used to build the script engine. Override to customize which script contexts are available.
      */
-    protected Collection<ScriptContext<?>> scriptContexts() {
-        Collection<ScriptContext<?>> contexts = new ArrayList<>();
-        contexts.add(SearchScript.CONTEXT);
-        contexts.add(ExecutableScript.CONTEXT);
+    protected Map<ScriptContext<?>, List<Whitelist>> scriptContexts() {
+        Map<ScriptContext<?>, List<Whitelist>> contexts = new HashMap<>();
+        contexts.put(SearchScript.CONTEXT, BASE_WHITELISTS);
+        contexts.put(ExecutableScript.CONTEXT, BASE_WHITELISTS);
 
         return contexts;
     }
@@ -92,8 +94,7 @@ public abstract class ScriptTestCase extends ESTestCase {
     public Object exec(String script, Map<String, Object> vars, Map<String,String> compileParams, Scorer scorer, boolean picky) {
         // test for ambiguity errors before running the actual script if picky is true
         if (picky) {
-            Definition definition = new Definition(
-                Collections.singletonList(WhitelistLoader.loadFromResourceFiles(Definition.class, Definition.DEFINITION_FILES)));
+            Definition definition = new Definition(BASE_WHITELISTS);
             ScriptClassInfo scriptClassInfo = new ScriptClassInfo(definition, GenericElasticsearchScript.class);
             CompilerSettings pickySettings = new CompilerSettings();
             pickySettings.setPicky(true);
