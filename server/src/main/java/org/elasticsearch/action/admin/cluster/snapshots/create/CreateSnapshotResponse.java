@@ -25,10 +25,12 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.xcontent.ToXContentObject;
 import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.snapshots.SnapshotInfo;
 
 import java.io.IOException;
+import java.util.Objects;
 
 /**
  * Create snapshot response
@@ -43,6 +45,10 @@ public class CreateSnapshotResponse extends ActionResponse implements ToXContent
     }
 
     CreateSnapshotResponse() {
+    }
+
+    protected void setSnapshotInfo(SnapshotInfo snapshotInfo) {
+        this.snapshotInfo = snapshotInfo;
     }
 
     /**
@@ -92,5 +98,30 @@ public class CreateSnapshotResponse extends ActionResponse implements ToXContent
         }
         builder.endObject();
         return builder;
+    }
+
+    public static CreateSnapshotResponse fromXContent(XContentParser parser) throws IOException {
+        return new CreateSnapshotResponse(SnapshotInfo.fromXContent(parser));
+    }
+
+    @Override
+    public String toString() {
+        return "CreateSnapshotResponse{" +
+            "snapshotInfo=" + snapshotInfo +
+            '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        CreateSnapshotResponse that = (CreateSnapshotResponse) o;
+        return Objects.equals(snapshotInfo, that.snapshotInfo);
+    }
+
+    @Override
+    public int hashCode() {
+
+        return Objects.hash(snapshotInfo);
     }
 }

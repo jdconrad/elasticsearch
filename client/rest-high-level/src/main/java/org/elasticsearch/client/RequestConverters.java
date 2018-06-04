@@ -35,6 +35,8 @@ import org.elasticsearch.action.admin.cluster.repositories.get.GetRepositoriesRe
 import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryRequest;
 import org.elasticsearch.action.admin.cluster.repositories.verify.VerifyRepositoryRequest;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
+import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotRequest;
+import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotResponse;
 import org.elasticsearch.action.admin.indices.alias.IndicesAliasesRequest;
 import org.elasticsearch.action.admin.indices.alias.get.GetAliasesRequest;
 import org.elasticsearch.action.admin.indices.cache.clear.ClearIndicesCacheRequest;
@@ -786,6 +788,19 @@ final class RequestConverters {
         Params parameters = new Params(request);
         parameters.withMasterTimeout(verifyRepositoryRequest.masterNodeTimeout());
         parameters.withTimeout(verifyRepositoryRequest.timeout());
+        return request;
+    }
+
+    static Request createSnapshot(CreateSnapshotRequest createSnapshotRequest) {
+        String endPoint = new EndpointBuilder().addPathPartAsIs("_snapshot")
+            .addPathPartAsIs(createSnapshotRequest.repository())
+            .addPathPartAsIs(createSnapshotRequest.snapshot())
+            .build();
+        Request request = new Request(HttpPut.METHOD_NAME, endPoint);
+
+        Params parameters = new Params(request);
+        parameters.withMasterTimeout(createSnapshotRequest.masterNodeTimeout());
+        parameters.withWaitForCompletion(createSnapshotRequest.waitForCompletion());
         return request;
     }
 

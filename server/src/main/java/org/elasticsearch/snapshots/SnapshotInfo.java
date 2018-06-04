@@ -317,31 +317,6 @@ public final class SnapshotInfo implements Comparable<SnapshotInfo>, ToXContent,
         return COMPARATOR.compare(this, o);
     }
 
-    @Override
-    public boolean equals(final Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-
-        final SnapshotInfo that = (SnapshotInfo) o;
-        return startTime == that.startTime && snapshotId.equals(that.snapshotId);
-    }
-
-    @Override
-    public int hashCode() {
-        int result = snapshotId.hashCode();
-        result = 31 * result + Long.hashCode(startTime);
-        return result;
-    }
-
-    @Override
-    public String toString() {
-        return "SnapshotInfo[snapshotId=" + snapshotId + ", state=" + state + ", indices=" + indices + "]";
-    }
-
     /**
      * Returns snapshot REST status
      */
@@ -607,4 +582,45 @@ public final class SnapshotInfo implements Comparable<SnapshotInfo>, ToXContent,
         }
     }
 
+    @Override
+    public String toString() {
+        return "SnapshotInfo{" +
+            "snapshotId=" + snapshotId +
+            ", state=" + state +
+            ", reason='" + reason + '\'' +
+            ", indices=" + indices +
+            ", startTime=" + startTime +
+            ", endTime=" + endTime +
+            ", totalShards=" + totalShards +
+            ", successfulShards=" + successfulShards +
+            ", includeGlobalState=" + includeGlobalState +
+            ", version=" + version +
+            ", shardFailures=" + shardFailures +
+            '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        SnapshotInfo that = (SnapshotInfo) o;
+        return startTime == that.startTime &&
+            endTime == that.endTime &&
+            totalShards == that.totalShards &&
+            successfulShards == that.successfulShards &&
+            Objects.equals(snapshotId, that.snapshotId) &&
+            state == that.state &&
+            Objects.equals(reason, that.reason) &&
+            Objects.equals(indices, that.indices) &&
+            Objects.equals(includeGlobalState, that.includeGlobalState) &&
+            Objects.equals(version, that.version) &&
+            Objects.equals(shardFailures, that.shardFailures);
+    }
+
+    @Override
+    public int hashCode() {
+
+        return Objects.hash(snapshotId, state, reason, indices, startTime, endTime,
+            totalShards, successfulShards, includeGlobalState, version, shardFailures);
+    }
 }
