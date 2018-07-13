@@ -24,6 +24,10 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 
+import static org.elasticsearch.painless.lookup.PainlessLookupUtility.CONSTRUCTOR_ANY_NAME;
+import static org.elasticsearch.painless.lookup.PainlessLookupUtility.anyTypeToPainlessTypeName;
+import static org.elasticsearch.painless.lookup.PainlessLookupUtility.buildPainlessMethodKey;
+
 public final class PainlessLookup {
 
     private final Map<String, Class<?>> painlessClassNamesToJavaClasses;
@@ -55,5 +59,29 @@ public final class PainlessLookup {
 
     public boolean isSimplePainlessType(String painlessType) {
         return painlessClassNamesToJavaClasses.containsKey(painlessType);
+    }
+
+    public PainlessMethod lookupMethod(Class<?> painlessType, String methodName, int methodArity) {
+        String painlessMethodKey = buildPainlessMethodKey(methodName, methodArity);
+
+        if (painlessType.isArray()) {
+            throw new IllegalArgumentException("painless method [" + painlessMethodKey + "] " +
+                    "cannot be called on a painless type array  [" + anyTypeToPainlessTypeName(painlessType) + "]");
+        }
+
+        PainlessClass painlessClass = javaClassesToPainlessClasses.get(painlessType);
+
+        if (painlessClass == null) {
+            throw new IllegalArgumentException("painless class [" + anyTypeToPainlessTypeName(painlessType) + "] not found");
+        }
+
+        PainlessMethod painlessMethod = painlessClass.methods.get(painlessMethodKey);
+
+        if (painlessMethod == null) {
+            throw new IllegalArgumentException("painless method [" + painlessMethodKey + "] not found " +
+                    "for painless class [" + anyTypeToPainlessTypeName(painlessType) + "]");
+        }
+
+        return painlessMethod;
     }
 }

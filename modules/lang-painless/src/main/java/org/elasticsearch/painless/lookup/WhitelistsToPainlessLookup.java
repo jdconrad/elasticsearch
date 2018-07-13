@@ -28,6 +28,7 @@ import org.elasticsearch.painless.spi.WhitelistMethod;
 import java.util.List;
 
 public class WhitelistsToPainlessLookup {
+
     public static PainlessLookup build(List<Whitelist> whitelists) {
         PainlessLookupBuilder painlessLookupBuilder = new PainlessLookupBuilder();
         String origin = null;
