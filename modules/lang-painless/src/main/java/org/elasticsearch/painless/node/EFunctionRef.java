@@ -25,15 +25,13 @@ import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Locals.LocalMethod;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
-import org.elasticsearch.painless.lookup.PainlessFunctionReference;
+import org.elasticsearch.painless.FunctionReferenceLookup;
 import org.elasticsearch.painless.lookup.PainlessLookupUtility;
 import org.elasticsearch.painless.lookup.PainlessMethod;
 import org.objectweb.asm.Type;
 
 import java.util.Objects;
 import java.util.Set;
-
-import static org.elasticsearch.painless.WriterConstants.LAMBDA_BOOTSTRAP_HANDLE;
 
 /**
  * Represents a function reference.
@@ -42,7 +40,7 @@ public final class EFunctionRef extends AExpression implements ILambda {
     private final String type;
     private final String call;
 
-    private PainlessFunctionReference ref;
+    private FunctionReferenceLookup ref;
     private String defPointer;
 
     public EFunctionRef(Location location, String type, String call) {
@@ -68,7 +66,7 @@ public final class EFunctionRef extends AExpression implements ILambda {
                     // user's own function
                     PainlessMethod interfaceMethod;
                     try {
-                        interfaceMethod = locals.getPainlessLookup().lookupFunctionInterfacePainlessMethod(expected);
+                        interfaceMethod = locals.getPainlessLookup().lookupFunctionalInterfacePainlessMethod(expected);
                     } catch (IllegalArgumentException iae) {
                         throw new IllegalArgumentException("Cannot convert function reference [" + type + "::" + call + "] " +
                                 "to [" + PainlessLookupUtility.typeToCanonicalTypeName(expected) + "], not a functional interface", iae);
@@ -78,7 +76,7 @@ public final class EFunctionRef extends AExpression implements ILambda {
                         throw new IllegalArgumentException("Cannot convert function reference [" + type + "::" + call + "] " +
                                 "to [" + PainlessLookupUtility.typeToCanonicalTypeName(expected) + "], function not found");
                     }
-                    ref = new PainlessFunctionReference(expected, interfaceMethod, delegateMethod, 0);
+                    ref = new FunctionReferenceLookup(expected, interfaceMethod, delegateMethod, 0);
 
                     // check casts between the interface method and the delegate method are legal
                     for (int i = 0; i < interfaceMethod.typeParameters.size(); ++i) {
@@ -92,7 +90,7 @@ public final class EFunctionRef extends AExpression implements ILambda {
                     }
                 } else {
                     // whitelist lookup
-                    ref = PainlessFunctionReference.resolveFromLookup(locals.getPainlessLookup(), expected, type, call, 0);
+                    ref = FunctionReferenceLookup.resolveFromLookup(locals.getPainlessLookup(), expected, type, call, 0);
                 }
 
             } catch (IllegalArgumentException e) {

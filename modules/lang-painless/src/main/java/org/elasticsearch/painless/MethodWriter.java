@@ -20,7 +20,6 @@
 package org.elasticsearch.painless;
 
 import org.elasticsearch.painless.lookup.PainlessCast;
-import org.elasticsearch.painless.lookup.PainlessFunctionReference;
 import org.elasticsearch.painless.lookup.PainlessMethod;
 import org.elasticsearch.painless.lookup.def;
 import org.objectweb.asm.ClassVisitor;
@@ -442,17 +441,17 @@ public final class MethodWriter extends GeneratorAdapter {
         invokeDynamic(name, methodType.getDescriptor(), DEF_BOOTSTRAP_HANDLE, args);
     }
 
-    public void invokeLambdaCall(PainlessFunctionReference painlessFunctionReference) {
+    public void invokeLambdaCall(FunctionReference functionReference) {
         invokeDynamic(
-                painlessFunctionReference.interfaceMethodName,
-                painlessFunctionReference.factoryMethodType.toMethodDescriptorString(),
+                functionReference.interfaceMethodName,
+                functionReference.factoryMethodType.toMethodDescriptorString(),
                 LAMBDA_BOOTSTRAP_HANDLE,
-                Type.getMethodType(painlessFunctionReference.interfaceMethodType.toMethodDescriptorString()),
-                painlessFunctionReference.delegateClassName,
-                painlessFunctionReference.delegateInvokeType,
-                painlessFunctionReference.delegateMethodName,
-                Type.getMethodType(painlessFunctionReference.delegateMethodType.toMethodDescriptorString()),
-                painlessFunctionReference.isDelegateInterface ? 1 : 0
+                Type.getMethodType(functionReference.interfaceMethodType.toMethodDescriptorString()),
+                functionReference.delegateClassName,
+                functionReference.delegateInvokeType,
+                functionReference.delegateMethodName,
+                Type.getMethodType(functionReference.delegateMethodType.toMethodDescriptorString()),
+                functionReference.isDelegateInterface ? 1 : 0
         );
     }
 }

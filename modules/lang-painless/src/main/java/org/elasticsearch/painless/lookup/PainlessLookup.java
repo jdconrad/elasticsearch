@@ -19,6 +19,8 @@
 
 package org.elasticsearch.painless.lookup;
 
+import org.elasticsearch.painless.FunctionReferenceLookup;
+
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
@@ -62,6 +64,14 @@ public final class PainlessLookup {
         return classesToPainlessClasses.get(targetClass);
     }
 
+    public PainlessConstructor lookupPainlessConstructor(String targetClassName, int constructorArity) {
+        Objects.requireNonNull(targetClassName);
+
+        Class<?> targetClass = canonicalTypeNameToType(targetClassName);
+
+        return lookupPainlessConstructor(targetClassName, constructorArity);
+    }
+
     public PainlessConstructor lookupPainlessConstructor(Class<?> targetClass, int constructorArity) {
         Objects.requireNonNull(targetClass);
 
@@ -81,6 +91,14 @@ public final class PainlessLookup {
         }
 
         return painlessConstructor;
+    }
+
+    public PainlessMethod lookupPainlessMethod(String targetClassName, boolean isStatic, String methodName, int methodArity) {
+        Objects.requireNonNull(targetClassName);
+
+        Class<?> targetClass = canonicalTypeNameToType(targetClassName);
+
+        return lookupPainlessMethod(targetClass, isStatic, methodName, methodArity);
     }
 
     public PainlessMethod lookupPainlessMethod(Class<?> targetClass, boolean isStatic, String methodName, int methodArity) {
@@ -111,6 +129,14 @@ public final class PainlessLookup {
         return painlessMethod;
     }
 
+    public PainlessField lookupPainlessField(String targetClassName, boolean isStatic, String fieldName) {
+        Objects.requireNonNull(targetClassName);
+
+        Class<?> targetClass = canonicalTypeNameToType(targetClassName);
+
+        return lookupPainlessField(targetClass, isStatic, fieldName);
+    }
+
     public PainlessField lookupPainlessField(Class<?> targetClass, boolean isStatic, String fieldName) {
         Objects.requireNonNull(targetClass);
         Objects.requireNonNull(fieldName);
@@ -135,7 +161,7 @@ public final class PainlessLookup {
         return painlessField;
     }
 
-    public PainlessMethod lookupFunctionInterfacePainlessMethod(Class<?> targetClass) {
+    public PainlessMethod lookupFunctionalInterfacePainlessMethod(Class<?> targetClass) {
         PainlessClass targetPainlessClass = classesToPainlessClasses.get(targetClass);
 
         if (targetPainlessClass == null) {

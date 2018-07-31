@@ -26,7 +26,7 @@ import org.elasticsearch.painless.Locals.LocalMethod;
 import org.elasticsearch.painless.Locals.Variable;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
-import org.elasticsearch.painless.lookup.PainlessFunctionReference;
+import org.elasticsearch.painless.FunctionReferenceLookup;
 import org.elasticsearch.painless.lookup.PainlessLookupUtility;
 import org.elasticsearch.painless.lookup.PainlessMethod;
 import org.elasticsearch.painless.lookup.def;
@@ -39,8 +39,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-
-import static org.elasticsearch.painless.WriterConstants.LAMBDA_BOOTSTRAP_HANDLE;
 
 /**
  * Lambda expression node.
@@ -78,7 +76,7 @@ public final class ELambda extends AExpression implements ILambda {
     // captured variables
     private List<Variable> captures;
     // static parent, static lambda
-    private PainlessFunctionReference ref;
+    private FunctionReferenceLookup ref;
     // dynamic parent, deferred until link time
     private String defPointer;
 
@@ -122,7 +120,7 @@ public final class ELambda extends AExpression implements ILambda {
         } else {
             // we know the method statically, infer return type and any unknown/def types
             try {
-                interfaceMethod = locals.getPainlessLookup().lookupFunctionInterfacePainlessMethod(expected);
+                interfaceMethod = locals.getPainlessLookup().lookupFunctionalInterfacePainlessMethod(expected);
             } catch (IllegalArgumentException iae) {
                 throw createError(new IllegalArgumentException("Cannot pass lambda to " +
                         "[" + PainlessLookupUtility.typeToCanonicalTypeName(expected) + "], not a functional interface", iae));
@@ -187,7 +185,7 @@ public final class ELambda extends AExpression implements ILambda {
             try {
                 LocalMethod localMethod =
                         new LocalMethod(desugared.name, desugared.returnType, desugared.typeParameters, desugared.methodType);
-                ref = new PainlessFunctionReference(expected, interfaceMethod, localMethod, captures.size());
+                ref = new FunctionReferenceLookup(expected, interfaceMethod, localMethod, captures.size());
             } catch (IllegalArgumentException e) {
                 throw createError(e);
             }

@@ -19,14 +19,13 @@
 
 package org.elasticsearch.painless.node;
 
-import org.elasticsearch.painless.AnalyzerCaster;
 import org.elasticsearch.painless.DefBootstrap;
 import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Locals.Variable;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
-import org.elasticsearch.painless.lookup.PainlessFunctionReference;
+import org.elasticsearch.painless.FunctionReferenceLookup;
 import org.elasticsearch.painless.lookup.PainlessLookupUtility;
 import org.elasticsearch.painless.lookup.def;
 import org.objectweb.asm.Opcodes;
@@ -35,8 +34,6 @@ import org.objectweb.asm.Type;
 import java.util.Objects;
 import java.util.Set;
 
-import static org.elasticsearch.painless.WriterConstants.LAMBDA_BOOTSTRAP_HANDLE;
-
 /**
  * Represents a capturing function reference.
  */
@@ -44,7 +41,7 @@ public final class ECapturingFunctionRef extends AExpression implements ILambda 
     private final String variable;
     private final String call;
 
-    private PainlessFunctionReference ref;
+    private FunctionReferenceLookup ref;
     private Variable captured;
     private String defPointer;
 
@@ -77,7 +74,7 @@ public final class ECapturingFunctionRef extends AExpression implements ILambda 
             // static case
             if (captured.clazz != def.class) {
                 try {
-                    ref = PainlessFunctionReference.resolveFromLookup(locals.getPainlessLookup(), expected,
+                    ref = FunctionReferenceLookup.resolveFromLookup(locals.getPainlessLookup(), expected,
                             PainlessLookupUtility.typeToCanonicalTypeName(captured.clazz), call, 1);
 
                     // check casts between the interface method and the delegate method are legal

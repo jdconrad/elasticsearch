@@ -20,7 +20,6 @@
 package org.elasticsearch.painless;
 
 import org.elasticsearch.painless.lookup.PainlessClass;
-import org.elasticsearch.painless.lookup.PainlessFunctionReference;
 import org.elasticsearch.painless.lookup.PainlessLookup;
 import org.elasticsearch.painless.lookup.PainlessLookupUtility;
 import org.elasticsearch.painless.lookup.PainlessMethod;
@@ -328,7 +327,7 @@ public final class Def {
     static MethodHandle lookupReference(PainlessLookup painlessLookup, MethodHandles.Lookup methodHandlesLookup, String interfaceClass,
                                         Class<?> receiverClass, String name) throws Throwable {
          Class<?> interfaceType = painlessLookup.canonicalTypeNameToType(interfaceClass);
-         PainlessMethod interfaceMethod = painlessLookup.lookupFunctionInterfacePainlessMethod(interfaceType);
+         PainlessMethod interfaceMethod = painlessLookup.lookupFunctionalInterfacePainlessMethod(interfaceType);
          int arity = interfaceMethod.typeParameters.size();
          PainlessMethod implMethod = lookupMethodInternal(painlessLookup, receiverClass, name, arity);
         return lookupReferenceInternal(painlessLookup, methodHandlesLookup, interfaceType,
@@ -340,12 +339,12 @@ public final class Def {
     private static MethodHandle lookupReferenceInternal(PainlessLookup painlessLookup, MethodHandles.Lookup methodHandlesLookup,
                                                         Class<?> clazz, String type, String call, Class<?>... captures)
             throws Throwable {
-         final PainlessFunctionReference ref;
+         final FunctionReferenceLookup ref;
          if ("this".equals(type)) {
              // user written method
              PainlessMethod interfaceMethod;
              try {
-                 interfaceMethod = painlessLookup.lookupFunctionInterfacePainlessMethod(clazz);
+                 interfaceMethod = painlessLookup.lookupFunctionalInterfacePainlessMethod(clazz);
              } catch (IllegalArgumentException iae) {
                  throw new IllegalArgumentException("Cannot convert function reference [" + type + "::" + call + "] " +
                          "to [" + PainlessLookupUtility.typeToCanonicalTypeName(clazz) + "], not a functional interface", iae);
@@ -366,10 +365,10 @@ public final class Def {
                  }
                  throw new IllegalArgumentException("Unknown call [" + call + "] with [" + arity + "] arguments.");
              }
-             ref = new PainlessFunctionReference(clazz, interfaceMethod, call, handle.type(), captures.length);
+             ref = new FunctionReferenceLookup(clazz, interfaceMethod, call, handle.type(), captures.length);
          } else {
              // whitelist lookup
-             ref = PainlessFunctionReference.resolveFromLookup(painlessLookup, clazz, type, call, captures.length);
+             ref = FunctionReferenceLookup.resolveFromLookup(painlessLookup, clazz, type, call, captures.length);
          }
          final CallSite callSite = LambdaBootstrap.lambdaBootstrap(
              methodHandlesLookup,
