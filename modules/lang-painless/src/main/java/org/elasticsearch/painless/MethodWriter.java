@@ -20,6 +20,7 @@
 package org.elasticsearch.painless;
 
 import org.elasticsearch.painless.lookup.PainlessCast;
+import org.elasticsearch.painless.lookup.PainlessFunctionReference;
 import org.elasticsearch.painless.lookup.PainlessMethod;
 import org.elasticsearch.painless.lookup.def;
 import org.objectweb.asm.ClassVisitor;
@@ -56,6 +57,7 @@ import static org.elasticsearch.painless.WriterConstants.DEF_TO_SHORT_EXPLICIT;
 import static org.elasticsearch.painless.WriterConstants.DEF_TO_SHORT_IMPLICIT;
 import static org.elasticsearch.painless.WriterConstants.DEF_UTIL_TYPE;
 import static org.elasticsearch.painless.WriterConstants.INDY_STRING_CONCAT_BOOTSTRAP_HANDLE;
+import static org.elasticsearch.painless.WriterConstants.LAMBDA_BOOTSTRAP_HANDLE;
 import static org.elasticsearch.painless.WriterConstants.MAX_INDY_STRING_CONCAT_ARGS;
 import static org.elasticsearch.painless.WriterConstants.PAINLESS_ERROR_TYPE;
 import static org.elasticsearch.painless.WriterConstants.STRINGBUILDER_APPEND_BOOLEAN;
@@ -403,21 +405,6 @@ public final class MethodWriter extends GeneratorAdapter {
         throw new AssertionError("Should never call this method on MethodWriter, use endMethod() instead");
     }
 
-    /**
-     * Writes a dynamic call for a def method.
-     * @param name method name
-     * @param methodType callsite signature
-     * @param flavor type of call
-     * @param params flavor-specific parameters
-     */
-    public void invokeDefCall(String name, Type methodType, int flavor, Object... params) {
-        Object[] args = new Object[params.length + 2];
-        args[0] = settings.getInitialCallSiteDepth();
-        args[1] = flavor;
-        System.arraycopy(params, 0, args, 2, params.length);
-        invokeDynamic(name, methodType.getDescriptor(), DEF_BOOTSTRAP_HANDLE, args);
-    }
-
     public void invokeMethodCall(PainlessMethod painlessMethod) {
         Type type = Type.getType(painlessMethod.javaMethod.getDeclaringClass());
         Method method = Method.getMethod(painlessMethod.javaMethod);
@@ -438,5 +425,34 @@ public final class MethodWriter extends GeneratorAdapter {
         } else {
             invokeVirtual(type, method);
         }
+    }
+
+    /**
+     * Writes a dynamic call for a def method.
+     * @param name method name
+     * @param methodType callsite signature
+     * @param flavor type of call
+     * @param params flavor-specific parameters
+     */
+    public void invokeDefCall(String name, Type methodType, int flavor, Object... params) {
+        Object[] args = new Object[params.length + 2];
+        args[0] = settings.getInitialCallSiteDepth();
+        args[1] = flavor;
+        System.arraycopy(params, 0, args, 2, params.length);
+        invokeDynamic(name, methodType.getDescriptor(), DEF_BOOTSTRAP_HANDLE, args);
+    }
+
+    public void invokeLambdaCall(PainlessFunctionReference painlessFunctionReference) {
+        invokeDynamic(
+                painlessFunctionReference.interfaceMethodName,
+                painlessFunctionReference.factoryMethodType.toMethodDescriptorString(),
+                LAMBDA_BOOTSTRAP_HANDLE,
+                Type.getMethodType(painlessFunctionReference.interfaceMethodType.toMethodDescriptorString()),
+                painlessFunctionReference.delegateClassName,
+                painlessFunctionReference.delegateInvokeType,
+                painlessFunctionReference.delegateMethodName,
+                Type.getMethodType(painlessFunctionReference.delegateMethodType.toMethodDescriptorString()),
+                painlessFunctionReference.isDelegateInterface ? 1 : 0
+        );
     }
 }

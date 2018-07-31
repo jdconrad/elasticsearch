@@ -20,6 +20,7 @@
 package org.elasticsearch.painless;
 
 import org.elasticsearch.painless.lookup.PainlessClass;
+import org.elasticsearch.painless.lookup.PainlessFunctionReference;
 import org.elasticsearch.painless.lookup.PainlessLookup;
 import org.elasticsearch.painless.lookup.PainlessLookupUtility;
 import org.elasticsearch.painless.lookup.PainlessMethod;
@@ -339,7 +340,7 @@ public final class Def {
     private static MethodHandle lookupReferenceInternal(PainlessLookup painlessLookup, MethodHandles.Lookup methodHandlesLookup,
                                                         Class<?> clazz, String type, String call, Class<?>... captures)
             throws Throwable {
-         final FunctionRef ref;
+         final PainlessFunctionReference ref;
          if ("this".equals(type)) {
              // user written method
              PainlessMethod interfaceMethod;
@@ -365,10 +366,10 @@ public final class Def {
                  }
                  throw new IllegalArgumentException("Unknown call [" + call + "] with [" + arity + "] arguments.");
              }
-             ref = new FunctionRef(clazz, interfaceMethod, call, handle.type(), captures.length);
+             ref = new PainlessFunctionReference(clazz, interfaceMethod, call, handle.type(), captures.length);
          } else {
              // whitelist lookup
-             ref = FunctionRef.resolveFromLookup(painlessLookup, clazz, type, call, captures.length);
+             ref = PainlessFunctionReference.resolveFromLookup(painlessLookup, clazz, type, call, captures.length);
          }
          final CallSite callSite = LambdaBootstrap.lambdaBootstrap(
              methodHandlesLookup,

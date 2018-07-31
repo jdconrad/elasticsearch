@@ -17,14 +17,9 @@
  * under the License.
  */
 
-package org.elasticsearch.painless;
+package org.elasticsearch.painless.lookup;
 
 import org.elasticsearch.painless.Locals.LocalMethod;
-import org.elasticsearch.painless.lookup.PainlessClass;
-import org.elasticsearch.painless.lookup.PainlessConstructor;
-import org.elasticsearch.painless.lookup.PainlessLookup;
-import org.elasticsearch.painless.lookup.PainlessLookupUtility;
-import org.elasticsearch.painless.lookup.PainlessMethod;
 import org.objectweb.asm.Type;
 
 import java.lang.invoke.MethodType;
@@ -38,13 +33,7 @@ import static org.objectweb.asm.Opcodes.H_INVOKESTATIC;
 import static org.objectweb.asm.Opcodes.H_INVOKEVIRTUAL;
 import static org.objectweb.asm.Opcodes.H_NEWINVOKESPECIAL;
 
-/**
- * Reference to a function or lambda.
- * <p>
- * Once you have created one of these, you have "everything you need" to call {@link LambdaBootstrap}
- * either statically from bytecode with invokedynamic, or at runtime from Java.
- */
-public class FunctionRef {
+public class PainlessFunctionReference {
 
     /** functional interface method name */
     public final String interfaceMethodName;
@@ -60,21 +49,6 @@ public class FunctionRef {
     public final String delegateMethodName;
     /** delegate method signature */
     public final MethodType delegateMethodType;
-
-    /** interface method */
-    public final PainlessMethod interfaceMethod;
-    /** delegate method type parameters */
-    public final List<Class<?>> delegateTypeParameters;
-    /** delegate method return type */
-    public final Class<?> delegateReturnType;
-
-    /** factory method type descriptor */
-    public final String factoryDescriptor;
-    /** functional interface method as type */
-    public final Type interfaceType;
-    /** delegate method type method as type */
-    public final Type delegateType;
-
     /** whether a call is made on a delegate interface */
     public final boolean isDelegateInterface;
 
@@ -86,14 +60,14 @@ public class FunctionRef {
      * @param call the right hand side of a method reference expression
      * @param numCaptures number of captured arguments
      */
-    public static FunctionRef resolveFromLookup(
+    public static PainlessFunctionReference resolveFromLookup(
             PainlessLookup painlessLookup, Class<?> expected, String type, String call, int numCaptures) {
 
         if ("new".equals(call)) {
-            return new FunctionRef(expected, painlessLookup.lookupFunctionInterfacePainlessMethod(expected),
+            return new PainlessFunctionReference(expected, painlessLookup.lookupFunctionInterfacePainlessMethod(expected),
                     lookup(painlessLookup, expected, type), numCaptures);
         } else {
-            return new FunctionRef(expected, painlessLookup.lookupFunctionInterfacePainlessMethod(expected),
+            return new PainlessFunctionReference(expected, painlessLookup.lookupFunctionInterfacePainlessMethod(expected),
                     lookup(painlessLookup, expected, type, call, numCaptures > 0), numCaptures);
         }
     }
@@ -105,7 +79,7 @@ public class FunctionRef {
      * @param delegateConstructor implementation constructor
      * @param numCaptures number of captured arguments
      */
-    public FunctionRef(Class<?> expected, PainlessMethod interfaceMethod, PainlessConstructor delegateConstructor, int numCaptures) {
+    public PainlessFunctionReference(Class<?> expected, PainlessMethod interfaceMethod, PainlessConstructor delegateConstructor, int numCaptures) {
         Constructor<?> javaConstructor = delegateConstructor.javaConstructor;
         MethodType delegateMethodType = delegateConstructor.methodType;
 
@@ -119,14 +93,6 @@ public class FunctionRef {
         this.delegateInvokeType = H_NEWINVOKESPECIAL;
         this.delegateMethodName = PainlessLookupUtility.CONSTRUCTOR_NAME;
         this.delegateMethodType = delegateMethodType.dropParameterTypes(0, numCaptures);
-
-        this.interfaceMethod = interfaceMethod;
-        this.delegateTypeParameters = delegateConstructor.typeParameters;
-        this.delegateReturnType = void.class;
-
-        this.factoryDescriptor = factoryMethodType.toMethodDescriptorString();
-        this.interfaceType = Type.getMethodType(interfaceMethodType.toMethodDescriptorString());
-        this.delegateType = Type.getMethodType(this.delegateMethodType.toMethodDescriptorString());
     }
 
     /**
@@ -136,7 +102,7 @@ public class FunctionRef {
      * @param delegateMethod implementation method
      * @param numCaptures number of captured arguments
      */
-    public FunctionRef(Class<?> expected, PainlessMethod interfaceMethod, PainlessMethod delegateMethod, int numCaptures) {
+    public PainlessFunctionReference(Class<?> expected, PainlessMethod interfaceMethod, PainlessMethod delegateMethod, int numCaptures) {
         MethodType delegateMethodType = delegateMethod.methodType;
 
         this.interfaceMethodName = interfaceMethod.javaMethod.getName();
@@ -157,14 +123,6 @@ public class FunctionRef {
 
         this.delegateMethodName = delegateMethod.javaMethod.getName();
         this.delegateMethodType = delegateMethodType.dropParameterTypes(0, numCaptures);
-
-        this.interfaceMethod = interfaceMethod;
-        this.delegateTypeParameters = delegateMethod.typeParameters;
-        this.delegateReturnType = delegateMethod.returnType;
-
-        this.factoryDescriptor = factoryMethodType.toMethodDescriptorString();
-        this.interfaceType = Type.getMethodType(interfaceMethodType.toMethodDescriptorString());
-        this.delegateType = Type.getMethodType(this.delegateMethodType.toMethodDescriptorString());
     }
 
     /**
@@ -174,7 +132,7 @@ public class FunctionRef {
      * @param delegateMethod implementation method
      * @param numCaptures number of captured arguments
      */
-    public FunctionRef(Class<?> expected, PainlessMethod interfaceMethod, LocalMethod delegateMethod, int numCaptures) {
+    public PainlessFunctionReference(Class<?> expected, PainlessMethod interfaceMethod, LocalMethod delegateMethod, int numCaptures) {
         MethodType delegateMethodType = delegateMethod.methodType;
 
         this.interfaceMethodName = interfaceMethod.javaMethod.getName();
@@ -185,28 +143,19 @@ public class FunctionRef {
         this.delegateClassName = CLASS_NAME;
         this.isDelegateInterface = false;
         this.delegateInvokeType = H_INVOKESTATIC;
-
         this.delegateMethodName = delegateMethod.name;
         this.delegateMethodType = delegateMethodType.dropParameterTypes(0, numCaptures);
-
-        this.interfaceMethod = interfaceMethod;
-        this.delegateTypeParameters = delegateMethod.typeParameters;
-        this.delegateReturnType = delegateMethod.returnType;
-
-        this.factoryDescriptor = factoryMethodType.toMethodDescriptorString();
-        this.interfaceType = Type.getMethodType(interfaceMethodType.toMethodDescriptorString());
-        this.delegateType = Type.getMethodType(this.delegateMethodType.toMethodDescriptorString());
     }
 
     /**
      * Creates a new FunctionRef (low level).
      * It is for runtime use only.
      */
-    public FunctionRef(Class<?> expected,
-                       PainlessMethod interfaceMethod, String delegateMethodName, MethodType delegateMethodType, int numCaptures) {
+    public PainlessFunctionReference(Class<?> expected,
+            PainlessMethod interfaceMethod, String delegateMethodName, MethodType delegateMethodType, int numCaptures) {
         this.interfaceMethodName = interfaceMethod.javaMethod.getName();
         this.factoryMethodType = MethodType.methodType(expected,
-            delegateMethodType.dropParameterTypes(numCaptures, delegateMethodType.parameterCount()));
+                delegateMethodType.dropParameterTypes(numCaptures, delegateMethodType.parameterCount()));
         this.interfaceMethodType = interfaceMethod.methodType.dropParameterTypes(0, 1);
 
         this.delegateClassName = CLASS_NAME;
@@ -214,14 +163,6 @@ public class FunctionRef {
         this.delegateMethodName = delegateMethodName;
         this.delegateMethodType = delegateMethodType.dropParameterTypes(0, numCaptures);
         this.isDelegateInterface = false;
-
-        this.interfaceMethod = null;
-        this.delegateTypeParameters = null;
-        this.delegateReturnType = null;
-
-        this.factoryDescriptor = null;
-        this.interfaceType = null;
-        this.delegateType = null;
     }
 
     /**
@@ -253,7 +194,7 @@ public class FunctionRef {
      * Looks up {@code type::call} from the whitelist, and returns a matching method.
      */
     private static PainlessMethod lookup(PainlessLookup painlessLookup, Class<?> expected,
-                                         String type, String call, boolean receiverCaptured) {
+            String type, String call, boolean receiverCaptured) {
         // check its really a functional interface
         // for e.g. Comparable
         PainlessMethod method;
@@ -286,7 +227,7 @@ public class FunctionRef {
         }
         if (impl == null) {
             throw new IllegalArgumentException("Unknown reference [" + type + "::" + call + "] matching " +
-                                               "[" + expected + "]");
+                    "[" + expected + "]");
         }
         return impl;
     }

@@ -20,13 +20,13 @@
 package org.elasticsearch.painless.node;
 
 import org.elasticsearch.painless.AnalyzerCaster;
-import org.elasticsearch.painless.FunctionRef;
 import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Locals.LocalMethod;
 import org.elasticsearch.painless.Locals.Variable;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.lookup.PainlessFunctionReference;
 import org.elasticsearch.painless.lookup.PainlessLookupUtility;
 import org.elasticsearch.painless.lookup.PainlessMethod;
 import org.elasticsearch.painless.lookup.def;
@@ -78,7 +78,7 @@ public final class ELambda extends AExpression implements ILambda {
     // captured variables
     private List<Variable> captures;
     // static parent, static lambda
-    private FunctionRef ref;
+    private PainlessFunctionReference ref;
     // dynamic parent, deferred until link time
     private String defPointer;
 
@@ -187,7 +187,7 @@ public final class ELambda extends AExpression implements ILambda {
             try {
                 LocalMethod localMethod =
                         new LocalMethod(desugared.name, desugared.returnType, desugared.typeParameters, desugared.methodType);
-                ref = new FunctionRef(expected, interfaceMethod, localMethod, captures.size());
+                ref = new PainlessFunctionReference(expected, interfaceMethod, localMethod, captures.size());
             } catch (IllegalArgumentException e) {
                 throw createError(e);
             }
@@ -218,17 +218,7 @@ public final class ELambda extends AExpression implements ILambda {
                 writer.visitVarInsn(MethodWriter.getType(capture.clazz).getOpcode(Opcodes.ILOAD), capture.getSlot());
             }
 
-            writer.invokeDynamic(
-                ref.interfaceMethodName,
-                ref.factoryDescriptor,
-                LAMBDA_BOOTSTRAP_HANDLE,
-                ref.interfaceType,
-                ref.delegateClassName,
-                ref.delegateInvokeType,
-                ref.delegateMethodName,
-                ref.delegateType,
-                ref.isDelegateInterface ? 1 : 0
-            );
+            writer.invokeLambdaCall(ref);
         } else {
             // placeholder
             writer.push((String)null);
