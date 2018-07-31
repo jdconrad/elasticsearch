@@ -327,10 +327,7 @@ public final class Def {
     static MethodHandle lookupReference(PainlessLookup painlessLookup, MethodHandles.Lookup methodHandlesLookup, String interfaceClass,
                                         Class<?> receiverClass, String name) throws Throwable {
          Class<?> interfaceType = painlessLookup.canonicalTypeNameToType(interfaceClass);
-         PainlessMethod interfaceMethod = painlessLookup.lookupPainlessClass(interfaceType).functionalMethod;
-         if (interfaceMethod == null) {
-             throw new IllegalArgumentException("Class [" + interfaceClass + "] is not a functional interface");
-         }
+         PainlessMethod interfaceMethod = painlessLookup.lookupFunctionInterfacePainlessMethod(interfaceType);
          int arity = interfaceMethod.typeParameters.size();
          PainlessMethod implMethod = lookupMethodInternal(painlessLookup, receiverClass, name, arity);
         return lookupReferenceInternal(painlessLookup, methodHandlesLookup, interfaceType,
@@ -345,10 +342,12 @@ public final class Def {
          final FunctionRef ref;
          if ("this".equals(type)) {
              // user written method
-             PainlessMethod interfaceMethod = painlessLookup.lookupPainlessClass(clazz).functionalMethod;
-             if (interfaceMethod == null) {
+             PainlessMethod interfaceMethod;
+             try {
+                 interfaceMethod = painlessLookup.lookupFunctionInterfacePainlessMethod(clazz);
+             } catch (IllegalArgumentException iae) {
                  throw new IllegalArgumentException("Cannot convert function reference [" + type + "::" + call + "] " +
-                         "to [" + PainlessLookupUtility.typeToCanonicalTypeName(clazz) + "], not a functional interface");
+                         "to [" + PainlessLookupUtility.typeToCanonicalTypeName(clazz) + "], not a functional interface", iae);
              }
              int arity = interfaceMethod.typeParameters.size() + captures.length;
              final MethodHandle handle;

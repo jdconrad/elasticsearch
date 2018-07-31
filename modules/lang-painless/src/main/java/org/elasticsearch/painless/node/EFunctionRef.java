@@ -66,10 +66,12 @@ public final class EFunctionRef extends AExpression implements ILambda {
             try {
                 if ("this".equals(type)) {
                     // user's own function
-                    PainlessMethod interfaceMethod = locals.getPainlessLookup().lookupPainlessClass(expected).functionalMethod;
-                    if (interfaceMethod == null) {
+                    PainlessMethod interfaceMethod;
+                    try {
+                        interfaceMethod = locals.getPainlessLookup().lookupFunctionInterfacePainlessMethod(expected);
+                    } catch (IllegalArgumentException iae) {
                         throw new IllegalArgumentException("Cannot convert function reference [" + type + "::" + call + "] " +
-                                "to [" + PainlessLookupUtility.typeToCanonicalTypeName(expected) + "], not a functional interface");
+                                "to [" + PainlessLookupUtility.typeToCanonicalTypeName(expected) + "], not a functional interface", iae);
                     }
                     LocalMethod delegateMethod = locals.getMethod(Locals.buildLocalMethodKey(call, interfaceMethod.typeParameters.size()));
                     if (delegateMethod == null) {

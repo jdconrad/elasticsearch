@@ -90,10 +90,10 @@ public class FunctionRef {
             PainlessLookup painlessLookup, Class<?> expected, String type, String call, int numCaptures) {
 
         if ("new".equals(call)) {
-            return new FunctionRef(expected, painlessLookup.lookupPainlessClass(expected).functionalMethod,
+            return new FunctionRef(expected, painlessLookup.lookupFunctionInterfacePainlessMethod(expected),
                     lookup(painlessLookup, expected, type), numCaptures);
         } else {
-            return new FunctionRef(expected, painlessLookup.lookupPainlessClass(expected).functionalMethod,
+            return new FunctionRef(expected, painlessLookup.lookupFunctionInterfacePainlessMethod(expected),
                     lookup(painlessLookup, expected, type, call, numCaptures > 0), numCaptures);
         }
     }
@@ -230,10 +230,12 @@ public class FunctionRef {
     private static PainlessConstructor lookup(PainlessLookup painlessLookup, Class<?> expected, String type) {
         // check its really a functional interface
         // for e.g. Comparable
-        PainlessMethod method = painlessLookup.lookupPainlessClass(expected).functionalMethod;
-        if (method == null) {
+        PainlessMethod method;
+        try {
+            method = painlessLookup.lookupFunctionInterfacePainlessMethod(expected);
+        } catch (IllegalArgumentException iae) {
             throw new IllegalArgumentException("Cannot convert function reference [" + type + "::new] " +
-                    "to [" + PainlessLookupUtility.typeToCanonicalTypeName(expected) + "], not a functional interface");
+                    "to [" + PainlessLookupUtility.typeToCanonicalTypeName(expected) + "], not a functional interface", iae);
         }
 
         // lookup requested constructor
@@ -254,10 +256,12 @@ public class FunctionRef {
                                          String type, String call, boolean receiverCaptured) {
         // check its really a functional interface
         // for e.g. Comparable
-        PainlessMethod method = painlessLookup.lookupPainlessClass(expected).functionalMethod;
-        if (method == null) {
+        PainlessMethod method;
+        try {
+            method = painlessLookup.lookupFunctionInterfacePainlessMethod(expected);
+        } catch (IllegalArgumentException iae) {
             throw new IllegalArgumentException("Cannot convert function reference [" + type + "::" + call + "] " +
-                    "to [" + PainlessLookupUtility.typeToCanonicalTypeName(expected) + "], not a functional interface");
+                    "to [" + PainlessLookupUtility.typeToCanonicalTypeName(expected) + "], not a functional interface", iae);
         }
 
         // lookup requested method

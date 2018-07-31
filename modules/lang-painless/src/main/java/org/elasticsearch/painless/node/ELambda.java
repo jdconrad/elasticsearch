@@ -121,10 +121,11 @@ public final class ELambda extends AExpression implements ILambda {
             }
         } else {
             // we know the method statically, infer return type and any unknown/def types
-            interfaceMethod = locals.getPainlessLookup().lookupPainlessClass(expected).functionalMethod;
-            if (interfaceMethod == null) {
+            try {
+                interfaceMethod = locals.getPainlessLookup().lookupFunctionInterfacePainlessMethod(expected);
+            } catch (IllegalArgumentException iae) {
                 throw createError(new IllegalArgumentException("Cannot pass lambda to " +
-                        "[" + PainlessLookupUtility.typeToCanonicalTypeName(expected) + "], not a functional interface"));
+                        "[" + PainlessLookupUtility.typeToCanonicalTypeName(expected) + "], not a functional interface", iae));
             }
             // check arity before we manipulate parameters
             if (interfaceMethod.typeParameters.size() != paramTypeStrs.size())
