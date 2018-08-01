@@ -19,8 +19,6 @@
 
 package org.elasticsearch.painless.lookup;
 
-import org.elasticsearch.painless.FunctionReferenceLookup;
-
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;

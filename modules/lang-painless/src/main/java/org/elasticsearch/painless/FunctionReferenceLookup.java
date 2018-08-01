@@ -19,7 +19,6 @@
 
 package org.elasticsearch.painless;
 
-import jdk.vm.ci.meta.Local;
 import org.elasticsearch.painless.Locals.LocalMethod;
 import org.elasticsearch.painless.lookup.PainlessConstructor;
 import org.elasticsearch.painless.lookup.PainlessLookup;
@@ -47,7 +46,7 @@ public class FunctionReferenceLookup {
      * @param methodName the right hand side of a method reference expression
      * @param numCaptures number of captured arguments
      */
-    private static FunctionReference resolve(PainlessLookup painlessLookup, Locals locals, LocalMethod localMethod,
+    public static FunctionReference resolve(PainlessLookup painlessLookup, Locals locals,
             Class<?> targetClass, String typeName, String methodName, int numCaptures) {
 
         Objects.requireNonNull(painlessLookup);
@@ -147,17 +146,10 @@ public class FunctionReferenceLookup {
      * Creates a new FunctionRef (low level).
      * It is for runtime use only.
      */
-    public FunctionReferenceLookup(Class<?> expected,
+    public static FunctionReference resolve(Class<?> expected,
             PainlessMethod interfaceMethod, String delegateMethodName, MethodType delegateMethodType, int numCaptures) {
-        this.interfaceMethodName = interfaceMethod.javaMethod.getName();
-        this.factoryMethodType = MethodType.methodType(expected,
-                delegateMethodType.dropParameterTypes(numCaptures, delegateMethodType.parameterCount()));
-        this.interfaceMethodType = interfaceMethod.methodType.dropParameterTypes(0, 1);
-
-        this.delegateClassName = CLASS_NAME;
-        this.delegateInvokeType = H_INVOKESTATIC;
-        this.delegateMethodName = delegateMethodName;
-        this.delegateMethodType = delegateMethodType.dropParameterTypes(0, numCaptures);
-        this.isDelegateInterface = false;
+        return new FunctionReference(interfaceMethod.javaMethod.getName(), interfaceMethod.methodType,
+                delegateMethodName, false, H_INVOKESTATIC, delegateMethodName, delegateMethodType,
+                MethodType.methodType(expected, delegateMethodType.dropParameterTypes(numCaptures, delegateMethodType.parameterCount())));
     }
 }

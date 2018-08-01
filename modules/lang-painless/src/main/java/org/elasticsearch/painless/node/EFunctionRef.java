@@ -19,15 +19,12 @@
 
 package org.elasticsearch.painless.node;
 
-import org.elasticsearch.painless.AnalyzerCaster;
+import org.elasticsearch.painless.FunctionReference;
+import org.elasticsearch.painless.FunctionReferenceLookup;
 import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Locals;
-import org.elasticsearch.painless.Locals.LocalMethod;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
-import org.elasticsearch.painless.FunctionReferenceLookup;
-import org.elasticsearch.painless.lookup.PainlessLookupUtility;
-import org.elasticsearch.painless.lookup.PainlessMethod;
 import org.objectweb.asm.Type;
 
 import java.util.Objects;
@@ -40,7 +37,7 @@ public final class EFunctionRef extends AExpression implements ILambda {
     private final String type;
     private final String call;
 
-    private FunctionReferenceLookup ref;
+    private FunctionReference ref;
     private String defPointer;
 
     public EFunctionRef(Location location, String type, String call) {
@@ -62,7 +59,7 @@ public final class EFunctionRef extends AExpression implements ILambda {
         } else {
             defPointer = null;
             try {
-                if ("this".equals(type)) {
+                /*if ("this".equals(type)) {
                     // user's own function
                     PainlessMethod interfaceMethod;
                     try {
@@ -76,7 +73,7 @@ public final class EFunctionRef extends AExpression implements ILambda {
                         throw new IllegalArgumentException("Cannot convert function reference [" + type + "::" + call + "] " +
                                 "to [" + PainlessLookupUtility.typeToCanonicalTypeName(expected) + "], function not found");
                     }
-                    ref = new FunctionReferenceLookup(expected, interfaceMethod, delegateMethod, 0);
+                    ref = (expected, interfaceMethod, delegateMethod, 0);
 
                     // check casts between the interface method and the delegate method are legal
                     for (int i = 0; i < interfaceMethod.typeParameters.size(); ++i) {
@@ -88,10 +85,10 @@ public final class EFunctionRef extends AExpression implements ILambda {
                     if (interfaceMethod.returnType != void.class) {
                         AnalyzerCaster.getLegalCast(location, delegateMethod.returnType, interfaceMethod.returnType, false, true);
                     }
-                } else {
+                } else {*/
                     // whitelist lookup
-                    ref = FunctionReferenceLookup.resolveFromLookup(locals.getPainlessLookup(), expected, type, call, 0);
-                }
+                    ref = FunctionReferenceLookup.resolve(locals.getPainlessLookup(), locals, expected, type, call, 0);
+                //}
 
             } catch (IllegalArgumentException e) {
                 throw createError(e);

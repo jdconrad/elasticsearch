@@ -339,7 +339,7 @@ public final class Def {
     private static MethodHandle lookupReferenceInternal(PainlessLookup painlessLookup, MethodHandles.Lookup methodHandlesLookup,
                                                         Class<?> clazz, String type, String call, Class<?>... captures)
             throws Throwable {
-         final FunctionReferenceLookup ref;
+         final FunctionReference ref;
          if ("this".equals(type)) {
              // user written method
              PainlessMethod interfaceMethod;
@@ -365,10 +365,10 @@ public final class Def {
                  }
                  throw new IllegalArgumentException("Unknown call [" + call + "] with [" + arity + "] arguments.");
              }
-             ref = new FunctionReferenceLookup(clazz, interfaceMethod, call, handle.type(), captures.length);
+             ref = FunctionReferenceLookup.resolve(clazz, interfaceMethod, call, handle.type(), captures.length);
          } else {
              // whitelist lookup
-             ref = FunctionReferenceLookup.resolveFromLookup(painlessLookup, clazz, type, call, captures.length);
+             ref = FunctionReferenceLookup.resolve(painlessLookup, null, clazz, type, call, captures.length);
          }
          final CallSite callSite = LambdaBootstrap.lambdaBootstrap(
              methodHandlesLookup,

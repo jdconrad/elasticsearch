@@ -20,25 +20,29 @@
 package org.elasticsearch.painless.node;
 
 import org.elasticsearch.painless.AnalyzerCaster;
+import org.elasticsearch.painless.FunctionReference;
 import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Locals.LocalMethod;
 import org.elasticsearch.painless.Locals.Variable;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
-import org.elasticsearch.painless.FunctionReferenceLookup;
+import org.elasticsearch.painless.WriterConstants;
 import org.elasticsearch.painless.lookup.PainlessLookupUtility;
 import org.elasticsearch.painless.lookup.PainlessMethod;
 import org.elasticsearch.painless.lookup.def;
 import org.elasticsearch.painless.node.SFunction.FunctionReserved;
 import org.objectweb.asm.Opcodes;
 
+import java.lang.invoke.MethodType;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+
+import static org.objectweb.asm.Opcodes.H_INVOKESTATIC;
 
 /**
  * Lambda expression node.
@@ -76,7 +80,7 @@ public final class ELambda extends AExpression implements ILambda {
     // captured variables
     private List<Variable> captures;
     // static parent, static lambda
-    private FunctionReferenceLookup ref;
+    private FunctionReference ref;
     // dynamic parent, deferred until link time
     private String defPointer;
 
@@ -185,7 +189,9 @@ public final class ELambda extends AExpression implements ILambda {
             try {
                 LocalMethod localMethod =
                         new LocalMethod(desugared.name, desugared.returnType, desugared.typeParameters, desugared.methodType);
-                ref = new FunctionReferenceLookup(expected, interfaceMethod, localMethod, captures.size());
+                ref = new FunctionReference(interfaceMethod.javaMethod.getName(), interfaceMethod.methodType, WriterConstants.CLASS_NAME,
+                        false, H_INVOKESTATIC, desugared.name, desugared.methodType, MethodType.methodType(
+                        expected, desugared.methodType.dropParameterTypes(captures.size(), desugared.methodType.parameterCount())));
             } catch (IllegalArgumentException e) {
                 throw createError(e);
             }
