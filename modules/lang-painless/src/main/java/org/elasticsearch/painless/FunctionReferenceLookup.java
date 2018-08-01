@@ -19,18 +19,16 @@
 
 package org.elasticsearch.painless;
 
+import jdk.vm.ci.meta.Local;
 import org.elasticsearch.painless.Locals.LocalMethod;
-import org.elasticsearch.painless.lookup.PainlessClass;
 import org.elasticsearch.painless.lookup.PainlessConstructor;
 import org.elasticsearch.painless.lookup.PainlessLookup;
 import org.elasticsearch.painless.lookup.PainlessLookupUtility;
 import org.elasticsearch.painless.lookup.PainlessMethod;
 
 import java.lang.invoke.MethodType;
-import java.lang.reflect.Constructor;
 import java.lang.reflect.Modifier;
 import java.util.Objects;
-import java.util.function.Function;
 
 import static org.elasticsearch.painless.WriterConstants.CLASS_NAME;
 import static org.objectweb.asm.Opcodes.H_INVOKEINTERFACE;
@@ -43,13 +41,13 @@ public class FunctionReferenceLookup {
     /**
      * Creates a new FunctionReference which will resolve {@code type::call} from the whitelist.
      * @param painlessLookup the whitelist against which this script is being compiled
-     * @param locals
+     * @param locals the local state for a script instance
      * @param targetClass functional interface type to implement.
      * @param typeName the left hand side of a method reference expression
      * @param methodName the right hand side of a method reference expression
      * @param numCaptures number of captured arguments
      */
-    public static FunctionReference lookup(PainlessLookup painlessLookup, Locals locals,
+    private static FunctionReference resolve(PainlessLookup painlessLookup, Locals locals, LocalMethod localMethod,
             Class<?> targetClass, String typeName, String methodName, int numCaptures) {
 
         Objects.requireNonNull(painlessLookup);
@@ -63,7 +61,7 @@ public class FunctionReferenceLookup {
         try {
             interfaceMethod = painlessLookup.lookupFunctionalInterfacePainlessMethod(targetClass);
         } catch (IllegalArgumentException iae) {
-            throw new IllegalArgumentException("cannot convert function reference [" + typeName + "::" +  methodName + "] " +
+            throw new IllegalArgumentException("cannot convert function reference [" + typeName + "::" + methodName + "] " +
                     "to a non-functional interface [" + targetClassName + "]", iae);
         }
 
@@ -77,9 +75,21 @@ public class FunctionReferenceLookup {
         String delegateMethodName;
         MethodType delegateMethodType;
 
-        if ("this".equals(typeName))
+        if ("this".equals(typeName)) {
             Objects.requireNonNull(locals);
-        if ("new".equals(methodName)) {
+
+            LocalMethod localMethod = locals.getMethod(Locals.buildLocalMethodKey(methodName, typeParametersSize));
+
+            if (localMethod == null) {
+                throw new IllegalArgumentException("function reference [this::" + methodName + "] not found");
+            }
+
+            delegateClassName = CLASS_NAME;
+            isDelegateInterface = false;
+            delegateInvokeType = H_INVOKESTATIC;
+            delegateMethodName = localMethod.name;
+            delegateMethodType = localMethod.methodType.dropParameterTypes(0, numCaptures);
+        } else if ("new".equals(methodName)) {
             PainlessConstructor painlessConstructor;
 
             try {
@@ -131,28 +141,6 @@ public class FunctionReferenceLookup {
                 delegateClassName, isDelegateInterface, delegateInvokeType, delegateMethodName, delegateMethodType,
                 factoryMethodType
         );
-    }
-
-    /**
-     * Creates a new FunctionRef (already resolved)
-     * @param expected functional interface type to implement
-     * @param interfaceMethod functional interface method
-     * @param delegateMethod implementation method
-     * @param numCaptures number of captured arguments
-     */
-    public FunctionReferenceLookup(Class<?> expected, PainlessMethod interfaceMethod, LocalMethod delegateMethod, int numCaptures) {
-        MethodType delegateMethodType = delegateMethod.methodType;
-
-        this.interfaceMethodName = interfaceMethod.javaMethod.getName();
-        this.factoryMethodType = MethodType.methodType(expected,
-                delegateMethodType.dropParameterTypes(numCaptures, delegateMethodType.parameterCount()));
-        this.interfaceMethodType = interfaceMethod.methodType.dropParameterTypes(0, 1);
-
-        this.delegateClassName = CLASS_NAME;
-        this.isDelegateInterface = false;
-        this.delegateInvokeType = H_INVOKESTATIC;
-        this.delegateMethodName = delegateMethod.name;
-        this.delegateMethodType = delegateMethodType.dropParameterTypes(0, numCaptures);
     }
 
     /**
