@@ -22,7 +22,6 @@ package org.elasticsearch.threadpool;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
-import org.elasticsearch.Version;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -449,40 +448,6 @@ public class ThreadPool implements Scheduler, Closeable {
         return ((availableProcessors * 3) / 2) + 1;
     }
 
-    class LoggingRunnable implements Runnable {
-
-        private final Runnable runnable;
-
-        LoggingRunnable(Runnable runnable) {
-            this.runnable = runnable;
-        }
-
-        @Override
-        public void run() {
-            try {
-                runnable.run();
-            } catch (Exception e) {
-                logger.warn(() -> new ParameterizedMessage("failed to run {}", runnable.toString()), e);
-                throw e;
-            }
-        }
-
-        @Override
-        public int hashCode() {
-            return runnable.hashCode();
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            return runnable.equals(obj);
-        }
-
-        @Override
-        public String toString() {
-            return "[threaded] " + runnable.toString();
-        }
-    }
-
     class ThreadedRunnable implements Runnable {
 
         private final Runnable runnable;
@@ -643,13 +608,7 @@ public class ThreadPool implements Scheduler, Closeable {
         @Override
         public void writeTo(StreamOutput out) throws IOException {
             out.writeString(name);
-            if (type == ThreadPoolType.FIXED_AUTO_QUEUE_SIZE &&
-                    out.getVersion().before(Version.V_6_0_0_alpha1)) {
-                // 5.x doesn't know about the "fixed_auto_queue_size" thread pool type, just write fixed.
-                out.writeString(ThreadPoolType.FIXED.getType());
-            } else {
-                out.writeString(type.getType());
-            }
+            out.writeString(type.getType());
             out.writeInt(min);
             out.writeInt(max);
             out.writeOptionalTimeValue(keepAlive);
