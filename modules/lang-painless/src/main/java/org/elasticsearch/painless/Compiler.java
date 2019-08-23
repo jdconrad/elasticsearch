@@ -213,9 +213,10 @@ final class Compiler {
         root.extractVariables(extractedVariables);
         root.storeSettings(settings);
         root.analyze(painlessLookup);
-        if (true) throw new IllegalArgumentException(root.toString());
         Map<String, Object> statics = root.write();
-
+/*(SSource
+  (SDeclBlock (SDeclaration def d (ECast def (EConstant String 'string'))))
+  (SDeclBlock (SDeclaration boolean b (ECast boolean (EVariable d)))))*/
         try {
             Class<? extends PainlessScript> clazz = loader.defineScript(CLASS_NAME, root.getBytes());
             clazz.getField("$NAME").set(null, name);

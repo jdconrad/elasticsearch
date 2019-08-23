@@ -47,15 +47,6 @@ abstract class AStoreable extends AExpression {
     }
 
     /**
-     * This constructor is used by variable/method chains when postfixes are specified.
-     */
-    AStoreable(Location location, AExpression prefix) {
-        super(location);
-
-        children.add(Objects.requireNonNull(prefix));
-    }
-
-    /**
      * Returns a value based on the number of elements previously placed on the
      * stack to load/store a certain piece of a variable/method chain.  This is
      * used during the writing phase to dup stack values from this storeable as
