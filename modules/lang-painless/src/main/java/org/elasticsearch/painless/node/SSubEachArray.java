@@ -118,7 +118,6 @@ final class SSubEachArray extends AStatement {
 
     @Override
     public String toString() {
-        return singleLineToString(
-                PainlessLookupUtility.typeToCanonicalTypeName(variable.clazz), variable.name, children.get(0), children.get(1));
+        throw new UnsupportedOperationException("unexpected node");
     }
 }

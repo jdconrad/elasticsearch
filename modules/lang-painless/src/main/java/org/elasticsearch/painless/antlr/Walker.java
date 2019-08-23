@@ -839,7 +839,7 @@ public final class Walker extends PainlessParserBaseVisitor<Void> {
 
     @Override
     public Void visitStatic(StaticContext ctx) {
-        buildPrefixChain(ctx, null, ctx.postfix());
+        buildPrefixChain(ctx, ctx.postdot(), ctx.postfix());
 
         return null;
     }

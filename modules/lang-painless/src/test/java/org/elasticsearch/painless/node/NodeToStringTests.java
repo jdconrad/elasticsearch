@@ -630,42 +630,6 @@ public class NodeToStringTests extends ESTestCase {
               + "}");
     }
 
-    public void testSSubEachArray() {
-        Location l = new Location(getTestName(), 0);
-        Variable v = new Variable(l, "test", int.class, 5, false);
-        AExpression e = new ENewArray(l, "int", true);
-        e.addChild(new EConstant(l, 1));
-        e.addChild(new EConstant(l, 2));
-        e.addChild(new EConstant(l, 3));
-        SBlock b = new SBlock(l);
-        SReturn r = new SReturn(l);
-        r.addChild(new EConstant(l, 5));
-        b.addChild(new SReturn(l));
-        SSubEachArray node = new SSubEachArray(l, v, e, b);
-        assertEquals(
-                "(SSubEachArray int test (ENewArray int init (Args (EConstant Integer 1) (EConstant Integer 2) (EConstant Integer 3))) "
-              + "(SBlock (SReturn (EConstant Integer 5))))",
-                node.toString());
-    }
-
-    public void testSSubEachIterable() {
-        Location l = new Location(getTestName(), 0);
-        Variable v = new Variable(l, "test", int.class, 5, false);
-        AExpression e = new EListInit(l);
-        e.addChild(new EConstant(l, 1));
-        e.addChild(new EConstant(l, 2));
-        e.addChild(new EConstant(l, 3));
-        SBlock b = new SBlock(l);
-        SReturn r = new SReturn(l);
-        r.addChild(new EConstant(l, 5));
-        b.addChild(new SReturn(l));
-        SSubEachIterable node = new SSubEachIterable(l, v, e, b);
-        assertEquals(
-                  "(SSubEachIterable int test (EListInit (EConstant Integer 1) (EConstant Integer 2) (EConstant Integer 3)) (SBlock "
-                + "(SReturn (EConstant Integer 5))))",
-                  node.toString());
-    }
-
     public void testSThrow() {
         assertToString("(SSource (SThrow (ENewObj RuntimeException)))", "throw new RuntimeException()");
     }
