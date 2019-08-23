@@ -33,10 +33,8 @@ import java.util.Set;
  */
 public final class SReturn extends AStatement {
 
-    public SReturn(Location location, AExpression expression) {
+    public SReturn(Location location) {
         super(location);
-
-        children.add(expression);
     }
 
     @Override

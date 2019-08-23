@@ -46,11 +46,10 @@ public final class EUnary extends AExpression {
     private Class<?> promote;
     private boolean originallyExplicit = false; // record whether there was originally an explicit cast
 
-    public EUnary(Location location, Operation operation, AExpression child) {
+    public EUnary(Location location, Operation operation) {
         super(location);
 
         this.operation = Objects.requireNonNull(operation);
-        children.add(Objects.requireNonNull(child));
     }
 
     @Override

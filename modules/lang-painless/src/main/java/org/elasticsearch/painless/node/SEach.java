@@ -41,13 +41,11 @@ public class SEach extends AStatement {
 
     private AStatement sub = null;
 
-    public SEach(Location location, String type, String name, AExpression expression, SBlock block) {
+    public SEach(Location location, String type, String name) {
         super(location);
 
         this.type = Objects.requireNonNull(type);
         this.name = Objects.requireNonNull(name);
-        children.add(Objects.requireNonNull(expression));
-        children.add(block);
     }
 
     @Override

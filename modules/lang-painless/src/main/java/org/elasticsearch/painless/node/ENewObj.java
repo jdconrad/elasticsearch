@@ -29,7 +29,6 @@ import org.elasticsearch.painless.lookup.PainlessLookupUtility;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.commons.Method;
 
-import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
@@ -44,11 +43,10 @@ public final class ENewObj extends AExpression {
 
     private PainlessConstructor constructor;
 
-    public ENewObj(Location location, String type, List<AExpression> arguments) {
+    public ENewObj(Location location, String type) {
         super(location);
 
         this.type = Objects.requireNonNull(type);
-        children.addAll(Objects.requireNonNull(arguments));
     }
 
     @Override

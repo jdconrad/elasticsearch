@@ -25,7 +25,6 @@ import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 
-import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -34,10 +33,8 @@ import java.util.Set;
 public final class SThrow extends AStatement {
 
 
-    public SThrow(Location location, AExpression expression) {
+    public SThrow(Location location) {
         super(location);
-
-        children.add(Objects.requireNonNull(expression));
     }
 
     @Override

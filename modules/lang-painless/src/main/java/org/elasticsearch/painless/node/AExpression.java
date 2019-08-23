@@ -25,8 +25,6 @@ import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.lookup.PainlessCast;
 import org.elasticsearch.painless.lookup.PainlessLookupUtility;
 
-import java.util.Objects;
-
 /**
  * The superclass for all E* (expression) and P* (postfix) nodes.
  */
@@ -90,15 +88,6 @@ public abstract class AExpression extends ANode {
      */
     AExpression(Location location) {
         super(location);
-    }
-
-    /**
-     * This constructor is used by variable/method chains when postfixes are specified.
-     */
-    AExpression(Location location, AExpression prefix) {
-        super(location);
-
-        children.add(Objects.requireNonNull(prefix));
     }
 
     /**

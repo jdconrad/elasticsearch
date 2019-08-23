@@ -47,6 +47,8 @@ public abstract class ANode {
      */
     final Location location;
 
+    ANode parent;
+
     /**
      * Child nodes.
      */
@@ -60,12 +62,24 @@ public abstract class ANode {
         children = new ArrayList<>();
     }
 
+    public void setParent(ANode parent) {
+        this.parent = parent;
+    }
+
+    public ANode getParent() {
+        return parent;
+    }
+
     public void addChild(ANode child) {
         children.add(child);
     }
 
     public void setChild(int index, ANode child) {
         children.set(index, child);
+    }
+
+    public ANode getChild(int index) {
+        return children.get(index);
     }
 
     public void removeChild(int index) {

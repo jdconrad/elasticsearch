@@ -40,12 +40,11 @@ public final class SDeclaration extends AStatement {
 
     private Variable variable = null;
 
-    public SDeclaration(Location location, String type, String name, AExpression expression) {
+    public SDeclaration(Location location, String type, String name) {
         super(location);
 
         this.type = Objects.requireNonNull(type);
         this.name = Objects.requireNonNull(name);
-        children.add(expression);
     }
 
     @Override

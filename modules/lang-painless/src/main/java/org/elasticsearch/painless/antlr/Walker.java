@@ -105,66 +105,19 @@ import org.elasticsearch.painless.antlr.PainlessParser.TrueContext;
 import org.elasticsearch.painless.antlr.PainlessParser.TryContext;
 import org.elasticsearch.painless.antlr.PainlessParser.VariableContext;
 import org.elasticsearch.painless.antlr.PainlessParser.WhileContext;
+import org.elasticsearch.painless.builder.ASTBuilder;
 import org.elasticsearch.painless.lookup.PainlessLookup;
-import org.elasticsearch.painless.node.AExpression;
-import org.elasticsearch.painless.node.ANode;
-import org.elasticsearch.painless.node.AStatement;
-import org.elasticsearch.painless.node.EAssignment;
-import org.elasticsearch.painless.node.EBinary;
-import org.elasticsearch.painless.node.EBool;
-import org.elasticsearch.painless.node.EBoolean;
-import org.elasticsearch.painless.node.ECallLocal;
-import org.elasticsearch.painless.node.ECapturingFunctionRef;
-import org.elasticsearch.painless.node.EComp;
-import org.elasticsearch.painless.node.EConditional;
-import org.elasticsearch.painless.node.EDecimal;
-import org.elasticsearch.painless.node.EElvis;
-import org.elasticsearch.painless.node.EExplicit;
-import org.elasticsearch.painless.node.EFunctionRef;
-import org.elasticsearch.painless.node.EInstanceof;
-import org.elasticsearch.painless.node.ELambda;
-import org.elasticsearch.painless.node.EListInit;
-import org.elasticsearch.painless.node.EMapInit;
-import org.elasticsearch.painless.node.ENewArray;
-import org.elasticsearch.painless.node.ENewArrayFunctionRef;
-import org.elasticsearch.painless.node.ENewObj;
-import org.elasticsearch.painless.node.ENull;
-import org.elasticsearch.painless.node.ENumeric;
-import org.elasticsearch.painless.node.ERegex;
-import org.elasticsearch.painless.node.EStatic;
-import org.elasticsearch.painless.node.EString;
-import org.elasticsearch.painless.node.EUnary;
-import org.elasticsearch.painless.node.EVariable;
-import org.elasticsearch.painless.node.PBrace;
-import org.elasticsearch.painless.node.PCallInvoke;
-import org.elasticsearch.painless.node.PField;
-import org.elasticsearch.painless.node.SBlock;
-import org.elasticsearch.painless.node.SBreak;
-import org.elasticsearch.painless.node.SCatch;
-import org.elasticsearch.painless.node.SContinue;
-import org.elasticsearch.painless.node.SDeclBlock;
-import org.elasticsearch.painless.node.SDeclaration;
-import org.elasticsearch.painless.node.SDo;
-import org.elasticsearch.painless.node.SEach;
-import org.elasticsearch.painless.node.SExpression;
-import org.elasticsearch.painless.node.SFor;
-import org.elasticsearch.painless.node.SFunction;
-import org.elasticsearch.painless.node.SIf;
-import org.elasticsearch.painless.node.SIfElse;
-import org.elasticsearch.painless.node.SReturn;
 import org.elasticsearch.painless.node.SSource;
-import org.elasticsearch.painless.node.SThrow;
-import org.elasticsearch.painless.node.STry;
-import org.elasticsearch.painless.node.SWhile;
 import org.objectweb.asm.util.Printer;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Stack;
 
 /**
  * Converts the ANTLR tree to a Painless tree.
  */
-public final class Walker extends PainlessParserBaseVisitor<ANode> {
+public final class Walker extends PainlessParserBaseVisitor<Void> {
 
     public static SSource buildPainlessTree(ScriptClassInfo mainMethod, String sourceName,
                                             String sourceText, CompilerSettings settings, PainlessLookup painlessLookup,
@@ -173,12 +126,14 @@ public final class Walker extends PainlessParserBaseVisitor<ANode> {
     }
 
     private final ScriptClassInfo scriptClassInfo;
-    private final SSource source;
     private final CompilerSettings settings;
     private final Printer debugStream;
     private final String sourceName;
     private final String sourceText;
     private final PainlessLookup painlessLookup;
+
+    private final ASTBuilder builder;
+    private SSource source;
 
     private Walker(ScriptClassInfo scriptClassInfo, String sourceName, String sourceText,
                    CompilerSettings settings, PainlessLookup painlessLookup, Printer debugStream) {
@@ -188,7 +143,12 @@ public final class Walker extends PainlessParserBaseVisitor<ANode> {
         this.sourceName = Location.computeSourceName(sourceName);
         this.sourceText = sourceText;
         this.painlessLookup = painlessLookup;
-        this.source = (SSource)visit(buildAntlrTree(sourceText));
+        builder = new ASTBuilder();
+        visit(buildAntlrTree(sourceText));
+        source = (SSource)builder.getCurrent();
+        if (true) {
+            throw new IllegalArgumentException(source.toString());
+        }
     }
 
     private SourceContext buildAntlrTree(String source) {
@@ -232,29 +192,26 @@ public final class Walker extends PainlessParserBaseVisitor<ANode> {
     }
 
     @Override
-    public ANode visitSource(SourceContext ctx) {
-        List<SFunction> functions = new ArrayList<>();
+    public Void visitSource(SourceContext ctx) {
+        builder.visitSource(scriptClassInfo, sourceName, sourceText, debugStream, location(ctx));
 
         for (FunctionContext function : ctx.function()) {
-            functions.add((SFunction)visit(function));
+            visit(function);
         }
-
-        List<AStatement> statements = new ArrayList<>();
 
         for (StatementContext statement : ctx.statement()) {
-            statements.add((AStatement)visit(statement));
+            visit(statement);
         }
 
-        return new SSource(scriptClassInfo, sourceName, sourceText, debugStream, location(ctx), functions, statements);
+        return null;
     }
 
     @Override
-    public ANode visitFunction(FunctionContext ctx) {
+    public Void visitFunction(FunctionContext ctx) {
         String rtnType = ctx.decltype().getText();
         String name = ctx.ID().getText();
         List<String> paramTypes = new ArrayList<>();
         List<String> paramNames = new ArrayList<>();
-        List<ANode> statements = new ArrayList<>();
 
         for (DecltypeContext decltype : ctx.parameters().decltype()) {
             paramTypes.add(decltype.getText());
@@ -264,255 +221,342 @@ public final class Walker extends PainlessParserBaseVisitor<ANode> {
             paramNames.add(id.getText());
         }
 
+        builder.visitFunction(location(ctx), rtnType, name, paramTypes, paramNames, false);
+
         for (StatementContext statement : ctx.block().statement()) {
-            statements.add((AStatement)visit(statement));
+            visit(statement);
         }
 
         if (ctx.block().dstatement() != null) {
-            statements.add((AStatement)visit(ctx.block().dstatement()));
+            visit(ctx.block().dstatement());
         }
 
-        return new SFunction(location(ctx), rtnType, name, paramTypes, paramNames, statements, false);
+        builder.endVisit();
+
+        return null;
     }
 
     @Override
-    public ANode visitParameters(ParametersContext ctx) {
-        throw location(ctx).createError(new IllegalStateException("Illegal tree structure."));
+    public Void visitParameters(ParametersContext ctx) {
+        throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
     }
 
     @Override
-    public ANode visitStatement(StatementContext ctx) {
+    public Void visitStatement(StatementContext ctx) {
         if (ctx.rstatement() != null) {
-            return visit(ctx.rstatement());
+            visit(ctx.rstatement());
         } else if (ctx.dstatement() != null) {
-            return visit(ctx.dstatement());
+            visit(ctx.dstatement());
         } else {
-            throw location(ctx).createError(new IllegalStateException("Illegal tree structure."));
+            throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
         }
+
+        return null;
     }
 
     @Override
-    public ANode visitIf(IfContext ctx) {
-        AExpression expression = (AExpression)visit(ctx.expression());
-        SBlock ifblock = (SBlock)visit(ctx.trailer(0));
+    public Void visitIf(IfContext ctx) {
+        if (ctx.trailer().size() > 1) {
+            builder.visitIfElse(location(ctx));
+        } else {
+            builder.visitIf(location(ctx));
+        }
+
+        visit(ctx.expression());
+        visit(ctx.trailer(0));
 
         if (ctx.trailer().size() > 1) {
-            SBlock elseblock = (SBlock)visit(ctx.trailer(1));
-
-            return new SIfElse(location(ctx), expression, ifblock, elseblock);
-        } else {
-            return new SIf(location(ctx), expression, ifblock);
+            visit(ctx.trailer(1));
         }
+
+        builder.endVisit();
+
+        return null;
     }
 
     @Override
-    public ANode visitWhile(WhileContext ctx) {
-        AExpression expression = (AExpression)visit(ctx.expression());
+    public Void visitWhile(WhileContext ctx) {
+        builder.visitWhile(location(ctx));
+
+        visit(ctx.expression());
 
         if (ctx.trailer() != null) {
-            SBlock block = (SBlock)visit(ctx.trailer());
-
-            return new SWhile(location(ctx), expression, block);
+            visit(ctx.trailer());
         } else if (ctx.empty() != null) {
-            return new SWhile(location(ctx), expression, null);
+            builder.visitEmpty();
         } else {
-            throw location(ctx).createError(new IllegalStateException("Illegal tree structure."));
+            throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
         }
+
+        builder.endVisit();
+
+        return null;
     }
 
     @Override
-    public ANode visitDo(DoContext ctx) {
-        AExpression expression = (AExpression)visit(ctx.expression());
-        SBlock block = (SBlock)visit(ctx.block());
+    public Void visitDo(DoContext ctx) {
+        builder.visitDo(location(ctx));
 
-        return new SDo(location(ctx), block, expression);
+        visit(ctx.expression());
+        visit(ctx.block());
+
+        builder.endVisit();
+
+        return null;
     }
 
     @Override
-    public ANode visitFor(ForContext ctx) {
-        ANode initializer = ctx.initializer() == null ? null : visit(ctx.initializer());
-        AExpression expression = ctx.expression() == null ? null : (AExpression)visit(ctx.expression());
-        AExpression afterthought = ctx.afterthought() == null ? null : (AExpression)visit(ctx.afterthought());
+    public Void visitFor(ForContext ctx) {
+        builder.visitFor(location(ctx));
+
+        if (ctx.initializer() == null) {
+            builder.visitEmpty();
+        } else {
+            visit(ctx.initializer());
+        }
+
+        if (ctx.expression() == null) {
+            builder.visitEmpty();
+        } else {
+            visit(ctx.expression());
+        }
+
+        if (ctx.afterthought() == null) {
+            builder.visitEmpty();
+        } else {
+            visit(ctx.afterthought());
+        }
 
         if (ctx.trailer() != null) {
-            SBlock block = (SBlock)visit(ctx.trailer());
-
-            return new SFor(location(ctx), initializer, expression, afterthought, block);
+            visit(ctx.trailer());
         } else if (ctx.empty() != null) {
-            return new SFor(location(ctx), initializer, expression, afterthought, null);
+            builder.visitEmpty();
         } else {
-            throw location(ctx).createError(new IllegalStateException("Illegal tree structure."));
+            throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
         }
+
+        builder.endVisit();
+
+        return null;
     }
 
     @Override
-    public ANode visitEach(EachContext ctx) {
+    public Void visitEach(EachContext ctx) {
         String type = ctx.decltype().getText();
         String name = ctx.ID().getText();
-        AExpression expression = (AExpression)visit(ctx.expression());
-        SBlock block = (SBlock)visit(ctx.trailer());
 
-        return new SEach(location(ctx), type, name, expression, block);
+        builder.visitEach(location(ctx), type, name);
+
+        visit(ctx.expression());
+        visit(ctx.trailer());
+
+        builder.endVisit();
+
+        return null;
     }
 
     @Override
-    public ANode visitIneach(IneachContext ctx) {
+    public Void visitIneach(IneachContext ctx) {
         String name = ctx.ID().getText();
-        AExpression expression = (AExpression)visit(ctx.expression());
-        SBlock block = (SBlock)visit(ctx.trailer());
 
-        return new SEach(location(ctx), "def", name, expression, block);
+        builder.visitEach(location(ctx), "def", name);
+
+        visit(ctx.expression());
+        visit(ctx.trailer());
+
+        builder.endVisit();
+
+        return null;
     }
 
     @Override
-    public ANode visitDecl(DeclContext ctx) {
-        return visit(ctx.declaration());
+    public Void visitDecl(DeclContext ctx) {
+        visit(ctx.declaration());
+
+        return null;
     }
 
     @Override
-    public ANode visitContinue(ContinueContext ctx) {
-        return new SContinue(location(ctx));
+    public Void visitContinue(ContinueContext ctx) {
+        builder.visitContinue(location(ctx)).endVisit();
+
+        return null;
     }
 
     @Override
-    public ANode visitBreak(BreakContext ctx) {
-        return new SBreak(location(ctx));
+    public Void visitBreak(BreakContext ctx) {
+        builder.visitBreak(location(ctx)).endVisit();
+
+        return null;
     }
 
     @Override
-    public ANode visitReturn(ReturnContext ctx) {
-        AExpression expression = null;
+    public Void visitReturn(ReturnContext ctx) {
+        builder.visitReturn(location(ctx));
 
-        if (ctx.expression() != null) {
-            expression = (AExpression) visit(ctx.expression());
+        if (ctx.expression() == null) {
+            builder.visitEmpty();
+        } else {
+            visit(ctx.expression());
         }
 
-        return new SReturn(location(ctx), expression);
+        builder.endVisit();
+
+        return null;
     }
 
     @Override
-    public ANode visitTry(TryContext ctx) {
-        SBlock block = (SBlock)visit(ctx.block());
-        List<SCatch> catches = new ArrayList<>();
+    public Void visitTry(TryContext ctx) {
+        builder.visitTry(location(ctx));
+
+        visit(ctx.block());
 
         for (TrapContext trap : ctx.trap()) {
-            catches.add((SCatch)visit(trap));
+            visit(trap);
         }
 
-        return new STry(location(ctx), block, catches);
+        builder.endVisit();
+
+        return null;
     }
 
     @Override
-    public ANode visitThrow(ThrowContext ctx) {
-        AExpression expression = (AExpression)visit(ctx.expression());
+    public Void visitThrow(ThrowContext ctx) {
+        builder.visitThrow(location(ctx));
+        visit(ctx.expression());
+        builder.endVisit();
 
-        return new SThrow(location(ctx), expression);
+        return null;
     }
 
     @Override
-    public ANode visitExpr(ExprContext ctx) {
-        AExpression expression = (AExpression)visit(ctx.expression());
+    public Void visitExpr(ExprContext ctx) {
+        builder.visitExpression(location(ctx));
+        visit(ctx.expression());
+        builder.endVisit();
 
-        return new SExpression(location(ctx), expression);
+        return null;
     }
 
     @Override
-    public ANode visitTrailer(TrailerContext ctx) {
+    public Void visitTrailer(TrailerContext ctx) {
         if (ctx.block() != null) {
-            return visit(ctx.block());
+            visit(ctx.block());
         } else if (ctx.statement() != null) {
-            List<AStatement> statements = new ArrayList<>();
-            statements.add((AStatement)visit(ctx.statement()));
-
-            return new SBlock(location(ctx), statements);
+            builder.visitBlock(location(ctx));
+            visit(ctx.statement());
+            builder.endVisit();
         } else {
-            throw location(ctx).createError(new IllegalStateException("Illegal tree structure."));
+            throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
         }
+
+        return null;
     }
 
     @Override
-    public ANode visitBlock(BlockContext ctx) {
+    public Void visitBlock(BlockContext ctx) {
         if (ctx.statement().isEmpty() && ctx.dstatement() == null) {
-            return null;
+            builder.visitEmpty();
         } else {
-            List<AStatement> statements = new ArrayList<>();
+            builder.visitBlock(location(ctx));
 
             for (StatementContext statement : ctx.statement()) {
-                statements.add((AStatement)visit(statement));
+                visit(statement);
             }
 
             if (ctx.dstatement() != null) {
-                statements.add((AStatement)visit(ctx.dstatement()));
+                visit(ctx.dstatement());
             }
 
-            return new SBlock(location(ctx), statements);
+            builder.endVisit();
         }
+
+        return null;
     }
 
     @Override
-    public ANode visitEmpty(EmptyContext ctx) {
-        throw location(ctx).createError(new IllegalStateException("Illegal tree structure."));
+    public Void visitEmpty(EmptyContext ctx) {
+        throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
     }
 
     @Override
-    public ANode visitInitializer(InitializerContext ctx) {
+    public Void visitInitializer(InitializerContext ctx) {
         if (ctx.declaration() != null) {
-            return visit(ctx.declaration());
+            visit(ctx.declaration());
         } else if (ctx.expression() != null) {
-            return visit(ctx.expression());
+            visit(ctx.expression());
         } else {
-            throw location(ctx).createError(new IllegalStateException("Illegal tree structure."));
+            throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
         }
+
+        return null;
     }
 
     @Override
-    public ANode visitAfterthought(AfterthoughtContext ctx) {
-        return visit(ctx.expression());
+    public Void visitAfterthought(AfterthoughtContext ctx) {
+        visit(ctx.expression());
+
+        return null;
     }
 
     @Override
-    public ANode visitDeclaration(DeclarationContext ctx) {
+    public Void visitDeclaration(DeclarationContext ctx) {
+        builder.visitDeclBlock(location(ctx));
+
         String type = ctx.decltype().getText();
-        List<SDeclaration> declarations = new ArrayList<>();
 
         for (DeclvarContext declvar : ctx.declvar()) {
             String name = declvar.ID().getText();
-            AExpression expression = declvar.expression() == null ? null : (AExpression)visit(declvar.expression());
 
-            declarations.add(new SDeclaration(location(declvar), type, name, expression));
+            builder.visitDeclaration(location(ctx), type, name);
+
+            if (declvar.expression() == null) {
+                builder.visitEmpty();
+            } else {
+                visit(declvar.expression());
+            }
+
+            builder.endVisit();
         }
 
-        return new SDeclBlock(location(ctx), declarations);
+        builder.endVisit();
+
+        return null;
     }
 
     @Override
-    public ANode visitDecltype(DecltypeContext ctx) {
-        throw location(ctx).createError(new IllegalStateException("Illegal tree structure."));
+    public Void visitDecltype(DecltypeContext ctx) {
+        throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
     }
 
     @Override
-    public ANode visitDeclvar(DeclvarContext ctx) {
-        throw location(ctx).createError(new IllegalStateException("Illegal tree structure."));
+    public Void visitDeclvar(DeclvarContext ctx) {
+        throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
     }
 
     @Override
-    public ANode visitTrap(TrapContext ctx) {
+    public Void visitTrap(TrapContext ctx) {
         String type = ctx.TYPE().getText();
         String name = ctx.ID().getText();
-        SBlock block = (SBlock)visit(ctx.block());
 
-        return new SCatch(location(ctx), type, name, block);
+        builder.visitCatch(location(ctx), type, name);
+
+        visit(ctx.block());
+
+        builder.endVisit();
+
+        return null;
     }
 
     @Override
-    public ANode visitSingle(SingleContext ctx) {
-        return visit(ctx.unary());
+    public Void visitSingle(SingleContext ctx) {
+        visit(ctx.unary());
+
+        return null;
     }
 
     @Override
-    public ANode visitBinary(BinaryContext ctx) {
-        AExpression left = (AExpression)visit(ctx.expression(0));
-        AExpression right = (AExpression)visit(ctx.expression(1));
+    public Void visitBinary(BinaryContext ctx) {
         final Operation operation;
 
         if (ctx.MUL() != null) {
@@ -542,16 +586,21 @@ public final class Walker extends PainlessParserBaseVisitor<ANode> {
         } else if (ctx.BWOR() != null) {
             operation = Operation.BWOR;
         } else {
-            throw location(ctx).createError(new IllegalStateException("Illegal tree structure."));
+            throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
         }
 
-        return new EBinary(location(ctx), operation, left, right);
+        builder.visitBinary(location(ctx), operation);
+
+        visit(ctx.expression(0));
+        visit(ctx.expression(1));
+
+        builder.endVisit();
+
+        return null;
     }
 
     @Override
-    public ANode visitComp(CompContext ctx) {
-        AExpression left = (AExpression)visit(ctx.expression(0));
-        AExpression right = (AExpression)visit(ctx.expression(1));
+    public Void visitComp(CompContext ctx) {
         final Operation operation;
 
         if (ctx.LT() != null) {
@@ -571,24 +620,34 @@ public final class Walker extends PainlessParserBaseVisitor<ANode> {
         } else if (ctx.NER() != null) {
             operation = Operation.NER;
         } else {
-            throw location(ctx).createError(new IllegalStateException("Illegal tree structure."));
+            throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
         }
 
-        return new EComp(location(ctx), operation, left, right);
+        builder.visitComp(location(ctx), operation);
+
+        visit(ctx.expression(0));
+        visit(ctx.expression(1));
+
+        builder.endVisit();
+
+        return null;
     }
 
     @Override
-    public ANode visitInstanceof(InstanceofContext ctx) {
-        AExpression expr = (AExpression)visit(ctx.expression());
+    public Void visitInstanceof(InstanceofContext ctx) {
         String type = ctx.decltype().getText();
 
-        return new EInstanceof(location(ctx), expr, type);
+        builder.visitInstanceof(location(ctx), type);
+
+        visit(ctx.expression());
+
+        builder.endVisit();
+
+        return null;
     }
 
     @Override
-    public ANode visitBool(BoolContext ctx) {
-        AExpression left = (AExpression)visit(ctx.expression(0));
-        AExpression right = (AExpression)visit(ctx.expression(1));
+    public Void visitBool(BoolContext ctx) {
         final Operation operation;
 
         if (ctx.BOOLAND() != null) {
@@ -596,34 +655,46 @@ public final class Walker extends PainlessParserBaseVisitor<ANode> {
         } else if (ctx.BOOLOR() != null) {
             operation = Operation.OR;
         } else {
-            throw location(ctx).createError(new IllegalStateException("Illegal tree structure."));
+            throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
         }
 
-        return new EBool(location(ctx), operation, left, right);
+        builder.visitBool(location(ctx), operation);
+
+        visit(ctx.expression(0));
+        visit(ctx.expression(1));
+
+        builder.endVisit();
+
+        return null;
     }
 
     @Override
-    public ANode visitConditional(ConditionalContext ctx) {
-        AExpression condition = (AExpression)visit(ctx.expression(0));
-        AExpression left = (AExpression)visit(ctx.expression(1));
-        AExpression right = (AExpression)visit(ctx.expression(2));
+    public Void visitConditional(ConditionalContext ctx) {
+        builder.visitConditional(location(ctx));
 
-        return new EConditional(location(ctx), condition, left, right);
+        visit(ctx.expression(0));
+        visit(ctx.expression(1));
+        visit(ctx.expression(2));
+
+        builder.endVisit();
+
+        return null;
     }
 
     @Override
-    public ANode visitElvis(ElvisContext ctx) {
-        AExpression left = (AExpression)visit(ctx.expression(0));
-        AExpression right = (AExpression)visit(ctx.expression(1));
+    public Void visitElvis(ElvisContext ctx) {
+        builder.visitElvis(location(ctx));
 
-        return new EElvis(location(ctx), left, right);
+        visit(ctx.expression(0));
+        visit(ctx.expression(1));
+
+        builder.endVisit();
+
+        return null;
     }
 
     @Override
-    public ANode visitAssignment(AssignmentContext ctx) {
-        AExpression lhs = (AExpression)visit(ctx.expression(0));
-        AExpression rhs = (AExpression)visit(ctx.expression(1));
-
+    public Void visitAssignment(AssignmentContext ctx) {
         final Operation operation;
 
         if (ctx.ASSIGN() != null) {
@@ -651,16 +722,21 @@ public final class Walker extends PainlessParserBaseVisitor<ANode> {
         } else if (ctx.AOR() != null) {
             operation = Operation.BWOR;
         } else {
-            throw location(ctx).createError(new IllegalStateException("Illegal tree structure."));
+            throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
         }
 
-        return new EAssignment(location(ctx), lhs, rhs, false, false, operation);
+        builder.visitAssignment(location(ctx), false, false, operation);
+
+        visit(ctx.expression(0));
+        visit(ctx.expression(1));
+
+        builder.endVisit();
+
+        return null;
     }
 
     @Override
-    public ANode visitPre(PreContext ctx) {
-        AExpression expression = (AExpression)visit(ctx.chain());
-
+    public Void visitPre(PreContext ctx) {
         final Operation operation;
 
         if (ctx.INCR() != null) {
@@ -668,16 +744,21 @@ public final class Walker extends PainlessParserBaseVisitor<ANode> {
         } else if (ctx.DECR() != null) {
             operation = Operation.DECR;
         } else {
-            throw location(ctx).createError(new IllegalStateException("Illegal tree structure."));
+            throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
         }
 
-        return new EAssignment(location(ctx), expression, null, true, false, operation);
+        builder.visitAssignment(location(ctx), true, false, operation);
+
+        visit(ctx.chain());
+        builder.visitEmpty();
+
+        builder.endVisit();
+
+        return null;
     }
 
     @Override
-    public ANode visitPost(PostContext ctx) {
-        AExpression expression = (AExpression)visit(ctx.chain());
-
+    public Void visitPost(PostContext ctx) {
         final Operation operation;
 
         if (ctx.INCR() != null) {
@@ -685,21 +766,28 @@ public final class Walker extends PainlessParserBaseVisitor<ANode> {
         } else if (ctx.DECR() != null) {
             operation = Operation.DECR;
         } else {
-            throw location(ctx).createError(new IllegalStateException("Illegal tree structure."));
+            throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
         }
 
-        return new EAssignment(location(ctx), expression, null, false, true, operation);
+        builder.visitAssignment(location(ctx), false, true, operation);
+
+        visit(ctx.chain());
+        builder.visitEmpty();
+
+        builder.endVisit();
+
+        return null;
     }
 
     @Override
-    public ANode visitRead(ReadContext ctx) {
-        return visit(ctx.chain());
+    public Void visitRead(ReadContext ctx) {
+        visit(ctx.chain());
+
+        return null;
     }
 
     @Override
-    public ANode visitOperator(OperatorContext ctx) {
-        AExpression expression = (AExpression)visit(ctx.unary());
-
+    public Void visitOperator(OperatorContext ctx) {
         final Operation operation;
 
         if (ctx.BOOLNOT() != null) {
@@ -713,85 +801,116 @@ public final class Walker extends PainlessParserBaseVisitor<ANode> {
                 ((DynamicContext)((ReadContext)ctx.unary()).chain()).primary() instanceof NumericContext &&
                 ((DynamicContext)((ReadContext)ctx.unary()).chain()).postfix().isEmpty()) {
 
-                return expression;
+                visit(ctx.unary());
+
+                return null;
             }
 
             operation = Operation.SUB;
         } else {
-            throw location(ctx).createError(new IllegalStateException("Illegal tree structure."));
+            throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
         }
 
-        return new EUnary(location(ctx), operation, expression);
+        builder.visitUnary(location(ctx), operation);
+
+        visit(ctx.unary());
+
+        builder.endVisit();
+
+        return null;
     }
 
     @Override
-    public ANode visitCast(CastContext ctx) {
-        String type = ctx.decltype().getText();
-        AExpression child = (AExpression)visit(ctx.unary());
-
-        return new EExplicit(location(ctx), type, child);
-    }
-
-    @Override
-    public ANode visitDynamic(DynamicContext ctx) {
-        AExpression primary = (AExpression)visit(ctx.primary());
-
-        return buildPostfixChain(primary, null, ctx.postfix());
-    }
-
-    @Override
-    public ANode visitStatic(StaticContext ctx) {
+    public Void visitCast(CastContext ctx) {
         String type = ctx.decltype().getText();
 
-        return buildPostfixChain(new EStatic(location(ctx), type), ctx.postdot(), ctx.postfix());
+        builder.visitExplicit(location(ctx), type);
+
+        visit(ctx.unary());
+
+        builder.endVisit();
+
+        return null;
     }
 
     @Override
-    public ANode visitNewarray(NewarrayContext ctx) {
-        return visit(ctx.arrayinitializer());
+    public Void visitDynamic(DynamicContext ctx) {
+        buildPrefixChain(ctx, null, ctx.postfix());
+
+        return null;
     }
 
     @Override
-    public ANode visitPrecedence(PrecedenceContext ctx) {
-        return visit(ctx.expression());
+    public Void visitStatic(StaticContext ctx) {
+        buildPrefixChain(ctx, null, ctx.postfix());
+
+        return null;
+    }
+
+    private void visitPrefixStatic(StaticContext ctx) {
+        String type = ctx.decltype().getText();
+
+        builder.visitStatic(location(ctx), type).endVisit();
     }
 
     @Override
-    public ANode visitNumeric(NumericContext ctx) {
+    public Void visitNewarray(NewarrayContext ctx) {
+        visit(ctx.arrayinitializer());
+
+        return null;
+    }
+
+    @Override
+    public Void visitPrecedence(PrecedenceContext ctx) {
+        visit(ctx.expression());
+
+        return null;
+    }
+
+    @Override
+    public Void visitNumeric(NumericContext ctx) {
         final boolean negate = ((DynamicContext)ctx.parent).postfix().isEmpty() &&
             ctx.parent.parent.parent instanceof OperatorContext &&
             ((OperatorContext)ctx.parent.parent.parent).SUB() != null;
 
         if (ctx.DECIMAL() != null) {
-            return new EDecimal(location(ctx), (negate ? "-" : "") + ctx.DECIMAL().getText());
+            builder.visitDecimal(location(ctx), (negate ? "-" : "") + ctx.DECIMAL().getText()).endVisit();
         } else if (ctx.HEX() != null) {
-            return new ENumeric(location(ctx), (negate ? "-" : "") + ctx.HEX().getText().substring(2), 16);
+            builder.visitNumeric(location(ctx), (negate ? "-" : "") + ctx.HEX().getText().substring(2), 16).endVisit();
         } else if (ctx.INTEGER() != null) {
-            return new ENumeric(location(ctx), (negate ? "-" : "") + ctx.INTEGER().getText(), 10);
+            builder.visitNumeric(location(ctx), (negate ? "-" : "") + ctx.INTEGER().getText(), 10).endVisit();
         } else if (ctx.OCTAL() != null) {
-            return new ENumeric(location(ctx), (negate ? "-" : "") + ctx.OCTAL().getText().substring(1), 8);
+            builder.visitNumeric(location(ctx), (negate ? "-" : "") + ctx.OCTAL().getText().substring(1), 8).endVisit();
         } else {
-            throw location(ctx).createError(new IllegalStateException("Illegal tree structure."));
+            throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
         }
+
+        return null;
     }
 
     @Override
-    public ANode visitTrue(TrueContext ctx) {
-        return new EBoolean(location(ctx), true);
+    public Void visitTrue(TrueContext ctx) {
+        builder.visitBoolean(location(ctx), true).endVisit();
+
+        return null;
     }
 
     @Override
-    public ANode visitFalse(FalseContext ctx) {
-        return new EBoolean(location(ctx), false);
+    public Void visitFalse(FalseContext ctx) {
+        builder.visitBoolean(location(ctx), false).endVisit();
+
+        return null;
     }
 
     @Override
-    public ANode visitNull(NullContext ctx) {
-        return new ENull(location(ctx));
+    public Void visitNull(NullContext ctx) {
+        builder.visitNull(location(ctx)).endVisit();
+
+        return null;
     }
 
     @Override
-    public ANode visitString(StringContext ctx) {
+    public Void visitString(StringContext ctx) {
         StringBuilder string = new StringBuilder(ctx.STRING().getText());
 
         // Strip the leading and trailing quotes and replace the escape sequences with their literal equivalents
@@ -812,116 +931,174 @@ public final class Walker extends PainlessParserBaseVisitor<ANode> {
         }
         string.setLength(dest);
 
-        return new EString(location(ctx), string.toString());
+        builder.visitString(location(ctx), string.toString()).endVisit();
+
+        return null;
     }
 
     @Override
-    public ANode visitRegex(RegexContext ctx) {
+    public Void visitRegex(RegexContext ctx) {
         String text = ctx.REGEX().getText();
         int lastSlash = text.lastIndexOf('/');
         String pattern = text.substring(1, lastSlash);
         String flags = text.substring(lastSlash + 1);
 
-        return new ERegex(location(ctx), pattern, flags);
+        builder.visitRegex(location(ctx), pattern, flags).endVisit();
+
+        return null;
     }
 
     @Override
-    public ANode visitListinit(ListinitContext ctx) {
-        return visit(ctx.listinitializer());
+    public Void visitListinit(ListinitContext ctx) {
+        visit(ctx.listinitializer());
+
+        return null;
     }
 
     @Override
-    public ANode visitMapinit(MapinitContext ctx) {
-        return visit(ctx.mapinitializer());
+    public Void visitMapinit(MapinitContext ctx) {
+        visit(ctx.mapinitializer());
+
+        return null;
     }
 
     @Override
-    public ANode visitVariable(VariableContext ctx) {
+    public Void visitVariable(VariableContext ctx) {
         String name = ctx.ID().getText();
 
-        return new EVariable(location(ctx), name);
+        builder.visitVariable(location(ctx), name).endVisit();
+
+        return null;
     }
 
     @Override
-    public ANode visitCalllocal(CalllocalContext ctx) {
+    public Void visitCalllocal(CalllocalContext ctx) {
         String name = ctx.ID().getText();
-        List<AExpression> arguments = collectArguments(ctx.arguments());
 
-        return new ECallLocal(location(ctx), name, arguments);
+        builder.visitCallLocal(location(ctx), name);
+
+        visit(ctx.arguments());
+
+        builder.endVisit();
+
+        return null;
     }
 
     @Override
-    public ANode visitNewobject(NewobjectContext ctx) {
+    public Void visitNewobject(NewobjectContext ctx) {
         String type = ctx.TYPE().getText();
-        List<AExpression> arguments = collectArguments(ctx.arguments());
 
-        return new ENewObj(location(ctx), type, arguments);
+        builder.visitNewObj(location(ctx), type);
+
+        visit(ctx.arguments());
+
+        builder.endVisit();
+
+        return null;
     }
 
-    private AExpression buildPostfixChain(AExpression primary, PostdotContext postdot, List<PostfixContext> postfixes) {
-        AExpression prefix = primary;
+    private void buildPrefixChain(ParserRuleContext prefix, PostdotContext postdot, List<PostfixContext> postfixes) {
+        Stack<ParserRuleContext> prefixes = new Stack<>();
+
+        prefixes.push(prefix);
 
         if (postdot != null) {
-            prefix = visitPostdot(postdot, prefix);
+            prefixes.push(postdot);
         }
 
         for (PostfixContext postfix : postfixes) {
-            prefix = visitPostfix(postfix, prefix);
+            prefixes.push(postfix);
         }
 
-        return prefix;
+        visitPrefix(prefixes);
     }
 
     @Override
-    public ANode visitPostfix(PostfixContext ctx) {
-        throw location(ctx).createError(new IllegalStateException("Illegal tree structure."));
+    public Void visitPostfix(PostfixContext ctx) {
+        throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
     }
 
-    public AExpression visitPostfix(PostfixContext ctx, AExpression prefix) {
-        if (ctx.callinvoke() != null) {
-            return visitCallinvoke(ctx.callinvoke(), prefix);
-        } else if (ctx.fieldaccess() != null) {
-            return visitFieldaccess(ctx.fieldaccess(), prefix);
-        } else if (ctx.braceaccess() != null) {
-            return visitBraceaccess(ctx.braceaccess(), prefix);
+    private void visitPrefix(Stack<ParserRuleContext> prefixes) {
+        if (prefixes.isEmpty()) {
+            throw new IllegalStateException("illegal tree structure");
+        }
+
+        ParserRuleContext prefix = prefixes.pop();
+
+        if (prefix instanceof DynamicContext) {
+            DynamicContext ctx = (DynamicContext)prefix;
+
+            visit(ctx.primary());
+        } else if (prefix instanceof StaticContext) {
+            StaticContext ctx = (StaticContext)prefix;
+
+            visitPrefixStatic(ctx);
+        } else if (prefix instanceof NewstandardarrayContext) {
+            NewstandardarrayContext ctx = (NewstandardarrayContext)prefix;
+
+            visitPrefixNewstandardArray(ctx);
+        } else if (prefix instanceof NewinitializedarrayContext) {
+            NewinitializedarrayContext ctx = (NewinitializedarrayContext)prefix;
+
+            visitPrefixNewinitializedarray(ctx);
+        } else if (prefix instanceof PostdotContext) {
+            PostdotContext ctx = (PostdotContext)prefix;
+
+            visitPostdot(ctx, prefixes);
+        } else if (prefix instanceof PostfixContext) {
+            PostfixContext ctx = (PostfixContext)prefix;
+
+            if (ctx.callinvoke() != null) {
+                visitCallinvoke(ctx.callinvoke(), prefixes);
+            } else if (ctx.fieldaccess() != null) {
+                visitFieldaccess(ctx.fieldaccess(), prefixes);
+            } else if (ctx.braceaccess() != null) {
+                visitBraceaccess(ctx.braceaccess(), prefixes);
+            } else {
+                throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
+            }
         } else {
-            throw location(ctx).createError(new IllegalStateException("Illegal tree structure."));
+            throw location(prefix).createError(new IllegalStateException("illegal tree structure"));
         }
     }
 
     @Override
-    public ANode visitPostdot(PostdotContext ctx) {
-        throw location(ctx).createError(new IllegalStateException("Illegal tree structure."));
+    public Void visitPostdot(PostdotContext ctx) {
+        throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
     }
 
-    public AExpression visitPostdot(PostdotContext ctx, AExpression prefix) {
+    private void visitPostdot(PostdotContext ctx, Stack<ParserRuleContext> prefixes) {
         if (ctx.callinvoke() != null) {
-            return visitCallinvoke(ctx.callinvoke(), prefix);
+            visitCallinvoke(ctx.callinvoke(), prefixes);
         } else if (ctx.fieldaccess() != null) {
-            return visitFieldaccess(ctx.fieldaccess(), prefix);
+            visitFieldaccess(ctx.fieldaccess(), prefixes);
         } else {
-            throw location(ctx).createError(new IllegalStateException("Illegal tree structure."));
+            throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
         }
     }
 
     @Override
-    public ANode visitCallinvoke(CallinvokeContext ctx) {
-        throw location(ctx).createError(new IllegalStateException("Illegal tree structure."));
+    public Void visitCallinvoke(CallinvokeContext ctx) {
+        throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
     }
 
-    public AExpression visitCallinvoke(CallinvokeContext ctx, AExpression prefix) {
+    private void visitCallinvoke(CallinvokeContext ctx, Stack<ParserRuleContext> prefixes) {
         String name = ctx.DOTID().getText();
-        List<AExpression> arguments = collectArguments(ctx.arguments());
 
-        return new PCallInvoke(location(ctx), prefix, name, ctx.NSDOT() != null, arguments);
+        builder.visitCallInvoke(location(ctx), name, ctx.NSDOT() != null);
+
+        visitPrefix(prefixes);
+        visit(ctx.arguments());
+
+        builder.endVisit();
     }
 
     @Override
-    public ANode visitFieldaccess(FieldaccessContext ctx) {
-        throw location(ctx).createError(new IllegalStateException("Illegal tree structure."));
+    public Void visitFieldaccess(FieldaccessContext ctx) {
+        throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
     }
 
-    public AExpression visitFieldaccess(FieldaccessContext ctx, AExpression prefix) {
+    private void visitFieldaccess(FieldaccessContext ctx, Stack<ParserRuleContext> prefixes) {
         final String value;
 
         if (ctx.DOTID() != null) {
@@ -929,109 +1106,132 @@ public final class Walker extends PainlessParserBaseVisitor<ANode> {
         } else if (ctx.DOTINTEGER() != null) {
             value = ctx.DOTINTEGER().getText();
         } else {
-            throw location(ctx).createError(new IllegalStateException("Illegal tree structure."));
+            throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
         }
 
-        return new PField(location(ctx), prefix, ctx.NSDOT() != null, value);
+        builder.visitField(location(ctx), value, ctx.NSDOT() != null);
+
+        visitPrefix(prefixes);
+
+        builder.endVisit();
     }
 
     @Override
-    public ANode visitBraceaccess(BraceaccessContext ctx) {
-        throw location(ctx).createError(new IllegalStateException("Illegal tree structure."));
+    public Void visitBraceaccess(BraceaccessContext ctx) {
+        throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
     }
 
-    public AExpression visitBraceaccess(BraceaccessContext ctx, AExpression prefix) {
-        AExpression expression = (AExpression)visit(ctx.expression());
+    private void visitBraceaccess(BraceaccessContext ctx, Stack<ParserRuleContext> prefixes) {
+        builder.visitBrace(location(ctx));
 
-        return new PBrace(location(ctx), prefix, expression);
+        visitPrefix(prefixes);
+        visit(ctx.expression());
+
+        builder.endVisit();
     }
 
     @Override
-    public ANode visitNewstandardarray(NewstandardarrayContext ctx) {
+    public Void visitNewstandardarray(NewstandardarrayContext ctx) {
+        buildPrefixChain(ctx, ctx.postdot(), ctx.postfix());
+
+        return null;
+    }
+
+    private void visitPrefixNewstandardArray(NewstandardarrayContext ctx) {
         StringBuilder type = new StringBuilder(ctx.TYPE().getText());
-        List<AExpression> expressions = new ArrayList<>();
 
-        for (ExpressionContext expression : ctx.expression()) {
+        for (int dimensions = 0; dimensions < ctx.expression().size(); ++dimensions) {
             type.append("[]");
-            expressions.add((AExpression)visit(expression));
         }
 
-        return buildPostfixChain(new ENewArray(location(ctx), type.toString(), expressions, false), ctx.postdot(), ctx.postfix());
+        builder.visitNewArray(location(ctx), type.toString(), false);
+
+        for (ExpressionContext expression : ctx.expression()) {
+            visit(expression);
+        }
+
+        builder.endVisit();
     }
 
     @Override
-    public ANode visitNewinitializedarray(NewinitializedarrayContext ctx) {
+    public Void visitNewinitializedarray(NewinitializedarrayContext ctx) {
+        buildPrefixChain(ctx, null, ctx.postfix());
+
+        return null;
+    }
+
+    private void visitPrefixNewinitializedarray(NewinitializedarrayContext ctx) {
         String type = ctx.TYPE().getText() + "[]";
-        List<AExpression> expressions = new ArrayList<>();
+
+        builder.visitNewArray(location(ctx), type, true);
 
         for (ExpressionContext expression : ctx.expression()) {
-            expressions.add((AExpression)visit(expression));
+            visit(expression);
         }
 
-        return buildPostfixChain(new ENewArray(location(ctx), type, expressions, true), null, ctx.postfix());
+        builder.endVisit();
     }
 
     @Override
-    public ANode visitListinitializer(ListinitializerContext ctx) {
-        List<AExpression> values = new ArrayList<>();
+    public Void visitListinitializer(ListinitializerContext ctx) {
+        builder.visitListInit(location(ctx));
 
         for (ExpressionContext expression : ctx.expression()) {
-            values.add((AExpression)visit(expression));
+            visit(expression);
         }
 
-        return new EListInit(location(ctx), values);
+        builder.endVisit();
+
+        return null;
     }
 
     @Override
-    public ANode visitMapinitializer(MapinitializerContext ctx) {
-        List<AExpression> pairs = new ArrayList<>();
+    public Void visitMapinitializer(MapinitializerContext ctx) {
+        builder.visitMapInit(location(ctx));
 
         for (MaptokenContext maptoken : ctx.maptoken()) {
-            pairs.add((AExpression)visit(maptoken.expression(0)));
-            pairs.add((AExpression)visit(maptoken.expression(1)));
+            visit(maptoken.expression(0));
+            visit(maptoken.expression(1));
         }
 
-        return new EMapInit(location(ctx), pairs);
+        builder.endVisit();
+
+        return null;
     }
 
     @Override
-    public ANode visitMaptoken(MaptokenContext ctx) {
-        throw location(ctx).createError(new IllegalStateException("Illegal tree structure."));
+    public Void visitMaptoken(MaptokenContext ctx) {
+        throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
     }
 
     @Override
-    public ANode visitArguments(ArgumentsContext ctx) {
-        throw location(ctx).createError(new IllegalStateException("Illegal tree structure."));
-    }
-
-    private List<AExpression> collectArguments(ArgumentsContext ctx) {
-        List<AExpression> arguments = new ArrayList<>();
-
+    public Void visitArguments(ArgumentsContext ctx) {
         for (ArgumentContext argument : ctx.argument()) {
-            arguments.add((AExpression)visit(argument));
+            visit(argument);
         }
 
-        return arguments;
+        return null;
     }
 
     @Override
-    public ANode visitArgument(ArgumentContext ctx) {
+    public Void visitArgument(ArgumentContext ctx) {
         if (ctx.expression() != null) {
-            return visit(ctx.expression());
+            visit(ctx.expression());
         } else if (ctx.lambda() != null) {
-            return visit(ctx.lambda());
+            visit(ctx.lambda());
         } else if (ctx.funcref() != null) {
-            return visit(ctx.funcref());
+            visit(ctx.funcref());
         } else {
-            throw location(ctx).createError(new IllegalStateException("Illegal tree structure."));
+            throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
         }
+
+        return null;
     }
 
     @Override
-    public ANode visitLambda(LambdaContext ctx) {
+    public Void visitLambda(LambdaContext ctx) {
         List<String> paramTypes = new ArrayList<>();
         List<String> paramNames = new ArrayList<>();
-        List<AStatement> statements = new ArrayList<>();
 
         for (LamtypeContext lamtype : ctx.lamtype()) {
             if (lamtype.decltype() == null) {
@@ -1043,47 +1243,62 @@ public final class Walker extends PainlessParserBaseVisitor<ANode> {
             paramNames.add(lamtype.ID().getText());
         }
 
+        builder.visitLambda(location(ctx), paramTypes, paramNames);
+
         if (ctx.expression() != null) {
             // single expression
-            AExpression expression = (AExpression)visit(ctx.expression());
-            statements.add(new SReturn(location(ctx), expression));
+            builder.visitReturn(location(ctx));
+            visit(ctx.expression());
+            builder.endVisit();
         } else {
             for (StatementContext statement : ctx.block().statement()) {
-                statements.add((AStatement)visit(statement));
+                visit(statement);
             }
 
             if (ctx.block().dstatement() != null) {
-                statements.add((AStatement)visit(ctx.block().dstatement()));
+                visit(ctx.block().dstatement());
             }
         }
 
-        return new ELambda(location(ctx), paramTypes, paramNames, statements);
+        builder.endVisit();
+
+        return null;
     }
 
     @Override
-    public ANode visitLamtype(LamtypeContext ctx) {
-        throw location(ctx).createError(new IllegalStateException("Illegal tree structure."));
+    public Void visitLamtype(LamtypeContext ctx) {
+        throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
     }
 
     @Override
-    public ANode visitClassfuncref(ClassfuncrefContext ctx) {
-        return new EFunctionRef(location(ctx), ctx.TYPE().getText(), ctx.ID().getText());
+    public Void visitClassfuncref(ClassfuncrefContext ctx) {
+        builder.visitFunctionRef(location(ctx), ctx.TYPE().getText(), ctx.ID().getText()).endVisit();
+
+        return null;
     }
 
     @Override
-    public ANode visitConstructorfuncref(ConstructorfuncrefContext ctx) {
-        return ctx.decltype().LBRACE().isEmpty() ?
-                new EFunctionRef(location(ctx), ctx.decltype().getText(), ctx.NEW().getText()) :
-                new ENewArrayFunctionRef(location(ctx), ctx.decltype().getText());
+    public Void visitConstructorfuncref(ConstructorfuncrefContext ctx) {
+        if (ctx.decltype().LBRACE().isEmpty()) {
+            builder.visitFunctionRef(location(ctx), ctx.decltype().getText(), ctx.NEW().getText()).endVisit();
+        } else {
+            builder.visitNewArrayFunctionRef(location(ctx), ctx.decltype().getText()).endVisit();
+        }
+
+        return null;
     }
 
     @Override
-    public ANode visitCapturingfuncref(CapturingfuncrefContext ctx) {
-        return new ECapturingFunctionRef(location(ctx), ctx.ID(0).getText(), ctx.ID(1).getText());
+    public Void visitCapturingfuncref(CapturingfuncrefContext ctx) {
+        builder.visitCapturingFunctionRef(location(ctx), ctx.ID(0).getText(), ctx.ID(1).getText()).endVisit();
+
+        return null;
     }
 
     @Override
-    public ANode visitLocalfuncref(LocalfuncrefContext ctx) {
-        return new EFunctionRef(location(ctx), ctx.THIS().getText(), ctx.ID().getText());
+    public Void visitLocalfuncref(LocalfuncrefContext ctx) {
+        builder.visitFunctionRef(location(ctx), ctx.THIS().getText(), ctx.ID().getText()).endVisit();
+
+        return null;
     }
 }

@@ -34,10 +34,7 @@ import org.elasticsearch.painless.spi.WhitelistLoader;
 import org.elasticsearch.test.ESTestCase;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-
-import static java.util.Collections.singletonList;
 
 /**
  * Tests {@link Object#toString} implementations on all extensions of {@link ANode}.
@@ -159,7 +156,9 @@ public class NodeToStringTests extends ESTestCase {
         assertEquals("(ECast java.lang.Integer (EConstant String 'test'))", new ECast(l, child, cast).toString());
 
         l = new Location(getTestName(), 1);
-        child = new EBinary(l, Operation.ADD, new EConstant(l, "test"), new EConstant(l, 12));
+        child = new EBinary(l, Operation.ADD);
+        child.addChild(new EConstant(l, "test"));
+        child.addChild(new EConstant(l, 12));
         cast = PainlessCast.originalTypetoTargetType(Integer.class, Boolean.class, true);
         assertEquals("(ECast java.lang.Boolean (EBinary (EConstant String 'test') + (EConstant Integer 12)))",
             new ECast(l, child, cast).toString());
@@ -634,8 +633,14 @@ public class NodeToStringTests extends ESTestCase {
     public void testSSubEachArray() {
         Location l = new Location(getTestName(), 0);
         Variable v = new Variable(l, "test", int.class, 5, false);
-        AExpression e = new ENewArray(l, "int", Arrays.asList(new EConstant(l, 1), new EConstant(l, 2), new EConstant(l, 3)), true);
-        SBlock b = new SBlock(l, singletonList(new SReturn(l, new EConstant(l, 5))));
+        AExpression e = new ENewArray(l, "int", true);
+        e.addChild(new EConstant(l, 1));
+        e.addChild(new EConstant(l, 2));
+        e.addChild(new EConstant(l, 3));
+        SBlock b = new SBlock(l);
+        SReturn r = new SReturn(l);
+        r.addChild(new EConstant(l, 5));
+        b.addChild(new SReturn(l));
         SSubEachArray node = new SSubEachArray(l, v, e, b);
         assertEquals(
                 "(SSubEachArray int test (ENewArray int init (Args (EConstant Integer 1) (EConstant Integer 2) (EConstant Integer 3))) "
@@ -646,8 +651,14 @@ public class NodeToStringTests extends ESTestCase {
     public void testSSubEachIterable() {
         Location l = new Location(getTestName(), 0);
         Variable v = new Variable(l, "test", int.class, 5, false);
-        AExpression e = new EListInit(l, Arrays.asList(new EConstant(l, 1), new EConstant(l, 2), new EConstant(l, 3)));
-        SBlock b = new SBlock(l, singletonList(new SReturn(l, new EConstant(l, 5))));
+        AExpression e = new EListInit(l);
+        e.addChild(new EConstant(l, 1));
+        e.addChild(new EConstant(l, 2));
+        e.addChild(new EConstant(l, 3));
+        SBlock b = new SBlock(l);
+        SReturn r = new SReturn(l);
+        r.addChild(new EConstant(l, 5));
+        b.addChild(new SReturn(l));
         SSubEachIterable node = new SSubEachIterable(l, v, e, b);
         assertEquals(
                   "(SSubEachIterable int test (EListInit (EConstant Integer 1) (EConstant Integer 2) (EConstant Integer 3)) (SBlock "

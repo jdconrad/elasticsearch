@@ -29,7 +29,6 @@ import org.elasticsearch.painless.lookup.def;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -39,10 +38,8 @@ public final class PBrace extends AStoreable {
 
     private AStoreable sub = null;
 
-    public PBrace(Location location, AExpression prefix, AExpression index) {
-        super(location, prefix);
-
-        children.add(Objects.requireNonNull(index));
+    public PBrace(Location location) {
+        super(location);
     }
 
     @Override

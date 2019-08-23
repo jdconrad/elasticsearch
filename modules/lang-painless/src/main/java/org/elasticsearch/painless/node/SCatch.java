@@ -45,12 +45,11 @@ public final class SCatch extends AStatement {
     Label end = null;
     Label exception = null;
 
-    public SCatch(Location location, String type, String name, SBlock block) {
+    public SCatch(Location location, String type, String name) {
         super(location);
 
         this.type = Objects.requireNonNull(type);
         this.name = Objects.requireNonNull(name);
-        children.add(block);
     }
 
     @Override

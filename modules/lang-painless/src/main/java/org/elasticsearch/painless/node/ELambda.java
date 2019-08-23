@@ -78,13 +78,10 @@ public final class ELambda extends AExpression implements ILambda {
     // dynamic parent, deferred until link time
     private String defPointer;
 
-    public ELambda(Location location,
-                   List<String> paramTypes, List<String> paramNames,
-                   List<AStatement> statements) {
+    public ELambda(Location location, List<String> paramTypes, List<String> paramNames) {
         super(location);
         this.paramTypeStrs = Collections.unmodifiableList(paramTypes);
         this.paramNameStrs = Collections.unmodifiableList(paramNames);
-        children.addAll(statements);
 
         this.extractedVariables = new HashSet<>();
     }
@@ -175,7 +172,8 @@ public final class ELambda extends AExpression implements ILambda {
         // desugar lambda body into a synthetic method
         String name = locals.getNextSyntheticName();
         desugared = new SFunction(
-                location, PainlessLookupUtility.typeToCanonicalTypeName(returnType), name, paramTypes, paramNames, children, true);
+                location, PainlessLookupUtility.typeToCanonicalTypeName(returnType), name, paramTypes, paramNames, true);
+        desugared.children.addAll(children);
         desugared.storeSettings(settings);
         desugared.generateSignature(locals.getPainlessLookup());
         desugared.analyze(Locals.newLambdaScope(locals.getProgramScope(), desugared.name, returnType,

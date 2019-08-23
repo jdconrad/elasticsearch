@@ -38,13 +38,8 @@ public final class SFor extends AStatement {
 
     private boolean continuous = false;
 
-    public SFor(Location location, ANode initializer, AExpression condition, AExpression afterthought, SBlock block) {
+    public SFor(Location location) {
         super(location);
-
-        children.add(initializer);
-        children.add(condition);
-        children.add(afterthought);
-        children.add(block);
     }
 
     @Override

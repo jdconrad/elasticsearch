@@ -28,7 +28,6 @@ import org.elasticsearch.painless.MethodWriter;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.Opcodes;
 
-import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -36,12 +35,8 @@ import java.util.Set;
  */
 public final class EConditional extends AExpression {
 
-    public EConditional(Location location, AExpression condition, AExpression left, AExpression right) {
+    public EConditional(Location location) {
         super(location);
-
-        children.add(Objects.requireNonNull(condition));
-        children.add(Objects.requireNonNull(left));
-        children.add(Objects.requireNonNull(right));
     }
 
     @Override

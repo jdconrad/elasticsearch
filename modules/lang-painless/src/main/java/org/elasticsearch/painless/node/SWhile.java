@@ -27,7 +27,6 @@ import org.elasticsearch.painless.MethodWriter;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.Opcodes;
 
-import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -37,11 +36,8 @@ public final class SWhile extends AStatement {
 
     private boolean continuous = false;
 
-    public SWhile(Location location, AExpression condition, SBlock block) {
+    public SWhile(Location location) {
         super(location);
-
-        children.add(Objects.requireNonNull(condition));
-        children.add(block);
     }
 
     @Override

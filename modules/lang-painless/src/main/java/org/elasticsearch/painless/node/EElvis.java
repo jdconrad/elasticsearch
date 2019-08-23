@@ -29,19 +29,14 @@ import org.objectweb.asm.Label;
 
 import java.util.Set;
 
-import static java.util.Objects.requireNonNull;
-
 /**
  * The Elvis operator ({@code ?:}), a null coalescing operator. Binary operator that evaluates the first expression and return it if it is
  * non null. If the first expression is null then it evaluates the second expression and returns it.
  */
 public class EElvis extends AExpression {
 
-    public EElvis(Location location, AExpression lhs, AExpression rhs) {
+    public EElvis(Location location) {
         super(location);
-
-        children.add(requireNonNull(lhs));
-        children.add(requireNonNull(rhs));
     }
 
     @Override

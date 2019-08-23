@@ -52,11 +52,10 @@ public final class ECallLocal extends AExpression {
     private int classBindingOffset = 0;
     private PainlessInstanceBinding instanceBinding = null;
 
-    public ECallLocal(Location location, String name, List<AExpression> arguments) {
+    public ECallLocal(Location location, String name) {
         super(location);
 
         this.name = Objects.requireNonNull(name);
-        children.addAll(arguments);
     }
 
     @Override

@@ -27,7 +27,6 @@ import org.elasticsearch.painless.MethodWriter;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.Opcodes;
 
-import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -35,11 +34,8 @@ import java.util.Set;
  */
 public final class SIf extends AStatement {
 
-    public SIf(Location location, AExpression condition, SBlock ifblock) {
+    public SIf(Location location) {
         super(location);
-
-        children.add(Objects.requireNonNull(condition));
-        children.add(ifblock);
     }
 
     @Override

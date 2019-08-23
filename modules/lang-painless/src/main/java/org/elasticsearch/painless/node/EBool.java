@@ -38,12 +38,10 @@ public final class EBool extends AExpression {
 
     private final Operation operation;
 
-    public EBool(Location location, Operation operation, AExpression left, AExpression right) {
+    public EBool(Location location, Operation operation) {
         super(location);
 
         this.operation = Objects.requireNonNull(operation);
-        children.add(Objects.requireNonNull(left));
-        children.add(Objects.requireNonNull(right));
     }
 
     @Override

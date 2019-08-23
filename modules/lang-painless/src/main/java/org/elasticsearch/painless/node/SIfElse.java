@@ -28,7 +28,6 @@ import org.objectweb.asm.Label;
 import org.objectweb.asm.Opcodes;
 
 import java.util.Arrays;
-import java.util.Objects;
 import java.util.Set;
 
 import static java.util.Collections.singleton;
@@ -38,12 +37,8 @@ import static java.util.Collections.singleton;
  */
 public final class SIfElse extends AStatement {
 
-    public SIfElse(Location location, AExpression condition, SBlock ifblock, SBlock elseblock) {
+    public SIfElse(Location location) {
         super(location);
-
-        children.add(Objects.requireNonNull(condition));
-        children.add(ifblock);
-        children.add(elseblock);
     }
 
     @Override

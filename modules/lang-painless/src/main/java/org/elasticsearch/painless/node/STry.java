@@ -26,7 +26,6 @@ import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 import org.objectweb.asm.Label;
 
-import java.util.List;
 import java.util.Set;
 
 import static java.util.Collections.singleton;
@@ -36,11 +35,8 @@ import static java.util.Collections.singleton;
  */
 public final class STry extends AStatement {
 
-    public STry(Location location, SBlock block, List<SCatch> catches) {
+    public STry(Location location) {
         super(location);
-
-        children.add(block);
-        children.addAll(catches);
     }
 
     @Override

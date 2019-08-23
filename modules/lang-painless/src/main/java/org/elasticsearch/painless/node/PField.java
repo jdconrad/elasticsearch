@@ -46,8 +46,8 @@ public final class PField extends AStoreable {
 
     private AStoreable sub = null;
 
-    public PField(Location location, AExpression prefix, boolean nullSafe, String value) {
-        super(location, prefix);
+    public PField(Location location, boolean nullSafe, String value) {
+        super(location);
 
         this.nullSafe = nullSafe;
         this.value = Objects.requireNonNull(value);

@@ -47,12 +47,10 @@ public final class EComp extends AExpression {
 
     private Class<?> promotedType;
 
-    public EComp(Location location, Operation operation, AExpression left, AExpression right) {
+    public EComp(Location location, Operation operation) {
         super(location);
 
         this.operation = Objects.requireNonNull(operation);
-        children.add(Objects.requireNonNull(left));
-        children.add(Objects.requireNonNull(right));
     }
 
     @Override

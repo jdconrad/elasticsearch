@@ -35,11 +35,10 @@ public final class EExplicit extends AExpression {
 
     private final String type;
 
-    public EExplicit(Location location, String type, AExpression child) {
+    public EExplicit(Location location, String type) {
         super(location);
 
         this.type = Objects.requireNonNull(type);
-        children.add(Objects.requireNonNull(child));
     }
 
     @Override

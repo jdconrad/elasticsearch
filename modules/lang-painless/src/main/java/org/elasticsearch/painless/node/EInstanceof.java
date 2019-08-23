@@ -41,9 +41,8 @@ public final class EInstanceof extends AExpression {
     private Class<?> expressionType;
     private boolean primitiveExpression;
 
-    public EInstanceof(Location location, AExpression expression, String type) {
+    public EInstanceof(Location location, String type) {
         super(location);
-        children.add(Objects.requireNonNull(expression));
         this.type = Objects.requireNonNull(type);
     }
 

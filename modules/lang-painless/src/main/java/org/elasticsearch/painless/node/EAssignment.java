@@ -33,7 +33,6 @@ import org.elasticsearch.painless.lookup.def;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -51,11 +50,9 @@ public final class EAssignment extends AExpression {
     private PainlessCast there = null;
     private PainlessCast back = null;
 
-    public EAssignment(Location location, AExpression lhs, AExpression rhs, boolean pre, boolean post, Operation operation) {
+    public EAssignment(Location location, boolean pre, boolean post, Operation operation) {
         super(location);
 
-        children.add(Objects.requireNonNull(lhs));
-        children.add(rhs);
         this.pre = pre;
         this.post = post;
         this.operation = operation;

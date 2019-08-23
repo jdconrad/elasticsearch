@@ -44,10 +44,8 @@ public final class EMapInit extends AExpression {
     private PainlessConstructor constructor = null;
     private PainlessMethod method = null;
 
-    public EMapInit(Location location, List<AExpression> pairs) {
+    public EMapInit(Location location) {
         super(location);
-
-        children.addAll(pairs);
     }
 
     @Override

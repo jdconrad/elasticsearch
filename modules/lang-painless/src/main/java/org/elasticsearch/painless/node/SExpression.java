@@ -25,7 +25,6 @@ import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 
-import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -33,10 +32,8 @@ import java.util.Set;
  */
 public final class SExpression extends AStatement {
 
-    public SExpression(Location location, AExpression expression) {
+    public SExpression(Location location) {
         super(location);
-
-        children.add(Objects.requireNonNull(expression));
     }
 
     @Override

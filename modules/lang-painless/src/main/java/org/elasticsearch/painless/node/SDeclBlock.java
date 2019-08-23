@@ -25,7 +25,6 @@ import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 
-import java.util.List;
 import java.util.Set;
 
 import static java.util.Collections.emptyList;
@@ -35,10 +34,8 @@ import static java.util.Collections.emptyList;
  */
 public final class SDeclBlock extends AStatement {
 
-    public SDeclBlock(Location location, List<SDeclaration> declarations) {
+    public SDeclBlock(Location location) {
         super(location);
-
-        children.addAll(declarations);
     }
 
     @Override

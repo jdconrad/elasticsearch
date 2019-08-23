@@ -27,7 +27,7 @@ import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 import org.objectweb.asm.Type;
 
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.Objects;
 import java.util.Set;
 
@@ -60,9 +60,14 @@ public final class ENewArrayFunctionRef extends AExpression implements ILambda {
 
     @Override
     void analyze(Locals locals) {
-        SReturn code = new SReturn(location, new ENewArray(location, type, Arrays.asList(new EVariable(location, "size")), false));
+        EVariable size = new EVariable(location, "size");
+        ENewArray array = new ENewArray(location, type, false);
+        SReturn rtn = new SReturn(location);
+        rtn.children.add(size);
+        rtn.children.add(array);
         SFunction function = new SFunction(location, type, locals.getNextSyntheticName(),
-                Arrays.asList("int"), Arrays.asList("size"), Arrays.asList(code), true);
+                Collections.singletonList("int"), Collections.singletonList("size"), true);
+        function.children.add(rtn);
         children.add(function);
         function.storeSettings(settings);
         function.generateSignature(locals.getPainlessLookup());

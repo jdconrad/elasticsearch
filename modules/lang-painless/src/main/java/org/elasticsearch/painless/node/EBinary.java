@@ -48,12 +48,10 @@ public final class EBinary extends AExpression {
     boolean cat = false;
     private boolean originallyExplicit = false; // record whether there was originally an explicit cast
 
-    public EBinary(Location location, Operation operation, AExpression left, AExpression right) {
+    public EBinary(Location location, Operation operation) {
         super(location);
 
         this.operation = Objects.requireNonNull(operation);
-        children.add(Objects.requireNonNull(left));
-        children.add(Objects.requireNonNull(right));
     }
 
     @Override

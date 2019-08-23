@@ -31,7 +31,6 @@ import org.objectweb.asm.Type;
 import org.objectweb.asm.commons.Method;
 
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Set;
 
 import static org.elasticsearch.painless.lookup.PainlessLookupUtility.typeToCanonicalTypeName;
@@ -43,10 +42,8 @@ public final class EListInit extends AExpression {
     private PainlessConstructor constructor = null;
     private PainlessMethod method = null;
 
-    public EListInit(Location location, List<AExpression> values) {
+    public EListInit(Location location) {
         super(location);
-
-        children.addAll(values);
     }
 
     @Override

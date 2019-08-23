@@ -64,7 +64,7 @@ public final class SFunction extends AStatement {
     private Variable loop = null;
 
     public SFunction(Location location, String rtnType, String name,
-                     List<String> paramTypes, List<String> paramNames, List<ANode> statements,
+                     List<String> paramTypes, List<String> paramNames,
                      boolean synthetic) {
         super(location);
 
@@ -72,7 +72,6 @@ public final class SFunction extends AStatement {
         this.name = Objects.requireNonNull(name);
         this.paramTypeStrs = Collections.unmodifiableList(paramTypes);
         this.paramNameStrs = Collections.unmodifiableList(paramNames);
-        children.addAll(statements);
         this.synthetic = synthetic;
     }
 

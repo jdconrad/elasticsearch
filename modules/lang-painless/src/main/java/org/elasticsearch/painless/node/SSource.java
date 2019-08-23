@@ -82,27 +82,24 @@ public final class SSource extends AStatement {
     private final ScriptClassInfo scriptClassInfo;
     private final String name;
     private final Printer debugStream;
-    private final int functionCount;
     private final Globals globals;
 
     private CompilerSettings settings;
 
+    private int functionCount;
     private Locals mainMethod;
     private final Set<String> extractedVariables;
     private final List<org.objectweb.asm.commons.Method> getMethods;
     private byte[] bytes;
 
-    public SSource(ScriptClassInfo scriptClassInfo, String name, String sourceText, Printer debugStream,
-            Location location, List<SFunction> functions, List<AStatement> statements) {
+    public SSource(ScriptClassInfo scriptClassInfo, String name, String sourceText, Printer debugStream, Location location) {
         super(location);
         this.scriptClassInfo = Objects.requireNonNull(scriptClassInfo);
         this.name = Objects.requireNonNull(name);
         this.debugStream = debugStream;
-        children.addAll(functions);
-        this.functionCount = functions.size();
-        children.addAll(statements);
         this.globals = new Globals(new BitSet(sourceText.length()));
 
+        this.functionCount = 0;
         this.extractedVariables = new HashSet<>();
         this.getMethods = new ArrayList<>();
     }

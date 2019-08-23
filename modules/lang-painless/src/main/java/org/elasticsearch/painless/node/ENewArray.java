@@ -25,7 +25,6 @@ import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 
-import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
@@ -37,11 +36,10 @@ public final class ENewArray extends AExpression {
     private final String type;
     private final boolean initialize;
 
-    public ENewArray(Location location, String type, List<AExpression> arguments, boolean initialize) {
+    public ENewArray(Location location, String type, boolean initialize) {
         super(location);
 
         this.type = Objects.requireNonNull(type);
-        children.addAll(Objects.requireNonNull(arguments));
         this.initialize = initialize;
     }
 

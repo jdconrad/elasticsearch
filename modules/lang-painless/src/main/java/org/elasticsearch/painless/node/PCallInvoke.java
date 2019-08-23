@@ -27,7 +27,6 @@ import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.lookup.PainlessMethod;
 import org.elasticsearch.painless.lookup.def;
 
-import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
@@ -43,12 +42,11 @@ public final class PCallInvoke extends AExpression {
 
     private AExpression sub = null;
 
-    public PCallInvoke(Location location, AExpression prefix, String name, boolean nullSafe, List<AExpression> arguments) {
-        super(location, prefix);
+    public PCallInvoke(Location location, String name, boolean nullSafe) {
+        super(location);
 
         this.name = Objects.requireNonNull(name);
         this.nullSafe = nullSafe;
-        children.addAll(Objects.requireNonNull(arguments));
     }
 
     @Override
