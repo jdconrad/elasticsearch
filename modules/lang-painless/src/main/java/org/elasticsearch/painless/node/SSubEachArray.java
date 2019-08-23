@@ -27,7 +27,6 @@ import org.elasticsearch.painless.Locals.Variable;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.lookup.PainlessCast;
-import org.elasticsearch.painless.lookup.PainlessLookupUtility;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.Opcodes;
 

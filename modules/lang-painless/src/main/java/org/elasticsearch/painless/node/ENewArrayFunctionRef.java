@@ -62,8 +62,8 @@ public final class ENewArrayFunctionRef extends AExpression implements ILambda {
     void analyze(Locals locals) {
         EVariable size = new EVariable(location, "size");
         ENewArray array = new ENewArray(location, type, false);
+        array.children.add(size);
         SReturn rtn = new SReturn(location);
-        rtn.children.add(size);
         rtn.children.add(array);
         SFunction function = new SFunction(location, type, locals.getNextSyntheticName(),
                 Collections.singletonList("int"), Collections.singletonList("size"), true);
