@@ -140,6 +140,8 @@ public final class SSource extends AStatement {
                         new LocalMethod(function.name, function.returnType, function.typeParameters, function.methodType)) != null) {
                     throw createError(new IllegalArgumentException("Duplicate functions with name [" + function.name + "]."));
                 }
+
+                ++functionCount;
             } else {
                 break;
             }

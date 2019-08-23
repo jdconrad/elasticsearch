@@ -146,9 +146,6 @@ public final class Walker extends PainlessParserBaseVisitor<Void> {
         builder = new ASTBuilder();
         visit(buildAntlrTree(sourceText));
         source = (SSource)builder.getCurrent();
-        if (true) {
-            throw new IllegalArgumentException(source.toString());
-        }
     }
 
     private SourceContext buildAntlrTree(String source) {
@@ -508,7 +505,7 @@ public final class Walker extends PainlessParserBaseVisitor<Void> {
         for (DeclvarContext declvar : ctx.declvar()) {
             String name = declvar.ID().getText();
 
-            builder.visitDeclaration(location(ctx), type, name);
+            builder.visitDeclaration(location(declvar), type, name);
 
             if (declvar.expression() == null) {
                 builder.visitEmpty();

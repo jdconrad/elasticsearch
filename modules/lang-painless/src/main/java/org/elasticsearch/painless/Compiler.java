@@ -213,6 +213,7 @@ final class Compiler {
         root.extractVariables(extractedVariables);
         root.storeSettings(settings);
         root.analyze(painlessLookup);
+        if (true) throw new IllegalArgumentException(root.toString());
         Map<String, Object> statics = root.write();
 
         try {
