@@ -21,6 +21,7 @@ package org.elasticsearch.painless;
 
 import org.elasticsearch.bootstrap.BootstrapInfo;
 import org.elasticsearch.painless.antlr.Walker;
+import org.elasticsearch.painless.builder.SymbolTableBuilder;
 import org.elasticsearch.painless.lookup.PainlessLookup;
 import org.elasticsearch.painless.node.SSource;
 import org.elasticsearch.painless.spi.Whitelist;
@@ -212,6 +213,7 @@ final class Compiler {
         SSource root = Walker.buildPainlessTree(scriptClassInfo, name, source, settings, painlessLookup, null);
         root.extractVariables(extractedVariables);
         root.storeSettings(settings);
+        new SymbolTableBuilder(painlessLookup).visit(root);
         root.analyze(painlessLookup);
         Map<String, Object> statics = root.write();
 

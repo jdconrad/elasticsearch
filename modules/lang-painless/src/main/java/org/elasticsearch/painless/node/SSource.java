@@ -132,13 +132,11 @@ public final class SSource extends AStatement {
         for (ANode child : children) {
             if (child instanceof SFunction) {
                 SFunction function = (SFunction)child;
-                function.generateSignature(painlessLookup);
 
                 String key = Locals.buildLocalMethodKey(function.name, function.parameters.size());
 
                 if (methods.put(key,
                         new LocalMethod(function.name, function.returnType, function.typeParameters, function.methodType)) != null) {
-                    throw createError(new IllegalArgumentException("Duplicate functions with name [" + function.name + "]."));
                 }
 
                 ++functionCount;

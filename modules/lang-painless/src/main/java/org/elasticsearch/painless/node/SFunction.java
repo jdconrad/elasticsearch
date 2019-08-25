@@ -54,8 +54,8 @@ public final class SFunction extends AStatement {
 
     private CompilerSettings settings;
 
-    Class<?> returnType;
-    List<Class<?>> typeParameters;
+    public Class<?> returnType;
+    public List<Class<?>> typeParameters;
     MethodType methodType;
 
     org.objectweb.asm.commons.Method method;
@@ -94,7 +94,7 @@ public final class SFunction extends AStatement {
         }
     }
 
-    void generateSignature(PainlessLookup painlessLookup) {
+    public void generateSignature(PainlessLookup painlessLookup) {
         returnType = painlessLookup.canonicalTypeNameToType(rtnTypeStr);
 
         if (returnType == null) {

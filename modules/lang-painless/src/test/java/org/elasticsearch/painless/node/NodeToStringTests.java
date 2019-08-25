@@ -156,8 +156,8 @@ public class NodeToStringTests extends ESTestCase {
 
         l = new Location(getTestName(), 1);
         child = new EBinary(l, Operation.ADD);
-        child.addChild(new EConstant(l, "test"));
-        child.addChild(new EConstant(l, 12));
+        child.children.add(new EConstant(l, "test"));
+        child.children.add(new EConstant(l, 12));
         cast = PainlessCast.originalTypetoTargetType(Integer.class, Boolean.class, true);
         assertEquals("(ECast java.lang.Boolean (EBinary (EConstant String 'test') + (EConstant Integer 12)))",
             new ECast(l, child, cast).toString());

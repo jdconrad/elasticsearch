@@ -87,21 +87,21 @@ public class ASTBuilder {
     }
 
     protected ASTBuilder visitChild(ANode child) {
-        child.setParent(current);
-        current.addChild(child);
+        child.parent = current;
+        current.children.add(child);
         current = child;
 
         return this;
     }
 
     public ASTBuilder visitEmpty() {
-        current.addChild(null);
+        current.children.add(null);
 
         return this;
     }
 
     public ASTBuilder endVisit() {
-        current = current.getParent();
+        current = current.parent;
 
         return this;
     }

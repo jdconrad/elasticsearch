@@ -47,12 +47,12 @@ public abstract class ANode {
      */
     final Location location;
 
-    ANode parent;
+    public ANode parent;
 
     /**
      * Child nodes.
      */
-    final List<ANode> children;
+    public final List<ANode> children;
 
     /**
      * Standard constructor with location used for error tracking.
@@ -60,30 +60,6 @@ public abstract class ANode {
     ANode(Location location) {
         this.location = Objects.requireNonNull(location);
         children = new ArrayList<>();
-    }
-
-    public void setParent(ANode parent) {
-        this.parent = parent;
-    }
-
-    public ANode getParent() {
-        return parent;
-    }
-
-    public void addChild(ANode child) {
-        children.add(child);
-    }
-
-    public void setChild(int index, ANode child) {
-        children.set(index, child);
-    }
-
-    public ANode getChild(int index) {
-        return children.get(index);
-    }
-
-    public void removeChild(int index) {
-        children.remove(index);
     }
 
     /**
@@ -112,7 +88,7 @@ public abstract class ANode {
     /**
      * Create an error with location information pointing to this node.
      */
-    RuntimeException createError(RuntimeException exception) {
+    public RuntimeException createError(RuntimeException exception) {
         return location.createError(exception);
     }
 
