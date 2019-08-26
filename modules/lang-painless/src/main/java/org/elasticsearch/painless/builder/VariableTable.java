@@ -19,20 +19,5 @@
 
 package org.elasticsearch.painless.builder;
 
-public class SymbolTable {
-
-    public final FunctionTable definedFunctions = new FunctionTable();
-
-    @Override
-    public String toString() {
-        StringBuilder builder = new StringBuilder();
-
-        for (FunctionTable.LocalFunction lf : definedFunctions.localFunctions.values()) {
-            builder.append("[");
-            builder.append(lf.name);
-            builder.append("] ");
-        }
-
-        return builder.toString();
-    }
+public class VariableTable {
 }

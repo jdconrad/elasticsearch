@@ -21,6 +21,7 @@ package org.elasticsearch.painless.builder;
 
 import org.elasticsearch.painless.lookup.PainlessLookup;
 import org.elasticsearch.painless.node.ANode;
+import org.elasticsearch.painless.node.ECallLocal;
 import org.elasticsearch.painless.node.SFunction;
 
 import java.util.Collections;
@@ -48,9 +49,17 @@ public class SymbolTableBuilder {
         base.put(SFunction.class, (node, table) -> {
                     SFunction function = (SFunction)node;
                     function.generateSignature(lookup);
-                    if (table.addLocalFunction(function.name, function.returnType, function.typeParameters) != null) {
-                        throw function.createError(new IllegalArgumentException("illegal duplicate functions with key [" +
-                                SymbolTable.LocalFunction.buildKey(function.name, function.typeParameters.size()) + "]"));
+                    if (table.definedFunctions.add(function.name, function.returnType, function.typeParameters, function.paramNameStrs) != null) {
+                        throw function.createError(new IllegalArgumentException("illegal duplicate functions with key " +
+                                "[" + FunctionTable.buildKey(function.name, function.typeParameters.size()) + "]"));
+                    }
+                });
+
+        base.put(ECallLocal.class, (node, table) -> {
+                    ECallLocal callLocal = (ECallLocal)node;
+                    String key = FunctionTable.buildKey(callLocal.name, callLocal.children.size());
+                    if (table.definedFunctions.get(key) != null) {
+                        table.definedFunctions.markUsed(key);
                     }
                 });
 

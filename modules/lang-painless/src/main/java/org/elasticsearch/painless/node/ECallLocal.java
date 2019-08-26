@@ -44,7 +44,7 @@ import static org.elasticsearch.painless.WriterConstants.CLASS_TYPE;
  */
 public final class ECallLocal extends AExpression {
 
-    private final String name;
+    public final String name;
 
     private LocalMethod localMethod = null;
     private PainlessMethod importedMethod = null;
