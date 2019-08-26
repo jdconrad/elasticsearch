@@ -49,7 +49,7 @@ public final class SFunction extends AStatement {
     private final String rtnTypeStr;
     public final String name;
     private final List<String> paramTypeStrs;
-    private final List<String> paramNameStrs;
+    public final List<String> paramNameStrs;
     public final boolean synthetic;
 
     private CompilerSettings settings;

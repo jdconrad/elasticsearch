@@ -21,7 +21,9 @@ package org.elasticsearch.painless;
 
 import org.elasticsearch.bootstrap.BootstrapInfo;
 import org.elasticsearch.painless.antlr.Walker;
-import org.elasticsearch.painless.builder.SymbolTableBuilder;
+import org.elasticsearch.painless.builder.FunctionTablePass;
+import org.elasticsearch.painless.builder.VariableTable;
+import org.elasticsearch.painless.builder.VariableTablePass;
 import org.elasticsearch.painless.lookup.PainlessLookup;
 import org.elasticsearch.painless.node.SSource;
 import org.elasticsearch.painless.spi.Whitelist;
@@ -213,7 +215,8 @@ final class Compiler {
         SSource root = Walker.buildPainlessTree(scriptClassInfo, name, source, settings, painlessLookup, null);
         root.extractVariables(extractedVariables);
         root.storeSettings(settings);
-        new SymbolTableBuilder(painlessLookup).visit(root);
+        new FunctionTablePass(painlessLookup).visit(root);
+        VariableTable table = new VariableTablePass(painlessLookup).visit(root);
         root.analyze(painlessLookup);
         Map<String, Object> statics = root.write();
 

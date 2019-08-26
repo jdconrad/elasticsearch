@@ -20,13 +20,18 @@
 package org.elasticsearch.painless.builder;
 
 import org.elasticsearch.painless.lookup.PainlessLookupUtility;
+import org.elasticsearch.painless.node.ANode;
 
 import java.lang.invoke.MethodType;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class SymbolTable {
+public class FunctionTable {
+
+    /* --------------------------- */
+    /* ----- LOCAL FUNCTIONS ----- */
+    /* --------------------------- */
 
     public static class LocalFunction {
 

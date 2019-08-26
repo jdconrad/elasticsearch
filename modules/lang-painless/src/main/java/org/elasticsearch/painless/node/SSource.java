@@ -79,7 +79,7 @@ import static org.elasticsearch.painless.WriterConstants.STRING_TYPE;
  */
 public final class SSource extends AStatement {
 
-    private final ScriptClassInfo scriptClassInfo;
+    public final ScriptClassInfo scriptClassInfo;
     private final String name;
     private final Printer debugStream;
     private final Globals globals;
