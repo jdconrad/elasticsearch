@@ -63,9 +63,9 @@ public class FunctionTable {
     protected final Set<String> isUsed = new HashSet<>();
 
     public LocalFunction add(String name, Class<?> returnType, List<Class<?>> typeParameters, List<String> parameterNames) {
-        return localFunctions.put(
-                buildKey(name, typeParameters.size()),
-                new LocalFunction(name, returnType, typeParameters, parameterNames));
+        LocalFunction localFunction = new LocalFunction(name, returnType, typeParameters, parameterNames);
+        localFunctions.put(buildKey(name, typeParameters.size()), localFunction);
+        return localFunction;
     }
 
     public LocalFunction get(String key) {

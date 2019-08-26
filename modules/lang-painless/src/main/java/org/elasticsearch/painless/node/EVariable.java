@@ -35,7 +35,7 @@ import java.util.Set;
  */
 public final class EVariable extends AStoreable {
 
-    private final String name;
+    public final String name;
 
     private Variable variable = null;
 

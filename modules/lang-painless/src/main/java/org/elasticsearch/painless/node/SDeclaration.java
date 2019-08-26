@@ -35,8 +35,8 @@ import java.util.Set;
  */
 public final class SDeclaration extends AStatement {
 
-    private final String type;
-    private final String name;
+    public final String type;
+    public final String name;
 
     private Variable variable = null;
 
