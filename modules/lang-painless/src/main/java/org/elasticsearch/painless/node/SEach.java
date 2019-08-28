@@ -37,7 +37,7 @@ import java.util.Set;
 public class SEach extends AStatement {
 
     private final String type;
-    private final String name;
+    public final String name;
 
     private AStatement sub = null;
 

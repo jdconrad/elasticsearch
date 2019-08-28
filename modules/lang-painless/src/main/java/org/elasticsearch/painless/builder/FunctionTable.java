@@ -23,10 +23,8 @@ import org.elasticsearch.painless.lookup.PainlessLookupUtility;
 
 import java.lang.invoke.MethodType;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 public class FunctionTable {
 
@@ -60,7 +58,6 @@ public class FunctionTable {
     }
 
     protected final Map<String, LocalFunction> localFunctions = new HashMap<>();
-    protected final Set<String> isUsed = new HashSet<>();
 
     public LocalFunction add(String name, Class<?> returnType, List<Class<?>> typeParameters, List<String> parameterNames) {
         LocalFunction localFunction = new LocalFunction(name, returnType, typeParameters, parameterNames);
@@ -70,13 +67,5 @@ public class FunctionTable {
 
     public LocalFunction get(String key) {
         return localFunctions.get(key);
-    }
-
-    public void markUsed(String key) {
-        isUsed.add(key);
-    }
-
-    public boolean isUsed(String key) {
-        return isUsed.contains(key);
     }
 }

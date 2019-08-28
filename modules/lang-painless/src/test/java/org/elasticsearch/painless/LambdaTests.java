@@ -150,7 +150,7 @@ public class LambdaTests extends ScriptTestCase {
             exec("int x = 0; List l = new ArrayList(); l.add(1); l.add(1); "
                     + "return l.stream().mapToInt(x -> { x += 1; return x }).sum();");
         });
-        assertTrue(expected.getMessage().contains("already defined"));
+        assertTrue(expected.getMessage().contains("defined"));
     }
 
     public void testCaptureDef() {

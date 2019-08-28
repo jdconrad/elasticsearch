@@ -21,8 +21,8 @@ package org.elasticsearch.painless;
 
 import org.elasticsearch.bootstrap.BootstrapInfo;
 import org.elasticsearch.painless.antlr.Walker;
+import org.elasticsearch.painless.builder.ResolveSymbolsPass;
 import org.elasticsearch.painless.builder.SymbolTable;
-import org.elasticsearch.painless.builder.SymbolTableBuilder;
 import org.elasticsearch.painless.lookup.PainlessLookup;
 import org.elasticsearch.painless.node.SSource;
 import org.elasticsearch.painless.spi.Whitelist;
@@ -212,9 +212,10 @@ final class Compiler {
     Constructor<?> compile(Loader loader, Set<String> extractedVariables, String name, String source, CompilerSettings settings) {
         ScriptClassInfo scriptClassInfo = new ScriptClassInfo(painlessLookup, scriptClass);
         SSource root = Walker.buildPainlessTree(scriptClassInfo, name, source, settings, painlessLookup, null);
-        root.extractVariables(extractedVariables);
+        //root.extractVariables(extractedVariables);
         root.storeSettings(settings);
-        //if (true) throw new IllegalArgumentException(new SymbolTableBuilder(painlessLookup).visit(root).toString());
+        SymbolTable symbolTable = new ResolveSymbolsPass().visit(root);
+        root.extractVariables(extractedVariables);
         root.analyze(painlessLookup);
         Map<String, Object> statics = root.write();
 
@@ -245,6 +246,7 @@ final class Compiler {
         ScriptClassInfo scriptClassInfo = new ScriptClassInfo(painlessLookup, scriptClass);
         SSource root = Walker.buildPainlessTree(scriptClassInfo, name, source, settings, painlessLookup,
                 debugStream);
+        SymbolTable symbolTable = new ResolveSymbolsPass().visit(root);
         root.extractVariables(new HashSet<>());
         root.storeSettings(settings);
         root.analyze(painlessLookup);

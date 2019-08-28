@@ -21,6 +21,7 @@ package org.elasticsearch.painless.builder;
 
 import org.elasticsearch.painless.node.ANode;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -30,57 +31,129 @@ public class VariableTable {
 
     public static class Variable {
 
-        public final Class<?> type;
         public final String name;
-        public final boolean readonly;
 
-        public Variable(Class<?> type, String name, boolean readonly) {
-            this.type = type;
+        public Variable(String name) {
             this.name = name;
-            this.readonly = readonly;
         }
     }
 
-    public static class Scope {
+    public interface Scope {
+
+        Variable add(String name);
+        Variable get(String name);
+    }
+
+    public static class FunctionScope implements Scope {
 
         protected final Map<String, Variable> variables = new HashMap<>();
         protected final Set<String> used = new HashSet<>();
 
-        protected final Scope parent;
-
-        public Scope(Scope parent) {
-            this.parent = parent;
-        }
-
-        Variable add(Class<?> type, String name, boolean readonly) {
-            Variable variable = new Variable(type, name, readonly);
+        @Override
+        public Variable add(String name) {
+            Variable variable = new Variable(name);
             variables.put(name, variable);
             return variable;
         }
 
-        Variable get(String name) {
+        @Override
+        public Variable get(String name) {
             Variable variable = variables.get(name);
 
-            if (variable == null && parent != null) {
+            if (variable != null) {
+                used.add(name);
+            }
+
+            return variables.get(name);
+        }
+
+        public Set<String> used() {
+            return Collections.unmodifiableSet(used);
+        }
+    }
+
+    public static class LambdaScope implements Scope {
+
+        protected final Scope parent;
+
+        protected final Map<String, Variable> variables = new HashMap<>();
+        protected final Set<String> captures = new HashSet<>();
+
+        public LambdaScope(Scope parent) {
+            this.parent = parent;
+        }
+
+        @Override
+        public Variable add(String name) {
+            Variable variable = new Variable(name);
+            variables.put(name, variable);
+            return variable;
+        }
+
+        @Override
+        public Variable get(String name) {
+            Variable variable = variables.get(name);
+
+            if (variable == null) {
+                captures.add(name);
                 variable = parent.get(name);
             }
 
             return variable;
         }
 
-        void markUsed(String name) {
-            used.add(name);
+        public Set<String> captures() {
+            return Collections.unmodifiableSet(captures);
+        }
+    }
+
+    public static class LocalScope implements Scope {
+
+        protected final Scope parent;
+
+        protected final Map<String, Variable> variables = new HashMap<>();
+
+        public LocalScope(Scope parent) {
+            this.parent = parent;
         }
 
-        boolean isUsed(String name) {
-            return used.contains(name);
+        @Override
+        public Variable add(String name) {
+            Variable variable = new Variable(name);
+            variables.put(name, variable);
+            return variable;
+        }
+
+        @Override
+        public Variable get(String name) {
+            Variable variable = variables.get(name);
+
+            if (variable == null) {
+                variable = parent.get(name);
+            }
+
+            return variable;
         }
     }
 
     protected Map<ANode, Scope> scopes = new HashMap<>();
 
-    public Scope addScope(ANode node, Scope parent) {
-        Scope scope = new Scope(parent);
+    public FunctionScope newFunctionScope(ANode node) {
+        FunctionScope scope = new FunctionScope();
+        scopes.put(node, scope);
+        return scope;
+    }
+
+    public LambdaScope newLambdaScope(ANode node) {
+        Scope parent = getScope(node.parent);
+        LambdaScope scope = new LambdaScope(parent);
+        scopes.put(node, scope);
+        return scope;
+    }
+
+    public LocalScope newLocalScope(ANode node) {
+        Scope parent = getScope(node.parent);
+        LocalScope scope = new LocalScope(parent);
         scopes.put(node, scope);
         return scope;
     }

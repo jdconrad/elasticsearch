@@ -37,7 +37,7 @@ import java.util.Set;
 public final class SCatch extends AStatement {
 
     private final String type;
-    private final String name;
+    public final String name;
 
     private Variable variable = null;
 
