@@ -23,7 +23,7 @@ public class SymbolTable {
 
     public final FunctionTable definedFunctions = new FunctionTable();
 
-    public final VariableTable variableTable = new VariableTable();
+    public final ScopeTable variableTable = new ScopeTable();
 
     @Override
     public String toString() {

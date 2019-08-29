@@ -27,48 +27,93 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-public class VariableTable {
+public class ScopeTable {
 
     public static class Variable {
 
-        public final String name;
+        protected final String name;
+        protected final boolean readonly;
 
-        public Variable(String name) {
+        protected Class<?> type;
+
+        public Variable(String name, boolean readonly) {
             this.name = name;
+            this.readonly = readonly;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public boolean isReadonly() {
+            return readonly;
+        }
+
+        protected void setType(Class<?> type) {
+            this.type = type;
+        }
+
+        public Class<?> getType() {
+            return type;
         }
     }
 
     public interface Scope {
 
-        Variable add(String name);
-        Variable get(String name);
+        Class<?> getReturnType();
+
+        Variable addVariable(String name, boolean readonly);
+        Variable updateVariable(String name, Class<?> type);
+        Variable getVariable(String name);
     }
 
     public static class FunctionScope implements Scope {
 
         protected final Map<String, Variable> variables = new HashMap<>();
-        protected final Set<String> used = new HashSet<>();
+        protected final Set<String> userVariables = new HashSet<>();
+
+        protected Class<?> returnType;
+
+        public void setReturnType(Class<?> type) {
+            returnType = type;
+        }
 
         @Override
-        public Variable add(String name) {
-            Variable variable = new Variable(name);
+        public Class<?> getReturnType() {
+            return returnType;
+        }
+
+        @Override
+        public Variable addVariable(String name, boolean readonly) {
+            Variable variable = new Variable(name, readonly);
             variables.put(name, variable);
             return variable;
         }
 
         @Override
-        public Variable get(String name) {
+        public Variable updateVariable(String name, Class<?> type) {
+            Variable variable = getVariable(name);
+
+            if (variable != null) {
+                variable.setType(type);
+            }
+
+            return variable;
+        }
+
+        @Override
+        public Variable getVariable(String name) {
             Variable variable = variables.get(name);
 
             if (variable != null) {
-                used.add(name);
+                userVariables.add(name);
             }
 
             return variables.get(name);
         }
 
-        public Set<String> used() {
-            return Collections.unmodifiableSet(used);
+        public Set<String> getUsedVariables() {
+            return Collections.unmodifiableSet(userVariables);
         }
     }
 
@@ -79,24 +124,46 @@ public class VariableTable {
         protected final Map<String, Variable> variables = new HashMap<>();
         protected final Set<String> captures = new HashSet<>();
 
+        protected Class<?> returnType;
+
         public LambdaScope(Scope parent) {
             this.parent = parent;
         }
 
+        public void setReturnType(Class<?> type) {
+            returnType = type;
+        }
+
         @Override
-        public Variable add(String name) {
-            Variable variable = new Variable(name);
+        public Class<?> getReturnType() {
+            return returnType;
+        }
+
+        @Override
+        public Variable addVariable(String name, boolean readonly) {
+            Variable variable = new Variable(name, readonly);
             variables.put(name, variable);
             return variable;
         }
 
         @Override
-        public Variable get(String name) {
+        public Variable updateVariable(String name, Class<?> type) {
+            Variable variable = getVariable(name);
+
+            if (variable != null) {
+                variable.setType(type);
+            }
+
+            return variable;
+        }
+
+        @Override
+        public Variable getVariable(String name) {
             Variable variable = variables.get(name);
 
             if (variable == null) {
                 captures.add(name);
-                variable = parent.get(name);
+                variable = parent.getVariable(name);
             }
 
             return variable;
@@ -118,18 +185,34 @@ public class VariableTable {
         }
 
         @Override
-        public Variable add(String name) {
-            Variable variable = new Variable(name);
+        public Class<?> getReturnType() {
+            return parent.getReturnType();
+        }
+
+        @Override
+        public Variable addVariable(String name, boolean readonly) {
+            Variable variable = new Variable(name, readonly);
             variables.put(name, variable);
             return variable;
         }
 
         @Override
-        public Variable get(String name) {
+        public Variable updateVariable(String name, Class<?> type) {
+            Variable variable = getVariable(name);
+
+            if (variable != null) {
+                variable.setType(type);
+            }
+
+            return variable;
+        }
+
+        @Override
+        public Variable getVariable(String name) {
             Variable variable = variables.get(name);
 
             if (variable == null) {
-                variable = parent.get(name);
+                variable = parent.getVariable(name);
             }
 
             return variable;

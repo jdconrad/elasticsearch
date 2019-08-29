@@ -56,58 +56,58 @@ public class ResolveSymbolsPass {
 
         baseEnters.put(SSource.class, (node, table) -> {
             SSource source = (SSource)node;
-            VariableTable.FunctionScope scope = table.variableTable.newFunctionScope(node);
-            scope.add("#this");
+            ScopeTable.FunctionScope scope = table.variableTable.newFunctionScope(node);
+            scope.addVariable("#this", true);
             for (ScriptClassInfo.MethodArgument arg : source.scriptClassInfo.getExecuteArguments()) {
                 String name = arg.getName();
-                if (scope.get(name) != null) {
+                if (scope.getVariable(name) != null) {
                     throw node.createError(new IllegalArgumentException("variable [" + name + "] is already defined in the scope"));
                 }
-                scope.add(name);
+                scope.addVariable(name, true);
             }
             for (int get = 0; get < source.scriptClassInfo.getGetMethods().size(); ++get) {
                 org.objectweb.asm.commons.Method method = source.scriptClassInfo.getGetMethods().get(get);
                 String name = method.getName().substring(3);
                 name = Character.toLowerCase(name.charAt(0)) + name.substring(1);
-                if (scope.get(name) != null) {
+                if (scope.getVariable(name) != null) {
                     throw node.createError(new IllegalArgumentException("variable [" + name + "] is already defined in the scope"));
                 }
-                scope.add(name);
+                scope.addVariable(name, true);
             }
             source.scope = scope;
         });
 
         baseEnters.put(SFunction.class, (node, table) -> {
             SFunction function = (SFunction)node;
-            VariableTable.FunctionScope scope = table.variableTable.newFunctionScope(node);
+            ScopeTable.FunctionScope scope = table.variableTable.newFunctionScope(node);
             for (String parameterName : function.paramNameStrs) {
-                if (scope.get(parameterName) != null) {
+                if (scope.getVariable(parameterName) != null) {
                     throw node.createError(
                             new IllegalArgumentException("variable [" + parameterName + "] is already defined in the scope"));
                 }
-                scope.add(parameterName);
+                scope.addVariable(parameterName, false);
             }
         });
 
         baseEnters.put(SDeclaration.class, (node, table) -> {
             SDeclaration declaration = (SDeclaration)node;
-            VariableTable.Scope scope = table.variableTable.getScope(declaration);
+            ScopeTable.Scope scope = table.variableTable.getScope(declaration);
             String name = declaration.name;
-            if (scope.get(name) != null) {
+            if (scope.getVariable(name) != null) {
                 throw node.createError(new IllegalArgumentException("variable [" + name + "] is already defined in the scope"));
             }
-            scope.add(name);
+            scope.addVariable(name, true);
         });
 
         baseEnters.put(SFor.class, (node, table) -> table.variableTable.newLocalScope(node));
         baseEnters.put(SEach.class, (node, table) -> {
             SEach each = (SEach)node;
-            VariableTable.Scope scope = table.variableTable.newLocalScope(node);
+            ScopeTable.Scope scope = table.variableTable.newLocalScope(node);
             String name = each.name;
-            if (scope.get(name) != null) {
+            if (scope.getVariable(name) != null) {
                 throw node.createError(new IllegalArgumentException("variable [" + name + "] is already defined in the scope"));
             }
-            scope.add(name);
+            scope.addVariable(name, false);
         });
         baseEnters.put(SWhile.class, (node, table) -> table.variableTable.newLocalScope(node));
         baseEnters.put(SDo.class, (node, table) -> table.variableTable.newLocalScope(node));
@@ -119,29 +119,29 @@ public class ResolveSymbolsPass {
         baseEnters.put(STry.class, (node, table) -> table.variableTable.newLocalScope(node.children.get(0)));
         baseEnters.put(SCatch.class, (node, table) -> {
            SCatch catc = (SCatch)node;
-           VariableTable.Scope scope = table.variableTable.newLocalScope(node);
+           ScopeTable.Scope scope = table.variableTable.newLocalScope(node);
            String name = catc.name;
-            if (scope.get(name) != null) {
+            if (scope.getVariable(name) != null) {
                 throw node.createError(new IllegalArgumentException("variable [" + name + "] is already defined in the scope"));
             }
-           scope.add(name);
+           scope.addVariable(name, false);
         });
 
         baseEnters.put(ELambda.class, (node, table) -> {
             ELambda lambda = (ELambda)node;
-            VariableTable.LambdaScope scope = table.variableTable.newLambdaScope(node);
+            ScopeTable.LambdaScope scope = table.variableTable.newLambdaScope(node);
             for (String name : lambda.paramNameStrs) {
-                if (scope.get(name) != null) {
+                if (scope.getVariable(name) != null) {
                     throw node.createError(new IllegalArgumentException("variable [" + name + "] is already defined in the scope"));
                 }
-                scope.add(name);
+                scope.addVariable(name, true);
             }
             lambda.scope = scope;
         });
 
         baseEnters.put(EVariable.class, (node, table) -> {
             EVariable variable = (EVariable)node;
-            if (table.variableTable.getScope(node).get(variable.name) == null) {
+            if (table.variableTable.getScope(node).getVariable(variable.name) == null) {
                 throw node.createError(new IllegalArgumentException("cannot resolve symbol [" + variable.name + "]"));
             }
         });

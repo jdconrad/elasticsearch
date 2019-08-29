@@ -26,7 +26,7 @@ import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Locals.Variable;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
-import org.elasticsearch.painless.builder.VariableTable;
+import org.elasticsearch.painless.builder.ScopeTable;
 import org.elasticsearch.painless.lookup.PainlessLookupUtility;
 import org.elasticsearch.painless.lookup.PainlessMethod;
 import org.elasticsearch.painless.lookup.def;
@@ -79,7 +79,7 @@ public final class ELambda extends AExpression implements ILambda {
     // dynamic parent, deferred until link time
     private String defPointer;
 
-    public VariableTable.LambdaScope scope;
+    public ScopeTable.LambdaScope scope;
 
     public ELambda(Location location, List<String> paramTypes, List<String> paramNames) {
         super(location);

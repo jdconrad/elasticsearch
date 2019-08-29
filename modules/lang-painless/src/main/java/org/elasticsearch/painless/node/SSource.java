@@ -30,7 +30,7 @@ import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.ScriptClassInfo;
 import org.elasticsearch.painless.SimpleChecksAdapter;
 import org.elasticsearch.painless.WriterConstants;
-import org.elasticsearch.painless.builder.VariableTable;
+import org.elasticsearch.painless.builder.ScopeTable;
 import org.elasticsearch.painless.lookup.PainlessLookup;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
@@ -85,7 +85,7 @@ public final class SSource extends AStatement {
     private final Printer debugStream;
     private final Globals globals;
 
-    public VariableTable.FunctionScope scope;
+    public ScopeTable.FunctionScope scope;
     private CompilerSettings settings;
 
     private int functionCount;
@@ -126,7 +126,7 @@ public final class SSource extends AStatement {
         }
 
         extractedVariables.addAll(scope.used());*/
-        variables.addAll(scope.used());
+        variables.addAll(scope.getUsedVariables());
     }
 
     public void analyze(PainlessLookup painlessLookup) {
@@ -359,7 +359,7 @@ public final class SSource extends AStatement {
             name = Character.toLowerCase(name.charAt(0)) + name.substring(1);
             MethodWriter ifaceMethod = new MethodWriter(Opcodes.ACC_PUBLIC, needsMethod, visitor, globals.getStatements(), settings);
             ifaceMethod.visitCode();
-            ifaceMethod.push(scope.used().contains(name));
+            ifaceMethod.push(scope.getUsedVariables().contains(name));
             ifaceMethod.returnValue();
             ifaceMethod.endMethod();
         }
