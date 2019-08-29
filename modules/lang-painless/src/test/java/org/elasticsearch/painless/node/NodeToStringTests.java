@@ -118,27 +118,6 @@ public class NodeToStringTests extends ESTestCase {
         assertToString("(SSource (SReturn (EBoolean false)))", "return false");
     }
 
-    public void testECallLocal() {
-        assertToString(
-                "(SSource\n"
-              + "  (SFunction def a\n"
-              + "    (SReturn (EBoolean true)))\n"
-              + "  (SReturn (ECallLocal a)))",
-                "def a() {\n"
-              + "  return true\n"
-              + "}\n"
-              + "return a()");
-        assertToString(
-                "(SSource\n"
-              + "  (SFunction def a (Args (Pair int i) (Pair int j))\n"
-              + "    (SReturn (EBoolean true)))\n"
-              + "  (SReturn (ECallLocal a (Args (ENumeric 1) (ENumeric 2)))))",
-                "def a(int i, int j) {\n"
-              + "  return true\n"
-              + "}\n"
-              + "return a(1, 2)");
-    }
-
     public void testECapturingFunctionRef() {
         assertToString(
                   "(SSource\n"
@@ -217,47 +196,36 @@ public class NodeToStringTests extends ESTestCase {
     public void testELambda() {
         assertToString(
                   "(SSource (SReturn (PCallInvoke (PCallInvoke (EStatic Optional) empty) orElseGet (Args "
-                + "(ELambda (SReturn (ENumeric 1)))))))",
+                + "(ELambda (SBlock (SReturn (ENumeric 1))))))))",
                   "return Optional.empty().orElseGet(() -> {\n"
                 + "  return 1\n"
                 + "})");
         assertToString(
                   "(SSource (SReturn (PCallInvoke (PCallInvoke (EStatic Optional) empty) orElseGet (Args "
-                + "(ELambda (SReturn (ENumeric 1)))))))",
+                + "(ELambda (SBlock (SReturn (ENumeric 1))))))))",
                   "return Optional.empty().orElseGet(() -> 1)");
         assertToString(
                   "(SSource (SReturn (PCallInvoke (PCallInvoke (PCallInvoke (EListInit (ENumeric 1) (ENumeric 2) (ENumeric 3)) stream) "
                 + "mapToInt (Args (ELambda (Pair def x)\n"
-                + "  (SReturn (EBinary (EVariable x) + (ENumeric 1)))))) sum)))",
+                + "  (SBlock (SReturn (EBinary (EVariable x) + (ENumeric 1))))))) sum)))",
                   "return [1, 2, 3].stream().mapToInt((def x) -> {\n"
                 + "  return x + 1\n"
                 + "}).sum()");
         assertToString(
                   "(SSource (SReturn (PCallInvoke (PCallInvoke (PCallInvoke (EListInit (ENumeric 1) (ENumeric 2) (ENumeric 3)) stream) "
                 + "mapToInt (Args (ELambda (Pair null x)\n"
-                + "  (SReturn (EBinary (EVariable x) + (ENumeric 1)))))) sum)))",
+                + "  (SBlock (SReturn (EBinary (EVariable x) + (ENumeric 1))))))) sum)))",
                   "return [1, 2, 3].stream().mapToInt(x -> x + 1).sum()");
         assertToString(
                   "(SSource (SReturn (PCallInvoke (EListInit (EString 'a') (EString 'b')) sort (Args (ELambda (Pair def a) (Pair def b)\n"
-                + "  (SReturn (EBinary (PCallInvoke (EVariable a) length) - (PCallInvoke (EVariable b) length))))))))",
+                + "  (SBlock (SReturn (EBinary (PCallInvoke (EVariable a) length) - (PCallInvoke (EVariable b) length)))))))))",
                   "return ['a', 'b'].sort((def a, def b) -> {\n"
                 + "  return a.length() - b.length()\n"
                 + "})");
         assertToString(
                   "(SSource (SReturn (PCallInvoke (EListInit (EString 'a') (EString 'b')) sort (Args (ELambda (Pair null a) (Pair null b)\n"
-                + "  (SReturn (EBinary (PCallInvoke (EVariable a) length) - (PCallInvoke (EVariable b) length))))))))",
+                + "  (SBlock (SReturn (EBinary (PCallInvoke (EVariable a) length) - (PCallInvoke (EVariable b) length)))))))))",
                   "return ['a', 'b'].sort((a, b) -> a.length() - b.length())");
-        assertToString(
-                "(SSource (SReturn (PCallInvoke (EListInit (EString 'a') (EString 'b')) sort (Args (ELambda (Pair def a) (Pair def b)\n"
-              + "  (SIf (EComp (EVariable a) < (EVariable b)) (SBlock "
-                  + "(SReturn (EBinary (PCallInvoke (EVariable a) length) - (PCallInvoke (EVariable b) length)))))\n"
-              + "  (SReturn (ENumeric 1)))))))",
-                "return ['a', 'b'].sort((def a, def b) -> {\n"
-              + "  if (a < b) {\n"
-              + "    return a.length() - b.length()\n"
-              + "  }\n"
-              + "  return 1\n"
-              + "})");
     }
 
     public void testEListInit() {
@@ -645,57 +613,7 @@ public class NodeToStringTests extends ESTestCase {
                 + "}\n"
                 + "return i");
     }
-
-    public void testSFunction() {
-        assertToString(
-                  "(SSource\n"
-                + "  (SFunction def a\n"
-                + "    (SReturn (EBoolean true)))\n"
-                + "  (SReturn (EBoolean true)))",
-                  "def a() {\n"
-                + "  return true\n"
-                + "}\n"
-                + "return true");
-        assertToString(
-                "(SSource\n"
-              + "  (SFunction def a (Args (Pair int i) (Pair int j))\n"
-              + "    (SReturn (EBoolean true)))\n"
-              + "  (SReturn (EBoolean true)))",
-                "def a(int i, int j) {\n"
-              + "  return true\n"
-              + "}\n"
-              + "return true");
-        assertToString(
-                "(SSource\n"
-              + "  (SFunction def a (Args (Pair int i) (Pair int j))\n"
-              + "    (SIf (EComp (EVariable i) < (EVariable j)) (SBlock (SReturn (EBoolean true))))\n"
-              + "    (SDeclBlock (SDeclaration int k (EBinary (EVariable i) + (EVariable j))))\n"
-              + "    (SReturn (EVariable k)))\n"
-              + "  (SReturn (EBoolean true)))",
-                "def a(int i, int j) {\n"
-              + "  if (i < j) {\n"
-              + "    return true\n"
-              + "  }\n"
-              + "  int k = i + j;\n"
-              + "  return k\n"
-              + "}\n"
-              + "return true");
-        assertToString(
-                "(SSource\n"
-              + "  (SFunction def a\n"
-              + "    (SReturn (EBoolean true)))\n"
-              + "  (SFunction def b\n"
-              + "    (SReturn (EBoolean false)))\n"
-              + "  (SReturn (EBoolean true)))",
-                "def a() {\n"
-              + "  return true\n"
-              + "}\n"
-              + "def b() {\n"
-              + "  return false\n"
-              + "}\n"
-              + "return true");
-    }
-
+    
     public void testSTryAndSCatch() {
         assertToString(
                   "(SSource (STry (SBlock (SReturn (ENumeric 1)))\n"

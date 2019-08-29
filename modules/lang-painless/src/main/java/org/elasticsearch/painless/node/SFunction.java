@@ -77,10 +77,9 @@ public final class SFunction extends AStatement {
 
     @Override
     void storeSettings(CompilerSettings settings) {
-        for (ANode statement : children) {
-            statement.storeSettings(settings);
+        if (children.get(0) != null) {
+            children.get(0).storeSettings(settings);
         }
-
         this.settings = settings;
     }
 
@@ -129,13 +128,13 @@ public final class SFunction extends AStatement {
 
     @Override
     void analyze(Locals locals) {
-        if (children.isEmpty()) {
+        if (children.get(0) == null) {
             throw createError(new IllegalArgumentException("Cannot generate an empty function [" + name + "]."));
         }
 
-        locals = Locals.newLocalScope(locals);
+//        locals = Locals.newLocalScope(locals);
 
-        AStatement last = (AStatement)children.get(children.size() - 1);
+        /*AStatement last = (AStatement)children.get(children.size() - 1);
 
         for (ANode node : children) {
             AStatement statement = (AStatement)node;
@@ -152,7 +151,12 @@ public final class SFunction extends AStatement {
 
             methodEscape = statement.methodEscape;
             allEscape = statement.allEscape;
-        }
+        }*/
+
+        SBlock block = (SBlock)children.get(0);
+        block.lastSource = true;
+        block.analyze(locals);
+        methodEscape = block.methodEscape;
 
         if (!methodEscape && returnType != void.class) {
             throw createError(new IllegalArgumentException("Not all paths provide a return value for method [" + name + "]."));
@@ -184,9 +188,7 @@ public final class SFunction extends AStatement {
             function.visitVarInsn(Opcodes.ISTORE, loop.getSlot());
         }
 
-        for (ANode statement : children) {
-            statement.write(function, globals);
-        }
+        children.get(0).write(function, globals);
 
         if (!methodEscape) {
             if (returnType == void.class) {

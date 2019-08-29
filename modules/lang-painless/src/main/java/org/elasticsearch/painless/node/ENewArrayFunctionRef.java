@@ -65,9 +65,11 @@ public final class ENewArrayFunctionRef extends AExpression implements ILambda {
         array.children.add(size);
         SReturn rtn = new SReturn(location);
         rtn.children.add(array);
+        SBlock block = new SBlock(location);
+        block.children.add(rtn);
         SFunction function = new SFunction(location, type, locals.getNextSyntheticName(),
                 Collections.singletonList("int"), Collections.singletonList("size"), true);
-        function.children.add(rtn);
+        function.children.add(block);
         children.add(function);
         function.storeSettings(settings);
         function.generateSignature(locals.getPainlessLookup());
