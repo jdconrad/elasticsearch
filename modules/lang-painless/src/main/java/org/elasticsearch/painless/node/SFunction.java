@@ -50,6 +50,8 @@ public final class SFunction extends AStatement {
     public final String name;
     private final List<String> paramTypeStrs;
     public final List<String> paramNameStrs;
+    public final boolean internal;
+    public final boolean statik;
     public final boolean synthetic;
 
     private CompilerSettings settings;
@@ -65,13 +67,15 @@ public final class SFunction extends AStatement {
 
     public SFunction(Location location, String rtnType, String name,
                      List<String> paramTypes, List<String> paramNames,
-                     boolean synthetic) {
+                     boolean internal, boolean statik, boolean synthetic) {
         super(location);
 
         this.rtnTypeStr = Objects.requireNonNull(rtnType);
         this.name = Objects.requireNonNull(name);
         this.paramTypeStrs = Collections.unmodifiableList(paramTypes);
         this.paramNameStrs = Collections.unmodifiableList(paramNames);
+        this.internal = internal;
+        this.statik = statik;
         this.synthetic = synthetic;
     }
 

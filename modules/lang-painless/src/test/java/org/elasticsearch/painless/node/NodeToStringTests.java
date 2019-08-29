@@ -613,7 +613,7 @@ public class NodeToStringTests extends ESTestCase {
                 + "}\n"
                 + "return i");
     }
-    
+
     public void testSTryAndSCatch() {
         assertToString(
                   "(SSource (STry (SBlock (SReturn (ENumeric 1)))\n"
