@@ -27,7 +27,6 @@ import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 import org.objectweb.asm.Type;
 
-import java.util.Collections;
 import java.util.Objects;
 import java.util.Set;
 
@@ -60,6 +59,13 @@ public final class ENewArrayFunctionRef extends AExpression implements ILambda {
 
     @Override
     void analyze(Locals locals) {
+        SFunction function = new SFunction(location, locals.getNextSyntheticName(), true);
+        function.children.add(new DTypeString(location, type));
+        DParameters parameters = new DParameters(location);
+        DParameter parameter = new DParameter(location, "size");
+        parameter.children.add(new DTypeString(location, "int"));
+        parameters.children.add(parameter);
+        function.children.add(parameters);
         EVariable size = new EVariable(location, "size");
         ENewArray array = new ENewArray(location, type, false);
         array.children.add(size);
@@ -67,15 +73,13 @@ public final class ENewArrayFunctionRef extends AExpression implements ILambda {
         rtn.children.add(array);
         SBlock block = new SBlock(location);
         block.children.add(rtn);
-        SFunction function = new SFunction(location, type, locals.getNextSyntheticName(),
-                Collections.singletonList("int"), Collections.singletonList("size"), true);
         function.children.add(block);
         children.add(function);
         function.storeSettings(settings);
         function.generateSignature(locals.getPainlessLookup());
-        function.extractVariables(null);
-        function.analyze(Locals.newLambdaScope(locals.getProgramScope(), function.name, function.returnType,
-                function.parameters, 0, settings.getMaxLoopCounter()));
+        //function.extractVariables(null);
+        function.analyze(Locals.newLambdaScope(locals.getProgramScope(), function.name, ((DTypeClass)function.children.get(0)).type,
+                (DParameters)function.children.get(1), 0, settings.getMaxLoopCounter()));
 
         if (expected == null) {
             ref = null;

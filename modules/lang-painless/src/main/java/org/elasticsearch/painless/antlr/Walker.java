@@ -188,6 +188,10 @@ public final class Walker extends PainlessParserBaseVisitor<Void> {
         return new Location(sourceName, ctx.getStart().getStartIndex());
     }
 
+    private Location location(TerminalNode ctx) {
+        return new Location(sourceName, ctx.getSymbol().getStartIndex());
+    }
+
     @Override
     public Void visitSource(SourceContext ctx) {
         builder.visitSource(scriptClassInfo, sourceName, sourceText, debugStream, location(ctx));
@@ -207,18 +211,10 @@ public final class Walker extends PainlessParserBaseVisitor<Void> {
     public Void visitFunction(FunctionContext ctx) {
         String rtnType = ctx.decltype().getText();
         String name = ctx.ID().getText();
-        List<String> paramTypes = new ArrayList<>();
-        List<String> paramNames = new ArrayList<>();
 
-        for (DecltypeContext decltype : ctx.parameters().decltype()) {
-            paramTypes.add(decltype.getText());
-        }
-
-        for (TerminalNode id : ctx.parameters().ID()) {
-            paramNames.add(id.getText());
-        }
-
-        builder.visitFunction(location(ctx), rtnType, name, paramTypes, paramNames, false);
+        builder.visitFunction(location(ctx), name, false)
+                .visitTypeString(location(ctx), rtnType).endVisit();
+        visit(ctx.parameters());
         visit(ctx.block());
         builder.endVisit();
 
@@ -227,7 +223,24 @@ public final class Walker extends PainlessParserBaseVisitor<Void> {
 
     @Override
     public Void visitParameters(ParametersContext ctx) {
-        throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
+        if (ctx.decltype().size() != ctx.ID().size()) {
+            throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
+        }
+
+        builder.visitParameters(location(ctx));
+
+        for (int parameterIndex = 0; parameterIndex < ctx.decltype().size(); ++parameterIndex) {
+            DecltypeContext type = ctx.decltype(parameterIndex);
+            TerminalNode name = ctx.ID(parameterIndex);
+
+            builder.visitParameter(location(ctx), name.getText())
+                    .visitTypeString(location(type), type.getText()).endVisit()
+                    .endVisit();
+        }
+
+        builder.endVisit();
+
+        return null;
     }
 
     @Override

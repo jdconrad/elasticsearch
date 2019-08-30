@@ -22,6 +22,9 @@ package org.elasticsearch.painless;
 import org.elasticsearch.painless.ScriptClassInfo.MethodArgument;
 import org.elasticsearch.painless.lookup.PainlessLookup;
 import org.elasticsearch.painless.lookup.PainlessLookupUtility;
+import org.elasticsearch.painless.node.DParameter;
+import org.elasticsearch.painless.node.DParameters;
+import org.elasticsearch.painless.node.DTypeClass;
 
 import java.lang.invoke.MethodType;
 import java.util.Collection;
@@ -97,21 +100,23 @@ public final class Locals {
      * <p>
      * This is just like {@link #newFunctionScope}, except the captured parameters are made read-only.
      */
-    public static Locals newLambdaScope(Locals programScope, String name, Class<?> returnType, List<Parameter> parameters,
+    public static Locals newLambdaScope(Locals programScope, String name, Class<?> returnType, DParameters parameters,
                                         int captureCount, int maxLoopCounter) {
         Locals locals = new Locals(programScope, programScope.painlessLookup, programScope.baseClass, returnType, KEYWORDS);
         locals.methods = programScope.methods;
-        List<Class<?>> typeParameters = parameters.stream().map(parameter -> typeToJavaType(parameter.clazz)).collect(Collectors.toList());
-        locals.methods.put(buildLocalMethodKey(name, parameters.size()), new LocalMethod(name, returnType, typeParameters,
+        List<Class<?>> typeParameters = parameters.children.stream().map(
+                parameter -> typeToJavaType(((DTypeClass)parameter.children.get(0)).type)).collect(Collectors.toList());
+        locals.methods.put(buildLocalMethodKey(name, parameters.children.size()), new LocalMethod(name, returnType, typeParameters,
                 MethodType.methodType(typeToJavaType(returnType), typeParameters)));
-        for (int i = 0; i < parameters.size(); i++) {
-            Parameter parameter = parameters.get(i);
+        for (int i = 0; i < parameters.children.size(); i++) {
+            DParameter parameter = (DParameter)parameters.children.get(i);
+            Class<?> type = ((DTypeClass)parameter.children.get(0)).type;
             // TODO: allow non-captures to be r/w:
             // boolean isCapture = i < captureCount;
             // currently, this cannot be allowed, as we swap in real types,
             // but that can prevent a store of a different type...
             boolean isCapture = true;
-            locals.addVariable(parameter.location, parameter.clazz, parameter.name, isCapture);
+            locals.addVariable(parameter.location, type, parameter.name, isCapture);
         }
         // Loop counter to catch infinite loops.  Internal use only.
         if (maxLoopCounter > 0) {
@@ -121,11 +126,13 @@ public final class Locals {
     }
 
     /** Creates a new function scope inside the current scope */
-    public static Locals newFunctionScope(Locals programScope, Class<?> returnType, List<Parameter> parameters, int maxLoopCounter) {
+    public static Locals newFunctionScope(Locals programScope, Class<?> returnType, DParameters parameters, int maxLoopCounter) {
         Locals locals = new Locals(programScope, programScope.painlessLookup, programScope.baseClass, returnType, KEYWORDS);
         locals.methods = programScope.methods;
-        for (Parameter parameter : parameters) {
-            locals.addVariable(parameter.location, parameter.clazz, parameter.name, false);
+        for (int i = 0; i < parameters.children.size(); i++) {
+            DParameter parameter = (DParameter)parameters.children.get(i);
+            Class<?> type = ((DTypeClass)parameter.children.get(0)).type;
+            locals.addVariable(parameter.location, type, parameter.name, false);
         }
         // Loop counter to catch infinite loops.  Internal use only.
         if (maxLoopCounter > 0) {

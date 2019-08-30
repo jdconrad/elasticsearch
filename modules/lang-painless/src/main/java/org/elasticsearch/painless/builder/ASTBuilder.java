@@ -23,6 +23,9 @@ import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.Operation;
 import org.elasticsearch.painless.ScriptClassInfo;
 import org.elasticsearch.painless.node.ANode;
+import org.elasticsearch.painless.node.DParameter;
+import org.elasticsearch.painless.node.DParameters;
+import org.elasticsearch.painless.node.DTypeString;
 import org.elasticsearch.painless.node.EAssignment;
 import org.elasticsearch.painless.node.EBinary;
 import org.elasticsearch.painless.node.EBool;
@@ -114,10 +117,8 @@ public class ASTBuilder {
         return this;
     }
 
-    public ASTBuilder visitFunction(Location location, String rtnType, String name,
-            List<String> paramTypes, List<String> paramNames, boolean synthetic) {
-
-        return visitChild(new SFunction(location, rtnType, name, paramTypes, paramNames, synthetic));
+    public ASTBuilder visitFunction(Location location, String name, boolean synthetic) {
+        return visitChild(new SFunction(location, name, synthetic));
     }
 
     public ASTBuilder visitBlock(Location location) {
@@ -298,5 +299,17 @@ public class ASTBuilder {
 
     public ASTBuilder visitField(Location location, String value, boolean nullSafe) {
         return visitChild(new PField(location, nullSafe, value));
+    }
+
+    public ASTBuilder visitParameters(Location location) {
+        return visitChild(new DParameters(location));
+    }
+
+    public ASTBuilder visitParameter(Location location, String name) {
+        return visitChild(new DParameter(location, name));
+    }
+
+    public ASTBuilder visitTypeString(Location location, String string) {
+        return visitChild(new DTypeString(location, string));
     }
 }

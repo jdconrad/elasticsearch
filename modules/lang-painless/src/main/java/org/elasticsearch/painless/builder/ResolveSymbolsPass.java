@@ -21,6 +21,7 @@ package org.elasticsearch.painless.builder;
 
 import org.elasticsearch.painless.ScriptClassInfo;
 import org.elasticsearch.painless.node.ANode;
+import org.elasticsearch.painless.node.DParameter;
 import org.elasticsearch.painless.node.ELambda;
 import org.elasticsearch.painless.node.EVariable;
 import org.elasticsearch.painless.node.SCatch;
@@ -80,7 +81,8 @@ public class ResolveSymbolsPass {
         baseEnters.put(SFunction.class, (node, table) -> {
             SFunction function = (SFunction)node;
             ScopeTable.FunctionScope scope = table.variableTable.newFunctionScope(node);
-            for (String parameterName : function.paramNameStrs) {
+            for (ANode parameter : function.children.get(1).children) {
+                String parameterName = ((DParameter)parameter).name;
                 if (scope.getVariable(parameterName) != null) {
                     throw node.createError(
                             new IllegalArgumentException("variable [" + parameterName + "] is already defined in the scope"));

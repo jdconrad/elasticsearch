@@ -45,7 +45,7 @@ public abstract class ANode {
     /**
      * The identifier of the script and character offset used for debugging and errors.
      */
-    final Location location;
+    public final Location location;
 
     public ANode parent;
 

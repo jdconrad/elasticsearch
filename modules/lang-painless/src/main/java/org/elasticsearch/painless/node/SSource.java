@@ -136,11 +136,17 @@ public final class SSource extends AStatement {
             if (child instanceof SFunction) {
                 SFunction function = (SFunction)child;
                 function.generateSignature(painlessLookup);
-                String key = Locals.buildLocalMethodKey(function.name, function.parameters.size());
+                String key = Locals.buildLocalMethodKey(function.name, function.children.get(1).children.size());
 
-                if (methods.put(key,
-                        new LocalMethod(function.name, function.returnType, function.typeParameters, function.methodType)) != null) {
+                Class<?> returnType = ((DTypeClass)function.children.get(0)).type;
+                List<Class<?>> typeParameters = new ArrayList<>();
+
+                for (int i = 0; i < function.children.get(1).children.size(); i++) {
+                    DParameter parameter = (DParameter)function.children.get(1).children.get(i);
+                    typeParameters.add(((DTypeClass)parameter.children.get(0)).type);
                 }
+
+                methods.put(key, new LocalMethod(function.name, returnType, typeParameters, function.methodType));
 
                 ++functionCount;
             } else {
@@ -157,8 +163,9 @@ public final class SSource extends AStatement {
         for (ANode child : children) {
             if (child instanceof SFunction) {
                 SFunction function = (SFunction) child;
+                Class<?> returnType = ((DTypeClass)function.children.get(0)).type;
                 Locals functionLocals =
-                        Locals.newFunctionScope(program, function.returnType, function.parameters, settings.getMaxLoopCounter());
+                        Locals.newFunctionScope(program, returnType, (DParameters)function.children.get(1), settings.getMaxLoopCounter());
                 function.analyze(functionLocals);
             } else {
                 break;
