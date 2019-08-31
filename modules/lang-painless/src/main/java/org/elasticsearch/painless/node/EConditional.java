@@ -86,8 +86,8 @@ public final class EConditional extends AExpression {
             actual = promote;
         }
 
-        children.set(1, left = left.cast(locals));
-        children.set(2, right = right.cast(locals));
+        children.set(1, left.cast(locals));
+        children.set(2, right.cast(locals));
     }
 
     @Override

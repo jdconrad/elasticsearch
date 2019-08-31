@@ -63,21 +63,11 @@ public final class EBool extends AExpression {
 
         left.expected = boolean.class;
         left.analyze(locals);
-        children.set(0, left = left.cast(locals));
+        children.set(0, left.cast(locals));
 
         right.expected = boolean.class;
         right.analyze(locals);
-        children.set(1, right = right.cast(locals));
-
-        if (left.constant != null && right.constant != null) {
-            if (operation == Operation.AND) {
-                constant = (boolean)left.constant && (boolean)right.constant;
-            } else if (operation == Operation.OR) {
-                constant = (boolean)left.constant || (boolean)right.constant;
-            } else {
-                throw createError(new IllegalStateException("Illegal tree structure."));
-            }
-        }
+        children.set(1, right.cast(locals));
 
         actual = boolean.class;
     }

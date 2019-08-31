@@ -84,11 +84,7 @@ public final class EUnary extends AExpression {
 
         child.expected = boolean.class;
         child.analyze(variables);
-        children.set(0, child = child.cast(variables));
-
-        if (child.constant != null) {
-            constant = !(boolean)child.constant;
-        }
+        children.set(0, child.cast(variables));
 
         actual = boolean.class;
     }
@@ -106,17 +102,7 @@ public final class EUnary extends AExpression {
         }
 
         child.expected = promote;
-        children.set(0, child = child.cast(variables));
-
-        if (child.constant != null) {
-            if (promote == int.class) {
-                constant = ~(int)child.constant;
-            } else if (promote == long.class) {
-                constant = ~(long)child.constant;
-            } else {
-                throw createError(new IllegalStateException("Illegal tree structure."));
-            }
-        }
+        children.set(0, child.cast(variables));
 
         if (promote == def.class && expected != null) {
             actual = expected;
@@ -138,21 +124,7 @@ public final class EUnary extends AExpression {
         }
 
         child.expected = promote;
-        children.set(0, child = child.cast(variables));
-
-        if (child.constant != null) {
-            if (promote == int.class) {
-                constant = +(int)child.constant;
-            } else if (promote == long.class) {
-                constant = +(long)child.constant;
-            } else if (promote == float.class) {
-                constant = +(float)child.constant;
-            } else if (promote == double.class) {
-                constant = +(double)child.constant;
-            } else {
-                throw createError(new IllegalStateException("Illegal tree structure."));
-            }
-        }
+        children.set(0, child.cast(variables));
 
         if (promote == def.class && expected != null) {
             actual = expected;
@@ -174,21 +146,7 @@ public final class EUnary extends AExpression {
         }
 
         child.expected = promote;
-        children.set(0, child = child.cast(variables));
-
-        if (child.constant != null) {
-            if (promote == int.class) {
-                constant = -(int)child.constant;
-            } else if (promote == long.class) {
-                constant = -(long)child.constant;
-            } else if (promote == float.class) {
-                constant = -(float)child.constant;
-            } else if (promote == double.class) {
-                constant = -(double)child.constant;
-            } else {
-                throw createError(new IllegalStateException("Illegal tree structure."));
-            }
-        }
+        children.set(0, child.cast(variables));
 
         if (promote == def.class && expected != null) {
             actual = expected;

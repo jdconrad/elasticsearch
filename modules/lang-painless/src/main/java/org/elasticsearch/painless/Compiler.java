@@ -21,7 +21,7 @@ package org.elasticsearch.painless;
 
 import org.elasticsearch.bootstrap.BootstrapInfo;
 import org.elasticsearch.painless.antlr.Walker;
-import org.elasticsearch.painless.builder.ResolveFunctionsPass;
+import org.elasticsearch.painless.builder.ResolveTypesPass;
 import org.elasticsearch.painless.builder.ResolveSymbolsPass;
 import org.elasticsearch.painless.builder.SymbolTable;
 import org.elasticsearch.painless.lookup.PainlessLookup;
@@ -217,7 +217,7 @@ final class Compiler {
         root.storeSettings(settings);
         Map<String, Object> data = new HashMap<>();
         data.put(SymbolTable.SYMBOL_TABLE, new SymbolTable());
-        new ResolveFunctionsPass(painlessLookup).pass(root, data);
+        new ResolveTypesPass(painlessLookup).pass(root, data);
         new ResolveSymbolsPass().pass(root, data);
         root.extractVariables(extractedVariables);
         root.analyze(painlessLookup);
@@ -252,7 +252,7 @@ final class Compiler {
                 debugStream);
         Map<String, Object> data = new HashMap<>();
         data.put(SymbolTable.SYMBOL_TABLE, new SymbolTable());
-        new ResolveFunctionsPass(painlessLookup).pass(root, data);
+        new ResolveTypesPass(painlessLookup).pass(root, data);
         new ResolveSymbolsPass().pass(root, data);
         root.extractVariables(new HashSet<>());
         root.storeSettings(settings);

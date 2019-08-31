@@ -129,22 +129,8 @@ public final class EBinary extends AExpression {
             right.expected = promote;
         }
 
-        children.set(0, left = left.cast(variables));
-        children.set(1, right = right.cast(variables));
-
-        if (left.constant != null && right.constant != null) {
-            if (promote == int.class) {
-                constant = (int)left.constant * (int)right.constant;
-            } else if (promote == long.class) {
-                constant = (long)left.constant * (long)right.constant;
-            } else if (promote == float.class) {
-                constant = (float)left.constant * (float)right.constant;
-            } else if (promote == double.class) {
-                constant = (double)left.constant * (double)right.constant;
-            } else {
-                throw createError(new IllegalStateException("Illegal tree structure."));
-            }
-        }
+        children.set(0, left.cast(variables));
+        children.set(1, right.cast(variables));
     }
 
     private void analyzeDiv(Locals variables) {
@@ -176,26 +162,8 @@ public final class EBinary extends AExpression {
             right.expected = promote;
         }
 
-        children.set(0, left = left.cast(variables));
-        children.set(1, right = right.cast(variables));
-
-        if (left.constant != null && right.constant != null) {
-            try {
-                if (promote == int.class) {
-                    constant = (int)left.constant / (int)right.constant;
-                } else if (promote == long.class) {
-                    constant = (long)left.constant / (long)right.constant;
-                } else if (promote == float.class) {
-                    constant = (float)left.constant / (float)right.constant;
-                } else if (promote == double.class) {
-                    constant = (double)left.constant / (double)right.constant;
-                } else {
-                    throw createError(new IllegalStateException("Illegal tree structure."));
-                }
-            } catch (ArithmeticException exception) {
-                throw createError(exception);
-            }
-        }
+        children.set(0, left.cast(variables));
+        children.set(1, right.cast(variables));
     }
 
     private void analyzeRem(Locals variables) {
@@ -227,26 +195,8 @@ public final class EBinary extends AExpression {
             right.expected = promote;
         }
 
-        children.set(0, left = left.cast(variables));
-        children.set(1, right = right.cast(variables));
-
-        if (left.constant != null && right.constant != null) {
-            try {
-                if (promote == int.class) {
-                    constant = (int)left.constant % (int)right.constant;
-                } else if (promote == long.class) {
-                    constant = (long)left.constant % (long)right.constant;
-                } else if (promote == float.class) {
-                    constant = (float)left.constant % (float)right.constant;
-                } else if (promote == double.class) {
-                    constant = (double)left.constant % (double)right.constant;
-                } else {
-                    throw createError(new IllegalStateException("Illegal tree structure."));
-                }
-            } catch (ArithmeticException exception) {
-                throw createError(exception);
-            }
-        }
+        children.set(0, left.cast(variables));
+        children.set(1, right.cast(variables));
     }
 
     private void analyzeAdd(Locals variables) {
@@ -290,25 +240,8 @@ public final class EBinary extends AExpression {
             right.expected = promote;
         }
 
-        children.set(0, left = left.cast(variables));
-        children.set(1, right = right.cast(variables));
-
-        if (left.constant != null && right.constant != null) {
-            if (promote == int.class) {
-                constant = (int)left.constant + (int)right.constant;
-            } else if (promote == long.class) {
-                constant = (long)left.constant + (long)right.constant;
-            } else if (promote == float.class) {
-                constant = (float)left.constant + (float)right.constant;
-            } else if (promote == double.class) {
-                constant = (double)left.constant + (double)right.constant;
-            } else if (promote == String.class) {
-                constant = left.constant.toString() + right.constant.toString();
-            } else {
-                throw createError(new IllegalStateException("Illegal tree structure."));
-            }
-        }
-
+        children.set(0, left.cast(variables));
+        children.set(1, right.cast(variables));
     }
 
     private void analyzeSub(Locals variables) {
@@ -340,22 +273,8 @@ public final class EBinary extends AExpression {
             right.expected = promote;
         }
 
-        children.set(0, left = left.cast(variables));
-        children.set(1, right = right.cast(variables));
-
-        if (left.constant != null && right.constant != null) {
-            if (promote == int.class) {
-                constant = (int)left.constant - (int)right.constant;
-            } else if (promote == long.class) {
-                constant = (long)left.constant - (long)right.constant;
-            } else if (promote == float.class) {
-                constant = (float)left.constant - (float)right.constant;
-            } else if (promote == double.class) {
-                constant = (double)left.constant - (double)right.constant;
-            } else {
-                throw createError(new IllegalStateException("Illegal tree structure."));
-            }
-        }
+        children.set(0, left.cast(variables));
+        children.set(1, right.cast(variables));
     }
 
     private void analyzeRegexOp(Locals variables) {
@@ -412,18 +331,8 @@ public final class EBinary extends AExpression {
             }
         }
 
-        children.set(0, left = left.cast(variables));
-        children.set(1, right = right.cast(variables));
-
-        if (left.constant != null && right.constant != null) {
-            if (promote == int.class) {
-                constant = (int)left.constant << (int)right.constant;
-            } else if (promote == long.class) {
-                constant = (long)left.constant << (int)right.constant;
-            } else {
-                throw createError(new IllegalStateException("Illegal tree structure."));
-            }
-        }
+        children.set(0, left.cast(variables));
+        children.set(1, right.cast(variables));
     }
 
     private void analyzeRSH(Locals variables) {
@@ -463,18 +372,8 @@ public final class EBinary extends AExpression {
             }
         }
 
-        children.set(0, left = left.cast(variables));
-        children.set(1, right = right.cast(variables));
-
-        if (left.constant != null && right.constant != null) {
-            if (promote == int.class) {
-                constant = (int)left.constant >> (int)right.constant;
-            } else if (promote == long.class) {
-                constant = (long)left.constant >> (int)right.constant;
-            } else {
-                throw createError(new IllegalStateException("Illegal tree structure."));
-            }
-        }
+        children.set(0, left.cast(variables));
+        children.set(1, right.cast(variables));
     }
 
     private void analyzeUSH(Locals variables) {
@@ -514,18 +413,8 @@ public final class EBinary extends AExpression {
             }
         }
 
-        children.set(0, left = left.cast(variables));
-        children.set(1, right = right.cast(variables));
-
-        if (left.constant != null && right.constant != null) {
-            if (promote == int.class) {
-                constant = (int)left.constant >>> (int)right.constant;
-            } else if (promote == long.class) {
-                constant = (long)left.constant >>> (int)right.constant;
-            } else {
-                throw createError(new IllegalStateException("Illegal tree structure."));
-            }
-        }
+        children.set(0, left.cast(variables));
+        children.set(1, right.cast(variables));
     }
 
     private void analyzeBWAnd(Locals variables) {
@@ -557,18 +446,8 @@ public final class EBinary extends AExpression {
             right.expected = promote;
         }
 
-        children.set(0, left = left.cast(variables));
-        children.set(1, right = right.cast(variables));
-
-        if (left.constant != null && right.constant != null) {
-            if (promote == int.class) {
-                constant = (int)left.constant & (int)right.constant;
-            } else if (promote == long.class) {
-                constant = (long)left.constant & (long)right.constant;
-            } else {
-                throw createError(new IllegalStateException("Illegal tree structure."));
-            }
-        }
+        children.set(0, left.cast(variables));
+        children.set(1, right.cast(variables));
     }
 
     private void analyzeXor(Locals variables) {
@@ -599,20 +478,8 @@ public final class EBinary extends AExpression {
             right.expected = promote;
         }
 
-        children.set(0, left = left.cast(variables));
-        children.set(1, right = right.cast(variables));
-
-        if (left.constant != null && right.constant != null) {
-            if (promote == boolean.class) {
-                constant = (boolean)left.constant ^ (boolean)right.constant;
-            } else if (promote == int.class) {
-                constant = (int)left.constant ^ (int)right.constant;
-            } else if (promote == long.class) {
-                constant = (long)left.constant ^ (long)right.constant;
-            } else {
-                throw createError(new IllegalStateException("Illegal tree structure."));
-            }
-        }
+        children.set(0, left.cast(variables));
+        children.set(1, right.cast(variables));
     }
 
     private void analyzeBWOr(Locals variables) {
@@ -643,18 +510,8 @@ public final class EBinary extends AExpression {
             right.expected = promote;
         }
 
-        children.set(0, left = left.cast(variables));
-        children.set(1, right = right.cast(variables));
-
-        if (left.constant != null && right.constant != null) {
-            if (promote == int.class) {
-                constant = (int)left.constant | (int)right.constant;
-            } else if (promote == long.class) {
-                constant = (long)left.constant | (long)right.constant;
-            } else {
-                throw createError(new IllegalStateException("Illegal tree structure."));
-            }
-        }
+        children.set(0, left.cast(variables));
+        children.set(1, right.cast(variables));
     }
 
     @Override

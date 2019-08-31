@@ -21,19 +21,12 @@ package org.elasticsearch.painless.builder;
 
 import org.elasticsearch.painless.lookup.PainlessLookup;
 import org.elasticsearch.painless.node.ANode;
-import org.elasticsearch.painless.node.DParameter;
-import org.elasticsearch.painless.node.DParameters;
-import org.elasticsearch.painless.node.DTypeClass;
-import org.elasticsearch.painless.node.DTypeString;
-import org.elasticsearch.painless.node.SFunction;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
-public class ResolveFunctionsPass implements SemanticPass {
+public class ResolveExpressionsPass implements SemanticPass {
 
     public interface Visitor {
         void visit(ANode node, PainlessLookup lookup, SymbolTable table);
@@ -44,11 +37,11 @@ public class ResolveFunctionsPass implements SemanticPass {
     protected final Map<Class<? extends ANode>, Visitor> enters;
     protected final Map<Class<? extends ANode>, Visitor> exits;
 
-    public ResolveFunctionsPass(PainlessLookup lookup) {
+    public ResolveExpressionsPass(PainlessLookup lookup) {
         this(lookup, Collections.emptyMap(), Collections.emptyMap());
     }
 
-    public ResolveFunctionsPass(PainlessLookup lookup,
+    public ResolveExpressionsPass(PainlessLookup lookup,
             Map<Class<? extends ANode>, Visitor> enters,
             Map<Class<? extends ANode>, Visitor> exits) {
 
@@ -66,38 +59,11 @@ public class ResolveFunctionsPass implements SemanticPass {
     protected Map<Class<? extends ANode>, Visitor> buildBaseEnters() {
         Map<Class<? extends ANode>, Visitor> baseEnters = new HashMap<>();
 
-        baseEnters.put(DTypeString.class, (node, lookup, table) -> {
-            String canonicalTypeName = ((DTypeString)node).type;
-            Class<?> type = lookup.canonicalTypeNameToType(canonicalTypeName);
-
-            if (type == null) {
-                throw node.createError(new IllegalArgumentException("cannot resolve type [" + canonicalTypeName + "]"));
-            }
-
-            node.replace(new DTypeClass(node.location, type));
-        });
-
         return baseEnters;
     }
 
     protected Map<Class<? extends ANode>, Visitor> buildBaseExits() {
         Map<Class<? extends ANode>, Visitor> baseExits = new HashMap<>();
-
-        baseExits.put(SFunction.class, (node, lookup, table) -> {
-            SFunction function = (SFunction)node;
-            Class<?> returnType = ((DTypeClass)function.children.get(0)).type;
-            DParameters parameters = (DParameters)function.children.get(1);
-            List<Class<?>> typeParameters = new ArrayList<>();
-            List<String> parameterNames = new ArrayList<>();
-
-            for (ANode child : parameters.children) {
-                DParameter parameter = (DParameter)child;
-                typeParameters.add(((DTypeClass)child.children.get(0)).type);
-                parameterNames.add(parameter.name);
-            }
-
-            table.definedFunctions.add(function.name, returnType, typeParameters, parameterNames);
-        });
 
         return baseExits;
     }
