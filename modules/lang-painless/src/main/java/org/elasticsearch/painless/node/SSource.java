@@ -135,7 +135,7 @@ public final class SSource extends AStatement {
         for (ANode child : children) {
             if (child instanceof SFunction) {
                 SFunction function = (SFunction)child;
-                function.generateSignature(painlessLookup);
+                function.generateSignature();
                 String key = Locals.buildLocalMethodKey(function.name, function.children.get(1).children.size());
 
                 Class<?> returnType = ((DTypeClass)function.children.get(0)).type;

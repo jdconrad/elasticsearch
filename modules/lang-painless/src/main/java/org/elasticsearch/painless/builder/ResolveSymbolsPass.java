@@ -40,7 +40,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-public class ResolveSymbolsPass {
+public class ResolveSymbolsPass implements SemanticPass {
 
     public interface Enter {
         void enter(ANode node, SymbolTable table);
@@ -152,11 +152,12 @@ public class ResolveSymbolsPass {
         this.enters = Collections.unmodifiableMap(baseEnters);
     }
 
-    public SymbolTable visit(ANode root) {
-        SymbolTable table = new SymbolTable();
+    @Override
+    public Object pass(ANode root, Map<String, Object> data) {
+        SymbolTable table = (SymbolTable)data.get(SymbolTable.SYMBOL_TABLE);
         visit(root, table);
 
-        return table;
+        return null;
     }
 
     protected void visit(ANode parent, SymbolTable table) {

@@ -175,7 +175,7 @@ public final class ELambda extends AExpression implements ILambda {
         DParameters parameters = new DParameters(location);
         for (int index = 0; index < paramTypes.size(); ++index) {
             DParameter parameter = new DParameter(location, paramNames.get(index));
-            DTypeString type = new DTypeString(location, paramTypes.get(index));
+            DTypeClass type = new DTypeClass(location, locals.getPainlessLookup().canonicalTypeNameToType(paramTypes.get(index)));
             parameter.children.add(type);
             parameters.children.add(parameter);
         }
@@ -183,11 +183,11 @@ public final class ELambda extends AExpression implements ILambda {
         // desugar lambda body into a synthetic method
         String name = locals.getNextSyntheticName();
         desugared = new SFunction(location, name, true);
-        desugared.children.add(new DTypeString(location, PainlessLookupUtility.typeToCanonicalTypeName(returnType)));
+        desugared.children.add(new DTypeClass(location, returnType));
         desugared.children.add(parameters);
         desugared.children.add(children.get(0));
         desugared.storeSettings(settings);
-        desugared.generateSignature(locals.getPainlessLookup());
+        desugared.generateSignature();
         desugared.analyze(Locals.newLambdaScope(locals.getProgramScope(), desugared.name, returnType,
                                                 parameters, captures.size(), settings.getMaxLoopCounter()));
 

@@ -54,6 +54,10 @@ public abstract class ANode {
      */
     public final List<ANode> children;
 
+    public void replace(ANode target) {
+        parent.children.set(parent.children.indexOf(this), target);
+    }
+
     /**
      * Standard constructor with location used for error tracking.
      */

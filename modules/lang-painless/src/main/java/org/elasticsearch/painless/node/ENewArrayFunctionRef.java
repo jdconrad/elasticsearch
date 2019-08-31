@@ -60,10 +60,10 @@ public final class ENewArrayFunctionRef extends AExpression implements ILambda {
     @Override
     void analyze(Locals locals) {
         SFunction function = new SFunction(location, locals.getNextSyntheticName(), true);
-        function.children.add(new DTypeString(location, type));
+        function.children.add(new DTypeClass(location, locals.getPainlessLookup().canonicalTypeNameToType(type)));
         DParameters parameters = new DParameters(location);
         DParameter parameter = new DParameter(location, "size");
-        parameter.children.add(new DTypeString(location, "int"));
+        parameter.children.add(new DTypeClass(location, int.class));
         parameters.children.add(parameter);
         function.children.add(parameters);
         EVariable size = new EVariable(location, "size");
@@ -76,7 +76,7 @@ public final class ENewArrayFunctionRef extends AExpression implements ILambda {
         function.children.add(block);
         children.add(function);
         function.storeSettings(settings);
-        function.generateSignature(locals.getPainlessLookup());
+        function.generateSignature();
         //function.extractVariables(null);
         function.analyze(Locals.newLambdaScope(locals.getProgramScope(), function.name, ((DTypeClass)function.children.get(0)).type,
                 (DParameters)function.children.get(1), 0, settings.getMaxLoopCounter()));

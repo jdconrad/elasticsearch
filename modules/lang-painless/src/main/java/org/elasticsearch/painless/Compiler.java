@@ -21,6 +21,7 @@ package org.elasticsearch.painless;
 
 import org.elasticsearch.bootstrap.BootstrapInfo;
 import org.elasticsearch.painless.antlr.Walker;
+import org.elasticsearch.painless.builder.ResolveFunctionsPass;
 import org.elasticsearch.painless.builder.ResolveSymbolsPass;
 import org.elasticsearch.painless.builder.SymbolTable;
 import org.elasticsearch.painless.lookup.PainlessLookup;
@@ -214,7 +215,10 @@ final class Compiler {
         SSource root = Walker.buildPainlessTree(scriptClassInfo, name, source, settings, painlessLookup, null);
         //root.extractVariables(extractedVariables);
         root.storeSettings(settings);
-        SymbolTable symbolTable = new ResolveSymbolsPass().visit(root);
+        Map<String, Object> data = new HashMap<>();
+        data.put(SymbolTable.SYMBOL_TABLE, new SymbolTable());
+        new ResolveFunctionsPass(painlessLookup).pass(root, data);
+        new ResolveSymbolsPass().pass(root, data);
         root.extractVariables(extractedVariables);
         root.analyze(painlessLookup);
         Map<String, Object> statics = root.write();
@@ -246,7 +250,10 @@ final class Compiler {
         ScriptClassInfo scriptClassInfo = new ScriptClassInfo(painlessLookup, scriptClass);
         SSource root = Walker.buildPainlessTree(scriptClassInfo, name, source, settings, painlessLookup,
                 debugStream);
-        SymbolTable symbolTable = new ResolveSymbolsPass().visit(root);
+        Map<String, Object> data = new HashMap<>();
+        data.put(SymbolTable.SYMBOL_TABLE, new SymbolTable());
+        new ResolveFunctionsPass(painlessLookup).pass(root, data);
+        new ResolveSymbolsPass().pass(root, data);
         root.extractVariables(new HashSet<>());
         root.storeSettings(settings);
         root.analyze(painlessLookup);

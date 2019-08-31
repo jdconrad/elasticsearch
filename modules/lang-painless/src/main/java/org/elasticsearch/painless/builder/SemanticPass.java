@@ -19,24 +19,11 @@
 
 package org.elasticsearch.painless.builder;
 
-public class SymbolTable {
+import org.elasticsearch.painless.node.ANode;
 
-    public static final String SYMBOL_TABLE = "symbol_table";
+import java.util.Map;
 
-    public final FunctionTable definedFunctions = new FunctionTable();
+public interface SemanticPass {
 
-    public final ScopeTable variableTable = new ScopeTable();
-
-    @Override
-    public String toString() {
-        StringBuilder builder = new StringBuilder();
-
-        for (FunctionTable.LocalFunction lf : definedFunctions.localFunctions.values()) {
-            builder.append("[");
-            builder.append(lf.name);
-            builder.append("] ");
-        }
-
-        return builder.toString();
-    }
+    Object pass(ANode root, Map<String, Object> data);
 }

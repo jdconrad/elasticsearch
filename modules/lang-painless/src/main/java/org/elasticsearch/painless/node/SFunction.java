@@ -25,7 +25,6 @@ import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Locals.Variable;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
-import org.elasticsearch.painless.lookup.PainlessLookup;
 import org.elasticsearch.painless.lookup.PainlessLookupUtility;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.Opcodes;
@@ -76,27 +75,14 @@ public final class SFunction extends AStatement {
         }
     }
 
-    public void generateSignature(PainlessLookup painlessLookup) {
-        String rtnTypeStr = ((DTypeString)children.get(0)).type;
-        Class<?> returnType = painlessLookup.canonicalTypeNameToType(rtnTypeStr);
-        children.set(0, new DTypeClass(children.get(0).location, returnType));
-
-        if (returnType == null) {
-            throw createError(new IllegalArgumentException("Illegal return type [" + rtnTypeStr + "] for function [" + name + "]."));
-        }
+    public void generateSignature() {
+        Class<?> returnType = ((DTypeClass)children.get(0)).type;
 
         int parametersSize = children.get(1).children.size();
         Class<?>[] paramClasses = new Class<?>[parametersSize];
 
         for (int parameterIndex = 0; parameterIndex < parametersSize; ++parameterIndex) {
-            String typeStr = ((DTypeString)children.get(1).children.get(parameterIndex).children.get(0)).type;
-            Class<?> paramType = painlessLookup.canonicalTypeNameToType(typeStr);
-            children.get(1).children.get(parameterIndex).children.set(0, new DTypeClass(location, paramType));
-
-            if (paramType == null) {
-                throw createError(new IllegalArgumentException("cannot resolve symbol [" + typeStr + "]"));
-            }
-
+            Class<?> paramType = ((DTypeClass)children.get(1).children.get(parameterIndex).children.get(0)).type;
             paramClasses[parameterIndex] = PainlessLookupUtility.typeToJavaType(paramType);
         }
 
