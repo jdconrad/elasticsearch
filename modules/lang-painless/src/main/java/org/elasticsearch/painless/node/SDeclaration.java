@@ -36,13 +36,15 @@ import java.util.Set;
 public final class SDeclaration extends AStatement {
 
     public final String name;
+    public final boolean initialize;
 
     private Variable variable = null;
 
-    public SDeclaration(Location location, String name) {
+    public SDeclaration(Location location, String name, boolean initialize) {
         super(location);
 
         this.name = Objects.requireNonNull(name);
+        this.initialize = initialize;
     }
 
     @Override
@@ -65,14 +67,12 @@ public final class SDeclaration extends AStatement {
     void analyze(Locals locals) {
         Class<?> clazz = ((DTypeClass)children.get(0)).type;
 
-        if (children.size() > 1) {
-            AExpression expression = (AExpression) children.get(1);
+        AExpression expression = (AExpression) children.get(1);
 
-            if (expression != null) {
-                expression.expected = clazz;
-                expression.analyze(locals);
-                children.set(1, expression.cast(locals));
-            }
+        if (expression != null) {
+            expression.expected = clazz;
+            expression.analyze(locals);
+            children.set(1, expression.cast(locals));
         }
 
         variable = locals.addVariable(location, clazz, name, false);
@@ -82,7 +82,7 @@ public final class SDeclaration extends AStatement {
     void write(MethodWriter writer, Globals globals) {
         writer.writeStatementOffset(location);
 
-        if (children.size() > 1) {
+        if (initialize) {
             if (children.get(1) == null) {
                 Class<?> sort = variable.clazz;
 
