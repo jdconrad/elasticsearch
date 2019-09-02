@@ -25,7 +25,6 @@ import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 
-import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -33,38 +32,30 @@ import java.util.Set;
  */
 public final class EExplicit extends AExpression {
 
-    private final String type;
-
-    public EExplicit(Location location, String type) {
+    public EExplicit(Location location) {
         super(location);
-
-        this.type = Objects.requireNonNull(type);
     }
 
     @Override
     void storeSettings(CompilerSettings settings) {
-        children.get(0).storeSettings(settings);
+        children.get(1).storeSettings(settings);
     }
 
     @Override
     void extractVariables(Set<String> variables) {
-        children.get(0).extractVariables(variables);
+        children.get(1).extractVariables(variables);
     }
 
     @Override
     void analyze(Locals locals) {
-        AExpression child = (AExpression)children.get(0);
+        AExpression child = (AExpression)children.get(1);
 
-        actual = locals.getPainlessLookup().canonicalTypeNameToType(type);
-
-        if (actual == null) {
-            throw createError(new IllegalArgumentException("Not a type [" + type + "]."));
-        }
+        actual = ((DTypeClass)children.get(0)).type;
 
         child.expected = actual;
         child.explicit = true;
         child.analyze(locals);
-        children.set(0, child.cast(locals));
+        children.set(1, child.cast(locals));
     }
 
     @Override
@@ -73,7 +64,7 @@ public final class EExplicit extends AExpression {
     }
 
     AExpression cast(Locals locals) {
-        AExpression child = (AExpression)children.get(0);
+        AExpression child = (AExpression)children.get(1);
 
         child.expected = expected;
         child.explicit = explicit;
@@ -84,6 +75,6 @@ public final class EExplicit extends AExpression {
 
     @Override
     public String toString() {
-        return singleLineToString(type, children.get(0));
+        return null;
     }
 }

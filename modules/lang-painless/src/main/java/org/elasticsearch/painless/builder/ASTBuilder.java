@@ -202,8 +202,8 @@ public class ASTBuilder {
         return visitChild(new SExpression(location));
     }
 
-    public ASTBuilder visitExplicit(Location location, String type) {
-        return visitChild(new EExplicit(location, type));
+    public ASTBuilder visitExplicit(Location location) {
+        return visitChild(new EExplicit(location));
     }
 
     public ASTBuilder visitInstanceof(Location location, String type) {
