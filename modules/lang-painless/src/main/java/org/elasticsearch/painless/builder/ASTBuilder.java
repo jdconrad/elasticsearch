@@ -25,6 +25,7 @@ import org.elasticsearch.painless.ScriptClassInfo;
 import org.elasticsearch.painless.node.ANode;
 import org.elasticsearch.painless.node.DParameter;
 import org.elasticsearch.painless.node.DParameters;
+import org.elasticsearch.painless.node.DTypeClass;
 import org.elasticsearch.painless.node.DTypeString;
 import org.elasticsearch.painless.node.EAssignment;
 import org.elasticsearch.painless.node.EBinary;
@@ -75,30 +76,28 @@ import org.elasticsearch.painless.node.STry;
 import org.elasticsearch.painless.node.SWhile;
 import org.objectweb.asm.util.Printer;
 
-import java.util.List;
-
 public class ASTBuilder {
 
+    protected ANode root = null;
     protected ANode current = null;
 
     public ASTBuilder() {
 
     }
 
-    public ANode getCurrent() {
-        return current;
-    }
-
     protected ASTBuilder visitChild(ANode child) {
-        child.parent = current;
-        current.children.add(child);
+        if (current == null) {
+            if (root != null) {
+                throw new IllegalArgumentException("invalid tree structure");
+            }
+
+            root = child;
+        } else {
+            child.parent = current;
+            current.children.add(child);
+        }
+
         current = child;
-
-        return this;
-    }
-
-    public ASTBuilder visitEmpty() {
-        current.children.add(null);
 
         return this;
     }
@@ -109,12 +108,30 @@ public class ASTBuilder {
         return this;
     }
 
+    public ANode endBuild() {
+        if (current != null) {
+            throw new IllegalArgumentException("invalid tree structure");
+        }
+
+        return root;
+    }
+
+    public ASTBuilder visitNode(ANode node) {
+        visitChild(node);
+
+        return this;
+    }
+
+    public ASTBuilder visitEmpty() {
+        current.children.add(null);
+
+        return this;
+    }
+
     public ASTBuilder visitSource(ScriptClassInfo scriptClassInfo,
             String scriptName, String sourceText, Printer debugStream, Location location) {
 
-        current = new SSource(scriptClassInfo, scriptName, sourceText, debugStream, location);
-
-        return this;
+        return visitChild(new SSource(scriptClassInfo, scriptName, sourceText, debugStream, location));
     }
 
     public ASTBuilder visitFunction(Location location, String name, boolean synthetic) {
@@ -237,8 +254,8 @@ public class ASTBuilder {
         return visitChild(new EListInit(location));
     }
 
-    public ASTBuilder visitLambda(Location location, List<String> paramTypes, List<String> paramNames) {
-        return visitChild(new ELambda(location, paramTypes, paramNames));
+    public ASTBuilder visitLambda(Location location) {
+        return visitChild(new ELambda(location));
     }
 
     public ASTBuilder visitFunctionRef(Location location, String type, String call) {
@@ -311,5 +328,9 @@ public class ASTBuilder {
 
     public ASTBuilder visitTypeString(Location location, String string) {
         return visitChild(new DTypeString(location, string));
+    }
+
+    public ASTBuilder visitTypeClass(Location location, Class<?> type) {
+        return visitChild(new DTypeClass(location, type));
     }
 }

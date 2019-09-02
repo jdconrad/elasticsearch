@@ -110,7 +110,6 @@ import org.elasticsearch.painless.lookup.PainlessLookup;
 import org.elasticsearch.painless.node.SSource;
 import org.objectweb.asm.util.Printer;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Stack;
 
@@ -145,7 +144,7 @@ public final class Walker extends PainlessParserBaseVisitor<Void> {
         this.painlessLookup = painlessLookup;
         builder = new ASTBuilder();
         visit(buildAntlrTree(sourceText));
-        source = (SSource)builder.getCurrent();
+        source = (SSource)builder.endBuild();
     }
 
     private SourceContext buildAntlrTree(String source) {
@@ -203,6 +202,8 @@ public final class Walker extends PainlessParserBaseVisitor<Void> {
         for (StatementContext statement : ctx.statement()) {
             visit(statement);
         }
+
+        builder.endVisit();
 
         return null;
     }
@@ -1239,23 +1240,15 @@ public final class Walker extends PainlessParserBaseVisitor<Void> {
 
     @Override
     public Void visitLambda(LambdaContext ctx) {
-        List<String> paramTypes = new ArrayList<>();
-        List<String> paramNames = new ArrayList<>();
+        builder.visitLambda(location(ctx)).visitParameters(location(ctx));
 
         for (LamtypeContext lamtype : ctx.lamtype()) {
-            if (lamtype.decltype() == null) {
-                paramTypes.add(null);
-            } else {
-                paramTypes.add(lamtype.decltype().getText());
-            }
-
-            paramNames.add(lamtype.ID().getText());
+            visit(lamtype);
         }
 
-        builder.visitLambda(location(ctx), paramTypes, paramNames);
+        builder.endVisit();
 
         if (ctx.expression() != null) {
-            // single expression
             builder.visitBlock(location(ctx)).visitReturn(location(ctx));
             visit(ctx.expression());
             builder.endVisit().endVisit();
@@ -1270,7 +1263,17 @@ public final class Walker extends PainlessParserBaseVisitor<Void> {
 
     @Override
     public Void visitLamtype(LamtypeContext ctx) {
-        throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
+        builder.visitParameter(location(ctx.ID()), ctx.ID().getText());
+
+        if (ctx.decltype() == null) {
+            builder.visitEmpty();
+        } else {
+            builder.visitTypeString(location(ctx.decltype()), ctx.decltype().getText()).endVisit();
+        }
+
+        builder.endVisit();
+
+        return null;
     }
 
     @Override

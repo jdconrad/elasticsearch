@@ -26,6 +26,7 @@ import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Locals.Variable;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.builder.ASTBuilder;
 import org.elasticsearch.painless.builder.ScopeTable;
 import org.elasticsearch.painless.lookup.PainlessLookupUtility;
 import org.elasticsearch.painless.lookup.PainlessMethod;
@@ -33,7 +34,6 @@ import org.elasticsearch.painless.lookup.def;
 import org.objectweb.asm.Opcodes;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -63,9 +63,6 @@ import java.util.Set;
  */
 public final class ELambda extends AExpression implements ILambda {
 
-    private final List<String> paramTypeStrs;
-    public final List<String> paramNameStrs;
-
     private CompilerSettings settings;
 
     // extracted variables required to determine captures
@@ -81,10 +78,8 @@ public final class ELambda extends AExpression implements ILambda {
 
     public ScopeTable.LambdaScope scope;
 
-    public ELambda(Location location, List<String> paramTypes, List<String> paramNames) {
+    public ELambda(Location location) {
         super(location);
-        this.paramTypeStrs = Collections.unmodifiableList(paramTypes);
-        this.paramNameStrs = Collections.unmodifiableList(paramNames);
 
         this.extractedVariables = new HashSet<>();
     }
@@ -92,6 +87,10 @@ public final class ELambda extends AExpression implements ILambda {
     @Override
     void storeSettings(CompilerSettings settings) {
         for (ANode statement : children) {
+            if (statement instanceof DParameters) {
+                continue;
+            }
+
             statement.storeSettings(settings);
         }
 
@@ -110,23 +109,28 @@ public final class ELambda extends AExpression implements ILambda {
     @Override
     void analyze(Locals locals) {
         Class<?> returnType;
-        List<String> actualParamTypeStrs;
+        List<Class<?>> paramTypes = new ArrayList<>();
+        List<String> paramNames = new ArrayList<>();
         PainlessMethod interfaceMethod;
+
+        DParameters parameters = (DParameters)children.get(0);
+
         // inspect the target first, set interface method if we know it.
         if (expected == null) {
             interfaceMethod = null;
             // we don't know anything: treat as def
             returnType = def.class;
             // don't infer any types, replace any null types with def
-            actualParamTypeStrs = new ArrayList<>(paramTypeStrs.size());
-            for (String type : paramTypeStrs) {
-                if (type == null) {
-                    actualParamTypeStrs.add("def");
+            for (ANode node : parameters.children) {
+                DParameter parameter = (DParameter)node;
+                paramNames.add(parameter.name);
+
+                if (parameter.children.get(0) == null) {
+                    paramTypes.add(def.class);
                 } else {
-                    actualParamTypeStrs.add(type);
+                    paramTypes.add(((DTypeClass)parameter.children.get(0)).type);
                 }
             }
-
         } else {
             // we know the method statically, infer return type and any unknown/def types
             interfaceMethod = locals.getPainlessLookup().lookupFunctionalInterfacePainlessMethod(expected);
@@ -135,7 +139,7 @@ public final class ELambda extends AExpression implements ILambda {
                         "[" + PainlessLookupUtility.typeToCanonicalTypeName(expected) + "], not a functional interface"));
             }
             // check arity before we manipulate parameters
-            if (interfaceMethod.typeParameters.size() != paramTypeStrs.size())
+            if (interfaceMethod.typeParameters.size() != parameters.children.size())
                 throw new IllegalArgumentException("Incorrect number of parameters for [" + interfaceMethod.javaMethod.getName() +
                         "] in [" + PainlessLookupUtility.typeToCanonicalTypeName(expected) + "]");
             // for method invocation, its allowed to ignore the return value
@@ -145,13 +149,14 @@ public final class ELambda extends AExpression implements ILambda {
                 returnType = interfaceMethod.returnType;
             }
             // replace any null types with the actual type
-            actualParamTypeStrs = new ArrayList<>(paramTypeStrs.size());
-            for (int i = 0; i < paramTypeStrs.size(); i++) {
-                String paramType = paramTypeStrs.get(i);
-                if (paramType == null) {
-                    actualParamTypeStrs.add(PainlessLookupUtility.typeToCanonicalTypeName(interfaceMethod.typeParameters.get(i)));
+            for (int i = 0; i < parameters.children.size(); i++) {
+                DParameter parameter = (DParameter)parameters.children.get(i);
+                paramNames.add(parameter.name);
+
+                if (parameter.children.get(0) == null) {
+                    paramTypes.add(interfaceMethod.typeParameters.get(i));
                 } else {
-                    actualParamTypeStrs.add(paramType);
+                    paramTypes.add(((DTypeClass)parameter.children.get(0)).type);
                 }
             }
         }
@@ -163,35 +168,35 @@ public final class ELambda extends AExpression implements ILambda {
             }
         }
         // prepend capture list to lambda's arguments
-        List<String> paramTypes = new ArrayList<>(captures.size() + actualParamTypeStrs.size());
-        List<String> paramNames = new ArrayList<>(captures.size() + paramNameStrs.size());
-        for (Variable var : captures) {
-            paramTypes.add(PainlessLookupUtility.typeToCanonicalTypeName(var.clazz));
-            paramNames.add(var.name);
-        }
-        paramTypes.addAll(actualParamTypeStrs);
-        paramNames.addAll(paramNameStrs);
-
-        DParameters parameters = new DParameters(location);
-        for (int index = 0; index < paramTypes.size(); ++index) {
-            DParameter parameter = new DParameter(location, paramNames.get(index));
-            DTypeClass type = new DTypeClass(location, locals.getPainlessLookup().canonicalTypeNameToType(paramTypes.get(index)));
-            parameter.children.add(type);
-            parameters.children.add(parameter);
+        for (int index = 0; index < captures.size(); ++index) {
+            Variable var = captures.get(index);
+            paramTypes.add(index, var.clazz);
+            paramNames.add(index, var.name);
         }
 
-        // desugar lambda body into a synthetic method
         String name = locals.getNextSyntheticName();
-        desugared = new SFunction(location, name, true);
-        desugared.children.add(new DTypeClass(location, returnType));
-        desugared.children.add(parameters);
-        desugared.children.add(children.get(0));
+        ASTBuilder builder = new ASTBuilder();
+        builder.visitFunction(location, name, true)
+                .visitTypeClass(location, returnType).endVisit()
+                .visitParameters(location);
+
+        for (int index = 0; index < paramTypes.size(); ++index) {
+            builder.visitParameter(location, paramNames.get(index))
+                    .visitTypeClass(location, paramTypes.get(index)).endVisit()
+            .endVisit();
+        }
+
+        builder.endVisit()
+                .visitNode(children.get(1)).endVisit()
+        .endVisit();
+
+        desugared = (SFunction)builder.endBuild();
+        children.set(1, desugared);
+
         desugared.storeSettings(settings);
         desugared.generateSignature();
         desugared.analyze(Locals.newLambdaScope(locals.getProgramScope(), desugared.name, returnType,
-                                                parameters, captures.size(), settings.getMaxLoopCounter()));
-
-        children.set(0, desugared);
+                (DParameters)desugared.children.get(1), captures.size(), settings.getMaxLoopCounter()));
 
         // setup method reference to synthetic method
         if (expected == null) {
@@ -227,7 +232,7 @@ public final class ELambda extends AExpression implements ILambda {
             }
         }
 
-        SFunction function = (SFunction)children.get(0);
+        SFunction function = (SFunction)children.get(1);
         function.write(globals.visitor, globals);
     }
 
@@ -247,6 +252,6 @@ public final class ELambda extends AExpression implements ILambda {
 
     @Override
     public String toString() {
-        return multilineToString(pairwiseToString(paramTypeStrs, paramNameStrs), children);
+        return null;
     }
 }
