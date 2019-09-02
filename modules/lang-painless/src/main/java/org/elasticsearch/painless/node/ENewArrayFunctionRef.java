@@ -80,6 +80,7 @@ public final class ENewArrayFunctionRef extends AExpression implements ILambda {
         //function.extractVariables(null);
         function.analyze(Locals.newLambdaScope(locals.getProgramScope(), function.name, ((DTypeClass)function.children.get(0)).type,
                 (DParameters)function.children.get(1), 0, settings.getMaxLoopCounter()));
+        children.set(0, function);
 
         if (expected == null) {
             ref = null;

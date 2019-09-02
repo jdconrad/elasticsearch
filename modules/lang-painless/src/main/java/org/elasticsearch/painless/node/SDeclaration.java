@@ -35,22 +35,20 @@ import java.util.Set;
  */
 public final class SDeclaration extends AStatement {
 
-    public final String type;
     public final String name;
 
     private Variable variable = null;
 
-    public SDeclaration(Location location, String type, String name) {
+    public SDeclaration(Location location, String name) {
         super(location);
 
-        this.type = Objects.requireNonNull(type);
         this.name = Objects.requireNonNull(name);
     }
 
     @Override
     void storeSettings(CompilerSettings settings) {
-        if (children.get(0) != null) {
-            children.get(0).storeSettings(settings);
+        if (children.get(1) != null) {
+            children.get(1).storeSettings(settings);
         }
     }
 
@@ -58,25 +56,21 @@ public final class SDeclaration extends AStatement {
     void extractVariables(Set<String> variables) {
         variables.add(name);
 
-        if (children.get(0) != null) {
-            children.get(0).extractVariables(variables);
+        if (children.get(1) != null) {
+            children.get(1).extractVariables(variables);
         }
     }
 
     @Override
     void analyze(Locals locals) {
-        Class<?> clazz = locals.getPainlessLookup().canonicalTypeNameToType(this.type);
+        Class<?> clazz = ((DTypeClass)children.get(0)).type;
 
-        if (clazz == null) {
-            throw createError(new IllegalArgumentException("Not a type [" + this.type + "]."));
-        }
-
-        AExpression expression = (AExpression)children.get(0);
+        AExpression expression = (AExpression)children.get(1);
 
         if (expression != null) {
             expression.expected = clazz;
             expression.analyze(locals);
-            children.set(0, expression.cast(locals));
+            children.set(1, expression.cast(locals));
         }
 
         variable = locals.addVariable(location, clazz, name, false);
@@ -86,7 +80,7 @@ public final class SDeclaration extends AStatement {
     void write(MethodWriter writer, Globals globals) {
         writer.writeStatementOffset(location);
 
-        if (children.get(0) == null) {
+        if (children.get(1) == null) {
             Class<?> sort = variable.clazz;
 
             if (sort == void.class || sort == boolean.class || sort == byte.class ||
@@ -102,7 +96,7 @@ public final class SDeclaration extends AStatement {
                 writer.visitInsn(Opcodes.ACONST_NULL);
             }
         } else {
-            children.get(0).write(writer, globals);
+            children.get(1).write(writer, globals);
         }
 
         writer.visitVarInsn(MethodWriter.getType(variable.clazz).getOpcode(Opcodes.ISTORE), variable.getSlot());
@@ -110,9 +104,6 @@ public final class SDeclaration extends AStatement {
 
     @Override
     public String toString() {
-        if (children.get(0) == null) {
-            return singleLineToString(type, name);
-        }
-        return singleLineToString(type, name, children.get(0));
+        return null;
     }
 }

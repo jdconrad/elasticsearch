@@ -170,7 +170,8 @@ public final class ECallLocal extends AExpression {
             writer.invokeStatic(Type.getType(importedMethod.targetClass),
                     new Method(importedMethod.javaMethod.getName(), importedMethod.methodType.toMethodDescriptorString()));
         } else if (classBinding != null) {
-            String descriptor = Type.getType(classBinding.).getDescriptor();
+            String name = "$class_binding$" + Globals.counter++;
+            String descriptor = Type.getType(classBinding.javaConstructor.getDeclaringClass()).getDescriptor();
             globals.visitor.visitField(Opcodes.ACC_PRIVATE, name, descriptor, null, null).visitEnd();
 
             Type type = Type.getType(classBinding.javaConstructor.getDeclaringClass());
@@ -206,8 +207,11 @@ public final class ECallLocal extends AExpression {
 
             writer.invokeVirtual(type, Method.getMethod(classBinding.javaMethod));
         } else if (instanceBinding != null) {
-            String name = globals.addInstanceBinding(instanceBinding.targetInstance);
+            String name = "$instance_binding$" + Globals.counter++;
+            globals.statics.put(name, instanceBinding.targetInstance);
+
             Type type = Type.getType(instanceBinding.targetInstance.getClass());
+            globals.visitor.visitField(Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, name, type.getDescriptor(), null, null).visitEnd();
 
             writer.loadThis();
             writer.getStatic(CLASS_TYPE, name, type);

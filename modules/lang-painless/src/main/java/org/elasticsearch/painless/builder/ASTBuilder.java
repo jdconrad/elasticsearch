@@ -161,8 +161,8 @@ public class ASTBuilder {
         return visitChild(new SDeclBlock(location));
     }
 
-    public ASTBuilder visitDeclaration(Location location, String type, String name) {
-        return visitChild(new SDeclaration(location, type, name));
+    public ASTBuilder visitDeclaration(Location location, String name) {
+        return visitChild(new SDeclaration(location, name));
     }
 
     public ASTBuilder visitReturn(Location location) {

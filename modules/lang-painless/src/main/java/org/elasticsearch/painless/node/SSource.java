@@ -20,7 +20,6 @@
 package org.elasticsearch.painless.node;
 
 import org.elasticsearch.painless.CompilerSettings;
-import org.elasticsearch.painless.Constant;
 import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Locals.LocalMethod;
@@ -43,7 +42,6 @@ import org.objectweb.asm.util.TraceClassVisitor;
 import java.lang.invoke.MethodType;
 import java.util.ArrayList;
 import java.util.BitSet;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -316,20 +314,6 @@ public final class SSource extends AStatement {
             }
         }
 
-        // Write class binding variables
-        for (Map.Entry<String, Class<?>> classBinding : globals.getClassBindings().entrySet()) {
-            String name = classBinding.getKey();
-            String descriptor = Type.getType(classBinding.getValue()).getDescriptor();
-            visitor.visitField(Opcodes.ACC_PRIVATE, name, descriptor, null, null).visitEnd();
-        }
-
-        // Write instance binding variables
-        for (Map.Entry<Object, String> instanceBinding : globals.getInstanceBindings().entrySet()) {
-            String name = instanceBinding.getValue();
-            String descriptor = Type.getType(instanceBinding.getKey().getClass()).getDescriptor();
-            visitor.visitField(Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, name, descriptor, null, null).visitEnd();
-        }
-
         // Write any needsVarName methods for used variables
         for (org.objectweb.asm.commons.Method needsMethod : scriptClassInfo.getNeedsMethods()) {
             String name = needsMethod.getName();
@@ -350,13 +334,8 @@ public final class SSource extends AStatement {
         visitor.visitEnd();
         bytes = writer.toByteArray();
 
-        Map<String, Object> statics = new HashMap<>();
+        Map<String, Object> statics = new HashMap<>(globals.statics);
         statics.put("$LOCALS", mainMethod.getMethods());
-
-        for (Map.Entry<Object, String> instanceBinding : globals.getInstanceBindings().entrySet()) {
-            statics.put(instanceBinding.getValue(), instanceBinding.getKey());
-        }
-
         return statics;
     }
 
@@ -457,10 +436,6 @@ public final class SSource extends AStatement {
         writer.invokeInterface(BASE_INTERFACE_TYPE, CONVERT_TO_SCRIPT_EXCEPTION_METHOD);
         writer.throwException();
         writer.mark(endCatch);
-    }
-
-    public BitSet getStatements() {
-        return globals.getStatements();
     }
 
     public byte[] getBytes() {

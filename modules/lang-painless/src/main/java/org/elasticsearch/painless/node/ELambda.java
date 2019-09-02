@@ -191,6 +191,8 @@ public final class ELambda extends AExpression implements ILambda {
         desugared.analyze(Locals.newLambdaScope(locals.getProgramScope(), desugared.name, returnType,
                                                 parameters, captures.size(), settings.getMaxLoopCounter()));
 
+        children.set(0, desugared);
+
         // setup method reference to synthetic method
         if (expected == null) {
             ref = null;

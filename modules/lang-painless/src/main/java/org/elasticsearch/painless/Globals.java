@@ -22,20 +22,28 @@ package org.elasticsearch.painless;
 import org.objectweb.asm.ClassVisitor;
 
 import java.util.BitSet;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Program-wide globals (initializers, synthetic methods, etc)
  */
 public class Globals {
+    public static int counter = 0;
     public final ClassVisitor visitor;
     public final MethodWriter clinit;
     private final BitSet statements;
+
+    public final Map<String, Object> statics;
     
     /** Create a new Globals from the set of statement boundaries */
     public Globals(ClassVisitor visitor, MethodWriter clinit, BitSet statements) {
         this.visitor = visitor;
         this.clinit = clinit;
         this.statements = statements;
+
+        statics = new HashMap<>();
+        statics.put("$STATEMENTS", statements);
     }
 
     /** Returns the set of statement boundaries */

@@ -21,8 +21,8 @@ package org.elasticsearch.painless;
 
 import org.elasticsearch.bootstrap.BootstrapInfo;
 import org.elasticsearch.painless.antlr.Walker;
-import org.elasticsearch.painless.builder.ResolveTypesPass;
 import org.elasticsearch.painless.builder.ResolveSymbolsPass;
+import org.elasticsearch.painless.builder.ResolveTypesPass;
 import org.elasticsearch.painless.builder.SymbolTable;
 import org.elasticsearch.painless.lookup.PainlessLookup;
 import org.elasticsearch.painless.node.SSource;
@@ -227,7 +227,6 @@ final class Compiler {
             Class<? extends PainlessScript> clazz = loader.defineScript(CLASS_NAME, root.getBytes());
             clazz.getField("$NAME").set(null, name);
             clazz.getField("$SOURCE").set(null, source);
-            clazz.getField("$STATEMENTS").set(null, root.getStatements());
             clazz.getField("$DEFINITION").set(null, painlessLookup);
 
             for (Map.Entry<String, Object> statik : statics.entrySet()) {
