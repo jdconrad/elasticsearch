@@ -29,6 +29,7 @@ import org.elasticsearch.painless.lookup.PainlessClassBinding;
 import org.elasticsearch.painless.lookup.PainlessInstanceBinding;
 import org.elasticsearch.painless.lookup.PainlessMethod;
 import org.objectweb.asm.Label;
+import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.commons.Method;
 
@@ -169,7 +170,9 @@ public final class ECallLocal extends AExpression {
             writer.invokeStatic(Type.getType(importedMethod.targetClass),
                     new Method(importedMethod.javaMethod.getName(), importedMethod.methodType.toMethodDescriptorString()));
         } else if (classBinding != null) {
-            String name = globals.addClassBinding(classBinding.javaConstructor.getDeclaringClass());
+            String descriptor = Type.getType(classBinding.).getDescriptor();
+            globals.visitor.visitField(Opcodes.ACC_PRIVATE, name, descriptor, null, null).visitEnd();
+
             Type type = Type.getType(classBinding.javaConstructor.getDeclaringClass());
             int javaConstructorParameterCount = classBinding.javaConstructor.getParameterCount() - classBindingOffset;
 

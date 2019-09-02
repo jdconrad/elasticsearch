@@ -225,8 +225,8 @@ public final class ELambda extends AExpression implements ILambda {
             }
         }
 
-        // add synthetic method to the queue to be written
-        globals.addSyntheticMethod(desugared);
+        SFunction function = (SFunction)children.get(0);
+        function.write(globals.visitor, globals);
     }
 
     @Override

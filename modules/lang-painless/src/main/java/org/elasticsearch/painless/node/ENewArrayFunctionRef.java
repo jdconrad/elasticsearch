@@ -102,7 +102,8 @@ public final class ENewArrayFunctionRef extends AExpression implements ILambda {
             writer.push((String)null);
         }
 
-        globals.addSyntheticMethod((SFunction)children.get(0));
+        SFunction function = (SFunction)children.get(0);
+        function.write(globals.visitor, globals);
     }
 
     @Override
