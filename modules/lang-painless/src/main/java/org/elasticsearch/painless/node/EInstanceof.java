@@ -26,7 +26,6 @@ import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.lookup.PainlessLookupUtility;
 
-import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -35,37 +34,28 @@ import java.util.Set;
  * Unlike java's, this works for primitive types too.
  */
 public final class EInstanceof extends AExpression {
-    private final String type;
-
     private Class<?> resolvedType;
     private Class<?> expressionType;
     private boolean primitiveExpression;
 
-    public EInstanceof(Location location, String type) {
+    public EInstanceof(Location location) {
         super(location);
-        this.type = Objects.requireNonNull(type);
     }
 
     @Override
     void storeSettings(CompilerSettings settings) {
-        children.get(0).storeSettings(settings);
+        children.get(1).storeSettings(settings);
     }
 
     @Override
     void extractVariables(Set<String> variables) {
-        children.get(0).extractVariables(variables);
+        children.get(1).extractVariables(variables);
     }
 
     @Override
     void analyze(Locals locals) {
-        AExpression expression = (AExpression)children.get(0);
-
-        // ensure the specified type is part of the definition
-        Class<?> clazz = locals.getPainlessLookup().canonicalTypeNameToType(this.type);
-
-        if (clazz == null) {
-            throw createError(new IllegalArgumentException("Not a type [" + this.type + "]."));
-        }
+        Class<?> clazz = ((DTypeClass)children.get(0)).type;
+        AExpression expression = (AExpression)children.get(1);
 
         // map to wrapped type for primitive types
         resolvedType = clazz.isPrimitive() ? PainlessLookupUtility.typeToBoxedType(clazz) :
@@ -106,6 +96,6 @@ public final class EInstanceof extends AExpression {
 
     @Override
     public String toString() {
-        return singleLineToString(children.get(0), type);
+        return null;
     }
 }

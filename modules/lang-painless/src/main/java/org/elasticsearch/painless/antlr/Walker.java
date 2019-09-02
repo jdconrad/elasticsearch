@@ -650,7 +650,8 @@ public final class Walker extends PainlessParserBaseVisitor<Void> {
     public Void visitInstanceof(InstanceofContext ctx) {
         String type = ctx.decltype().getText();
 
-        builder.visitInstanceof(location(ctx), type);
+        builder.visitInstanceof(location(ctx))
+                .visitTypeString(location(ctx.decltype()), type).endVisit();
 
         visit(ctx.expression());
 

@@ -206,8 +206,8 @@ public class ASTBuilder {
         return visitChild(new EExplicit(location));
     }
 
-    public ASTBuilder visitInstanceof(Location location, String type) {
-        return visitChild(new EInstanceof(location, type));
+    public ASTBuilder visitInstanceof(Location location) {
+        return visitChild(new EInstanceof(location));
     }
 
     public ASTBuilder visitAssignment(Location location, boolean pre, boolean post, Operation operation) {
