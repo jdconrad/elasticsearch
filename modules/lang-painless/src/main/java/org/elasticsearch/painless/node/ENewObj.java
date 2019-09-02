@@ -29,7 +29,6 @@ import org.elasticsearch.painless.lookup.PainlessLookupUtility;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.commons.Method;
 
-import java.util.Objects;
 import java.util.Set;
 
 import static org.elasticsearch.painless.lookup.PainlessLookupUtility.typeToCanonicalTypeName;
@@ -39,19 +38,19 @@ import static org.elasticsearch.painless.lookup.PainlessLookupUtility.typeToCano
  */
 public final class ENewObj extends AExpression {
 
-    private final String type;
-
     private PainlessConstructor constructor;
 
-    public ENewObj(Location location, String type) {
+    public ENewObj(Location location) {
         super(location);
-
-        this.type = Objects.requireNonNull(type);
     }
 
     @Override
     void storeSettings(CompilerSettings settings) {
         for (ANode argument : children) {
+            if (argument instanceof AData) {
+                continue;
+            }
+
             argument.storeSettings(settings);
         }
     }
@@ -65,32 +64,29 @@ public final class ENewObj extends AExpression {
 
     @Override
     void analyze(Locals locals) {
-        actual = locals.getPainlessLookup().canonicalTypeNameToType(this.type);
+        actual = ((DTypeClass)children.get(0)).type;
 
-        if (actual == null) {
-            throw createError(new IllegalArgumentException("Not a type [" + this.type + "]."));
-        }
-
-        constructor = locals.getPainlessLookup().lookupPainlessConstructor(actual, children.size());
+        int size = children.size() - 1;
+        constructor = locals.getPainlessLookup().lookupPainlessConstructor(actual, size);
 
         if (constructor == null) {
             throw createError(new IllegalArgumentException(
-                    "constructor [" + typeToCanonicalTypeName(actual) + ", <init>/" + children.size() + "] not found"));
+                    "constructor [" + typeToCanonicalTypeName(actual) + ", <init>/" + size + "] not found"));
         }
 
         Class<?>[] types = new Class<?>[constructor.typeParameters.size()];
         constructor.typeParameters.toArray(types);
 
-        if (constructor.typeParameters.size() != children.size()) {
+        if (constructor.typeParameters.size() != size) {
             throw createError(new IllegalArgumentException(
                     "When calling constructor on type [" + PainlessLookupUtility.typeToCanonicalTypeName(actual) + "] " +
-                    "expected [" + constructor.typeParameters.size() + "] arguments, but found [" + children.size() + "]."));
+                    "expected [" + constructor.typeParameters.size() + "] arguments, but found [" + size + "]."));
         }
 
-        for (int argument = 0; argument < children.size(); ++argument) {
+        for (int argument = 1; argument < size + 1; ++argument) {
             AExpression expression = (AExpression)children.get(argument);
 
-            expression.expected = types[argument];
+            expression.expected = types[argument - 1];
             expression.internal = true;
             expression.analyze(locals);
             children.set(argument, expression.cast(locals));
@@ -109,8 +105,8 @@ public final class ENewObj extends AExpression {
             writer.dup();
         }
 
-        for (ANode argument : children) {
-            argument.write(writer, globals);
+        for (int argument = 1; argument < children.size(); ++argument) {
+            children.get(argument).write(writer, globals);
         }
 
         writer.invokeConstructor(
@@ -119,6 +115,6 @@ public final class ENewObj extends AExpression {
 
     @Override
     public String toString() {
-        return singleLineToStringWithOptionalArgs(children, type);
+        return null;
     }
 }

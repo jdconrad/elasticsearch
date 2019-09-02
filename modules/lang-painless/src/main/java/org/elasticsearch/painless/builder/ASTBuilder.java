@@ -238,8 +238,8 @@ public class ASTBuilder {
         return visitChild(new EElvis(location));
     }
 
-    public ASTBuilder visitNewObj(Location location, String type) {
-        return visitChild(new ENewObj(location, type));
+    public ASTBuilder visitNewObj(Location location) {
+        return visitChild(new ENewObj(location));
     }
 
     public ASTBuilder visitNewArray(Location location, String type, boolean initialize) {
