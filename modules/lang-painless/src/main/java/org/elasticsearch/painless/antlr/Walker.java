@@ -865,7 +865,9 @@ public final class Walker extends PainlessParserBaseVisitor<Void> {
     private void visitPrefixStatic(StaticContext ctx) {
         String type = ctx.decltype().getText();
 
-        builder.visitStatic(location(ctx), type).endVisit();
+        builder.visitStatic(location(ctx))
+                .visitTypeString(location(ctx.decltype()), type).endVisit()
+        .endVisit();
     }
 
     @Override

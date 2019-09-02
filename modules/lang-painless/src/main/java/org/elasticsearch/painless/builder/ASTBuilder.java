@@ -298,8 +298,8 @@ public class ASTBuilder {
         return visitChild(new ERegex(location, pattern, flagsString));
     }
 
-    public ASTBuilder visitStatic(Location location, String type) {
-        return visitChild(new EStatic(location, type));
+    public ASTBuilder visitStatic(Location location) {
+        return visitChild(new EStatic(location));
     }
 
     public ASTBuilder visitVariable(Location location, String name) {

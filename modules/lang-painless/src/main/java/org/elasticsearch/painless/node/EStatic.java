@@ -25,7 +25,6 @@ import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 
-import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -33,12 +32,8 @@ import java.util.Set;
  */
 public final class EStatic extends AExpression {
 
-    private final String type;
-
-    public EStatic(Location location, String type) {
+    public EStatic(Location location) {
         super(location);
-
-        this.type = Objects.requireNonNull(type);
     }
 
     @Override
@@ -53,11 +48,7 @@ public final class EStatic extends AExpression {
 
     @Override
     void analyze(Locals locals) {
-        actual = locals.getPainlessLookup().canonicalTypeNameToType(type);
-
-        if (actual == null) {
-            throw createError(new IllegalArgumentException("Not a type [" + type + "]."));
-        }
+        actual = ((DTypeClass)children.get(0)).type;
     }
 
     @Override
@@ -67,6 +58,6 @@ public final class EStatic extends AExpression {
 
     @Override
     public String toString() {
-        return singleLineToString(type);
+        return null;
     }
 }
