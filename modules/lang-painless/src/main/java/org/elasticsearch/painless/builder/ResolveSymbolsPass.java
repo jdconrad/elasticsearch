@@ -102,15 +102,7 @@ public class ResolveSymbolsPass implements SemanticPass {
         });
 
         baseEnters.put(SFor.class, (node, table) -> table.variableTable.newLocalScope(node));
-        baseEnters.put(SEach.class, (node, table) -> {
-            SEach each = (SEach)node;
-            ScopeTable.Scope scope = table.variableTable.newLocalScope(node);
-            String name = each.name;
-            if (scope.getVariable(name) != null) {
-                throw node.createError(new IllegalArgumentException("variable [" + name + "] is already defined in the scope"));
-            }
-            scope.addVariable(name, false);
-        });
+        baseEnters.put(SEach.class, (node, table) -> table.variableTable.newLocalScope(node));
         baseEnters.put(SWhile.class, (node, table) -> table.variableTable.newLocalScope(node));
         baseEnters.put(SDo.class, (node, table) -> table.variableTable.newLocalScope(node));
         baseEnters.put(SIf.class, (node, table) -> table.variableTable.newLocalScope(node.children.get(0)));

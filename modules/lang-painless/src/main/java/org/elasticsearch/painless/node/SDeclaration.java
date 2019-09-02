@@ -47,7 +47,7 @@ public final class SDeclaration extends AStatement {
 
     @Override
     void storeSettings(CompilerSettings settings) {
-        if (children.get(1) != null) {
+        if (children.size() > 1 && children.get(1) != null) {
             children.get(1).storeSettings(settings);
         }
     }
@@ -65,12 +65,14 @@ public final class SDeclaration extends AStatement {
     void analyze(Locals locals) {
         Class<?> clazz = ((DTypeClass)children.get(0)).type;
 
-        AExpression expression = (AExpression)children.get(1);
+        if (children.size() > 1) {
+            AExpression expression = (AExpression) children.get(1);
 
-        if (expression != null) {
-            expression.expected = clazz;
-            expression.analyze(locals);
-            children.set(1, expression.cast(locals));
+            if (expression != null) {
+                expression.expected = clazz;
+                expression.analyze(locals);
+                children.set(1, expression.cast(locals));
+            }
         }
 
         variable = locals.addVariable(location, clazz, name, false);
@@ -80,23 +82,25 @@ public final class SDeclaration extends AStatement {
     void write(MethodWriter writer, Globals globals) {
         writer.writeStatementOffset(location);
 
-        if (children.get(1) == null) {
-            Class<?> sort = variable.clazz;
+        if (children.size() > 1) {
+            if (children.get(1) == null) {
+                Class<?> sort = variable.clazz;
 
-            if (sort == void.class || sort == boolean.class || sort == byte.class ||
-                sort == short.class || sort == char.class || sort == int.class) {
-                writer.push(0);
-            } else if (sort == long.class) {
-                writer.push(0L);
-            } else if (sort == float.class) {
-                writer.push(0F);
-            } else if (sort == double.class) {
-                writer.push(0D);
+                if (sort == void.class || sort == boolean.class || sort == byte.class ||
+                        sort == short.class || sort == char.class || sort == int.class) {
+                    writer.push(0);
+                } else if (sort == long.class) {
+                    writer.push(0L);
+                } else if (sort == float.class) {
+                    writer.push(0F);
+                } else if (sort == double.class) {
+                    writer.push(0D);
+                } else {
+                    writer.visitInsn(Opcodes.ACONST_NULL);
+                }
             } else {
-                writer.visitInsn(Opcodes.ACONST_NULL);
+                children.get(1).write(writer, globals);
             }
-        } else {
-            children.get(1).write(writer, globals);
         }
 
         writer.visitVarInsn(MethodWriter.getType(variable.clazz).getOpcode(Opcodes.ISTORE), variable.getSlot());

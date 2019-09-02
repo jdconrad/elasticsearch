@@ -137,8 +137,8 @@ public class ASTBuilder {
         return visitChild(new SFor(location));
     }
 
-    public ASTBuilder visitEach(Location location, String type, String name) {
-        return visitChild(new SEach(location, type, name));
+    public ASTBuilder visitEach(Location location) {
+        return visitChild(new SEach(location));
     }
 
     public ASTBuilder visitWhile(Location location) {

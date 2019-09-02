@@ -347,7 +347,10 @@ public final class Walker extends PainlessParserBaseVisitor<Void> {
         String type = ctx.decltype().getText();
         String name = ctx.ID().getText();
 
-        builder.visitEach(location(ctx), type, name);
+        builder.visitEach(location(ctx))
+                .visitDeclaration(location(ctx.ID()), name)
+                        .visitTypeString(location(ctx.decltype()), type).endVisit()
+                .endVisit();
 
         visit(ctx.expression());
         visit(ctx.trailer());
@@ -361,7 +364,10 @@ public final class Walker extends PainlessParserBaseVisitor<Void> {
     public Void visitIneach(IneachContext ctx) {
         String name = ctx.ID().getText();
 
-        builder.visitEach(location(ctx), "def", name);
+        builder.visitEach(location(ctx))
+                .visitDeclaration(location(ctx.ID()), name)
+                        .visitTypeString(location(ctx), "def").endVisit()
+                .endVisit();
 
         visit(ctx.expression());
         visit(ctx.trailer());

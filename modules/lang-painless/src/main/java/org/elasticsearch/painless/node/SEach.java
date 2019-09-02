@@ -28,7 +28,6 @@ import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.lookup.PainlessLookupUtility;
 import org.elasticsearch.painless.lookup.def;
 
-import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -36,21 +35,16 @@ import java.util.Set;
  */
 public class SEach extends AStatement {
 
-    private final String type;
-    public final String name;
-
     private AStatement sub = null;
 
-    public SEach(Location location, String type, String name) {
+    public SEach(Location location) {
         super(location);
-
-        this.type = Objects.requireNonNull(type);
-        this.name = Objects.requireNonNull(name);
     }
 
     @Override
     void storeSettings(CompilerSettings settings) {
         children.get(0).storeSettings(settings);
+        children.get(1).storeSettings(settings);
 
         if (children.get(1) != null) {
             children.get(1).storeSettings(settings);
@@ -59,32 +53,29 @@ public class SEach extends AStatement {
 
     @Override
     void extractVariables(Set<String> variables) {
-        variables.add(name);
+        /*variables.add(name);
 
         children.get(0).extractVariables(variables);
 
         if (children.get(1) != null) {
             children.get(1).extractVariables(variables);
-        }
+        }*/
     }
 
     @Override
     void analyze(Locals locals) {
-        AExpression expression = (AExpression)children.get(0);
-        SBlock block = (SBlock)children.get(1);
+        SDeclaration declaration = (SDeclaration)children.get(0);
+        AExpression expression = (AExpression)children.get(1);
+        SBlock block = (SBlock)children.get(2);
 
         expression.analyze(locals);
         expression.expected = expression.actual;
         expression = expression.cast(locals);
 
-        Class<?> clazz = locals.getPainlessLookup().canonicalTypeNameToType(this.type);
-
-        if (clazz == null) {
-            throw createError(new IllegalArgumentException("Not a type [" + this.type + "]."));
-        }
-
         locals = Locals.newLocalScope(locals);
-        Variable variable = locals.addVariable(location, clazz, name, true);
+        declaration.analyze(locals);
+
+        Variable variable = locals.getVariable(location, declaration.name);
 
         if (expression.actual.isArray()) {
             sub = new SSubEachArray(location, variable, expression, block);
@@ -124,6 +115,6 @@ public class SEach extends AStatement {
 
     @Override
     public String toString() {
-        return singleLineToString(type, name, children.get(0), children.get(1));
+        return null;
     }
 }
