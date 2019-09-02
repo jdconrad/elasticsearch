@@ -1160,7 +1160,8 @@ public final class Walker extends PainlessParserBaseVisitor<Void> {
             type.append("[]");
         }
 
-        builder.visitNewArray(location(ctx), type.toString(), false);
+        builder.visitNewArray(location(ctx), false)
+                .visitTypeString(location(ctx.TYPE()), type.toString()).endVisit();
 
         for (ExpressionContext expression : ctx.expression()) {
             visit(expression);
@@ -1179,7 +1180,8 @@ public final class Walker extends PainlessParserBaseVisitor<Void> {
     private void visitPrefixNewinitializedarray(NewinitializedarrayContext ctx) {
         String type = ctx.TYPE().getText() + "[]";
 
-        builder.visitNewArray(location(ctx), type, true);
+        builder.visitNewArray(location(ctx), true)
+                .visitTypeString(location(ctx.TYPE()), type).endVisit();
 
         for (ExpressionContext expression : ctx.expression()) {
             visit(expression);

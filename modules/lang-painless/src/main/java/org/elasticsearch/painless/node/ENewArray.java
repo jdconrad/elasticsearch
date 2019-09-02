@@ -25,7 +25,6 @@ import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 
-import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -33,19 +32,21 @@ import java.util.Set;
  */
 public final class ENewArray extends AExpression {
 
-    private final String type;
     private final boolean initialize;
 
-    public ENewArray(Location location, String type, boolean initialize) {
+    public ENewArray(Location location, boolean initialize) {
         super(location);
 
-        this.type = Objects.requireNonNull(type);
         this.initialize = initialize;
     }
 
     @Override
     void storeSettings(CompilerSettings settings) {
         for (ANode argument : children) {
+            if (argument instanceof AData) {
+                continue;
+            }
+
             argument.storeSettings(settings);
         }
     }
@@ -63,13 +64,9 @@ public final class ENewArray extends AExpression {
              throw createError(new IllegalArgumentException("A newly created array must be read from."));
         }
 
-        Class<?> clazz = locals.getPainlessLookup().canonicalTypeNameToType(this.type);
+        Class<?> clazz = ((DTypeClass)children.get(0)).type;
 
-        if (clazz == null) {
-            throw createError(new IllegalArgumentException("Not a type [" + this.type + "]."));
-        }
-
-        for (int argument = 0; argument < children.size(); ++argument) {
+        for (int argument = 1; argument < children.size(); ++argument) {
             AExpression expression = (AExpression)children.get(argument);
 
             expression.expected = initialize ? clazz.getComponentType() : int.class;
@@ -86,24 +83,24 @@ public final class ENewArray extends AExpression {
         writer.writeDebugInfo(location);
 
         if (initialize) {
-            writer.push(children.size());
+            writer.push(children.size() - 1);
             writer.newArray(MethodWriter.getType(actual.getComponentType()));
 
-            for (int index = 0; index < children.size(); ++index) {
+            for (int index = 1; index < children.size(); ++index) {
                 ANode argument = children.get(index);
 
                 writer.dup();
-                writer.push(index);
+                writer.push(index - 1);
                 argument.write(writer, globals);
                 writer.arrayStore(MethodWriter.getType(actual.getComponentType()));
             }
         } else {
-            for (ANode argument : children) {
-                argument.write(writer, globals);
+            for (int index = 1; index < children.size(); ++index) {
+                children.get(index).write(writer, globals);
             }
 
-            if (children.size() > 1) {
-                writer.visitMultiANewArrayInsn(MethodWriter.getType(actual).getDescriptor(), children.size());
+            if (children.size() > 2) {
+                writer.visitMultiANewArrayInsn(MethodWriter.getType(actual).getDescriptor(), children.size() - 1);
             } else {
                 writer.newArray(MethodWriter.getType(actual.getComponentType()));
             }
@@ -112,6 +109,6 @@ public final class ENewArray extends AExpression {
 
     @Override
     public String toString() {
-        return singleLineToStringWithOptionalArgs(children, type, initialize ? "init" : "dims");
+        return null;
     }
 }

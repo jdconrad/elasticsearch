@@ -242,8 +242,8 @@ public class ASTBuilder {
         return visitChild(new ENewObj(location));
     }
 
-    public ASTBuilder visitNewArray(Location location, String type, boolean initialize) {
-        return visitChild(new ENewArray(location, type, initialize));
+    public ASTBuilder visitNewArray(Location location, boolean initialize) {
+        return visitChild(new ENewArray(location, initialize));
     }
 
     public ASTBuilder visitMapInit(Location location) {

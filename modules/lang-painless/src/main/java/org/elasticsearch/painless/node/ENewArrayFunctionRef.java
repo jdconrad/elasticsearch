@@ -59,15 +59,22 @@ public final class ENewArrayFunctionRef extends AExpression implements ILambda {
 
     @Override
     void analyze(Locals locals) {
+        Class<?> type = locals.getPainlessLookup().canonicalTypeNameToType(this.type);
+
+        if (type == null) {
+            throw createError(new IllegalArgumentException("cannot resolve symbol [" + this.type + "]"));
+        }
+
         SFunction function = new SFunction(location, locals.getNextSyntheticName(), true);
-        function.children.add(new DTypeClass(location, locals.getPainlessLookup().canonicalTypeNameToType(type)));
+        function.children.add(new DTypeClass(location, type));
         DParameters parameters = new DParameters(location);
         DParameter parameter = new DParameter(location, "size");
         parameter.children.add(new DTypeClass(location, int.class));
         parameters.children.add(parameter);
         function.children.add(parameters);
         EVariable size = new EVariable(location, "size");
-        ENewArray array = new ENewArray(location, type, false);
+        ENewArray array = new ENewArray(location, false);
+        array.children.add(new DTypeClass(location, type));
         array.children.add(size);
         SReturn rtn = new SReturn(location);
         rtn.children.add(array);
