@@ -25,10 +25,10 @@ import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Locals.Variable;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.lookup.PainlessLookupUtility;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.Opcodes;
 
-import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -36,53 +36,45 @@ import java.util.Set;
  */
 public final class SCatch extends AStatement {
 
-    private final String type;
-    public final String name;
-
     private Variable variable = null;
 
     Label begin = null;
     Label end = null;
     Label exception = null;
 
-    public SCatch(Location location, String type, String name) {
+    public SCatch(Location location) {
         super(location);
-
-        this.type = Objects.requireNonNull(type);
-        this.name = Objects.requireNonNull(name);
     }
 
     @Override
     void storeSettings(CompilerSettings settings) {
-        if (children.get(0) != null) {
-            children.get(0).storeSettings(settings);
+        children.get(0).storeSettings(settings);
+
+        if (children.get(1) != null) {
+            children.get(1).storeSettings(settings);
         }
     }
 
     @Override
     void extractVariables(Set<String> variables) {
-        variables.add(name);
-
-        if (children.get(0) != null) {
-            children.get(0).extractVariables(variables);
+        if (children.get(1) != null) {
+            children.get(1).extractVariables(variables);
         }
     }
 
     @Override
     void analyze(Locals locals) {
-        SBlock block = (SBlock)children.get(0);
+        SDeclaration declaration = (SDeclaration)children.get(0);
+        declaration.analyze(locals);
 
-        Class<?> clazz = locals.getPainlessLookup().canonicalTypeNameToType(this.type);
+        variable = locals.getVariable(location, declaration.name);
 
-        if (clazz == null) {
-            throw createError(new IllegalArgumentException("Not a type [" + this.type + "]."));
+        if (!Exception.class.isAssignableFrom(variable.clazz)) {
+            throw createError(new ClassCastException("Not an exception type " +
+                    "[" + PainlessLookupUtility.typeToCanonicalTypeName(variable.clazz) + "]."));
         }
 
-        if (!Exception.class.isAssignableFrom(clazz)) {
-            throw createError(new ClassCastException("Not an exception type [" + this.type + "]."));
-        }
-
-        variable = locals.addVariable(location, clazz, name, true);
+        SBlock block = (SBlock)children.get(1);
 
         if (block != null) {
             block.lastSource = lastSource;
@@ -102,7 +94,7 @@ public final class SCatch extends AStatement {
 
     @Override
     void write(MethodWriter writer, Globals globals) {
-        SBlock block = (SBlock)children.get(0);
+        SBlock block = (SBlock)children.get(1);
 
         writer.writeStatementOffset(location);
 
@@ -126,6 +118,6 @@ public final class SCatch extends AStatement {
 
     @Override
     public String toString() {
-        return singleLineToString(type, name, children.get(0));
+        return null;
     }
 }

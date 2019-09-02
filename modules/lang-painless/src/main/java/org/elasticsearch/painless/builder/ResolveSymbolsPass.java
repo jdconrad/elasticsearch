@@ -111,15 +111,7 @@ public class ResolveSymbolsPass implements SemanticPass {
             table.variableTable.newLocalScope(node.children.get(1));
         });
         baseEnters.put(STry.class, (node, table) -> table.variableTable.newLocalScope(node.children.get(0)));
-        baseEnters.put(SCatch.class, (node, table) -> {
-           SCatch catc = (SCatch)node;
-           ScopeTable.Scope scope = table.variableTable.newLocalScope(node);
-           String name = catc.name;
-            if (scope.getVariable(name) != null) {
-                throw node.createError(new IllegalArgumentException("variable [" + name + "] is already defined in the scope"));
-            }
-           scope.addVariable(name, false);
-        });
+        baseEnters.put(SCatch.class, (node, table) -> table.variableTable.newLocalScope(node));
 
         baseEnters.put(ELambda.class, (node, table) -> {
             ELambda lambda = (ELambda)node;

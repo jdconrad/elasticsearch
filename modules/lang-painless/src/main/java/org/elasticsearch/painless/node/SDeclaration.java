@@ -101,9 +101,9 @@ public final class SDeclaration extends AStatement {
             } else {
                 children.get(1).write(writer, globals);
             }
-        }
 
-        writer.visitVarInsn(MethodWriter.getType(variable.clazz).getOpcode(Opcodes.ISTORE), variable.getSlot());
+            writer.visitVarInsn(MethodWriter.getType(variable.clazz).getOpcode(Opcodes.ISTORE), variable.getSlot());
+        }
     }
 
     @Override

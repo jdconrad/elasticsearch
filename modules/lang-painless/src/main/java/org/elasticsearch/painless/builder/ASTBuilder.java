@@ -194,8 +194,8 @@ public class ASTBuilder {
         return visitChild(new STry(location));
     }
 
-    public ASTBuilder visitCatch(Location location, String type, String name) {
-        return visitChild(new SCatch(location, type, name));
+    public ASTBuilder visitCatch(Location location) {
+        return visitChild(new SCatch(location));
     }
 
     public ASTBuilder visitExpression(Location location) {
