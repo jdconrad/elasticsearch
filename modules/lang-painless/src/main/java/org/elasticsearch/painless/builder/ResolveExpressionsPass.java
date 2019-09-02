@@ -32,17 +32,23 @@ public class ResolveExpressionsPass implements SemanticPass {
         void visit(ANode node, PainlessLookup lookup, SymbolTable table);
     }
 
+    public interface Callback {
+        void visit(ANode node, ANode child, PainlessLookup lookup, SymbolTable table);
+    }
+
     public PainlessLookup lookup;
 
     protected final Map<Class<? extends ANode>, Visitor> enters;
+    protected final Map<Class<? extends ANode>, Callback> callbacks;
     protected final Map<Class<? extends ANode>, Visitor> exits;
 
     public ResolveExpressionsPass(PainlessLookup lookup) {
-        this(lookup, Collections.emptyMap(), Collections.emptyMap());
+        this(lookup, Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap());
     }
 
     public ResolveExpressionsPass(PainlessLookup lookup,
             Map<Class<? extends ANode>, Visitor> enters,
+            Map<Class<? extends ANode>, Callback> callbacks,
             Map<Class<? extends ANode>, Visitor> exits) {
 
         this.lookup = lookup;
@@ -50,6 +56,10 @@ public class ResolveExpressionsPass implements SemanticPass {
         Map<Class<? extends ANode>, Visitor> baseEnters = buildBaseEnters();
         baseEnters.putAll(enters);
         this.enters = Collections.unmodifiableMap(baseEnters);
+
+        Map<Class<? extends ANode>, Callback> baseCallbacks = buildBaseCallbacks();
+        baseCallbacks.putAll(callbacks);
+        this.callbacks = Collections.unmodifiableMap(baseCallbacks);
 
         Map<Class<? extends ANode>, Visitor> baseExits = buildBaseExits();
         baseExits.putAll(exits);
@@ -60,6 +70,12 @@ public class ResolveExpressionsPass implements SemanticPass {
         Map<Class<? extends ANode>, Visitor> baseEnters = new HashMap<>();
 
         return baseEnters;
+    }
+
+    protected Map<Class<? extends ANode>, Callback> buildBaseCallbacks() {
+        Map<Class<? extends ANode>, Callback> baseCallbacks = new HashMap<>();
+
+        return baseCallbacks;
     }
 
     protected Map<Class<? extends ANode>, Visitor> buildBaseExits() {
@@ -76,23 +92,29 @@ public class ResolveExpressionsPass implements SemanticPass {
         return null;
     }
 
-    protected void visit(ANode parent, SymbolTable table) {
-        Visitor enter = enters.get(parent.getClass());
+    protected void visit(ANode node, SymbolTable table) {
+        Visitor enter = enters.get(node.getClass());
 
         if (enter != null) {
-            enter.visit(parent, lookup, table);
+            enter.visit(node, lookup, table);
         }
 
-        for (ANode child : parent.children) {
+        for (ANode child : node.children) {
             if (child != null) {
                 visit(child, table);
+
+                Callback callback = callbacks.get(node.getClass());
+
+                if (callback != null) {
+                    callback.visit(node, child, lookup, table);
+                }
             }
         }
 
-        Visitor exit = exits.get(parent.getClass());
+        Visitor exit = exits.get(node.getClass());
 
         if (exit != null) {
-            exit.visit(parent, lookup, table);
+            exit.visit(node, lookup, table);
         }
     }
 }
