@@ -24,29 +24,26 @@ import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.lookup.$this;
 import org.elasticsearch.painless.lookup.def;
-import org.objectweb.asm.commons.Method;
+import org.objectweb.asm.Type;
 
 import java.util.Set;
 
 import static org.elasticsearch.painless.WriterConstants.CLASS_TYPE;
 
-// TODO: modify this to search for the method on the local class
-public class EThisCallInvoke extends AExpression {
+public class EDirectFieldAccess extends AExpression {
 
-    public final String name;
+    private final Type type;
+    private final String name;
+    private final boolean isStatic;
 
-    // TODO: remove these later
-    private final Class<?> type;
-    private final Method method;
-
-    public EThisCallInvoke(Location location, String name, Class<?> type, Method method) {
+    public EDirectFieldAccess(Location location, Type type, String name, boolean isStatic) {
         super(location);
 
-        this.name = name;
-
         this.type = type;
-        this.method = method;
+        this.name = name;
+        this.isStatic = isStatic;
     }
 
     @Override
@@ -63,37 +60,27 @@ public class EThisCallInvoke extends AExpression {
 
     @Override
     void analyze(Locals locals) {
-        for (int argument = 0; argument < children.size(); ++argument) {
-            AExpression expression = (AExpression)children.get(argument);
+        AExpression prefix = (AExpression)children.get(0);
 
-            Class<?> parameterType =
-                    locals.getPainlessLookup().canonicalTypeNameToType(method.getArgumentTypes()[argument].getInternalName());
+        prefix.analyze(locals);
+        prefix.expected = prefix.actual;
+        children.set(0, prefix.cast(locals));
 
-            if (parameterType == Object.class) {
-                parameterType = def.class;
-            }
-
-            expression.expected = parameterType;
-            expression.internal = true;
-            expression.analyze(locals);
-            children.set(argument, expression.cast(locals));
-        }
-
-        statement = true;
-        actual = type;
+        actual = locals.getPainlessLookup().canonicalTypeNameToType(type.getClassName().replace('$', '.'));
     }
 
     @Override
     void write(MethodWriter writer, Globals globals) {
         writer.writeDebugInfo(location);
 
-        writer.loadThis();
+        AExpression prefix = (AExpression)children.get(0);
+        Type owner = prefix.actual == $this.class ? CLASS_TYPE : Type.getType(prefix.actual);
 
-        for (ANode argument : children) {
-            argument.write(writer, globals);
+        if (isStatic) {
+            writer.getStatic(owner, name, type);
+        } else {
+            writer.getField(owner, name, type);
         }
-
-        writer.invokeVirtual(CLASS_TYPE, method);
     }
 
     @Override

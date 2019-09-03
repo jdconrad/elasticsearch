@@ -552,6 +552,7 @@ public final class Walker extends PainlessParserBaseVisitor<Void> {
         String name = ctx.ID().getText();
 
         builder.visitCatch(location(ctx))
+                .visitTypeString(location(ctx), "java.lang.Exception").endVisit()
                 .visitDeclaration(location(ctx.ID()), name, false)
                         .visitTypeString(location(ctx.TYPE()), type).endVisit().visitEmpty()
                 .endVisit();

@@ -262,7 +262,9 @@ public class ScriptClassInfo {
 
             builder.visitDeclaration(location, name, true)
                     .visitTypeClass(location, type).endVisit()
-                    .visitThisCallInvoke(location, name, type, method).endVisit()
+                    .visitDirectCallInvoke(location, method, false, false)
+                            .visitThis(location).endVisit()
+                    .endVisit()
             .endVisit();
         }
 
@@ -371,8 +373,9 @@ public class ScriptClassInfo {
         builder.endVisit();
 
         builder.visitCatch(location)
-                .visitDeclaration(location, "e", false)
-                        .visitTypeClass(location, Exception.class).endVisit()
+                .visitTypeClass(location, Throwable.class).endVisit()
+                .visitDeclaration(location, "#e", false)
+                        .visitTypeClass(location, PainlessExplainError.class).endVisit()
                         .visitEmpty()
                 .endVisit()
                 .visitBlock(location)

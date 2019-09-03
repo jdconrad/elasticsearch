@@ -163,42 +163,38 @@ public final class SFunction extends AStatement {
 
         children.get(2).write(function, globals);
 
-        if (!methodEscape) {
-            if (((DTypeClass)children.get(0)).type != void.class) {
-                if (auto) {
-                    switch (method.getReturnType().getSort()) {
-                        case org.objectweb.asm.Type.VOID:
-                            break;
-                        case org.objectweb.asm.Type.BOOLEAN:
-                            function.push(false);
-                            break;
-                        case org.objectweb.asm.Type.BYTE:
-                            function.push(0);
-                            break;
-                        case org.objectweb.asm.Type.SHORT:
-                            function.push(0);
-                            break;
-                        case org.objectweb.asm.Type.INT:
-                            function.push(0);
-                            break;
-                        case org.objectweb.asm.Type.LONG:
-                            function.push(0L);
-                            break;
-                        case org.objectweb.asm.Type.FLOAT:
-                            function.push(0f);
-                            break;
-                        case org.objectweb.asm.Type.DOUBLE:
-                            function.push(0d);
-                            break;
-                        default:
-                            function.visitInsn(Opcodes.ACONST_NULL);
-                    }
-                } else {
-                    throw createError(new IllegalStateException("Illegal tree structure."));
-                }
+        boolean isVoid = ((DTypeClass)children.get(0)).type != void.class;
+
+        if (isVoid || methodEscape) {
+            function.returnValue();
+        } else if (auto) {
+            switch (method.getReturnType().getSort()) {
+                case org.objectweb.asm.Type.VOID:
+                    break;
+                case org.objectweb.asm.Type.BOOLEAN:
+                    function.push(false);
+                    break;
+                case org.objectweb.asm.Type.BYTE:
+                case org.objectweb.asm.Type.SHORT:
+                case org.objectweb.asm.Type.INT:
+                    function.push(0);
+                    break;
+                case org.objectweb.asm.Type.LONG:
+                    function.push(0L);
+                    break;
+                case org.objectweb.asm.Type.FLOAT:
+                    function.push(0f);
+                    break;
+                case org.objectweb.asm.Type.DOUBLE:
+                    function.push(0d);
+                    break;
+                default:
+                    function.visitInsn(Opcodes.ACONST_NULL);
             }
 
             function.returnValue();
+        } else {
+            throw createError(new IllegalStateException("illegal tree structure"));
         }
     }
 

@@ -48,10 +48,10 @@ public final class SCatch extends AStatement {
 
     @Override
     void storeSettings(CompilerSettings settings) {
-        children.get(0).storeSettings(settings);
+        children.get(1).storeSettings(settings);
 
-        if (children.get(1) != null) {
-            children.get(1).storeSettings(settings);
+        if (children.get(2) != null) {
+            children.get(2).storeSettings(settings);
         }
     }
 
@@ -64,17 +64,19 @@ public final class SCatch extends AStatement {
 
     @Override
     void analyze(Locals locals) {
-        SDeclaration declaration = (SDeclaration)children.get(0);
+        Class<?> exception = ((DTypeClass)children.get(0)).type;
+        SDeclaration declaration = (SDeclaration)children.get(1);
         declaration.analyze(locals);
 
         variable = locals.getVariable(location, declaration.name);
 
-        if (!Exception.class.isAssignableFrom(variable.clazz)) {
-            throw createError(new ClassCastException("Not an exception type " +
-                    "[" + PainlessLookupUtility.typeToCanonicalTypeName(variable.clazz) + "]."));
+        if (!exception.isAssignableFrom(variable.clazz)) {
+            throw createError(new ClassCastException("base exception type " +
+                    "[" + PainlessLookupUtility.typeToCanonicalTypeName(exception) + "], but found " +
+                    "[" + PainlessLookupUtility.typeToCanonicalTypeName(variable.clazz) + "]"));
         }
 
-        SBlock block = (SBlock)children.get(1);
+        SBlock block = (SBlock)children.get(2);
 
         if (block != null) {
             block.lastSource = lastSource;
@@ -94,7 +96,7 @@ public final class SCatch extends AStatement {
 
     @Override
     void write(MethodWriter writer, Globals globals) {
-        SBlock block = (SBlock)children.get(1);
+        SBlock block = (SBlock)children.get(2);
 
         writer.writeStatementOffset(location);
 

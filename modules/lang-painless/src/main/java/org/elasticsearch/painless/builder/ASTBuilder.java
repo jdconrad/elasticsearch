@@ -35,6 +35,7 @@ import org.elasticsearch.painless.node.ECapturingFunctionRef;
 import org.elasticsearch.painless.node.EComp;
 import org.elasticsearch.painless.node.EConditional;
 import org.elasticsearch.painless.node.EDecimal;
+import org.elasticsearch.painless.node.EDirectFieldAccess;
 import org.elasticsearch.painless.node.EElvis;
 import org.elasticsearch.painless.node.EExplicit;
 import org.elasticsearch.painless.node.EFunctionRef;
@@ -50,7 +51,8 @@ import org.elasticsearch.painless.node.ENumeric;
 import org.elasticsearch.painless.node.ERegex;
 import org.elasticsearch.painless.node.EStatic;
 import org.elasticsearch.painless.node.EString;
-import org.elasticsearch.painless.node.EThisCallInvoke;
+import org.elasticsearch.painless.node.EDirectCallInvoke;
+import org.elasticsearch.painless.node.EThis;
 import org.elasticsearch.painless.node.EUnary;
 import org.elasticsearch.painless.node.EUsed;
 import org.elasticsearch.painless.node.EVariable;
@@ -75,6 +77,7 @@ import org.elasticsearch.painless.node.SSource;
 import org.elasticsearch.painless.node.SThrow;
 import org.elasticsearch.painless.node.STry;
 import org.elasticsearch.painless.node.SWhile;
+import org.objectweb.asm.Type;
 import org.objectweb.asm.commons.Method;
 import org.objectweb.asm.util.Printer;
 
@@ -360,8 +363,16 @@ public class ASTBuilder {
         return visitChild(new DTypeClass(location, type));
     }
 
-    public ASTBuilder visitThisCallInvoke(Location location, String name, Class<?> type, Method method) {
-        return visitChild(new EThisCallInvoke(location, name, type, method));
+    public ASTBuilder visitThis(Location location) {
+        return visitChild(new EThis(location));
+    }
+
+    public ASTBuilder visitDirectCallInvoke(Location location, Method method, boolean isInterface, boolean isStatic) {
+        return visitChild(new EDirectCallInvoke(location, method, isInterface, isStatic));
+    }
+
+    public ASTBuilder visitDirectFieldAccess(Location location, Type type, String name, boolean isStatic) {
+        return visitChild(new EDirectFieldAccess(location, type, name, isStatic));
     }
 
     public ASTBuilder visitUsed(Location location, String name) {
