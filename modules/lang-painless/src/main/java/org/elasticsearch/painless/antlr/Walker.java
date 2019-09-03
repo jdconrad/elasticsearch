@@ -142,9 +142,9 @@ public final class Walker extends PainlessParserBaseVisitor<Void> {
         this.sourceName = Location.computeSourceName(sourceName);
         this.sourceText = sourceText;
         this.painlessLookup = painlessLookup;
-        builder = new ASTBuilder();
+        builder = scriptClassInfo.startBuild(sourceName, sourceText, debugStream, new Location("", 0));
         visit(buildAntlrTree(sourceText));
-        source = (SSource)builder.endBuild();
+        source = (SSource)scriptClassInfo.endBuild(builder).endBuild();
     }
 
     private SourceContext buildAntlrTree(String source) {
@@ -193,17 +193,19 @@ public final class Walker extends PainlessParserBaseVisitor<Void> {
 
     @Override
     public Void visitSource(SourceContext ctx) {
-        builder.visitSource(scriptClassInfo, sourceName, sourceText, debugStream, location(ctx));
+        //builder.visitSource(scriptClassInfo, sourceName, sourceText, debugStream, location(ctx));
 
         for (FunctionContext function : ctx.function()) {
             visit(function);
         }
 
+        builder.load("execute");
+
         for (StatementContext statement : ctx.statement()) {
             visit(statement);
         }
 
-        builder.endVisit();
+        //builder.endVisit();
 
         return null;
     }
@@ -213,7 +215,7 @@ public final class Walker extends PainlessParserBaseVisitor<Void> {
         String rtnType = ctx.decltype().getText();
         String name = ctx.ID().getText();
 
-        builder.visitFunction(location(ctx), name, false)
+        builder.visitFunction(location(ctx), name, false, true, false)
                 .visitTypeString(location(ctx), rtnType).endVisit();
         visit(ctx.parameters());
         visit(ctx.block());

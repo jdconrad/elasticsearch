@@ -19,7 +19,6 @@
 
 package org.elasticsearch.painless.builder;
 
-import org.elasticsearch.painless.ScriptClassInfo;
 import org.elasticsearch.painless.node.ANode;
 import org.elasticsearch.painless.node.DParameter;
 import org.elasticsearch.painless.node.ELambda;
@@ -59,7 +58,7 @@ public class ResolveSymbolsPass implements SemanticPass {
             SSource source = (SSource)node;
             ScopeTable.FunctionScope scope = table.variableTable.newFunctionScope(node);
             scope.addVariable("#this", true);
-            for (ScriptClassInfo.MethodArgument arg : source.scriptClassInfo.getExecuteArguments()) {
+            /*for (ScriptClassInfo.MethodArgument arg : source.scriptClassInfo.getExecuteArguments()) {
                 String name = arg.getName();
                 if (scope.getVariable(name) != null) {
                     throw node.createError(new IllegalArgumentException("variable [" + name + "] is already defined in the scope"));
@@ -74,7 +73,7 @@ public class ResolveSymbolsPass implements SemanticPass {
                     throw node.createError(new IllegalArgumentException("variable [" + name + "] is already defined in the scope"));
                 }
                 scope.addVariable(name, true);
-            }
+            }*/
             source.scope = scope;
         });
 

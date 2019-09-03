@@ -40,6 +40,8 @@ import java.util.Set;
 public final class SFunction extends AStatement {
 
     public final String name;
+    public final boolean auto;
+    public final boolean statik;
     public final boolean synthetic;
 
     private CompilerSettings settings;
@@ -50,10 +52,13 @@ public final class SFunction extends AStatement {
 
     private Variable loop = null;
 
-    public SFunction(Location location, String name, boolean synthetic) {
+    public SFunction(Location location, String name,
+            boolean auto, boolean statik, boolean synthetic) {
         super(location);
 
         this.name = Objects.requireNonNull(name);
+        this.auto = auto;
+        this.statik = statik;
         this.synthetic = synthetic;
     }
 
@@ -123,7 +128,7 @@ public final class SFunction extends AStatement {
         block.analyze(locals);
         methodEscape = block.methodEscape;
 
-        if (!methodEscape && ((DTypeClass)children.get(0)).type != void.class) {
+        if (!auto && !methodEscape && ((DTypeClass)children.get(0)).type != void.class) {
             throw createError(new IllegalArgumentException("Not all paths provide a return value for method [" + name + "]."));
         }
 
@@ -134,7 +139,10 @@ public final class SFunction extends AStatement {
 
     /** Writes the function to given ClassVisitor. */
     void write(ClassVisitor writer, Globals globals) {
-        int access = Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC;
+        int access = Opcodes.ACC_PUBLIC;
+        if (statik) {
+            access |= Opcodes.ACC_STATIC;
+        }
         if (synthetic) {
             access |= Opcodes.ACC_SYNTHETIC;
         }
@@ -156,11 +164,41 @@ public final class SFunction extends AStatement {
         children.get(2).write(function, globals);
 
         if (!methodEscape) {
-            if (((DTypeClass)children.get(0)).type == void.class) {
-                function.returnValue();
-            } else {
-                throw createError(new IllegalStateException("Illegal tree structure."));
+            if (((DTypeClass)children.get(0)).type != void.class) {
+                if (auto) {
+                    switch (method.getReturnType().getSort()) {
+                        case org.objectweb.asm.Type.VOID:
+                            break;
+                        case org.objectweb.asm.Type.BOOLEAN:
+                            function.push(false);
+                            break;
+                        case org.objectweb.asm.Type.BYTE:
+                            function.push(0);
+                            break;
+                        case org.objectweb.asm.Type.SHORT:
+                            function.push(0);
+                            break;
+                        case org.objectweb.asm.Type.INT:
+                            function.push(0);
+                            break;
+                        case org.objectweb.asm.Type.LONG:
+                            function.push(0L);
+                            break;
+                        case org.objectweb.asm.Type.FLOAT:
+                            function.push(0f);
+                            break;
+                        case org.objectweb.asm.Type.DOUBLE:
+                            function.push(0d);
+                            break;
+                        default:
+                            function.visitInsn(Opcodes.ACONST_NULL);
+                    }
+                } else {
+                    throw createError(new IllegalStateException("Illegal tree structure."));
+                }
             }
+
+            function.returnValue();
         }
     }
 

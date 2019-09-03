@@ -70,7 +70,7 @@ public class ScopeTable {
     public static class FunctionScope implements Scope {
 
         protected final Map<String, Variable> variables = new HashMap<>();
-        protected final Set<String> userVariables = new HashSet<>();
+        protected final Set<String> usedVariables = new HashSet<>();
 
         protected Class<?> returnType;
 
@@ -106,14 +106,14 @@ public class ScopeTable {
             Variable variable = variables.get(name);
 
             if (variable != null) {
-                userVariables.add(name);
+                usedVariables.add(name);
             }
 
             return variables.get(name);
         }
 
         public Set<String> getUsedVariables() {
-            return Collections.unmodifiableSet(userVariables);
+            return Collections.unmodifiableSet(usedVariables);
         }
     }
 

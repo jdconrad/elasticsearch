@@ -21,6 +21,8 @@ package org.elasticsearch.painless.builder;
 
 import org.elasticsearch.painless.lookup.PainlessLookup;
 import org.elasticsearch.painless.node.ANode;
+import org.elasticsearch.painless.node.EUsed;
+import org.elasticsearch.painless.node.SSource;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -80,6 +82,19 @@ public class ResolveExpressionsPass implements SemanticPass {
 
     protected Map<Class<? extends ANode>, Visitor> buildBaseExits() {
         Map<Class<? extends ANode>, Visitor> baseExits = new HashMap<>();
+
+        baseExits.put(EUsed.class, (node, lookup, table) -> {
+            EUsed used = (EUsed)node;
+            ANode parent = used.parent;
+
+            // TODO: make this accessible in a different way
+            while (parent instanceof SSource == false) {
+                parent = parent.parent;
+            }
+
+            ScopeTable.FunctionScope scope = ((ScopeTable.FunctionScope)table.variableTable.scopes.get(parent));
+            used.used = scope.getUsedVariables().contains(used.name);
+        });
 
         return baseExits;
     }

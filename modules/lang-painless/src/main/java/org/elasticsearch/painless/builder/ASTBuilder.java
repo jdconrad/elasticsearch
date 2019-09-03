@@ -21,7 +21,6 @@ package org.elasticsearch.painless.builder;
 
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.Operation;
-import org.elasticsearch.painless.ScriptClassInfo;
 import org.elasticsearch.painless.node.ANode;
 import org.elasticsearch.painless.node.DParameter;
 import org.elasticsearch.painless.node.DParameters;
@@ -51,7 +50,9 @@ import org.elasticsearch.painless.node.ENumeric;
 import org.elasticsearch.painless.node.ERegex;
 import org.elasticsearch.painless.node.EStatic;
 import org.elasticsearch.painless.node.EString;
+import org.elasticsearch.painless.node.EThisCallInvoke;
 import org.elasticsearch.painless.node.EUnary;
+import org.elasticsearch.painless.node.EUsed;
 import org.elasticsearch.painless.node.EVariable;
 import org.elasticsearch.painless.node.PBrace;
 import org.elasticsearch.painless.node.PCallInvoke;
@@ -74,15 +75,41 @@ import org.elasticsearch.painless.node.SSource;
 import org.elasticsearch.painless.node.SThrow;
 import org.elasticsearch.painless.node.STry;
 import org.elasticsearch.painless.node.SWhile;
+import org.objectweb.asm.commons.Method;
 import org.objectweb.asm.util.Printer;
+
+import java.util.HashMap;
+import java.util.Map;
 
 public class ASTBuilder {
 
     protected ANode root = null;
     protected ANode current = null;
 
+    protected final Map<String, ANode> saves = new HashMap<>();
+
     public ASTBuilder() {
 
+    }
+
+    public void root() {
+        current = root;
+    }
+
+    public void save(String name) {
+        if (current == null) {
+            throw new IllegalArgumentException("invalid tree structure");
+        }
+
+        saves.put(name, current);
+    }
+
+    public void load(String name) {
+        current = saves.get(name);
+
+        if (current == null) {
+            throw new IllegalArgumentException("invalid tree structure");
+        }
     }
 
     protected ASTBuilder visitChild(ANode child) {
@@ -128,14 +155,13 @@ public class ASTBuilder {
         return this;
     }
 
-    public ASTBuilder visitSource(ScriptClassInfo scriptClassInfo,
-            String scriptName, String sourceText, Printer debugStream, Location location) {
+    public ASTBuilder visitSource(String scriptName, String sourceText, Class<?> baseClass, Printer debugStream, Location location) {
 
-        return visitChild(new SSource(scriptClassInfo, scriptName, sourceText, debugStream, location));
+        return visitChild(new SSource(scriptName, sourceText, baseClass, debugStream, location));
     }
 
-    public ASTBuilder visitFunction(Location location, String name, boolean synthetic) {
-        return visitChild(new SFunction(location, name, synthetic));
+    public ASTBuilder visitFunction(Location location, String name, boolean auto, boolean statik, boolean synthetic) {
+        return visitChild(new SFunction(location, name, auto, statik, synthetic));
     }
 
     public ASTBuilder visitBlock(Location location) {
@@ -332,5 +358,13 @@ public class ASTBuilder {
 
     public ASTBuilder visitTypeClass(Location location, Class<?> type) {
         return visitChild(new DTypeClass(location, type));
+    }
+
+    public ASTBuilder visitThisCallInvoke(Location location, String name, Class<?> type, Method method) {
+        return visitChild(new EThisCallInvoke(location, name, type, method));
+    }
+
+    public ASTBuilder visitUsed(Location location, String name) {
+        return visitChild(new EUsed(location, name));
     }
 }

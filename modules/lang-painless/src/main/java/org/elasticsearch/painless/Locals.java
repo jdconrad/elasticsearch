@@ -19,9 +19,9 @@
 
 package org.elasticsearch.painless;
 
-import org.elasticsearch.painless.ScriptClassInfo.MethodArgument;
 import org.elasticsearch.painless.lookup.PainlessLookup;
 import org.elasticsearch.painless.lookup.PainlessLookupUtility;
+import org.elasticsearch.painless.lookup.def;
 import org.elasticsearch.painless.node.DParameter;
 import org.elasticsearch.painless.node.DParameters;
 import org.elasticsearch.painless.node.DTypeClass;
@@ -126,9 +126,13 @@ public final class Locals {
     }
 
     /** Creates a new function scope inside the current scope */
-    public static Locals newFunctionScope(Locals programScope, Class<?> returnType, DParameters parameters, int maxLoopCounter) {
+    public static Locals newFunctionScope(Locals programScope, Class<?> returnType, DParameters parameters, int maxLoopCounter,
+            boolean statik) {
         Locals locals = new Locals(programScope, programScope.painlessLookup, programScope.baseClass, returnType, KEYWORDS);
         locals.methods = programScope.methods;
+        if (!statik) {
+            locals.defineVariable(null, Object.class, THIS, true);
+        }
         for (int i = 0; i < parameters.children.size(); i++) {
             DParameter parameter = (DParameter)parameters.children.get(i);
             Class<?> type = ((DTypeClass)parameter.children.get(0)).type;
@@ -142,28 +146,18 @@ public final class Locals {
     }
 
     /** Creates a new main method scope */
-    public static Locals newMainMethodScope(ScriptClassInfo scriptClassInfo, Locals programScope, int maxLoopCounter) {
-        Locals locals = new Locals(programScope, programScope.painlessLookup,
-                scriptClassInfo.getBaseClass(), scriptClassInfo.getExecuteMethodReturnType(), KEYWORDS);
+    public static Locals newMainMethodScope(Class<?> baseClass, Locals programScope, int maxLoopCounter) {
+        Locals locals = new Locals(programScope, programScope.painlessLookup, baseClass, def.class, KEYWORDS);
         locals.methods = programScope.methods;
         // This reference. Internal use only.
         locals.defineVariable(null, Object.class, THIS, true);
 
-        // Method arguments
-        for (MethodArgument arg : scriptClassInfo.getExecuteArguments()) {
-            locals.defineVariable(null, arg.getClazz(), arg.getName(), true);
-        }
-
-        // Loop counter to catch infinite loops.  Internal use only.
-        if (maxLoopCounter > 0) {
-            locals.defineVariable(null, int.class, LOOP, true);
-        }
         return locals;
     }
 
     /** Creates a new program scope: the list of methods. It is the parent for all methods */
-    public static Locals newProgramScope(ScriptClassInfo scriptClassInfo, PainlessLookup painlessLookup, Collection<LocalMethod> methods) {
-        Locals locals = new Locals(null, painlessLookup, scriptClassInfo.getBaseClass(), null, null);
+    public static Locals newProgramScope(Class<?> baseClass, PainlessLookup painlessLookup, Collection<LocalMethod> methods) {
+        Locals locals = new Locals(null, painlessLookup, baseClass, null, null);
         locals.methods = new HashMap<>();
         for (LocalMethod method : methods) {
             locals.addMethod(method);

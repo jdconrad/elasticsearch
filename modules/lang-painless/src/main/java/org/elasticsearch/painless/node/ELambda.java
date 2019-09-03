@@ -176,7 +176,7 @@ public final class ELambda extends AExpression implements ILambda {
 
         String name = locals.getNextSyntheticName();
         ASTBuilder builder = new ASTBuilder();
-        builder.visitFunction(location, name, true)
+        builder.visitFunction(location, name, false, true, true)
                 .visitTypeClass(location, returnType).endVisit()
                 .visitParameters(location);
 

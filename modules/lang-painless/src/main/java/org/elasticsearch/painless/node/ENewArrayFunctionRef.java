@@ -65,7 +65,7 @@ public final class ENewArrayFunctionRef extends AExpression implements ILambda {
             throw createError(new IllegalArgumentException("cannot resolve symbol [" + this.type + "]"));
         }
 
-        SFunction function = new SFunction(location, locals.getNextSyntheticName(), true);
+        SFunction function = new SFunction(location, locals.getNextSyntheticName(), false, true, true);
         function.children.add(new DTypeClass(location, type));
         DParameters parameters = new DParameters(location);
         DParameter parameter = new DParameter(location, "size");

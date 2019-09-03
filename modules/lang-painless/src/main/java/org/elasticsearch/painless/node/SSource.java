@@ -23,17 +23,14 @@ import org.elasticsearch.painless.CompilerSettings;
 import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Locals.LocalMethod;
-import org.elasticsearch.painless.Locals.Variable;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
-import org.elasticsearch.painless.ScriptClassInfo;
 import org.elasticsearch.painless.SimpleChecksAdapter;
 import org.elasticsearch.painless.WriterConstants;
 import org.elasticsearch.painless.builder.ScopeTable;
 import org.elasticsearch.painless.lookup.PainlessLookup;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
-import org.objectweb.asm.Label;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.util.Printer;
@@ -52,25 +49,15 @@ import java.util.Set;
 import static java.util.Collections.emptyList;
 import static org.elasticsearch.painless.WriterConstants.BASE_INTERFACE_TYPE;
 import static org.elasticsearch.painless.WriterConstants.BITSET_TYPE;
-import static org.elasticsearch.painless.WriterConstants.BOOTSTRAP_METHOD_ERROR_TYPE;
 import static org.elasticsearch.painless.WriterConstants.CLASS_TYPE;
-import static org.elasticsearch.painless.WriterConstants.COLLECTIONS_TYPE;
-import static org.elasticsearch.painless.WriterConstants.CONVERT_TO_SCRIPT_EXCEPTION_METHOD;
 import static org.elasticsearch.painless.WriterConstants.DEFINITION_TYPE;
 import static org.elasticsearch.painless.WriterConstants.DEF_BOOTSTRAP_DELEGATE_METHOD;
 import static org.elasticsearch.painless.WriterConstants.DEF_BOOTSTRAP_DELEGATE_TYPE;
 import static org.elasticsearch.painless.WriterConstants.DEF_BOOTSTRAP_METHOD;
-import static org.elasticsearch.painless.WriterConstants.EMPTY_MAP_METHOD;
-import static org.elasticsearch.painless.WriterConstants.EXCEPTION_TYPE;
 import static org.elasticsearch.painless.WriterConstants.GET_NAME_METHOD;
 import static org.elasticsearch.painless.WriterConstants.GET_SOURCE_METHOD;
 import static org.elasticsearch.painless.WriterConstants.GET_STATEMENTS_METHOD;
 import static org.elasticsearch.painless.WriterConstants.MAP_TYPE;
-import static org.elasticsearch.painless.WriterConstants.OUT_OF_MEMORY_ERROR_TYPE;
-import static org.elasticsearch.painless.WriterConstants.PAINLESS_ERROR_TYPE;
-import static org.elasticsearch.painless.WriterConstants.PAINLESS_EXPLAIN_ERROR_GET_HEADERS_METHOD;
-import static org.elasticsearch.painless.WriterConstants.PAINLESS_EXPLAIN_ERROR_TYPE;
-import static org.elasticsearch.painless.WriterConstants.STACK_OVERFLOW_ERROR_TYPE;
 import static org.elasticsearch.painless.WriterConstants.STRING_TYPE;
 
 /**
@@ -78,9 +65,9 @@ import static org.elasticsearch.painless.WriterConstants.STRING_TYPE;
  */
 public final class SSource extends AStatement {
 
-    public final ScriptClassInfo scriptClassInfo;
     private final String name;
     private final String sourceText;
+    private final Class<?> baseClass;
     private final Printer debugStream;
 
     public ScopeTable.FunctionScope scope;
@@ -92,11 +79,13 @@ public final class SSource extends AStatement {
     private final List<org.objectweb.asm.commons.Method> getMethods;
     private byte[] bytes;
 
-    public SSource(ScriptClassInfo scriptClassInfo, String name, String sourceText, Printer debugStream, Location location) {
+    public SSource(String name, String sourceText, Class<?> baseClass, Printer debugStream, Location location) {
+
         super(location);
-        this.scriptClassInfo = Objects.requireNonNull(scriptClassInfo);
+        //this.scriptClassInfo = Objects.requireNonNull(scriptClassInfo);
         this.name = Objects.requireNonNull(name);
         this.sourceText = Objects.requireNonNull(sourceText);
+        this.baseClass = Objects.requireNonNull(baseClass);
         this.debugStream = debugStream;
 
         this.functionCount = 0;
@@ -134,17 +123,19 @@ public final class SSource extends AStatement {
             if (child instanceof SFunction) {
                 SFunction function = (SFunction)child;
                 function.generateSignature();
-                String key = Locals.buildLocalMethodKey(function.name, function.children.get(1).children.size());
+                if (function.synthetic == false) {
+                    String key = Locals.buildLocalMethodKey(function.name, function.children.get(1).children.size());
 
-                Class<?> returnType = ((DTypeClass)function.children.get(0)).type;
-                List<Class<?>> typeParameters = new ArrayList<>();
+                    Class<?> returnType = ((DTypeClass)function.children.get(0)).type;
+                    List<Class<?>> typeParameters = new ArrayList<>();
 
-                for (int i = 0; i < function.children.get(1).children.size(); i++) {
-                    DParameter parameter = (DParameter)function.children.get(1).children.get(i);
-                    typeParameters.add(((DTypeClass)parameter.children.get(0)).type);
+                    for (int i = 0; i < function.children.get(1).children.size(); i++) {
+                        DParameter parameter = (DParameter) function.children.get(1).children.get(i);
+                        typeParameters.add(((DTypeClass) parameter.children.get(0)).type);
+                    }
+
+                    methods.put(key, new LocalMethod(function.name, returnType, typeParameters, function.methodType));
                 }
-
-                methods.put(key, new LocalMethod(function.name, returnType, typeParameters, function.methodType));
 
                 ++functionCount;
             } else {
@@ -152,7 +143,7 @@ public final class SSource extends AStatement {
             }
         }
 
-        Locals locals = Locals.newProgramScope(scriptClassInfo, painlessLookup, methods.values());
+        Locals locals = Locals.newProgramScope(baseClass, painlessLookup, methods.values());
         analyze(locals);
     }
 
@@ -160,23 +151,24 @@ public final class SSource extends AStatement {
     void analyze(Locals program) {
         for (ANode child : children) {
             if (child instanceof SFunction) {
-                SFunction function = (SFunction) child;
+                SFunction function = (SFunction)child;
                 Class<?> returnType = ((DTypeClass)function.children.get(0)).type;
                 Locals functionLocals =
-                        Locals.newFunctionScope(program, returnType, (DParameters)function.children.get(1), settings.getMaxLoopCounter());
+                        Locals.newFunctionScope(program, returnType, (DParameters)function.children.get(1), settings.getMaxLoopCounter(),
+                                function.statik);
                 function.analyze(functionLocals);
             } else {
                 break;
             }
         }
 
-        if (children.size() - functionCount == 0) {
-            throw createError(new IllegalArgumentException("Cannot generate an empty script."));
-        }
+        //if (children.size() - functionCount == 0) {
+        //    throw createError(new IllegalArgumentException("Cannot generate an empty script."));
+        //}
 
-        mainMethod = Locals.newMainMethodScope(scriptClassInfo, program, settings.getMaxLoopCounter());
+        mainMethod = Locals.newMainMethodScope(baseClass, program, settings.getMaxLoopCounter());
 
-        for (int get = 0; get < scriptClassInfo.getGetMethods().size(); ++get) {
+        /*for (int get = 0; get < scriptClassInfo.getGetMethods().size(); ++get) {
             org.objectweb.asm.commons.Method method = scriptClassInfo.getGetMethods().get(get);
             String name = method.getName().substring(3);
             name = Character.toLowerCase(name.charAt(0)) + name.substring(1);
@@ -186,7 +178,7 @@ public final class SSource extends AStatement {
                 mainMethod.addVariable(new Location("getter [" + name + "]", 0), rtn, name, true);
                 getMethods.add(method);
             //}
-        }
+        }*/
 
         AStatement last = (AStatement)children.get(children.size() - 1);
 
@@ -229,7 +221,7 @@ public final class SSource extends AStatement {
             visitor = new TraceClassVisitor(visitor, debugStream, null);
         }
         visitor.visit(WriterConstants.CLASS_VERSION, classAccess, className, null,
-            Type.getType(scriptClassInfo.getBaseClass()).getInternalName(), classInterfaces);
+            Type.getType(baseClass).getInternalName(), classInterfaces);
         visitor.visitSource(Location.computeSourceName(name), null);
 
         BitSet statements = new BitSet(sourceText.length());
@@ -260,11 +252,11 @@ public final class SSource extends AStatement {
 
         org.objectweb.asm.commons.Method init;
 
-        if (scriptClassInfo.getBaseClass().getConstructors().length == 0) {
+        if (baseClass.getConstructors().length == 0) {
             init = new org.objectweb.asm.commons.Method("<init>", MethodType.methodType(void.class).toMethodDescriptorString());
         } else {
             init = new org.objectweb.asm.commons.Method("<init>", MethodType.methodType(void.class,
-                scriptClassInfo.getBaseClass().getConstructors()[0].getParameterTypes()).toMethodDescriptorString());
+                baseClass.getConstructors()[0].getParameterTypes()).toMethodDescriptorString());
         }
 
         // Write the constructor:
@@ -272,7 +264,7 @@ public final class SSource extends AStatement {
         constructor.visitCode();
         constructor.loadThis();
         constructor.loadArgs();
-        constructor.invokeConstructor(Type.getType(scriptClassInfo.getBaseClass()), init);
+        constructor.invokeConstructor(Type.getType(baseClass), init);
         constructor.returnValue();
         constructor.endMethod();
 
@@ -299,11 +291,11 @@ public final class SSource extends AStatement {
         statementsMethod.endMethod();
 
         // Write the method defined in the interface:
-        MethodWriter executeMethod = new MethodWriter(Opcodes.ACC_PUBLIC, scriptClassInfo.getExecuteMethod(), visitor,
+        /*MethodWriter executeMethod = new MethodWriter(Opcodes.ACC_PUBLIC, scriptClassInfo.getExecuteMethod(), visitor,
                 globals.getStatements(), settings);
         executeMethod.visitCode();
         write(executeMethod, globals);
-        executeMethod.endMethod();
+        executeMethod.endMethod();*/
 
         // Write all functions:
         for (ANode child : children) {
@@ -315,7 +307,7 @@ public final class SSource extends AStatement {
         }
 
         // Write any needsVarName methods for used variables
-        for (org.objectweb.asm.commons.Method needsMethod : scriptClassInfo.getNeedsMethods()) {
+        /*for (org.objectweb.asm.commons.Method needsMethod : scriptClassInfo.getNeedsMethods()) {
             String name = needsMethod.getName();
             name = name.substring(5);
             name = Character.toLowerCase(name.charAt(0)) + name.substring(1);
@@ -324,7 +316,7 @@ public final class SSource extends AStatement {
             ifaceMethod.push(scope.getUsedVariables().contains(name));
             ifaceMethod.returnValue();
             ifaceMethod.endMethod();
-        }
+        }*/
 
         clinit.returnValue();
         clinit.endMethod();
@@ -342,7 +334,7 @@ public final class SSource extends AStatement {
     @Override
     void write(MethodWriter writer, Globals globals) {
         // We wrap the whole method in a few try/catches to handle and/or convert other exceptions to ScriptException
-        Label startTry = new Label();
+        /*Label startTry = new Label();
         Label endTry = new Label();
         Label startExplainCatch = new Label();
         Label startOtherCatch = new Label();
@@ -365,7 +357,7 @@ public final class SSource extends AStatement {
             Variable variable = mainMethod.getVariable(null, name);
 
             writer.loadThis();
-            writer.invokeVirtual(Type.getType(scriptClassInfo.getBaseClass()), method);
+            writer.invokeVirtual(Type.getType(baseClass), method);
             writer.visitVarInsn(method.getReturnType().getOpcode(Opcodes.ISTORE), variable.getSlot());
         }
 
@@ -435,7 +427,7 @@ public final class SSource extends AStatement {
         writer.invokeStatic(COLLECTIONS_TYPE, EMPTY_MAP_METHOD);
         writer.invokeInterface(BASE_INTERFACE_TYPE, CONVERT_TO_SCRIPT_EXCEPTION_METHOD);
         writer.throwException();
-        writer.mark(endCatch);
+        writer.mark(endCatch);*/
     }
 
     public byte[] getBytes() {
