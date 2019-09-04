@@ -32,7 +32,6 @@ import org.elasticsearch.painless.lookup.def;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 
 import static org.elasticsearch.painless.lookup.PainlessLookupUtility.typeToCanonicalTypeName;
 
@@ -56,11 +55,6 @@ public final class PField extends AStoreable {
     @Override
     void storeSettings(CompilerSettings settings) {
         children.get(0).storeSettings(settings);
-    }
-
-    @Override
-    void extractVariables(Set<String> variables) {
-        children.get(0).extractVariables(variables);
     }
 
     @Override

@@ -27,7 +27,6 @@ import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.WriterConstants;
 import org.objectweb.asm.Opcodes;
 
-import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
@@ -61,11 +60,6 @@ public final class ERegex extends AExpression {
     @Override
     void storeSettings(CompilerSettings settings) {
         this.settings = settings;
-    }
-
-    @Override
-    void extractVariables(Set<String> variables) {
-        // Do nothing.
     }
 
     @Override

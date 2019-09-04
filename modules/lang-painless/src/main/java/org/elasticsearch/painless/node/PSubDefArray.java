@@ -30,7 +30,6 @@ import org.objectweb.asm.Type;
 
 import java.time.ZonedDateTime;
 import java.util.Objects;
-import java.util.Set;
 
 /**
  * Represents an array load/store or shortcut on a def type.  (Internal only.)
@@ -45,11 +44,6 @@ final class PSubDefArray extends AStoreable {
     @Override
     void storeSettings(CompilerSettings settings) {
         throw createError(new IllegalStateException("illegal tree structure"));
-    }
-
-    @Override
-    void extractVariables(Set<String> variables) {
-        throw createError(new IllegalStateException("Illegal tree structure."));
     }
 
     @Override

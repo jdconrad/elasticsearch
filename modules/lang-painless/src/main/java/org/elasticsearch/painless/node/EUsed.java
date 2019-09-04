@@ -25,8 +25,6 @@ import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 
-import java.util.Set;
-
 public class EUsed extends AExpression {
 
     public final String key;
@@ -43,11 +41,6 @@ public class EUsed extends AExpression {
 
     @Override
     void storeSettings(CompilerSettings settings) {
-
-    }
-
-    @Override
-    void extractVariables(Set<String> variables) {
 
     }
 

@@ -33,7 +33,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 
 /**
  * Represents a method call made on a def type. (Internal only.)
@@ -55,11 +54,6 @@ final class PSubDefCall extends AExpression {
     @Override
     void storeSettings(CompilerSettings settings) {
         throw createError(new IllegalStateException("illegal tree structure"));
-    }
-
-    @Override
-    void extractVariables(Set<String> variables) {
-        throw createError(new IllegalStateException("Illegal tree structure."));
     }
 
     @Override

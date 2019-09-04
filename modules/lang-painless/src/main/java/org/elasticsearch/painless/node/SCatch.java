@@ -29,8 +29,6 @@ import org.elasticsearch.painless.lookup.PainlessLookupUtility;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.Opcodes;
 
-import java.util.Set;
-
 /**
  * Represents a catch block as part of a try-catch block.
  */
@@ -52,13 +50,6 @@ public final class SCatch extends AStatement {
 
         if (children.get(2) != null) {
             children.get(2).storeSettings(settings);
-        }
-    }
-
-    @Override
-    void extractVariables(Set<String> variables) {
-        if (children.get(1) != null) {
-            children.get(1).extractVariables(variables);
         }
     }
 

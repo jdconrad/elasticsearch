@@ -29,7 +29,6 @@ import org.objectweb.asm.Label;
 import org.objectweb.asm.Opcodes;
 
 import java.util.Objects;
-import java.util.Set;
 
 /**
  * Represents a boolean expression.
@@ -48,12 +47,6 @@ public final class EBool extends AExpression {
     void storeSettings(CompilerSettings settings) {
         children.get(0).storeSettings(settings);
         children.get(1).storeSettings(settings);
-    }
-
-    @Override
-    void extractVariables(Set<String> variables) {
-        children.get(0).extractVariables(variables);
-        children.get(1).extractVariables(variables);
     }
 
     @Override

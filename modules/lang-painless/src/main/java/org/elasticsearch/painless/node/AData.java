@@ -25,8 +25,6 @@ import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 
-import java.util.Set;
-
 public class AData extends ANode {
 
     public AData(Location location) {
@@ -35,11 +33,6 @@ public class AData extends ANode {
 
     @Override
     void storeSettings(CompilerSettings settings) {
-        throw new IllegalStateException("illegal tree structure");
-    }
-
-    @Override
-    void extractVariables(Set<String> variables) {
         throw new IllegalStateException("illegal tree structure");
     }
 

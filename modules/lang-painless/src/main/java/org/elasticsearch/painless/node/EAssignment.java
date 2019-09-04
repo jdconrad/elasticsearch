@@ -33,7 +33,6 @@ import org.elasticsearch.painless.lookup.def;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 /**
  * Represents an assignment with the lhs and rhs as child nodes.
@@ -64,15 +63,6 @@ public final class EAssignment extends AExpression {
 
         if (children.get(1) != null) {
             children.get(1).storeSettings(settings);
-        }
-    }
-
-    @Override
-    void extractVariables(Set<String> variables) {
-        children.get(0).extractVariables(variables);
-
-        if (children.get(1) != null) {
-            children.get(1).extractVariables(variables);
         }
     }
 

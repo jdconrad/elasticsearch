@@ -31,7 +31,6 @@ import org.objectweb.asm.Type;
 import org.objectweb.asm.commons.Method;
 
 import java.util.ArrayList;
-import java.util.Set;
 
 import static org.elasticsearch.painless.lookup.PainlessLookupUtility.typeToCanonicalTypeName;
 
@@ -50,13 +49,6 @@ public final class EListInit extends AExpression {
     void storeSettings(CompilerSettings settings) {
         for (ANode value : children) {
             value.storeSettings(settings);
-        }
-    }
-
-    @Override
-    void extractVariables(Set<String> variables) {
-        for (ANode value : children) {
-            value.extractVariables(variables);
         }
     }
 

@@ -33,7 +33,6 @@ import org.objectweb.asm.Label;
 import org.objectweb.asm.Type;
 
 import java.util.Objects;
-import java.util.Set;
 
 import static org.elasticsearch.painless.WriterConstants.EQUALS;
 import static org.elasticsearch.painless.WriterConstants.OBJECTS_TYPE;
@@ -57,12 +56,6 @@ public final class EComp extends AExpression {
     void storeSettings(CompilerSettings settings) {
         children.get(0).storeSettings(settings);
         children.get(1).storeSettings(settings);
-    }
-
-    @Override
-    void extractVariables(Set<String> variables) {
-        children.get(0).extractVariables(variables);
-        children.get(1).extractVariables(variables);
     }
 
     @Override

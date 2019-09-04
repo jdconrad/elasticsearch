@@ -29,7 +29,6 @@ import org.elasticsearch.painless.lookup.def;
 
 import java.time.ZonedDateTime;
 import java.util.Objects;
-import java.util.Set;
 
 /**
  * Represents a field load/store or shortcut on a def type.  (Internal only.)
@@ -47,11 +46,6 @@ final class PSubDefField extends AStoreable {
     @Override
     void storeSettings(CompilerSettings settings) {
         throw createError(new IllegalStateException("illegal tree structure"));
-    }
-
-    @Override
-    void extractVariables(Set<String> variables) {
-        throw createError(new IllegalStateException("Illegal tree structure."));
     }
 
     @Override

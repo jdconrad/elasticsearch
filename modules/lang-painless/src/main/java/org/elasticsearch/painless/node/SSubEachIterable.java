@@ -35,7 +35,6 @@ import org.objectweb.asm.Opcodes;
 
 import java.util.Iterator;
 import java.util.Objects;
-import java.util.Set;
 
 import static org.elasticsearch.painless.WriterConstants.ITERATOR_HASNEXT;
 import static org.elasticsearch.painless.WriterConstants.ITERATOR_NEXT;
@@ -64,11 +63,6 @@ final class SSubEachIterable extends AStatement {
     @Override
     void storeSettings(CompilerSettings settings) {
         throw createError(new IllegalStateException("illegal tree structure"));
-    }
-
-    @Override
-    void extractVariables(Set<String> variables) {
-        throw createError(new IllegalStateException("Illegal tree structure."));
     }
 
     @Override

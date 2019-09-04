@@ -26,7 +26,6 @@ import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 
 import java.util.Objects;
-import java.util.Set;
 
 /**
  * Represents a string constant.
@@ -42,11 +41,6 @@ public final class EString extends AExpression {
     @Override
     void storeSettings(CompilerSettings settings) {
         // do nothing
-    }
-
-    @Override
-    void extractVariables(Set<String> variables) {
-        // Do nothing.
     }
 
     @Override

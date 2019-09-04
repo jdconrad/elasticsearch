@@ -28,7 +28,6 @@ import org.elasticsearch.painless.MethodWriter;
 import org.objectweb.asm.Opcodes;
 
 import java.util.Objects;
-import java.util.Set;
 
 /**
  * Represents a single variable declaration.
@@ -51,15 +50,6 @@ public final class SDeclaration extends AStatement {
     void storeSettings(CompilerSettings settings) {
         if (children.size() > 1 && children.get(1) != null) {
             children.get(1).storeSettings(settings);
-        }
-    }
-
-    @Override
-    void extractVariables(Set<String> variables) {
-        variables.add(name);
-
-        if (children.get(1) != null) {
-            children.get(1).extractVariables(variables);
         }
     }
 

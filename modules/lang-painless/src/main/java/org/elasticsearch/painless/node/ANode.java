@@ -32,7 +32,6 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 
 import static java.lang.Math.max;
 import static java.util.Collections.emptyList;
@@ -70,14 +69,6 @@ public abstract class ANode {
      * Store settings required for future compiler passes.
      */
     abstract void storeSettings(CompilerSettings settings);
-
-    /**
-     * Adds all variable names referenced to the variable set.
-     * <p>
-     * This can be called at any time, e.g. to support lambda capture.
-     * @param variables set of variables referenced (any scope)
-     */
-    abstract void extractVariables(Set<String> variables);
 
     /**
      * Checks for errors and collects data for the writing phase.

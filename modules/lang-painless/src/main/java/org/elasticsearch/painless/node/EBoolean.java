@@ -25,8 +25,6 @@ import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 
-import java.util.Set;
-
 /**
  * Represents a boolean constant.
  */
@@ -40,11 +38,6 @@ public final class EBoolean extends AExpression {
 
     @Override
     void storeSettings(CompilerSettings settings) {
-        // Do nothing.
-    }
-
-    @Override
-    void extractVariables(Set<String> variables) {
         // Do nothing.
     }
 

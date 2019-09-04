@@ -25,8 +25,6 @@ import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 
-import java.util.Set;
-
 /**
  * Represents an explicit cast.
  */
@@ -39,11 +37,6 @@ public final class EExplicit extends AExpression {
     @Override
     void storeSettings(CompilerSettings settings) {
         children.get(1).storeSettings(settings);
-    }
-
-    @Override
-    void extractVariables(Set<String> variables) {
-        children.get(1).extractVariables(variables);
     }
 
     @Override

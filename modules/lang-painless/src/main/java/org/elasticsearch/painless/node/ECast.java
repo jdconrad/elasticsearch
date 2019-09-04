@@ -28,7 +28,6 @@ import org.elasticsearch.painless.lookup.PainlessCast;
 import org.elasticsearch.painless.lookup.PainlessLookupUtility;
 
 import java.util.Objects;
-import java.util.Set;
 
 /**
  * Represents a cast that is inserted into the tree replacing other casts.  (Internal only.)
@@ -47,11 +46,6 @@ final class ECast extends AExpression {
     @Override
     void storeSettings(CompilerSettings settings) {
         throw createError(new IllegalStateException("illegal tree structure"));
-    }
-
-    @Override
-    void extractVariables(Set<String> variables) {
-        throw createError(new IllegalStateException("Illegal tree structure."));
     }
 
     @Override

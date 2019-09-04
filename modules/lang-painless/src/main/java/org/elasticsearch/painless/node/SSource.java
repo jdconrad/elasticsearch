@@ -102,20 +102,6 @@ public final class SSource extends AStatement {
         this.settings = settings;
     }
 
-    @Override
-    public void extractVariables(Set<String> variables) {
-        /*for (ANode child : children) {
-            if (child instanceof SFunction) {
-                child.extractVariables(null);
-            } else {
-                child.extractVariables(variables);
-            }
-        }
-
-        extractedVariables.addAll(scope.used());*/
-        //variables.addAll(scope.getUsedVariables());
-    }
-
     public void analyze(PainlessLookup painlessLookup) {
         Map<String, LocalMethod> methods = new HashMap<>();
 

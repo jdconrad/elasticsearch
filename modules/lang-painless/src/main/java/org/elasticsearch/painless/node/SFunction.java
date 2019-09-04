@@ -31,9 +31,7 @@ import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.Opcodes;
 
 import java.lang.invoke.MethodType;
-import java.util.HashSet;
 import java.util.Objects;
-import java.util.Set;
 
 /**
  * Represents a user-defined function.
@@ -76,16 +74,6 @@ public final class SFunction extends AStatement {
             children.get(3).storeSettings(settings);
         }
         this.settings = settings;
-    }
-
-    @Override
-    void extractVariables(Set<String> variables) {
-        for (ANode statement : children) {
-            // we reset the list for function scope
-            // note this is not stored for this node
-            // but still required for lambdas
-            statement.extractVariables(new HashSet<>());
-        }
     }
 
     public void generateSignature() {

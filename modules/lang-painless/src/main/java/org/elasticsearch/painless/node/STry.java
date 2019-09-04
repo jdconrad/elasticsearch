@@ -26,8 +26,6 @@ import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 import org.objectweb.asm.Label;
 
-import java.util.Set;
-
 import static java.util.Collections.singleton;
 
 /**
@@ -43,13 +41,6 @@ public final class STry extends AStatement {
     void storeSettings(CompilerSettings settings) {
         for (ANode child : children) {
             child.storeSettings(settings);
-        }
-    }
-
-    @Override
-    void extractVariables(Set<String> variables) {
-        for (ANode child : children) {
-            child.extractVariables(variables);
         }
     }
 

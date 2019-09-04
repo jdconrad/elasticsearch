@@ -27,8 +27,6 @@ import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.lookup.PainlessLookupUtility;
 import org.objectweb.asm.Opcodes;
 
-import java.util.Set;
-
 /**
  * Represents a null constant.
  */
@@ -41,11 +39,6 @@ public final class ENull extends AExpression {
     @Override
     void storeSettings(CompilerSettings settings) {
         // do nothing
-    }
-
-    @Override
-    void extractVariables(Set<String> variables) {
-        // Do nothing.
     }
 
     @Override

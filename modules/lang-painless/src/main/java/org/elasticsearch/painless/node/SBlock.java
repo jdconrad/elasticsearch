@@ -25,8 +25,6 @@ import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 
-import java.util.Set;
-
 import static java.util.Collections.emptyList;
 
 /**
@@ -42,13 +40,6 @@ public final class SBlock extends AStatement {
     void storeSettings(CompilerSettings settings) {
         for (ANode statement : children) {
             statement.storeSettings(settings);
-        }
-    }
-
-    @Override
-    void extractVariables(Set<String> variables) {
-        for (ANode statement : children) {
-            statement.extractVariables(variables);
         }
     }
 

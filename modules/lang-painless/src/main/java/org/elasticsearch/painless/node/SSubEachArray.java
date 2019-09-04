@@ -31,7 +31,6 @@ import org.objectweb.asm.Label;
 import org.objectweb.asm.Opcodes;
 
 import java.util.Objects;
-import java.util.Set;
 
 /**
  * Represents a for-each loop for arrays.
@@ -55,11 +54,6 @@ final class SSubEachArray extends AStatement {
     @Override
     void storeSettings(CompilerSettings settings) {
         throw createError(new IllegalStateException("illegal tree structure"));
-    }
-
-    @Override
-    void extractVariables(Set<String> variables) {
-        throw createError(new IllegalStateException("Illegal tree structure."));
     }
 
     @Override

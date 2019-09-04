@@ -26,8 +26,6 @@ import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 import org.objectweb.asm.Label;
 
-import java.util.Set;
-
 /**
  * Implements a field who's value is null if the prefix is null rather than throwing an NPE.
  */
@@ -41,11 +39,6 @@ public class PSubNullSafeField extends AStoreable {
 
     @Override
     void storeSettings(CompilerSettings settings) {
-        throw createError(new IllegalStateException("illegal tree structure"));
-    }
-
-    @Override
-    void extractVariables(Set<String> variables) {
         throw createError(new IllegalStateException("illegal tree structure"));
     }
 

@@ -27,8 +27,6 @@ import org.elasticsearch.painless.MethodWriter;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.Opcodes;
 
-import java.util.Set;
-
 import static java.util.Collections.emptyList;
 
 /**
@@ -58,25 +56,6 @@ public final class SFor extends AStatement {
 
         if (children.get(3) != null) {
             children.get(3).storeSettings(settings);
-        }
-    }
-
-    @Override
-    void extractVariables(Set<String> variables) {
-        if (children.get(0) != null) {
-            children.get(0).extractVariables(variables);
-        }
-
-        if (children.get(1) != null) {
-            children.get(1).extractVariables(variables);
-        }
-
-        if (children.get(2) != null) {
-            children.get(2).extractVariables(variables);
-        }
-
-        if (children.get(3) != null) {
-            children.get(3).extractVariables(variables);
         }
     }
 

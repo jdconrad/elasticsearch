@@ -28,8 +28,6 @@ import org.elasticsearch.painless.lookup.$this;
 import org.elasticsearch.painless.lookup.def;
 import org.objectweb.asm.Type;
 
-import java.util.Set;
-
 import static org.elasticsearch.painless.WriterConstants.CLASS_TYPE;
 
 public class EDirectFieldAccess extends AExpression {
@@ -51,11 +49,6 @@ public class EDirectFieldAccess extends AExpression {
         for (ANode child : children) {
             child.storeSettings(settings);
         }
-    }
-
-    @Override
-    void extractVariables(Set<String> variables) {
-
     }
 
     @Override

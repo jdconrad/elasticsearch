@@ -26,8 +26,6 @@ import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.lookup.PainlessLookupUtility;
 
-import java.util.Set;
-
 /**
  * Represents a return statement.
  */
@@ -41,13 +39,6 @@ public final class SReturn extends AStatement {
     void storeSettings(CompilerSettings settings) {
         if (children.get(0) != null) {
             children.get(0).storeSettings(settings);
-        }
-    }
-
-    @Override
-    void extractVariables(Set<String> variables) {
-        if (children.get(0) != null) {
-            children.get(0).extractVariables(variables);
         }
     }
 

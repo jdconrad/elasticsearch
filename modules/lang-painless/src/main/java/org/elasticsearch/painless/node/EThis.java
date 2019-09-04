@@ -26,8 +26,6 @@ import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.lookup.$this;
 
-import java.util.Set;
-
 public class EThis extends AExpression {
 
     public EThis(Location location) {
@@ -36,11 +34,6 @@ public class EThis extends AExpression {
 
     @Override
     void storeSettings(CompilerSettings settings) {
-
-    }
-
-    @Override
-    void extractVariables(Set<String> variables) {
 
     }
 

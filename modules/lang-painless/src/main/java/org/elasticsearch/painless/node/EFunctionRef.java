@@ -28,7 +28,6 @@ import org.elasticsearch.painless.MethodWriter;
 import org.objectweb.asm.Type;
 
 import java.util.Objects;
-import java.util.Set;
 
 /**
  * Represents a function reference.
@@ -49,11 +48,6 @@ public final class EFunctionRef extends AExpression implements ILambda {
 
     @Override
     void storeSettings(CompilerSettings settings) {
-        // do nothing
-    }
-
-    @Override
-    void extractVariables(Set<String> variables) {
         // do nothing
     }
 

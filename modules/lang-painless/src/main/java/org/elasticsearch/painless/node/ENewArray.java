@@ -25,8 +25,6 @@ import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 
-import java.util.Set;
-
 /**
  * Represents an array instantiation.
  */
@@ -48,13 +46,6 @@ public final class ENewArray extends AExpression {
             }
 
             argument.storeSettings(settings);
-        }
-    }
-
-    @Override
-    void extractVariables(Set<String> variables) {
-        for (ANode argument : children) {
-            argument.extractVariables(variables);
         }
     }
 

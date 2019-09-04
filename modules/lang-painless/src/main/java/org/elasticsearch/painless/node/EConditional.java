@@ -28,8 +28,6 @@ import org.elasticsearch.painless.MethodWriter;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.Opcodes;
 
-import java.util.Set;
-
 /**
  * Represents a conditional expression.
  */
@@ -44,13 +42,6 @@ public final class EConditional extends AExpression {
         children.get(0).storeSettings(settings);
         children.get(1).storeSettings(settings);
         children.get(2).storeSettings(settings);
-    }
-
-    @Override
-    void extractVariables(Set<String> variables) {
-        children.get(0).extractVariables(variables);
-        children.get(1).extractVariables(variables);
-        children.get(2).extractVariables(variables);
     }
 
     @Override

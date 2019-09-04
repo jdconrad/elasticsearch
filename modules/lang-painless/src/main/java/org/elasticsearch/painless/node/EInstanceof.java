@@ -26,8 +26,6 @@ import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.lookup.PainlessLookupUtility;
 
-import java.util.Set;
-
 /**
  * Represents {@code instanceof} operator.
  * <p>
@@ -45,11 +43,6 @@ public final class EInstanceof extends AExpression {
     @Override
     void storeSettings(CompilerSettings settings) {
         children.get(1).storeSettings(settings);
-    }
-
-    @Override
-    void extractVariables(Set<String> variables) {
-        children.get(1).extractVariables(variables);
     }
 
     @Override

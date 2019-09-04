@@ -30,8 +30,6 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.commons.Method;
 
-import java.util.Set;
-
 import static org.elasticsearch.painless.WriterConstants.CLASS_TYPE;
 
 public class EDirectCallInvoke extends AExpression {
@@ -53,11 +51,6 @@ public class EDirectCallInvoke extends AExpression {
         for (ANode child : children) {
             child.storeSettings(settings);
         }
-    }
-
-    @Override
-    void extractVariables(Set<String> variables) {
-
     }
 
     @Override

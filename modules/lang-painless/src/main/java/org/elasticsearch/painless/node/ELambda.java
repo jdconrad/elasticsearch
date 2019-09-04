@@ -98,15 +98,6 @@ public final class ELambda extends AExpression implements ILambda {
     }
 
     @Override
-    void extractVariables(Set<String> variables) {
-        for (ANode statement : children) {
-            statement.extractVariables(extractedVariables);
-        }
-
-        variables.addAll(extractedVariables);
-    }
-
-    @Override
     void analyze(Locals locals) {
         Class<?> returnType;
         List<Class<?>> paramTypes = new ArrayList<>();

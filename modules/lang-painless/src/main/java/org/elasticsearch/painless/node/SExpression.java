@@ -25,8 +25,6 @@ import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 
-import java.util.Set;
-
 /**
  * Represents the top-level node for an expression as a statement.
  */
@@ -39,11 +37,6 @@ public final class SExpression extends AStatement {
     @Override
     void storeSettings(CompilerSettings settings) {
         children.get(0).storeSettings(settings);
-    }
-
-    @Override
-    void extractVariables(Set<String> variables) {
-        children.get(0).extractVariables(variables);
     }
 
     @Override

@@ -26,7 +26,6 @@ import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 
 import java.util.Objects;
-import java.util.Set;
 
 /**
  * Represents a decimal constant.
@@ -43,11 +42,6 @@ public final class EDecimal extends AExpression {
 
     @Override
     void storeSettings(CompilerSettings settings) {
-        // Do nothing.
-    }
-
-    @Override
-    void extractVariables(Set<String> variables) {
         // Do nothing.
     }
 

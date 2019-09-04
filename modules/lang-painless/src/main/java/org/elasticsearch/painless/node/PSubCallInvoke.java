@@ -28,7 +28,6 @@ import org.elasticsearch.painless.lookup.PainlessMethod;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 
 /**
  * Represents a method call.
@@ -49,11 +48,6 @@ final class PSubCallInvoke extends AExpression {
     @Override
     void storeSettings(CompilerSettings settings) {
         throw createError(new IllegalStateException("illegal tree structure"));
-    }
-
-    @Override
-    void extractVariables(Set<String> variables) {
-        throw createError(new IllegalStateException("Illegal tree structure."));
     }
 
     @Override

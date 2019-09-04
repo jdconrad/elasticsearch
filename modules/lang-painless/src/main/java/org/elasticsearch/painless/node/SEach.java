@@ -28,8 +28,6 @@ import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.lookup.PainlessLookupUtility;
 import org.elasticsearch.painless.lookup.def;
 
-import java.util.Set;
-
 /**
  * Represents a for-each loop and defers to subnodes depending on type.
  */
@@ -49,17 +47,6 @@ public class SEach extends AStatement {
         if (children.get(1) != null) {
             children.get(1).storeSettings(settings);
         }
-    }
-
-    @Override
-    void extractVariables(Set<String> variables) {
-        /*variables.add(name);
-
-        children.get(0).extractVariables(variables);
-
-        if (children.get(1) != null) {
-            children.get(1).extractVariables(variables);
-        }*/
     }
 
     @Override

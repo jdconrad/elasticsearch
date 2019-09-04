@@ -29,7 +29,6 @@ import org.elasticsearch.painless.lookup.def;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 /**
  * Represents an array load/store and defers to a child subnode.
@@ -46,12 +45,6 @@ public final class PBrace extends AStoreable {
     void storeSettings(CompilerSettings settings) {
         children.get(0).storeSettings(settings);
         children.get(1).storeSettings(settings);
-    }
-
-    @Override
-    void extractVariables(Set<String> variables) {
-        children.get(0).extractVariables(variables);
-        children.get(1).extractVariables(variables);
     }
 
     @Override

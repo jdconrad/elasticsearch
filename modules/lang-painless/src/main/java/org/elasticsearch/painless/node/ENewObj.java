@@ -29,8 +29,6 @@ import org.elasticsearch.painless.lookup.PainlessLookupUtility;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.commons.Method;
 
-import java.util.Set;
-
 import static org.elasticsearch.painless.lookup.PainlessLookupUtility.typeToCanonicalTypeName;
 
 /**
@@ -52,13 +50,6 @@ public final class ENewObj extends AExpression {
             }
 
             argument.storeSettings(settings);
-        }
-    }
-
-    @Override
-    void extractVariables(Set<String> variables) {
-        for (ANode argument : children) {
-            argument.extractVariables(variables);
         }
     }
 

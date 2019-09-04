@@ -36,7 +36,6 @@ import org.objectweb.asm.commons.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 
 import static org.elasticsearch.painless.WriterConstants.CLASS_TYPE;
 
@@ -63,13 +62,6 @@ public final class ECallLocal extends AExpression {
     void storeSettings(CompilerSettings settings) {
         for (ANode argument : children) {
             argument.storeSettings(settings);
-        }
-    }
-
-    @Override
-    void extractVariables(Set<String> variables) {
-        for (ANode argument : children) {
-            argument.extractVariables(variables);
         }
     }
 

@@ -32,7 +32,6 @@ import org.elasticsearch.painless.lookup.PainlessLookupUtility;
 import org.elasticsearch.painless.lookup.def;
 
 import java.util.Objects;
-import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -58,12 +57,6 @@ public final class EBinary extends AExpression {
     void storeSettings(CompilerSettings settings) {
         children.get(0).storeSettings(settings);
         children.get(1).storeSettings(settings);
-    }
-
-    @Override
-    void extractVariables(Set<String> variables) {
-        children.get(0).extractVariables(variables);
-        children.get(1).extractVariables(variables);
     }
 
     @Override

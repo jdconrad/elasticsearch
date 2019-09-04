@@ -27,8 +27,6 @@ import org.elasticsearch.painless.MethodWriter;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.Opcodes;
 
-import java.util.Set;
-
 /**
  * Represents a while loop.
  */
@@ -46,15 +44,6 @@ public final class SWhile extends AStatement {
 
         if (children.get(1) != null) {
             children.get(1).storeSettings(settings);
-        }
-    }
-
-    @Override
-    void extractVariables(Set<String> variables) {
-        children.get(0).extractVariables(variables);
-
-        if (children.get(1) != null) {
-            children.get(1).extractVariables(variables);
         }
     }
 

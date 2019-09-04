@@ -28,7 +28,6 @@ import org.elasticsearch.painless.MethodWriter;
 import org.objectweb.asm.Opcodes;
 
 import java.util.Objects;
-import java.util.Set;
 
 /**
  * Represents a variable load/store.
@@ -48,11 +47,6 @@ public final class EVariable extends AStoreable {
     @Override
     void storeSettings(CompilerSettings settings) {
         // do nothing
-    }
-
-    @Override
-    void extractVariables(Set<String> variables) {
-        variables.add(name);
     }
 
     @Override

@@ -26,8 +26,6 @@ import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 import org.objectweb.asm.Label;
 
-import java.util.Set;
-
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -46,11 +44,6 @@ public class PSubNullSafeCallInvoke extends AExpression {
 
     @Override
     void storeSettings(CompilerSettings settings) {
-        throw createError(new IllegalStateException("illegal tree structure"));
-    }
-
-    @Override
-    void extractVariables(Set<String> variables) {
         throw createError(new IllegalStateException("illegal tree structure"));
     }
 

@@ -25,8 +25,6 @@ import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 
-import java.util.Set;
-
 /**
  * Represents a constant inserted into the tree replacing
  * other constants during constant folding.  (Internal only.)
@@ -42,11 +40,6 @@ final class EConstant extends AExpression {
     @Override
     void storeSettings(CompilerSettings settings) {
         throw new IllegalStateException("illegal tree structure");
-    }
-
-    @Override
-    void extractVariables(Set<String> variables) {
-        throw new IllegalStateException("Illegal tree structure.");
     }
 
     @Override

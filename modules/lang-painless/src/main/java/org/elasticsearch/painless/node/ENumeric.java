@@ -26,7 +26,6 @@ import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 
 import java.util.Objects;
-import java.util.Set;
 
 /**
  * Represents a non-decimal numeric constant.
@@ -46,11 +45,6 @@ public final class ENumeric extends AExpression {
     @Override
     void storeSettings(CompilerSettings settings) {
         // do nothing
-    }
-
-    @Override
-    void extractVariables(Set<String> variables) {
-        // Do nothing.
     }
 
     @Override

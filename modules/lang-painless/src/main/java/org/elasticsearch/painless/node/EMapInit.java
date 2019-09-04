@@ -33,7 +33,6 @@ import org.objectweb.asm.commons.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Set;
 
 import static org.elasticsearch.painless.lookup.PainlessLookupUtility.typeToCanonicalTypeName;
 
@@ -52,13 +51,6 @@ public final class EMapInit extends AExpression {
     void storeSettings(CompilerSettings settings) {
         for (ANode pair : children) {
             pair.storeSettings(settings);
-        }
-    }
-
-    @Override
-    void extractVariables(Set<String> variables) {
-        for (ANode pair : children) {
-            pair.extractVariables(variables);
         }
     }
 

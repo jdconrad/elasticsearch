@@ -25,8 +25,6 @@ import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 
-import java.util.Set;
-
 /**
  * Represents a break statement.
  */
@@ -39,11 +37,6 @@ public final class SBreak extends AStatement {
     @Override
     void storeSettings(CompilerSettings settings) {
         // do nothing
-    }
-
-    @Override
-    void extractVariables(Set<String> variables) {
-        // Do nothing.
     }
 
     @Override

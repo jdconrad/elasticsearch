@@ -26,7 +26,6 @@ import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 
 import java.util.Objects;
-import java.util.Set;
 
 /**
  * Represents an array load/store.
@@ -44,11 +43,6 @@ final class PSubBrace extends AStoreable {
 
     @Override
     void storeSettings(CompilerSettings settings) {
-        throw createError(new IllegalStateException("illegal tree structure"));
-    }
-
-    @Override
-    void extractVariables(Set<String> variables) {
         throw createError(new IllegalStateException("illegal tree structure"));
     }
 

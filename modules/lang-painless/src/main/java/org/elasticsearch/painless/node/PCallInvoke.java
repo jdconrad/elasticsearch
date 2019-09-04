@@ -28,7 +28,6 @@ import org.elasticsearch.painless.lookup.PainlessMethod;
 import org.elasticsearch.painless.lookup.def;
 
 import java.util.Objects;
-import java.util.Set;
 
 import static org.elasticsearch.painless.lookup.PainlessLookupUtility.typeToCanonicalTypeName;
 
@@ -53,13 +52,6 @@ public final class PCallInvoke extends AExpression {
     void storeSettings(CompilerSettings settings) {
         for (ANode child : children) {
             child.storeSettings(settings);
-        }
-    }
-
-    @Override
-    void extractVariables(Set<String> variables) {
-        for (ANode child : children) {
-            child.extractVariables(variables);
         }
     }
 

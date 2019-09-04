@@ -34,7 +34,6 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
 import java.util.Objects;
-import java.util.Set;
 
 /**
  * Represents a unary math expression.
@@ -55,11 +54,6 @@ public final class EUnary extends AExpression {
     @Override
     void storeSettings(CompilerSettings settings) {
         children.get(0).storeSettings(settings);
-    }
-
-    @Override
-    void extractVariables(Set<String> variables) {
-        children.get(0).extractVariables(variables);
     }
 
     @Override

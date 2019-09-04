@@ -33,7 +33,6 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
 import java.util.Objects;
-import java.util.Set;
 
 /**
  * Represents a capturing function reference.
@@ -56,11 +55,6 @@ public final class ECapturingFunctionRef extends AExpression implements ILambda 
     @Override
     void storeSettings(CompilerSettings settings) {
         // Do nothing.
-    }
-
-    @Override
-    void extractVariables(Set<String> variables) {
-        variables.add(variable);
     }
 
     @Override

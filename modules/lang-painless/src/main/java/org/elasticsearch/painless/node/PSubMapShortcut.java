@@ -28,7 +28,6 @@ import org.elasticsearch.painless.lookup.PainlessLookupUtility;
 import org.elasticsearch.painless.lookup.PainlessMethod;
 
 import java.util.Objects;
-import java.util.Set;
 
 /**
  * Represents a map load/store shortcut. (Internal only.)
@@ -50,11 +49,6 @@ final class PSubMapShortcut extends AStoreable {
     @Override
     void storeSettings(CompilerSettings settings) {
         throw createError(new IllegalStateException("illegal tree structure"));
-    }
-
-    @Override
-    void extractVariables(Set<String> variables) {
-        throw createError(new IllegalStateException("Illegal tree structure."));
     }
 
     @Override

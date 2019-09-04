@@ -28,7 +28,6 @@ import org.objectweb.asm.Label;
 import org.objectweb.asm.Opcodes;
 
 import java.util.Arrays;
-import java.util.Set;
 
 import static java.util.Collections.singleton;
 
@@ -51,19 +50,6 @@ public final class SIfElse extends AStatement {
 
         if (children.get(2) != null) {
             children.get(2).storeSettings(settings);
-        }
-    }
-
-    @Override
-    void extractVariables(Set<String> variables) {
-        children.get(0).extractVariables(variables);
-
-        if (children.get(1) != null) {
-            children.get(1).extractVariables(variables);
-        }
-
-        if (children.get(2) != null) {
-            children.get(2).extractVariables(variables);
         }
     }
 
