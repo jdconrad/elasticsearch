@@ -20,6 +20,8 @@
 package org.elasticsearch.painless.builder;
 
 import org.elasticsearch.painless.node.ANode;
+import org.elasticsearch.painless.node.ELambda;
+import org.elasticsearch.painless.node.SFunction;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -219,33 +221,39 @@ public class ScopeTable {
         }
     }
 
-    protected Map<ANode, Scope> scopes = new HashMap<>();
+    protected Map<String, FunctionScope> functionScopes = new HashMap<>();
+    protected Map<ANode, Scope> nodeScopes = new HashMap<>();
 
-    public FunctionScope newFunctionScope(ANode node) {
+    public FunctionScope newFunctionScope(SFunction node) {
         FunctionScope scope = new FunctionScope();
-        scopes.put(node, scope);
+        functionScopes.put(node.getKey(), scope);
+        nodeScopes.put(node, scope);
         return scope;
     }
 
-    public LambdaScope newLambdaScope(ANode node) {
-        Scope parent = getScope(node.parent);
+    public LambdaScope newLambdaScope(ELambda node) {
+        Scope parent = getNodeScope(node.parent);
         LambdaScope scope = new LambdaScope(parent);
-        scopes.put(node, scope);
+        nodeScopes.put(node, scope);
         return scope;
     }
 
     public LocalScope newLocalScope(ANode node) {
-        Scope parent = getScope(node.parent);
+        Scope parent = getNodeScope(node.parent);
         LocalScope scope = new LocalScope(parent);
-        scopes.put(node, scope);
+        nodeScopes.put(node, scope);
         return scope;
     }
 
-    public Scope getScope(ANode node) {
-        Scope scope = scopes.get(node);
+    public FunctionScope getFunctionScope(String key) {
+        return functionScopes.get(key);
+    }
+
+    public Scope getNodeScope(ANode node) {
+        Scope scope = nodeScopes.get(node);
 
         if (scope == null && node.parent != null) {
-            scope = getScope(node.parent);
+            scope = getNodeScope(node.parent);
         }
 
         return scope;

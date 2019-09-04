@@ -21,9 +21,9 @@ package org.elasticsearch.painless;
 
 import org.elasticsearch.bootstrap.BootstrapInfo;
 import org.elasticsearch.painless.antlr.Walker;
-import org.elasticsearch.painless.builder.ResolveExpressionsPass;
 import org.elasticsearch.painless.builder.ResolveSymbolsPass;
 import org.elasticsearch.painless.builder.ResolveTypesPass;
+import org.elasticsearch.painless.builder.ResolveUsedPass;
 import org.elasticsearch.painless.builder.SymbolTable;
 import org.elasticsearch.painless.lookup.PainlessLookup;
 import org.elasticsearch.painless.node.SSource;
@@ -39,7 +39,6 @@ import java.security.SecureClassLoader;
 import java.security.cert.Certificate;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -214,14 +213,18 @@ final class Compiler {
     Constructor<?> compile(Loader loader, Set<String> extractedVariables, String name, String source, CompilerSettings settings) {
         ScriptClassInfo scriptClassInfo = new ScriptClassInfo(painlessLookup, scriptClass);
         SSource root = Walker.buildPainlessTree(scriptClassInfo, name, source, settings, painlessLookup, null);
-        //root.extractVariables(extractedVariables);
         root.storeSettings(settings);
         Map<String, Object> data = new HashMap<>();
         data.put(SymbolTable.SYMBOL_TABLE, new SymbolTable());
         new ResolveTypesPass(painlessLookup).pass(root, data);
         new ResolveSymbolsPass().pass(root, data);
-        new ResolveExpressionsPass(painlessLookup).pass(root, data);
-        root.extractVariables(extractedVariables);
+        @SuppressWarnings("unchecked")
+        Map<String, Set<String>> usedMap = (Map<String, Set<String>>)new ResolveUsedPass().pass(root, data);
+        Set<String> usedSet =
+                usedMap.get(scriptClassInfo.getExecuteMethod().getName() + "/" + scriptClassInfo.getExecuteArguments().size());
+        if (usedSet != null) {
+            extractedVariables.addAll(usedSet);
+        }
         root.analyze(painlessLookup);
         Map<String, Object> statics = root.write();
 
@@ -254,7 +257,7 @@ final class Compiler {
         data.put(SymbolTable.SYMBOL_TABLE, new SymbolTable());
         new ResolveTypesPass(painlessLookup).pass(root, data);
         new ResolveSymbolsPass().pass(root, data);
-        root.extractVariables(new HashSet<>());
+        new ResolveUsedPass().pass(root, data);
         root.storeSettings(settings);
         root.analyze(painlessLookup);
         root.write();

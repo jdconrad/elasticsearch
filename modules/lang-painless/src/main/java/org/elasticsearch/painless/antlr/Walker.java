@@ -199,7 +199,7 @@ public final class Walker extends PainlessParserBaseVisitor<Void> {
             visit(function);
         }
 
-        builder.load("execute");
+        builder.load("main");
 
         for (StatementContext statement : ctx.statement()) {
             visit(statement);
@@ -218,6 +218,7 @@ public final class Walker extends PainlessParserBaseVisitor<Void> {
         builder.visitFunction(location(ctx), name, false, true, false)
                 .visitTypeString(location(ctx), rtnType).endVisit();
         visit(ctx.parameters());
+        builder.visitEmpty();
         visit(ctx.block());
         builder.endVisit();
 

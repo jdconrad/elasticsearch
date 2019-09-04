@@ -25,6 +25,7 @@ import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Locals.Variable;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.builder.FunctionTable;
 import org.elasticsearch.painless.lookup.PainlessLookupUtility;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.Opcodes;
@@ -62,10 +63,17 @@ public final class SFunction extends AStatement {
         this.synthetic = synthetic;
     }
 
+    public String getKey() {
+        return FunctionTable.buildKey(name, children.get(1).children.size());
+    }
+
     @Override
     void storeSettings(CompilerSettings settings) {
         if (children.get(2) != null) {
             children.get(2).storeSettings(settings);
+        }
+        if (children.get(3) != null) {
+            children.get(3).storeSettings(settings);
         }
         this.settings = settings;
     }
@@ -98,34 +106,13 @@ public final class SFunction extends AStatement {
 
     @Override
     void analyze(Locals locals) {
-        if (children.get(2) == null) {
-            throw createError(new IllegalArgumentException("Cannot generate an empty function [" + name + "]."));
+        if (children.get(2) != null) {
+            children.get(2).analyze(locals);
         }
 
-//        locals = Locals.newLocalScope(locals);
-
-        /*AStatement last = (AStatement)children.get(children.size() - 1);
-
-        for (ANode node : children) {
-            AStatement statement = (AStatement)node;
-
-            // Note that we do not need to check after the last statement because
-            // there is no statement that can be unreachable after the last.
-            if (allEscape) {
-                throw createError(new IllegalArgumentException("Unreachable statement."));
-            }
-
-            statement.lastSource = statement == last;
-
-            statement.analyze(locals);
-
-            methodEscape = statement.methodEscape;
-            allEscape = statement.allEscape;
-        }*/
-
-        SBlock block = (SBlock)children.get(2);
+        SBlock block = (SBlock)children.get(3);
         block.lastSource = true;
-        block.analyze(locals);
+        block.analyze(Locals.newLocalScope(locals));
         methodEscape = block.methodEscape;
 
         if (!auto && !methodEscape && ((DTypeClass)children.get(0)).type != void.class) {
@@ -161,40 +148,45 @@ public final class SFunction extends AStatement {
             function.visitVarInsn(Opcodes.ISTORE, loop.getSlot());
         }
 
-        children.get(2).write(function, globals);
+        if (children.get(2) != null) {
+            children.get(2).write(function, globals);
+        }
+        children.get(3).write(function, globals);
 
         boolean isVoid = ((DTypeClass)children.get(0)).type == void.class;
 
-        if (isVoid || methodEscape) {
+        if (isVoid) {
             function.returnValue();
-        } else if (auto) {
-            switch (method.getReturnType().getSort()) {
-                case org.objectweb.asm.Type.VOID:
-                    break;
-                case org.objectweb.asm.Type.BOOLEAN:
-                    function.push(false);
-                    break;
-                case org.objectweb.asm.Type.BYTE:
-                case org.objectweb.asm.Type.SHORT:
-                case org.objectweb.asm.Type.INT:
-                    function.push(0);
-                    break;
-                case org.objectweb.asm.Type.LONG:
-                    function.push(0L);
-                    break;
-                case org.objectweb.asm.Type.FLOAT:
-                    function.push(0f);
-                    break;
-                case org.objectweb.asm.Type.DOUBLE:
-                    function.push(0d);
-                    break;
-                default:
-                    function.visitInsn(Opcodes.ACONST_NULL);
-            }
+        } else if (!methodEscape) {
+            if (auto) {
+                switch (method.getReturnType().getSort()) {
+                    case org.objectweb.asm.Type.VOID:
+                        break;
+                    case org.objectweb.asm.Type.BOOLEAN:
+                        function.push(false);
+                        break;
+                    case org.objectweb.asm.Type.BYTE:
+                    case org.objectweb.asm.Type.SHORT:
+                    case org.objectweb.asm.Type.INT:
+                        function.push(0);
+                        break;
+                    case org.objectweb.asm.Type.LONG:
+                        function.push(0L);
+                        break;
+                    case org.objectweb.asm.Type.FLOAT:
+                        function.push(0f);
+                        break;
+                    case org.objectweb.asm.Type.DOUBLE:
+                        function.push(0d);
+                        break;
+                    default:
+                        function.visitInsn(Opcodes.ACONST_NULL);
+                }
 
-            function.returnValue();
-        } else {
-            throw createError(new IllegalStateException("illegal tree structure"));
+                function.returnValue();
+            } else {
+                throw createError(new IllegalStateException("illegal tree structure"));
+            }
         }
     }
 

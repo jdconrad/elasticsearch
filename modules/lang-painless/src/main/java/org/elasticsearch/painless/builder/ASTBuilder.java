@@ -95,24 +95,30 @@ public class ASTBuilder {
 
     }
 
-    public void root() {
+    public ASTBuilder root() {
         current = root;
+
+        return this;
     }
 
-    public void save(String name) {
+    public ASTBuilder save(String name) {
         if (current == null) {
             throw new IllegalArgumentException("invalid tree structure");
         }
 
         saves.put(name, current);
+
+        return this;
     }
 
-    public void load(String name) {
+    public ASTBuilder load(String name) {
         current = saves.get(name);
 
         if (current == null) {
             throw new IllegalArgumentException("invalid tree structure");
         }
+
+        return this;
     }
 
     protected ASTBuilder visitChild(ANode child) {
@@ -375,7 +381,7 @@ public class ASTBuilder {
         return visitChild(new EDirectFieldAccess(location, type, name, isStatic));
     }
 
-    public ASTBuilder visitUsed(Location location, String name) {
-        return visitChild(new EUsed(location, name));
+    public ASTBuilder visitUsed(Location location, String key, String name) {
+        return visitChild(new EUsed(location, key, name));
     }
 }

@@ -179,14 +179,13 @@ public final class ELambda extends AExpression implements ILambda {
         builder.visitFunction(location, name, false, true, true)
                 .visitTypeClass(location, returnType).endVisit()
                 .visitParameters(location);
-
-        for (int index = 0; index < paramTypes.size(); ++index) {
-            builder.visitParameter(location, paramNames.get(index))
-                    .visitTypeClass(location, paramTypes.get(index)).endVisit()
-            .endVisit();
-        }
-
-        builder.endVisit()
+                        for (int index = 0; index < paramTypes.size(); ++index) {
+                            builder.visitParameter(location, paramNames.get(index))
+                                    .visitTypeClass(location, paramTypes.get(index)).endVisit()
+                            .endVisit();
+                        }
+                builder.endVisit()
+                .visitEmpty()
                 .visitNode(children.get(1)).endVisit()
         .endVisit();
 

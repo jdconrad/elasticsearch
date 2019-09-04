@@ -113,7 +113,7 @@ public final class SSource extends AStatement {
         }
 
         extractedVariables.addAll(scope.used());*/
-        variables.addAll(scope.getUsedVariables());
+        //variables.addAll(scope.getUsedVariables());
     }
 
     public void analyze(PainlessLookup painlessLookup) {
@@ -180,7 +180,7 @@ public final class SSource extends AStatement {
             //}
         }*/
 
-        AStatement last = (AStatement)children.get(children.size() - 1);
+        /*AStatement last = (AStatement)children.get(children.size() - 1);
 
         for (int statementIndex = functionCount; statementIndex < children.size(); ++statementIndex) {
             AStatement statement = (AStatement)children.get(statementIndex);
@@ -197,7 +197,7 @@ public final class SSource extends AStatement {
 
             methodEscape = statement.methodEscape;
             allEscape = statement.allEscape;
-        }
+        }*/
     }
 
     public Map<String, Object> write() {

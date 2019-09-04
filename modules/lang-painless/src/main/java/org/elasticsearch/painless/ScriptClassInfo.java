@@ -20,6 +20,7 @@
 package org.elasticsearch.painless;
 
 import org.elasticsearch.painless.builder.ASTBuilder;
+import org.elasticsearch.painless.builder.FunctionTable;
 import org.elasticsearch.painless.lookup.PainlessLookup;
 import org.elasticsearch.painless.lookup.PainlessLookupUtility;
 import org.elasticsearch.painless.lookup.def;
@@ -229,16 +230,19 @@ public class ScriptClassInfo {
 
         builder.visitSource(scriptName, scriptSource, baseClass, debugStream, location);
 
+        String needsKey = FunctionTable.buildKey(executeMethod.getName(), executeArguments.size());
+
         for (org.objectweb.asm.commons.Method needsMethod : needsMethods) {
-            String name = needsMethod.getName().substring(5);
-            name = Character.toLowerCase(name.charAt(0)) + name.substring(1);
+            String needsName = needsMethod.getName().substring(5);
+            needsName = Character.toLowerCase(needsName.charAt(0)) + needsName.substring(1);
 
             builder.visitFunction(location, needsMethod.getName(), false, false, true)
                     .visitTypeClass(location, boolean.class).endVisit()
                     .visitParameters(location).endVisit()
+                    .visitEmpty()
                     .visitBlock(location)
                             .visitReturn(location)
-                                .visitUsed(location, name).endVisit()
+                                .visitUsed(location, needsKey, needsName).endVisit()
                             .endVisit()
                     .endVisit()
             .endVisit();
@@ -254,122 +258,35 @@ public class ScriptClassInfo {
             .endVisit();
         }
 
-        builder.endVisit()
-                .visitBlock(location)
-                        .visitTry(location)
-                            .visitBlock(location);
+        builder.endVisit();
 
-        for (int index = 0; index < getMethods.size(); ++index) {
-            org.objectweb.asm.commons.Method method = getMethods.get(index);
-            String name = method.getName().substring(3);
-            name = Character.toLowerCase(name.charAt(0)) + name.substring(1);
-            Class<?> type = getReturns.get(index);
+        if (getMethods.isEmpty() == false) {
+            builder.visitBlock(location);
 
-            builder.visitDeclaration(location, name, true)
-                    .visitTypeClass(location, type).endVisit()
-                    .visitDirectCallInvoke(location, method, false, false)
-                            .visitThis(location).endVisit()
-                    .endVisit()
-            .endVisit();
-        }
+            for (int index = 0; index < getMethods.size(); ++index) {
+                org.objectweb.asm.commons.Method method = getMethods.get(index);
+                String name = method.getName().substring(3);
+                name = Character.toLowerCase(name.charAt(0)) + name.substring(1);
+                Class<?> type = getReturns.get(index);
 
-        builder.save("execute");
-
-        return builder;
-        /*    Label startTry = new Label();
-        Label endTry = new Label();
-        Label startExplainCatch = new Label();
-        Label startOtherCatch = new Label();
-        Label endCatch = new Label();
-        writer.mark(startTry);
-
-        if (settings.getMaxLoopCounter() > 0) {
-            // if there is infinite loop protection, we do this once:
-            // int #loop = settings.getMaxLoopCounter()
-
-            Variable loop = mainMethod.getVariable(null, Locals.LOOP);
-
-            writer.push(settings.getMaxLoopCounter());
-            writer.visitVarInsn(Opcodes.ISTORE, loop.getSlot());
-        }
-
-        for (org.objectweb.asm.commons.Method method : getMethods) {
-            String name = method.getName().substring(3);
-            name = Character.toLowerCase(name.charAt(0)) + name.substring(1);
-            Variable variable = mainMethod.getVariable(null, name);
-
-            writer.loadThis();
-            writer.invokeVirtual(Type.getType(baseClass), method);
-            writer.visitVarInsn(method.getReturnType().getOpcode(Opcodes.ISTORE), variable.getSlot());
-        }
-
-        for (int statementIndex = functionCount; statementIndex < children.size(); ++statementIndex) {
-            children.get(statementIndex).write(writer, globals);
-        }
-
-        if (!methodEscape) {
-            switch (scriptClassInfo.getExecuteMethod().getReturnType().getSort()) {
-                case org.objectweb.asm.Type.VOID:
-                    break;
-                case org.objectweb.asm.Type.BOOLEAN:
-                    writer.push(false);
-                    break;
-                case org.objectweb.asm.Type.BYTE:
-                    writer.push(0);
-                    break;
-                case org.objectweb.asm.Type.SHORT:
-                    writer.push(0);
-                    break;
-                case org.objectweb.asm.Type.INT:
-                    writer.push(0);
-                    break;
-                case org.objectweb.asm.Type.LONG:
-                    writer.push(0L);
-                    break;
-                case org.objectweb.asm.Type.FLOAT:
-                    writer.push(0f);
-                    break;
-                case org.objectweb.asm.Type.DOUBLE:
-                    writer.push(0d);
-                    break;
-                default:
-                    writer.visitInsn(Opcodes.ACONST_NULL);
+                builder.visitDeclaration(location, name, true)
+                        .visitTypeClass(location, type).endVisit()
+                        .visitDirectCallInvoke(location, method, false, false)
+                                .visitThis(location).endVisit()
+                        .endVisit()
+                .endVisit();
             }
-            writer.returnValue();
+
+            builder.endVisit();
+        } else {
+            builder.visitEmpty();
         }
 
-        writer.mark(endTry);
-        writer.goTo(endCatch);
-        // This looks like:
-        // } catch (PainlessExplainError e) {
-        //   throw this.convertToScriptException(e, e.getHeaders($DEFINITION))
-        // }
-        writer.visitTryCatchBlock(startTry, endTry, startExplainCatch, PAINLESS_EXPLAIN_ERROR_TYPE.getInternalName());
-        writer.mark(startExplainCatch);
-        writer.loadThis();
-        writer.swap();
-        writer.dup();
-        writer.getStatic(CLASS_TYPE, "$DEFINITION", DEFINITION_TYPE);
-        writer.invokeVirtual(PAINLESS_EXPLAIN_ERROR_TYPE, PAINLESS_EXPLAIN_ERROR_GET_HEADERS_METHOD);
-        writer.invokeInterface(BASE_INTERFACE_TYPE, CONVERT_TO_SCRIPT_EXCEPTION_METHOD);
-        writer.throwException();
-        // This looks like:
-        // } catch (PainlessError | BootstrapMethodError | OutOfMemoryError | StackOverflowError | Exception e) {
-        //   throw this.convertToScriptException(e, e.getHeaders())
-        // }
-        // We *think* it is ok to catch OutOfMemoryError and StackOverflowError because Painless is stateless
-        writer.visitTryCatchBlock(startTry, endTry, startOtherCatch, PAINLESS_ERROR_TYPE.getInternalName());
-        writer.visitTryCatchBlock(startTry, endTry, startOtherCatch, BOOTSTRAP_METHOD_ERROR_TYPE.getInternalName());
-        writer.visitTryCatchBlock(startTry, endTry, startOtherCatch, OUT_OF_MEMORY_ERROR_TYPE.getInternalName());
-        writer.visitTryCatchBlock(startTry, endTry, startOtherCatch, STACK_OVERFLOW_ERROR_TYPE.getInternalName());
-        writer.visitTryCatchBlock(startTry, endTry, startOtherCatch, EXCEPTION_TYPE.getInternalName());
-        writer.mark(startOtherCatch);
-        writer.loadThis();
-        writer.swap();
-        writer.invokeStatic(COLLECTIONS_TYPE, EMPTY_MAP_METHOD);
-        writer.invokeInterface(BASE_INTERFACE_TYPE, CONVERT_TO_SCRIPT_EXCEPTION_METHOD);
-        writer.throwException();
-        writer.mark(endCatch);*/
+        builder.visitBlock(location)
+                .visitTry(location)
+                        .visitBlock(location);
+
+        return builder.save("main").root();
     }
 
     public ASTBuilder endBuild(ASTBuilder builder) {
@@ -386,7 +303,7 @@ public class ScriptClassInfo {
                 .visitBlock(location)
                         .visitThrow(location)
                                 .visitTypeClass(location, Throwable.class).endVisit()
-                                .visitDirectCallInvoke(location, CONVERT_TO_SCRIPT_EXCEPTION_METHOD, true, true)
+                                .visitDirectCallInvoke(location, CONVERT_TO_SCRIPT_EXCEPTION_METHOD, false, false)
                                         .visitThis(location).endVisit()
                                         .visitVariable(location, "#e").endVisit()
                                         .visitDirectCallInvoke(location, PAINLESS_EXPLAIN_ERROR_GET_HEADERS_METHOD, false, false)
@@ -409,7 +326,7 @@ public class ScriptClassInfo {
                 .visitBlock(location)
                         .visitThrow(location)
                                 .visitTypeClass(location, Throwable.class).endVisit()
-                                .visitDirectCallInvoke(location, CONVERT_TO_SCRIPT_EXCEPTION_METHOD, true, true)
+                                .visitDirectCallInvoke(location, CONVERT_TO_SCRIPT_EXCEPTION_METHOD, false, false)
                                         .visitThis(location).endVisit()
                                         .visitVariable(location, "#e").endVisit()
                                         .visitDirectCallInvoke(location, EMPTY_MAP_METHOD, false, true)
@@ -431,7 +348,7 @@ public class ScriptClassInfo {
                 .visitBlock(location)
                         .visitThrow(location)
                                 .visitTypeClass(location, Throwable.class).endVisit()
-                                .visitDirectCallInvoke(location, CONVERT_TO_SCRIPT_EXCEPTION_METHOD, true, true)
+                                .visitDirectCallInvoke(location, CONVERT_TO_SCRIPT_EXCEPTION_METHOD, false, false)
                                         .visitThis(location).endVisit()
                                         .visitVariable(location, "#e").endVisit()
                                         .visitDirectCallInvoke(location, EMPTY_MAP_METHOD, false, true)
@@ -453,7 +370,7 @@ public class ScriptClassInfo {
                 .visitBlock(location)
                         .visitThrow(location)
                                 .visitTypeClass(location, Throwable.class).endVisit()
-                                .visitDirectCallInvoke(location, CONVERT_TO_SCRIPT_EXCEPTION_METHOD, true, true)
+                                .visitDirectCallInvoke(location, CONVERT_TO_SCRIPT_EXCEPTION_METHOD, false, false)
                                         .visitThis(location).endVisit()
                                         .visitVariable(location, "#e").endVisit()
                                         .visitDirectCallInvoke(location, EMPTY_MAP_METHOD, false, true)
@@ -475,7 +392,7 @@ public class ScriptClassInfo {
                 .visitBlock(location)
                         .visitThrow(location)
                                 .visitTypeClass(location, Throwable.class).endVisit()
-                                .visitDirectCallInvoke(location, CONVERT_TO_SCRIPT_EXCEPTION_METHOD, true, true)
+                                .visitDirectCallInvoke(location, CONVERT_TO_SCRIPT_EXCEPTION_METHOD, false, false)
                                         .visitThis(location).endVisit()
                                         .visitVariable(location, "#e").endVisit()
                                         .visitDirectCallInvoke(location, EMPTY_MAP_METHOD, false, true)

@@ -31,7 +31,6 @@ import org.elasticsearch.painless.node.SFor;
 import org.elasticsearch.painless.node.SFunction;
 import org.elasticsearch.painless.node.SIf;
 import org.elasticsearch.painless.node.SIfElse;
-import org.elasticsearch.painless.node.SSource;
 import org.elasticsearch.painless.node.STry;
 import org.elasticsearch.painless.node.SWhile;
 
@@ -54,32 +53,9 @@ public class ResolveSymbolsPass implements SemanticPass {
     public ResolveSymbolsPass(Map<Class<? extends ANode>, Enter> enters) {
         Map<Class<? extends ANode>, Enter> baseEnters = new HashMap<>();
 
-        baseEnters.put(SSource.class, (node, table) -> {
-            SSource source = (SSource)node;
-            ScopeTable.FunctionScope scope = table.variableTable.newFunctionScope(node);
-            scope.addVariable("#this", true);
-            /*for (ScriptClassInfo.MethodArgument arg : source.scriptClassInfo.getExecuteArguments()) {
-                String name = arg.getName();
-                if (scope.getVariable(name) != null) {
-                    throw node.createError(new IllegalArgumentException("variable [" + name + "] is already defined in the scope"));
-                }
-                scope.addVariable(name, true);
-            }
-            for (int get = 0; get < source.scriptClassInfo.getGetMethods().size(); ++get) {
-                org.objectweb.asm.commons.Method method = source.scriptClassInfo.getGetMethods().get(get);
-                String name = method.getName().substring(3);
-                name = Character.toLowerCase(name.charAt(0)) + name.substring(1);
-                if (scope.getVariable(name) != null) {
-                    throw node.createError(new IllegalArgumentException("variable [" + name + "] is already defined in the scope"));
-                }
-                scope.addVariable(name, true);
-            }*/
-            source.scope = scope;
-        });
-
         baseEnters.put(SFunction.class, (node, table) -> {
             SFunction function = (SFunction)node;
-            ScopeTable.FunctionScope scope = table.variableTable.newFunctionScope(node);
+            ScopeTable.FunctionScope scope = table.scopeTable.newFunctionScope(function);
             for (ANode parameter : function.children.get(1).children) {
                 String parameterName = ((DParameter)parameter).name;
                 if (scope.getVariable(parameterName) != null) {
@@ -88,11 +64,16 @@ public class ResolveSymbolsPass implements SemanticPass {
                 }
                 scope.addVariable(parameterName, false);
             }
+            // TODO: move this to a validation pass?
+            if (function.children.get(3) == null) {
+                throw node.createError(new IllegalArgumentException("function [" + function.getKey() + "] cannot have an empty body"));
+            }
+            table.scopeTable.newLocalScope(function.children.get(3));
         });
 
         baseEnters.put(SDeclaration.class, (node, table) -> {
             SDeclaration declaration = (SDeclaration)node;
-            ScopeTable.Scope scope = table.variableTable.getScope(declaration);
+            ScopeTable.Scope scope = table.scopeTable.getNodeScope(declaration);
             String name = declaration.name;
             if (scope.getVariable(name) != null) {
                 throw node.createError(new IllegalArgumentException("variable [" + name + "] is already defined in the scope"));
@@ -100,21 +81,21 @@ public class ResolveSymbolsPass implements SemanticPass {
             scope.addVariable(name, true);
         });
 
-        baseEnters.put(SFor.class, (node, table) -> table.variableTable.newLocalScope(node));
-        baseEnters.put(SEach.class, (node, table) -> table.variableTable.newLocalScope(node));
-        baseEnters.put(SWhile.class, (node, table) -> table.variableTable.newLocalScope(node));
-        baseEnters.put(SDo.class, (node, table) -> table.variableTable.newLocalScope(node));
-        baseEnters.put(SIf.class, (node, table) -> table.variableTable.newLocalScope(node.children.get(0)));
+        baseEnters.put(SFor.class, (node, table) -> table.scopeTable.newLocalScope(node));
+        baseEnters.put(SEach.class, (node, table) -> table.scopeTable.newLocalScope(node));
+        baseEnters.put(SWhile.class, (node, table) -> table.scopeTable.newLocalScope(node));
+        baseEnters.put(SDo.class, (node, table) -> table.scopeTable.newLocalScope(node));
+        baseEnters.put(SIf.class, (node, table) -> table.scopeTable.newLocalScope(node.children.get(0)));
         baseEnters.put(SIfElse.class, (node, table) -> {
-            table.variableTable.newLocalScope(node.children.get(0));
-            table.variableTable.newLocalScope(node.children.get(1));
+            table.scopeTable.newLocalScope(node.children.get(0));
+            table.scopeTable.newLocalScope(node.children.get(1));
         });
-        baseEnters.put(STry.class, (node, table) -> table.variableTable.newLocalScope(node.children.get(0)));
-        baseEnters.put(SCatch.class, (node, table) -> table.variableTable.newLocalScope(node));
+        baseEnters.put(STry.class, (node, table) -> table.scopeTable.newLocalScope(node.children.get(0)));
+        baseEnters.put(SCatch.class, (node, table) -> table.scopeTable.newLocalScope(node));
 
         baseEnters.put(ELambda.class, (node, table) -> {
             ELambda lambda = (ELambda)node;
-            ScopeTable.LambdaScope scope = table.variableTable.newLambdaScope(node);
+            ScopeTable.LambdaScope scope = table.scopeTable.newLambdaScope(lambda);
             for (ANode parameter : lambda.children.get(0).children) {
                 String parameterName = ((DParameter)parameter).name;
                 if (scope.getVariable(parameterName) != null) {
@@ -128,7 +109,7 @@ public class ResolveSymbolsPass implements SemanticPass {
 
         baseEnters.put(EVariable.class, (node, table) -> {
             EVariable variable = (EVariable)node;
-            if (table.variableTable.getScope(node).getVariable(variable.name) == null) {
+            if (table.scopeTable.getNodeScope(node).getVariable(variable.name) == null) {
                 throw node.createError(new IllegalArgumentException("cannot resolve symbol [" + variable.name + "]"));
             }
         });

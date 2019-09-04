@@ -29,13 +29,15 @@ import java.util.Set;
 
 public class EUsed extends AExpression {
 
+    public final String key;
     public final String name;
 
     public boolean used;
 
-    public EUsed(Location location, String name) {
+    public EUsed(Location location,  String key, String name) {
         super(location);
 
+        this.key = key;
         this.name = name;
     }
 

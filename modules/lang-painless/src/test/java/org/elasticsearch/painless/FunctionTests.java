@@ -49,9 +49,9 @@ public class FunctionTests extends ScriptTestCase {
 
     public void testEmpty() {
         Exception expected = expectScriptThrows(IllegalArgumentException.class, () -> {
-            exec("void test(int x) {} test()");
+            exec("void test(int x) {} test(1)");
         });
-        assertThat(expected.getMessage(), containsString("Cannot generate an empty function"));
+        assertThat(expected.getMessage(), containsString("function [test/1] cannot have an empty body"));
     }
 
     public void testReturnsAreUnboxedIfNeeded() {

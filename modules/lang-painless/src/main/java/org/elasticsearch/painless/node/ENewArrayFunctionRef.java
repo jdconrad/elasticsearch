@@ -72,6 +72,7 @@ public final class ENewArrayFunctionRef extends AExpression implements ILambda {
         parameter.children.add(new DTypeClass(location, int.class));
         parameters.children.add(parameter);
         function.children.add(parameters);
+        function.children.add(null);
         EVariable size = new EVariable(location, "size");
         ENewArray array = new ENewArray(location, false);
         array.children.add(new DTypeClass(location, type));
