@@ -32,28 +32,28 @@ import java.util.Set;
  */
 public final class SThrow extends AStatement {
 
-
     public SThrow(Location location) {
         super(location);
     }
 
     @Override
     void storeSettings(CompilerSettings settings) {
-        children.get(0).storeSettings(settings);
+        children.get(1).storeSettings(settings);
     }
 
     @Override
     void extractVariables(Set<String> variables) {
-        children.get(0).extractVariables(variables);
+        children.get(1).extractVariables(variables);
     }
 
     @Override
     void analyze(Locals locals) {
-        AExpression expression = (AExpression)children.get(0);
+        Class<?> exception = ((DTypeClass)children.get(0)).type;
+        AExpression expression = (AExpression)children.get(1);
 
-        expression.expected = Exception.class;
+        expression.expected = exception;
         expression.analyze(locals);
-        children.set(0, expression.cast(locals));
+        children.set(1, expression.cast(locals));
 
         methodEscape = true;
         loopEscape = true;
@@ -64,7 +64,7 @@ public final class SThrow extends AStatement {
     @Override
     void write(MethodWriter writer, Globals globals) {
         writer.writeStatementOffset(location);
-        children.get(0).write(writer, globals);
+        children.get(1).write(writer, globals);
         writer.throwException();
     }
 

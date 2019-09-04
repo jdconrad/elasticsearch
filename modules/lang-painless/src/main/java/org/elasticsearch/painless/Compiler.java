@@ -249,8 +249,7 @@ final class Compiler {
      */
     byte[] compile(String name, String source, CompilerSettings settings, Printer debugStream) {
         ScriptClassInfo scriptClassInfo = new ScriptClassInfo(painlessLookup, scriptClass);
-        SSource root = Walker.buildPainlessTree(scriptClassInfo, name, source, settings, painlessLookup,
-                debugStream);
+        SSource root = Walker.buildPainlessTree(scriptClassInfo, name, source, settings, painlessLookup, debugStream);
         Map<String, Object> data = new HashMap<>();
         data.put(SymbolTable.SYMBOL_TABLE, new SymbolTable());
         new ResolveTypesPass(painlessLookup).pass(root, data);

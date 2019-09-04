@@ -71,8 +71,16 @@ public class EDirectCallInvoke extends AExpression {
         for (int argument = 1; argument < children.size(); ++argument) {
             AExpression expression = (AExpression)children.get(argument);
 
-            Class<?> parameterType =
-                    locals.getPainlessLookup().canonicalTypeNameToType(method.getArgumentTypes()[argument - 1].getInternalName());
+            Type type = method.getArgumentTypes()[argument - 1];
+            Class<?> parameterType = locals.getPainlessLookup().canonicalTypeNameToType(type.getClassName().replace('$', '.'));
+
+            if (parameterType == null) {
+                try {
+                    parameterType = Class.forName(type.getInternalName().replace('/', '.'));
+                } catch (ClassNotFoundException cnfe) {
+                    throw new IllegalStateException(cnfe);
+                }
+            }
 
             if (parameterType == Object.class) {
                 parameterType = def.class;
@@ -85,11 +93,22 @@ public class EDirectCallInvoke extends AExpression {
         }
 
         statement = true;
-        actual = locals.getPainlessLookup().canonicalTypeNameToType(method.getReturnType().getClassName().replace('$', '.'));
-    }
 
-    public static class Test {
+        Class<?> returnType = locals.getPainlessLookup().canonicalTypeNameToType(method.getReturnType().getClassName().replace('$', '.'));
 
+        if (returnType == null) {
+            try {
+                returnType = Class.forName(method.getReturnType().getInternalName().replace('/', '.'));
+            } catch (ClassNotFoundException cnfe) {
+                throw new IllegalStateException(cnfe);
+            }
+        }
+
+        if (returnType == Object.class) {
+            returnType = def.class;
+        }
+
+        actual = returnType;
     }
 
     @Override

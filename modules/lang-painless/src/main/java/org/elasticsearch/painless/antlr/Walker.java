@@ -433,7 +433,8 @@ public final class Walker extends PainlessParserBaseVisitor<Void> {
 
     @Override
     public Void visitThrow(ThrowContext ctx) {
-        builder.visitThrow(location(ctx));
+        builder.visitThrow(location(ctx))
+                .visitTypeClass(location(ctx), Exception.class).endVisit();
         visit(ctx.expression());
         builder.endVisit();
 

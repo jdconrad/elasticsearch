@@ -66,7 +66,21 @@ public class EDirectFieldAccess extends AExpression {
         prefix.expected = prefix.actual;
         children.set(0, prefix.cast(locals));
 
-        actual = locals.getPainlessLookup().canonicalTypeNameToType(type.getClassName().replace('$', '.'));
+        Class<?> fieldType = locals.getPainlessLookup().canonicalTypeNameToType(type.getClassName().replace('$', '.'));
+
+        if (fieldType == null) {
+            try {
+                fieldType = Class.forName(type.getInternalName().replace('/', '.'));
+            } catch (ClassNotFoundException cnfe) {
+                throw new IllegalStateException(cnfe);
+            }
+        }
+
+        if (fieldType == Object.class) {
+            fieldType = def.class;
+        }
+
+        actual = fieldType;
     }
 
     @Override
