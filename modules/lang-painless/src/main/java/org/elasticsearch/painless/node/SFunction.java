@@ -163,7 +163,7 @@ public final class SFunction extends AStatement {
 
         children.get(2).write(function, globals);
 
-        boolean isVoid = ((DTypeClass)children.get(0)).type != void.class;
+        boolean isVoid = ((DTypeClass)children.get(0)).type == void.class;
 
         if (isVoid || methodEscape) {
             function.returnValue();
