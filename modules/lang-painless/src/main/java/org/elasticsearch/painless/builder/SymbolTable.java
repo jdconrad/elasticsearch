@@ -19,24 +19,36 @@
 
 package org.elasticsearch.painless.builder;
 
+import org.elasticsearch.painless.CompilerSettings;
+import org.elasticsearch.painless.lookup.PainlessLookup;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
+
 public class SymbolTable {
 
     public static final String SYMBOL_TABLE = "symbol_table";
 
-    public final FunctionTable definedFunctions = new FunctionTable();
+    public final CompilerSettings compilerSettings;
+    public final PainlessLookup painlessLookup;
 
+    public final Class<?> baseClass;
+    public final List<Class<?>> baseInterfaces;
+
+    public final FunctionTable syntheticFunctions = new FunctionTable();
+    public final FunctionTable definedFunctions = new FunctionTable();
     public final ScopeTable scopeTable = new ScopeTable();
 
-    @Override
-    public String toString() {
-        StringBuilder builder = new StringBuilder();
+    public int syntheticCounter = 0;
 
-        for (FunctionTable.LocalFunction lf : definedFunctions.localFunctions.values()) {
-            builder.append("[");
-            builder.append(lf.name);
-            builder.append("] ");
-        }
+    public SymbolTable(CompilerSettings compilerSettings, PainlessLookup painlessLookup,
+            Class<?> baseClass, List<Class<?>> baseInterfaces) {
 
-        return builder.toString();
+        this.compilerSettings = Objects.requireNonNull(compilerSettings);
+        this.painlessLookup = Objects.requireNonNull(painlessLookup);
+
+        this.baseClass = Objects.requireNonNull(baseClass);
+        this.baseInterfaces = Collections.unmodifiableList(Objects.requireNonNull(baseInterfaces));
     }
 }

@@ -27,7 +27,6 @@ import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.SimpleChecksAdapter;
 import org.elasticsearch.painless.WriterConstants;
-import org.elasticsearch.painless.builder.ScopeTable;
 import org.elasticsearch.painless.lookup.PainlessLookup;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
@@ -40,11 +39,9 @@ import java.lang.invoke.MethodType;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 
 import static java.util.Collections.emptyList;
 import static org.elasticsearch.painless.WriterConstants.BASE_INTERFACE_TYPE;
@@ -70,27 +67,18 @@ public final class SSource extends AStatement {
     private final Class<?> baseClass;
     private final Printer debugStream;
 
-    public ScopeTable.FunctionScope scope;
     private CompilerSettings settings;
 
-    private int functionCount;
     private Locals mainMethod;
-    private final Set<String> extractedVariables;
-    private final List<org.objectweb.asm.commons.Method> getMethods;
     private byte[] bytes;
 
-    public SSource(String name, String sourceText, Class<?> baseClass, Printer debugStream, Location location) {
-
+    public SSource(Location location, String name, String sourceText, Class<?> baseClass, Printer debugStream) {
         super(location);
-        //this.scriptClassInfo = Objects.requireNonNull(scriptClassInfo);
+
         this.name = Objects.requireNonNull(name);
         this.sourceText = Objects.requireNonNull(sourceText);
         this.baseClass = Objects.requireNonNull(baseClass);
         this.debugStream = debugStream;
-
-        this.functionCount = 0;
-        this.extractedVariables = new HashSet<>();
-        this.getMethods = new ArrayList<>();
     }
 
     @Override
@@ -122,8 +110,6 @@ public final class SSource extends AStatement {
 
                     methods.put(key, new LocalMethod(function.name, returnType, typeParameters, function.methodType));
                 }
-
-                ++functionCount;
             } else {
                 break;
             }
@@ -148,42 +134,7 @@ public final class SSource extends AStatement {
             }
         }
 
-        //if (children.size() - functionCount == 0) {
-        //    throw createError(new IllegalArgumentException("Cannot generate an empty script."));
-        //}
-
         mainMethod = Locals.newMainMethodScope(baseClass, program, settings.getMaxLoopCounter());
-
-        /*for (int get = 0; get < scriptClassInfo.getGetMethods().size(); ++get) {
-            org.objectweb.asm.commons.Method method = scriptClassInfo.getGetMethods().get(get);
-            String name = method.getName().substring(3);
-            name = Character.toLowerCase(name.charAt(0)) + name.substring(1);
-
-            //if (extractedVariables.contains(name)) {
-                Class<?> rtn = scriptClassInfo.getGetReturns().get(get);
-                mainMethod.addVariable(new Location("getter [" + name + "]", 0), rtn, name, true);
-                getMethods.add(method);
-            //}
-        }*/
-
-        /*AStatement last = (AStatement)children.get(children.size() - 1);
-
-        for (int statementIndex = functionCount; statementIndex < children.size(); ++statementIndex) {
-            AStatement statement = (AStatement)children.get(statementIndex);
-
-            // Note that we do not need to check after the last statement because
-            // there is no statement that can be unreachable after the last.
-            if (allEscape) {
-                throw createError(new IllegalArgumentException("Unreachable statement."));
-            }
-
-            statement.lastSource = statement == last;
-
-            statement.analyze(mainMethod);
-
-            methodEscape = statement.methodEscape;
-            allEscape = statement.allEscape;
-        }*/
     }
 
     public Map<String, Object> write() {
@@ -193,7 +144,7 @@ public final class SSource extends AStatement {
         int classAccess = Opcodes.ACC_PUBLIC | Opcodes.ACC_SUPER | Opcodes.ACC_FINAL;
         String interfaceBase = BASE_INTERFACE_TYPE.getInternalName();
         String className = CLASS_TYPE.getInternalName();
-        String classInterfaces[] = new String[] { interfaceBase };
+        String[] classInterfaces = new String[] { interfaceBase };
 
         ClassWriter writer = new ClassWriter(classFrames);
         ClassVisitor visitor = writer;
@@ -276,13 +227,6 @@ public final class SSource extends AStatement {
         statementsMethod.returnValue();
         statementsMethod.endMethod();
 
-        // Write the method defined in the interface:
-        /*MethodWriter executeMethod = new MethodWriter(Opcodes.ACC_PUBLIC, scriptClassInfo.getExecuteMethod(), visitor,
-                globals.getStatements(), settings);
-        executeMethod.visitCode();
-        write(executeMethod, globals);
-        executeMethod.endMethod();*/
-
         // Write all functions:
         for (ANode child : children) {
             if (child instanceof SFunction) {
@@ -291,18 +235,6 @@ public final class SSource extends AStatement {
                 break;
             }
         }
-
-        // Write any needsVarName methods for used variables
-        /*for (org.objectweb.asm.commons.Method needsMethod : scriptClassInfo.getNeedsMethods()) {
-            String name = needsMethod.getName();
-            name = name.substring(5);
-            name = Character.toLowerCase(name.charAt(0)) + name.substring(1);
-            MethodWriter ifaceMethod = new MethodWriter(Opcodes.ACC_PUBLIC, needsMethod, visitor, globals.getStatements(), settings);
-            ifaceMethod.visitCode();
-            ifaceMethod.push(scope.getUsedVariables().contains(name));
-            ifaceMethod.returnValue();
-            ifaceMethod.endMethod();
-        }*/
 
         clinit.returnValue();
         clinit.endMethod();
@@ -319,101 +251,7 @@ public final class SSource extends AStatement {
 
     @Override
     void write(MethodWriter writer, Globals globals) {
-        // We wrap the whole method in a few try/catches to handle and/or convert other exceptions to ScriptException
-        /*Label startTry = new Label();
-        Label endTry = new Label();
-        Label startExplainCatch = new Label();
-        Label startOtherCatch = new Label();
-        Label endCatch = new Label();
-        writer.mark(startTry);
 
-        if (settings.getMaxLoopCounter() > 0) {
-            // if there is infinite loop protection, we do this once:
-            // int #loop = settings.getMaxLoopCounter()
-
-            Variable loop = mainMethod.getVariable(null, Locals.LOOP);
-
-            writer.push(settings.getMaxLoopCounter());
-            writer.visitVarInsn(Opcodes.ISTORE, loop.getSlot());
-        }
-
-        for (org.objectweb.asm.commons.Method method : getMethods) {
-            String name = method.getName().substring(3);
-            name = Character.toLowerCase(name.charAt(0)) + name.substring(1);
-            Variable variable = mainMethod.getVariable(null, name);
-
-            writer.loadThis();
-            writer.invokeVirtual(Type.getType(baseClass), method);
-            writer.visitVarInsn(method.getReturnType().getOpcode(Opcodes.ISTORE), variable.getSlot());
-        }
-
-        for (int statementIndex = functionCount; statementIndex < children.size(); ++statementIndex) {
-            children.get(statementIndex).write(writer, globals);
-        }
-
-        if (!methodEscape) {
-            switch (scriptClassInfo.getExecuteMethod().getReturnType().getSort()) {
-                case org.objectweb.asm.Type.VOID:
-                    break;
-                case org.objectweb.asm.Type.BOOLEAN:
-                    writer.push(false);
-                    break;
-                case org.objectweb.asm.Type.BYTE:
-                    writer.push(0);
-                    break;
-                case org.objectweb.asm.Type.SHORT:
-                    writer.push(0);
-                    break;
-                case org.objectweb.asm.Type.INT:
-                    writer.push(0);
-                    break;
-                case org.objectweb.asm.Type.LONG:
-                    writer.push(0L);
-                    break;
-                case org.objectweb.asm.Type.FLOAT:
-                    writer.push(0f);
-                    break;
-                case org.objectweb.asm.Type.DOUBLE:
-                    writer.push(0d);
-                    break;
-                default:
-                    writer.visitInsn(Opcodes.ACONST_NULL);
-            }
-            writer.returnValue();
-        }
-
-        writer.mark(endTry);
-        writer.goTo(endCatch);
-        // This looks like:
-        // } catch (PainlessExplainError e) {
-        //   throw this.convertToScriptException(e, e.getHeaders($DEFINITION))
-        // }
-        writer.visitTryCatchBlock(startTry, endTry, startExplainCatch, PAINLESS_EXPLAIN_ERROR_TYPE.getInternalName());
-        writer.mark(startExplainCatch);
-        writer.loadThis();
-        writer.swap();
-        writer.dup();
-        writer.getStatic(CLASS_TYPE, "$DEFINITION", DEFINITION_TYPE);
-        writer.invokeVirtual(PAINLESS_EXPLAIN_ERROR_TYPE, PAINLESS_EXPLAIN_ERROR_GET_HEADERS_METHOD);
-        writer.invokeInterface(BASE_INTERFACE_TYPE, CONVERT_TO_SCRIPT_EXCEPTION_METHOD);
-        writer.throwException();
-        // This looks like:
-        // } catch (PainlessError | BootstrapMethodError | OutOfMemoryError | StackOverflowError | Exception e) {
-        //   throw this.convertToScriptException(e, e.getHeaders())
-        // }
-        // We *think* it is ok to catch OutOfMemoryError and StackOverflowError because Painless is stateless
-        writer.visitTryCatchBlock(startTry, endTry, startOtherCatch, PAINLESS_ERROR_TYPE.getInternalName());
-        writer.visitTryCatchBlock(startTry, endTry, startOtherCatch, BOOTSTRAP_METHOD_ERROR_TYPE.getInternalName());
-        writer.visitTryCatchBlock(startTry, endTry, startOtherCatch, OUT_OF_MEMORY_ERROR_TYPE.getInternalName());
-        writer.visitTryCatchBlock(startTry, endTry, startOtherCatch, STACK_OVERFLOW_ERROR_TYPE.getInternalName());
-        writer.visitTryCatchBlock(startTry, endTry, startOtherCatch, EXCEPTION_TYPE.getInternalName());
-        writer.mark(startOtherCatch);
-        writer.loadThis();
-        writer.swap();
-        writer.invokeStatic(COLLECTIONS_TYPE, EMPTY_MAP_METHOD);
-        writer.invokeInterface(BASE_INTERFACE_TYPE, CONVERT_TO_SCRIPT_EXCEPTION_METHOD);
-        writer.throwException();
-        writer.mark(endCatch);*/
     }
 
     public byte[] getBytes() {

@@ -215,7 +215,8 @@ final class Compiler {
         SSource root = Walker.buildPainlessTree(scriptClassInfo, name, source, settings, painlessLookup, null);
         root.storeSettings(settings);
         Map<String, Object> data = new HashMap<>();
-        data.put(SymbolTable.SYMBOL_TABLE, new SymbolTable());
+        data.put(SymbolTable.SYMBOL_TABLE,
+                new SymbolTable(settings, painlessLookup, scriptClassInfo.getBaseClass(), Collections.singletonList(PainlessScript.class)));
         new ResolveTypesPass(painlessLookup).pass(root, data);
         new ResolveSymbolsPass().pass(root, data);
         @SuppressWarnings("unchecked")
@@ -254,7 +255,8 @@ final class Compiler {
         ScriptClassInfo scriptClassInfo = new ScriptClassInfo(painlessLookup, scriptClass);
         SSource root = Walker.buildPainlessTree(scriptClassInfo, name, source, settings, painlessLookup, debugStream);
         Map<String, Object> data = new HashMap<>();
-        data.put(SymbolTable.SYMBOL_TABLE, new SymbolTable());
+        data.put(SymbolTable.SYMBOL_TABLE,
+                new SymbolTable(settings, painlessLookup, scriptClassInfo.getBaseClass(), Collections.singletonList(PainlessScript.class)));
         new ResolveTypesPass(painlessLookup).pass(root, data);
         new ResolveSymbolsPass().pass(root, data);
         new ResolveUsedPass().pass(root, data);

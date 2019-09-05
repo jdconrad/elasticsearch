@@ -228,7 +228,7 @@ public class ScriptClassInfo {
     public ASTBuilder startBuild(String scriptName, String scriptSource, Printer debugStream, Location location) {
         ASTBuilder builder = new ASTBuilder();
 
-        builder.visitSource(scriptName, scriptSource, baseClass, debugStream, location);
+        builder.visitSource(location, scriptName, scriptSource, baseClass, debugStream);
 
         String needsKey = FunctionTable.buildKey(executeMethod.getName(), executeArguments.size());
 

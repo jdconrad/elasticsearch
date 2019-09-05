@@ -164,9 +164,8 @@ public class ASTBuilder {
         return this;
     }
 
-    public ASTBuilder visitSource(String scriptName, String sourceText, Class<?> baseClass, Printer debugStream, Location location) {
-
-        return visitChild(new SSource(scriptName, sourceText, baseClass, debugStream, location));
+    public ASTBuilder visitSource(Location location, String scriptName, String sourceText, Class<?> baseClass, Printer debugStream) {
+        return visitChild(new SSource(location, scriptName, sourceText, baseClass, debugStream));
     }
 
     public ASTBuilder visitFunction(Location location, String name, boolean auto, boolean statik, boolean synthetic) {
