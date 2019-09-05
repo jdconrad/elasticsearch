@@ -25,5 +25,5 @@ import java.util.Map;
 
 public interface SemanticPass {
 
-    Object pass(ANode root, Map<String, Object> data);
+    void pass(ANode root, SymbolTable table, Map<String, Object> data);
 }

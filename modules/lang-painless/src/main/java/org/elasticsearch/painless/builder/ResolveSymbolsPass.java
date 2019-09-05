@@ -20,10 +20,12 @@
 package org.elasticsearch.painless.builder;
 
 import org.elasticsearch.painless.node.ANode;
-import org.elasticsearch.painless.node.DParameter;
+import org.elasticsearch.painless.node.DTypeClass;
+import org.elasticsearch.painless.node.DTypeString;
 import org.elasticsearch.painless.node.ELambda;
 import org.elasticsearch.painless.node.EVariable;
 import org.elasticsearch.painless.node.SCatch;
+import org.elasticsearch.painless.node.SDeclBlock;
 import org.elasticsearch.painless.node.SDeclaration;
 import org.elasticsearch.painless.node.SDo;
 import org.elasticsearch.painless.node.SEach;
@@ -34,36 +36,52 @@ import org.elasticsearch.painless.node.SIfElse;
 import org.elasticsearch.painless.node.STry;
 import org.elasticsearch.painless.node.SWhile;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class ResolveSymbolsPass implements SemanticPass {
 
-    public interface Enter {
-        void enter(ANode node, SymbolTable table);
+    public interface Visitor {
+        void visit(ANode node, SymbolTable table, Map<String, Object> data);
     }
 
-    private final Map<Class<? extends ANode>, Enter> enters;
+    private final Map<Class<? extends ANode>, Visitor> enters;
+    private final Map<Class<? extends ANode>, Visitor> exits;
 
     public ResolveSymbolsPass() {
-        this(Collections.emptyMap());
+        this(Collections.emptyMap(), Collections.emptyMap());
     }
 
-    public ResolveSymbolsPass(Map<Class<? extends ANode>, Enter> enters) {
-        Map<Class<? extends ANode>, Enter> baseEnters = new HashMap<>();
+    public ResolveSymbolsPass(
+            Map<Class<? extends ANode>, Visitor> enters,
+            Map<Class<? extends ANode>, Visitor> exits) {
 
-        baseEnters.put(SFunction.class, (node, table) -> {
+        Map<Class<? extends ANode>, Visitor> baseEnters = buildBaseEnters();
+        baseEnters.putAll(enters);
+        this.enters = Collections.unmodifiableMap(baseEnters);
+
+        Map<Class<? extends ANode>, Visitor> baseExits = buildBaseExits();
+        baseExits.putAll(exits);
+        this.exits = Collections.unmodifiableMap(baseExits);
+    }
+
+    protected Map<Class<? extends ANode>, Visitor> buildBaseEnters() {
+        Map<Class<? extends ANode>, Visitor> baseEnters = new HashMap<>();
+
+        baseEnters.put(SFunction.class, (node, table, data) -> {
             SFunction function = (SFunction)node;
             ScopeTable.FunctionScope scope = table.scopeTable.newFunctionScope(function);
-            for (ANode parameter : function.children.get(1).children) {
-                String parameterName = ((DParameter)parameter).name;
+            /*for (ANode parameter : function.children.get(1).children) {
+                String parameterName = ((SDeclaration)parameter).name;
                 if (scope.getVariable(parameterName) != null) {
                     throw node.createError(
-                            new IllegalArgumentException("variable [" + parameterName + "] is already defined in the scope"));
+                            new IllegalArgumentException("symbol [" + parameterName + "] is already defined in the scope"));
                 }
                 scope.addVariable(parameterName, false);
-            }
+            }*/
             // TODO: move this to a validation pass?
             if (function.children.get(3) == null) {
                 throw node.createError(new IllegalArgumentException("function [" + function.getKey() + "] cannot have an empty body"));
@@ -71,7 +89,7 @@ public class ResolveSymbolsPass implements SemanticPass {
             table.scopeTable.newLocalScope(function.children.get(3));
         });
 
-        baseEnters.put(SDeclaration.class, (node, table) -> {
+        baseEnters.put(SDeclaration.class, (node, table, data) -> {
             SDeclaration declaration = (SDeclaration)node;
             ScopeTable.Scope scope = table.scopeTable.getNodeScope(declaration);
             String name = declaration.name;
@@ -81,62 +99,97 @@ public class ResolveSymbolsPass implements SemanticPass {
             scope.addVariable(name, true);
         });
 
-        baseEnters.put(SFor.class, (node, table) -> table.scopeTable.newLocalScope(node));
-        baseEnters.put(SEach.class, (node, table) -> table.scopeTable.newLocalScope(node));
-        baseEnters.put(SWhile.class, (node, table) -> table.scopeTable.newLocalScope(node));
-        baseEnters.put(SDo.class, (node, table) -> table.scopeTable.newLocalScope(node));
-        baseEnters.put(SIf.class, (node, table) -> table.scopeTable.newLocalScope(node.children.get(0)));
-        baseEnters.put(SIfElse.class, (node, table) -> {
+        baseEnters.put(SFor.class, (node, table, data) -> table.scopeTable.newLocalScope(node));
+        baseEnters.put(SEach.class, (node, table, data) -> table.scopeTable.newLocalScope(node));
+        baseEnters.put(SWhile.class, (node, table, data) -> table.scopeTable.newLocalScope(node));
+        baseEnters.put(SDo.class, (node, table, data) -> table.scopeTable.newLocalScope(node));
+        baseEnters.put(SIf.class, (node, table, data) -> table.scopeTable.newLocalScope(node.children.get(0)));
+        baseEnters.put(SIfElse.class, (node, table, data) -> {
             table.scopeTable.newLocalScope(node.children.get(0));
             table.scopeTable.newLocalScope(node.children.get(1));
         });
-        baseEnters.put(STry.class, (node, table) -> table.scopeTable.newLocalScope(node.children.get(0)));
-        baseEnters.put(SCatch.class, (node, table) -> table.scopeTable.newLocalScope(node));
+        baseEnters.put(STry.class, (node, table, data) -> table.scopeTable.newLocalScope(node.children.get(0)));
+        baseEnters.put(SCatch.class, (node, table, data) -> table.scopeTable.newLocalScope(node));
 
-        baseEnters.put(ELambda.class, (node, table) -> {
+        baseEnters.put(ELambda.class, (node, table, data) -> {
             ELambda lambda = (ELambda)node;
             ScopeTable.LambdaScope scope = table.scopeTable.newLambdaScope(lambda);
-            for (ANode parameter : lambda.children.get(0).children) {
-                String parameterName = ((DParameter)parameter).name;
+            /*for (ANode parameter : lambda.children.get(0).children) {
+                String parameterName = ((SDeclaration)parameter).name;
                 if (scope.getVariable(parameterName) != null) {
                     throw node.createError(
                             new IllegalArgumentException("variable [" + parameterName + "] is already defined in the scope"));
                 }
                 scope.addVariable(parameterName, false);
-            }
+            }*/
             lambda.scope = scope;
         });
 
-        baseEnters.put(EVariable.class, (node, table) -> {
+        baseEnters.put(EVariable.class, (node, table, data) -> {
             EVariable variable = (EVariable)node;
             if (table.scopeTable.getNodeScope(node).getVariable(variable.name) == null) {
                 throw node.createError(new IllegalArgumentException("cannot resolve symbol [" + variable.name + "]"));
             }
         });
 
-        baseEnters.putAll(enters);
-        this.enters = Collections.unmodifiableMap(baseEnters);
+        baseEnters.put(DTypeString.class, (node, table, data) -> {
+            String canonicalTypeName = ((DTypeString)node).type;
+            Class<?> type = table.painlessLookup.canonicalTypeNameToType(canonicalTypeName);
+
+            if (type == null) {
+                throw node.createError(new IllegalArgumentException("cannot resolve type [" + canonicalTypeName + "]"));
+            }
+
+            node.replace(new DTypeClass(node.location, type));
+        });
+
+        return baseEnters;
+    }
+
+    protected Map<Class<? extends ANode>, Visitor> buildBaseExits() {
+        Map<Class<? extends ANode>, Visitor> baseExits = new HashMap<>();
+
+        baseExits.put(SFunction.class, (node, table, data) -> {
+            SFunction function = (SFunction)node;
+            Class<?> returnType = ((DTypeClass)function.children.get(0)).type;
+            SDeclBlock parameters = (SDeclBlock)function.children.get(1);
+            List<Class<?>> typeParameters = new ArrayList<>();
+            List<String> parameterNames = new ArrayList<>();
+
+            for (ANode child : parameters.children) {
+                SDeclaration parameter = (SDeclaration) child;
+                typeParameters.add(((DTypeClass)child.children.get(0)).type);
+                parameterNames.add(parameter.name);
+            }
+
+            table.definedFunctions.add(function.name, returnType, typeParameters, parameterNames);
+        });
+
+        return baseExits;
     }
 
     @Override
-    public Object pass(ANode root, Map<String, Object> data) {
-        SymbolTable table = (SymbolTable)data.get(SymbolTable.SYMBOL_TABLE);
-        visit(root, table);
-
-        return null;
+    public void pass(ANode root, SymbolTable table, Map<String, Object> data) {
+        visit(root, table, data);
     }
 
-    protected void visit(ANode parent, SymbolTable table) {
-        Enter enter = enters.get(parent.getClass());
+    protected void visit(ANode parent, SymbolTable table, Map<String, Object> data) {
+        Visitor enter = enters.get(parent.getClass());
 
         if (enter != null) {
-            enter.enter(parent, table);
+            enter.visit(parent, table, data);
         }
 
         for (ANode child : parent.children) {
             if (child != null) {
-                visit(child, table);
+                visit(child, table, data);
             }
+        }
+
+        Visitor exit = exits.get(parent.getClass());
+
+        if (exit != null) {
+            exit.visit(parent, table, data);
         }
     }
 }

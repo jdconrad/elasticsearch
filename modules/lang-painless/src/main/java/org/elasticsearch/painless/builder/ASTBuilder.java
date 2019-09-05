@@ -22,8 +22,6 @@ package org.elasticsearch.painless.builder;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.Operation;
 import org.elasticsearch.painless.node.ANode;
-import org.elasticsearch.painless.node.DParameter;
-import org.elasticsearch.painless.node.DParameters;
 import org.elasticsearch.painless.node.DTypeClass;
 import org.elasticsearch.painless.node.DTypeString;
 import org.elasticsearch.painless.node.EAssignment;
@@ -350,14 +348,6 @@ public class ASTBuilder {
 
     public ASTBuilder visitField(Location location, String value, boolean nullSafe) {
         return visitChild(new PField(location, nullSafe, value));
-    }
-
-    public ASTBuilder visitParameters(Location location) {
-        return visitChild(new DParameters(location));
-    }
-
-    public ASTBuilder visitParameter(Location location, String name) {
-        return visitChild(new DParameter(location, name));
     }
 
     public ASTBuilder visitTypeString(Location location, String string) {

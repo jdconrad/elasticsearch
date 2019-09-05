@@ -238,7 +238,7 @@ public class ScriptClassInfo {
 
             builder.visitFunction(location, needsMethod.getName(), false, false, true)
                     .visitTypeClass(location, boolean.class).endVisit()
-                    .visitParameters(location).endVisit()
+                    .visitDeclBlock(location).endVisit()
                     .visitEmpty()
                     .visitBlock(location)
                             .visitReturn(location)
@@ -250,10 +250,10 @@ public class ScriptClassInfo {
 
         builder.visitFunction(location, executeMethod.getName(), true, false, true)
                 .visitTypeClass(location, executeMethodReturnType).endVisit()
-                .visitParameters(location);
+                .visitDeclBlock(location);
 
         for (MethodArgument argument : executeArguments) {
-            builder.visitParameter(location, argument.getName())
+            builder.visitDeclaration(location, argument.getName(), false)
                     .visitTypeClass(location, argument.getClazz()).endVisit()
             .endVisit();
         }

@@ -104,7 +104,7 @@ public final class SSource extends AStatement {
                     List<Class<?>> typeParameters = new ArrayList<>();
 
                     for (int i = 0; i < function.children.get(1).children.size(); i++) {
-                        DParameter parameter = (DParameter)function.children.get(1).children.get(i);
+                        SDeclaration parameter = (SDeclaration)function.children.get(1).children.get(i);
                         typeParameters.add(((DTypeClass)parameter.children.get(0)).type);
                     }
 
@@ -126,7 +126,7 @@ public final class SSource extends AStatement {
                 SFunction function = (SFunction)child;
                 Class<?> returnType = ((DTypeClass)function.children.get(0)).type;
                 Locals functionLocals =
-                        Locals.newFunctionScope(program, returnType, (DParameters)function.children.get(1), settings.getMaxLoopCounter(),
+                        Locals.newFunctionScope(program, returnType, (SDeclBlock)function.children.get(1), settings.getMaxLoopCounter(),
                                 function.statik);
                 function.analyze(functionLocals);
             } else {

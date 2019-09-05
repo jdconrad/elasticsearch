@@ -61,8 +61,8 @@ public final class ENewArrayFunctionRef extends AExpression implements ILambda {
 
         SFunction function = new SFunction(location, locals.getNextSyntheticName(), false, true, true);
         function.children.add(new DTypeClass(location, type));
-        DParameters parameters = new DParameters(location);
-        DParameter parameter = new DParameter(location, "size");
+        SDeclBlock parameters = new SDeclBlock(location);
+        SDeclaration parameter = new SDeclaration(location, "size", false);
         parameter.children.add(new DTypeClass(location, int.class));
         parameters.children.add(parameter);
         function.children.add(parameters);
@@ -81,7 +81,7 @@ public final class ENewArrayFunctionRef extends AExpression implements ILambda {
         function.generateSignature();
         //function.extractVariables(null);
         function.analyze(Locals.newLambdaScope(locals.getProgramScope(), function.name, ((DTypeClass)function.children.get(0)).type,
-                (DParameters)function.children.get(1), 0, settings.getMaxLoopCounter()));
+                (SDeclBlock)function.children.get(1), 0, settings.getMaxLoopCounter()));
         children.set(0, function);
 
         if (expected == null) {

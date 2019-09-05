@@ -29,7 +29,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-public class ResolveUsedPass implements SemanticPass {
+public class ResolveUsedPass {
 
     public interface Visitor {
         void visit(ANode node, SymbolTable table, Map<String, Set<String>> used);
@@ -69,9 +69,7 @@ public class ResolveUsedPass implements SemanticPass {
         return baseEnters;
     }
 
-    @Override
-    public Object pass(ANode root, Map<String, Object> data) {
-        SymbolTable table = (SymbolTable)data.get(SymbolTable.SYMBOL_TABLE);
+    public Object pass(ANode root, SymbolTable table) {
         Map<String, Set<String>> used = new HashMap<>();
         visit(root, table, used);
 

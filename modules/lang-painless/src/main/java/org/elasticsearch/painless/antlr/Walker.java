@@ -231,13 +231,13 @@ public final class Walker extends PainlessParserBaseVisitor<Void> {
             throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
         }
 
-        builder.visitParameters(location(ctx));
+        builder.visitDeclBlock(location(ctx));
 
         for (int parameterIndex = 0; parameterIndex < ctx.decltype().size(); ++parameterIndex) {
             DecltypeContext type = ctx.decltype(parameterIndex);
             TerminalNode name = ctx.ID(parameterIndex);
 
-            builder.visitParameter(location(ctx), name.getText())
+            builder.visitDeclaration(location(ctx), name.getText(), false)
                     .visitTypeString(location(type), type.getText()).endVisit()
                     .endVisit();
         }
@@ -1255,7 +1255,7 @@ public final class Walker extends PainlessParserBaseVisitor<Void> {
 
     @Override
     public Void visitLambda(LambdaContext ctx) {
-        builder.visitLambda(location(ctx)).visitParameters(location(ctx));
+        builder.visitLambda(location(ctx)).visitDeclBlock(location(ctx));
 
         for (LamtypeContext lamtype : ctx.lamtype()) {
             visit(lamtype);
@@ -1278,7 +1278,7 @@ public final class Walker extends PainlessParserBaseVisitor<Void> {
 
     @Override
     public Void visitLamtype(LamtypeContext ctx) {
-        builder.visitParameter(location(ctx.ID()), ctx.ID().getText());
+        builder.visitDeclaration(location(ctx.ID()), ctx.ID().getText(), false);
 
         if (ctx.decltype() == null) {
             builder.visitEmpty();

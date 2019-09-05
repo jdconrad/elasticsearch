@@ -87,10 +87,6 @@ public final class ELambda extends AExpression implements ILambda {
     @Override
     void storeSettings(CompilerSettings settings) {
         for (ANode statement : children) {
-            if (statement instanceof DParameters) {
-                continue;
-            }
-
             statement.storeSettings(settings);
         }
 
@@ -104,7 +100,7 @@ public final class ELambda extends AExpression implements ILambda {
         List<String> paramNames = new ArrayList<>();
         PainlessMethod interfaceMethod;
 
-        DParameters parameters = (DParameters)children.get(0);
+        SDeclBlock parameters = (SDeclBlock)children.get(0);
 
         // inspect the target first, set interface method if we know it.
         if (expected == null) {
@@ -113,7 +109,7 @@ public final class ELambda extends AExpression implements ILambda {
             returnType = def.class;
             // don't infer any types, replace any null types with def
             for (ANode node : parameters.children) {
-                DParameter parameter = (DParameter)node;
+                SDeclaration parameter = (SDeclaration) node;
                 paramNames.add(parameter.name);
 
                 if (parameter.children.get(0) == null) {
@@ -141,7 +137,7 @@ public final class ELambda extends AExpression implements ILambda {
             }
             // replace any null types with the actual type
             for (int i = 0; i < parameters.children.size(); i++) {
-                DParameter parameter = (DParameter)parameters.children.get(i);
+                SDeclaration parameter = (SDeclaration) parameters.children.get(i);
                 paramNames.add(parameter.name);
 
                 if (parameter.children.get(0) == null) {
@@ -169,9 +165,9 @@ public final class ELambda extends AExpression implements ILambda {
         ASTBuilder builder = new ASTBuilder();
         builder.visitFunction(location, name, false, true, true)
                 .visitTypeClass(location, returnType).endVisit()
-                .visitParameters(location);
+                .visitDeclBlock(location);
                         for (int index = 0; index < paramTypes.size(); ++index) {
-                            builder.visitParameter(location, paramNames.get(index))
+                            builder.visitDeclaration(location, paramNames.get(index), false)
                                     .visitTypeClass(location, paramTypes.get(index)).endVisit()
                             .endVisit();
                         }
@@ -186,7 +182,7 @@ public final class ELambda extends AExpression implements ILambda {
         desugared.storeSettings(settings);
         desugared.generateSignature();
         desugared.analyze(Locals.newLambdaScope(locals.getProgramScope(), desugared.name, returnType,
-                (DParameters)desugared.children.get(1), captures.size(), settings.getMaxLoopCounter()));
+                (SDeclBlock)desugared.children.get(1), captures.size(), settings.getMaxLoopCounter()));
 
         // setup method reference to synthetic method
         if (expected == null) {

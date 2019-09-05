@@ -22,9 +22,9 @@ package org.elasticsearch.painless;
 import org.elasticsearch.painless.lookup.PainlessLookup;
 import org.elasticsearch.painless.lookup.PainlessLookupUtility;
 import org.elasticsearch.painless.lookup.def;
-import org.elasticsearch.painless.node.DParameter;
-import org.elasticsearch.painless.node.DParameters;
 import org.elasticsearch.painless.node.DTypeClass;
+import org.elasticsearch.painless.node.SDeclBlock;
+import org.elasticsearch.painless.node.SDeclaration;
 
 import java.lang.invoke.MethodType;
 import java.util.Collection;
@@ -100,7 +100,7 @@ public final class Locals {
      * <p>
      * This is just like {@link #newFunctionScope}, except the captured parameters are made read-only.
      */
-    public static Locals newLambdaScope(Locals programScope, String name, Class<?> returnType, DParameters parameters,
+    public static Locals newLambdaScope(Locals programScope, String name, Class<?> returnType, SDeclBlock parameters,
                                         int captureCount, int maxLoopCounter) {
         Locals locals = new Locals(programScope, programScope.painlessLookup, programScope.baseClass, returnType, KEYWORDS);
         locals.methods = programScope.methods;
@@ -109,7 +109,7 @@ public final class Locals {
         locals.methods.put(buildLocalMethodKey(name, parameters.children.size()), new LocalMethod(name, returnType, typeParameters,
                 MethodType.methodType(typeToJavaType(returnType), typeParameters)));
         for (int i = 0; i < parameters.children.size(); i++) {
-            DParameter parameter = (DParameter)parameters.children.get(i);
+            SDeclaration parameter = (SDeclaration)parameters.children.get(i);
             Class<?> type = ((DTypeClass)parameter.children.get(0)).type;
             // TODO: allow non-captures to be r/w:
             // boolean isCapture = i < captureCount;
@@ -126,7 +126,7 @@ public final class Locals {
     }
 
     /** Creates a new function scope inside the current scope */
-    public static Locals newFunctionScope(Locals programScope, Class<?> returnType, DParameters parameters, int maxLoopCounter,
+    public static Locals newFunctionScope(Locals programScope, Class<?> returnType, SDeclBlock parameters, int maxLoopCounter,
             boolean statik) {
         Locals locals = new Locals(programScope, programScope.painlessLookup, programScope.baseClass, returnType, KEYWORDS);
         locals.methods = programScope.methods;
@@ -134,7 +134,7 @@ public final class Locals {
             locals.defineVariable(null, Object.class, THIS, true);
         }
         for (int i = 0; i < parameters.children.size(); i++) {
-            DParameter parameter = (DParameter)parameters.children.get(i);
+            SDeclaration parameter = (SDeclaration) parameters.children.get(i);
             Class<?> type = ((DTypeClass)parameter.children.get(0)).type;
             locals.addVariable(parameter.location, type, parameter.name, false);
         }

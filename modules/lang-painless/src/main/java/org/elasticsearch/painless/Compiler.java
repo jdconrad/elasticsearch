@@ -22,7 +22,6 @@ package org.elasticsearch.painless;
 import org.elasticsearch.bootstrap.BootstrapInfo;
 import org.elasticsearch.painless.antlr.Walker;
 import org.elasticsearch.painless.builder.ResolveSymbolsPass;
-import org.elasticsearch.painless.builder.ResolveTypesPass;
 import org.elasticsearch.painless.builder.ResolveUsedPass;
 import org.elasticsearch.painless.builder.SymbolTable;
 import org.elasticsearch.painless.lookup.PainlessLookup;
@@ -214,13 +213,11 @@ final class Compiler {
         ScriptClassInfo scriptClassInfo = new ScriptClassInfo(painlessLookup, scriptClass);
         SSource root = Walker.buildPainlessTree(scriptClassInfo, name, source, settings, painlessLookup, null);
         root.storeSettings(settings);
-        Map<String, Object> data = new HashMap<>();
-        data.put(SymbolTable.SYMBOL_TABLE,
-                new SymbolTable(settings, painlessLookup, scriptClassInfo.getBaseClass(), Collections.singletonList(PainlessScript.class)));
-        new ResolveTypesPass(painlessLookup).pass(root, data);
-        new ResolveSymbolsPass().pass(root, data);
+        SymbolTable table =
+                new SymbolTable(settings, painlessLookup, scriptClassInfo.getBaseClass(), Collections.singletonList(PainlessScript.class));
+        new ResolveSymbolsPass().pass(root, table, Collections.emptyMap());
         @SuppressWarnings("unchecked")
-        Map<String, Set<String>> usedMap = (Map<String, Set<String>>)new ResolveUsedPass().pass(root, data);
+        Map<String, Set<String>> usedMap = (Map<String, Set<String>>)new ResolveUsedPass().pass(root, table);
         Set<String> usedSet =
                 usedMap.get(scriptClassInfo.getExecuteMethod().getName() + "/" + scriptClassInfo.getExecuteArguments().size());
         if (usedSet != null) {
@@ -254,12 +251,10 @@ final class Compiler {
     byte[] compile(String name, String source, CompilerSettings settings, Printer debugStream) {
         ScriptClassInfo scriptClassInfo = new ScriptClassInfo(painlessLookup, scriptClass);
         SSource root = Walker.buildPainlessTree(scriptClassInfo, name, source, settings, painlessLookup, debugStream);
-        Map<String, Object> data = new HashMap<>();
-        data.put(SymbolTable.SYMBOL_TABLE,
-                new SymbolTable(settings, painlessLookup, scriptClassInfo.getBaseClass(), Collections.singletonList(PainlessScript.class)));
-        new ResolveTypesPass(painlessLookup).pass(root, data);
-        new ResolveSymbolsPass().pass(root, data);
-        new ResolveUsedPass().pass(root, data);
+        SymbolTable table =
+                new SymbolTable(settings, painlessLookup, scriptClassInfo.getBaseClass(), Collections.singletonList(PainlessScript.class));
+        new ResolveSymbolsPass().pass(root, table, Collections.emptyMap());
+        new ResolveUsedPass().pass(root, table);
         root.storeSettings(settings);
         root.analyze(painlessLookup);
         root.write();
