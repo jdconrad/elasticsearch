@@ -31,6 +31,7 @@ public class FunctionTable {
     public static class LocalFunction {
 
         public final String name;
+        public final boolean internal;
         public final Class<?> returnType;
         public final List<Class<?>> typeParameters;
         public final List<String> parameterNames;
@@ -38,8 +39,11 @@ public class FunctionTable {
         public final MethodType methodType;
         public final org.objectweb.asm.commons.Method asmMethod;
 
-        public LocalFunction(String name, Class<?> returnType, List<Class<?>> typeParameters, List<String> parameterNames) {
+        public LocalFunction(String name, boolean internal,
+                Class<?> returnType, List<Class<?>> typeParameters, List<String> parameterNames) {
+
             this.name = name;
+            this.internal = internal;
             this.returnType = returnType;
             this.typeParameters = typeParameters;
             this.parameterNames = parameterNames;
@@ -59,13 +63,20 @@ public class FunctionTable {
 
     protected final Map<String, LocalFunction> localFunctions = new HashMap<>();
 
-    public LocalFunction add(String name, Class<?> returnType, List<Class<?>> typeParameters, List<String> parameterNames) {
-        LocalFunction localFunction = new LocalFunction(name, returnType, typeParameters, parameterNames);
+
+    public LocalFunction addFunction(String name, boolean internal,
+            Class<?> returnType, List<Class<?>> typeParameters, List<String> parameterNames) {
+
+        LocalFunction localFunction = new LocalFunction(name, internal, returnType, typeParameters, parameterNames);
         localFunctions.put(buildKey(name, typeParameters.size()), localFunction);
         return localFunction;
     }
 
-    public LocalFunction get(String key) {
+    public LocalFunction getFunction(String key) {
         return localFunctions.get(key);
+    }
+
+    public LocalFunction getFunction(String name, int parametersSize) {
+        return localFunctions.get(buildKey(name, parametersSize));
     }
 }

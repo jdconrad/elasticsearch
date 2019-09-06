@@ -21,10 +21,10 @@ package org.elasticsearch.painless.node;
 
 import org.elasticsearch.painless.CompilerSettings;
 import org.elasticsearch.painless.Globals;
-import org.elasticsearch.painless.Locals;
-import org.elasticsearch.painless.Locals.LocalMethod;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.builder.FunctionTable;
+import org.elasticsearch.painless.builder.SymbolTable;
 import org.elasticsearch.painless.lookup.PainlessClassBinding;
 import org.elasticsearch.painless.lookup.PainlessInstanceBinding;
 import org.elasticsearch.painless.lookup.PainlessMethod;
@@ -35,6 +35,7 @@ import org.objectweb.asm.commons.Method;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 import static org.elasticsearch.painless.WriterConstants.CLASS_TYPE;
@@ -46,11 +47,13 @@ public final class ECallLocal extends AExpression {
 
     public final String name;
 
-    private LocalMethod localMethod = null;
+    private FunctionTable.LocalFunction localFunction = null;
     private PainlessMethod importedMethod = null;
     private PainlessClassBinding classBinding = null;
     private int classBindingOffset = 0;
     private PainlessInstanceBinding instanceBinding = null;
+
+    private List<Class<?>> typeParameters;
 
     public ECallLocal(Location location, String name) {
         super(location);
@@ -65,95 +68,104 @@ public final class ECallLocal extends AExpression {
         }
     }
 
-    @Override
-    void analyze(Locals locals) {
-        localMethod = locals.getMethod(name, children.size());
+    public static void enter(ANode node, SymbolTable table, Map<String, Object> data) {
+        ECallLocal local = (ECallLocal) node;
+        String name = local.name;
+        List<ANode> children = local.children;
 
-        if (localMethod == null) {
-            importedMethod = locals.getPainlessLookup().lookupImportedPainlessMethod(name, children.size());
+        local.localFunction = table.functionTable.getFunction(name, children.size());
 
-            if (importedMethod == null) {
-                classBinding = locals.getPainlessLookup().lookupPainlessClassBinding(name, children.size());
+        if (local.localFunction.internal == true) {
+            local.localFunction = null;
+        }
+
+        if (local.localFunction == null) {
+            local.importedMethod = table.painlessLookup.lookupImportedPainlessMethod(name, children.size());
+
+            if (local.importedMethod == null) {
+                local.classBinding = table.painlessLookup.lookupPainlessClassBinding(name, children.size());
 
                 // check to see if this class binding requires an implicit this reference
-                if (classBinding != null && classBinding.typeParameters.isEmpty() == false &&
-                        classBinding.typeParameters.get(0) == locals.getBaseClass()) {
-                    classBinding = null;
+                if (local.classBinding != null && local.classBinding.typeParameters.isEmpty() == false &&
+                        local.classBinding.typeParameters.get(0) == table.baseClass) {
+                    local.classBinding = null;
                 }
 
-                if (classBinding == null) {
+                if (local.classBinding == null) {
                     // This extra check looks for a possible match where the class binding requires an implicit this
-                    // reference.  This is a temporary solution to allow the class binding access to data from the
-                    // base script class without need for a user to add additional arguments.  A long term solution
+                    // reference. This is a temporary solution to allow the class binding access to data from the
+                    // base script class without need for a user to add additional function arguments. A long term solution
                     // will likely involve adding a class instance binding where any instance can have a class binding
-                    // as part of its API.  However, the situation at run-time is difficult and will modifications that
+                    // as part of its API. However, the situation at run-time is difficult and requires modifications that
                     // are a substantial change if even possible to do.
-                    classBinding = locals.getPainlessLookup().lookupPainlessClassBinding(name, children.size() + 1);
+                    local.classBinding = table.painlessLookup.lookupPainlessClassBinding(name, children.size() + 1);
 
-                    if (classBinding != null) {
-                        if (classBinding.typeParameters.isEmpty() == false &&
-                                classBinding.typeParameters.get(0) == locals.getBaseClass()) {
-                            classBindingOffset = 1;
+                    if (local.classBinding != null) {
+                        if (local.classBinding.typeParameters.isEmpty() == false &&
+                                local.classBinding.typeParameters.get(0) == table.baseClass) {
+                            local.classBindingOffset = 1;
                         } else {
-                            classBinding = null;
+                            local.classBinding = null;
                         }
                     }
 
-                    if (classBinding == null) {
-                        instanceBinding = locals.getPainlessLookup().lookupPainlessInstanceBinding(name, children.size());
+                    if (local.classBinding == null) {
+                        local.instanceBinding = table.painlessLookup.lookupPainlessInstanceBinding(name, children.size());
 
-                        if (instanceBinding == null) {
-                            throw createError(new IllegalArgumentException(
-                                    "Unknown call [" + name + "] with [" + children.size() + "] arguments."));
+                        if (local.instanceBinding == null) {
+                            throw local.createError(new IllegalArgumentException(
+                                    "unknown function call [" + name + "] with [" + children.size() + "] arguments"));
                         }
                     }
                 }
             }
         }
 
-        List<Class<?>> typeParameters;
-
-        if (localMethod != null) {
-            typeParameters = new ArrayList<>(localMethod.typeParameters);
-            actual = localMethod.returnType;
-        } else if (importedMethod != null) {
-            typeParameters = new ArrayList<>(importedMethod.typeParameters);
-            actual = importedMethod.returnType;
-        } else if (classBinding != null) {
-            typeParameters = new ArrayList<>(classBinding.typeParameters);
-            actual = classBinding.returnType;
-        } else if (instanceBinding != null) {
-            typeParameters = new ArrayList<>(instanceBinding.typeParameters);
-            actual = instanceBinding.returnType;
+        if (local.localFunction != null) {
+            local.typeParameters = new ArrayList<>(local.localFunction.typeParameters);
+            local.actual = local.localFunction.returnType;
+        } else if (local.importedMethod != null) {
+            local.typeParameters = new ArrayList<>(local.importedMethod.typeParameters);
+            local.actual = local.importedMethod.returnType;
+        } else if (local.classBinding != null) {
+            local.typeParameters = new ArrayList<>(local.classBinding.typeParameters);
+            local.actual = local.classBinding.returnType;
+        } else if (local.instanceBinding != null) {
+            local.typeParameters = new ArrayList<>(local.instanceBinding.typeParameters);
+            local.actual = local.instanceBinding.returnType;
         } else {
-            throw new IllegalStateException("Illegal tree structure.");
+            throw new IllegalStateException("illegal tree structure");
         }
 
+        local.statement = true;
+    }
+
+    public static void before(ANode node, ANode child, int index, SymbolTable table, Map<String, Object> data) {
         // if the class binding is using an implicit this reference then the arguments counted must
         // be incremented by 1 as the this reference will not be part of the arguments passed into
         // the class binding call
-        for (int argument = 0; argument < children.size(); ++argument) {
-            AExpression expression = (AExpression)children.get(argument);
+        ECallLocal local = (ECallLocal) node;
+        AExpression expression = (AExpression)child;
 
-            expression.expected = typeParameters.get(argument + classBindingOffset);
-            expression.internal = true;
-            expression.analyze(locals);
-            children.set(argument, expression.cast(locals));
-        }
+        expression.expected = local.typeParameters.get(index + local.classBindingOffset);
+        expression.internal = true;
+    }
 
-        statement = true;
+    public static void after(ANode node, ANode child, int index, SymbolTable table, Map<String, Object> data) {
+        AExpression expression = (AExpression)child;
+        node.children.set(index, expression.cast());
     }
 
     @Override
     void write(MethodWriter writer, Globals globals) {
         writer.writeDebugInfo(location);
 
-        if (localMethod != null) {
+        if (localFunction != null) {
             for (ANode argument : children) {
                 argument.write(writer, globals);
             }
 
-            writer.invokeStatic(CLASS_TYPE, new Method(localMethod.name, localMethod.methodType.toMethodDescriptorString()));
+            writer.invokeStatic(CLASS_TYPE, new Method(localFunction.name, localFunction.methodType.toMethodDescriptorString()));
         } else if (importedMethod != null) {
             for (ANode argument : children) {
                 argument.write(writer, globals);

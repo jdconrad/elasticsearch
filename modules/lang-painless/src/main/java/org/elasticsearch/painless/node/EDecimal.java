@@ -24,7 +24,9 @@ import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.builder.SymbolTable;
 
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -45,29 +47,30 @@ public final class EDecimal extends AExpression {
         // Do nothing.
     }
 
-    @Override
-    void analyze(Locals locals) {
-        if (!read) {
-            throw createError(new IllegalArgumentException("Must read from constant [" + value + "]."));
+    public static void exit(ANode node, SymbolTable table, Map<String, Object> data) {
+        EDecimal decimal = (EDecimal)node;
+
+        if (!decimal.read) {
+            throw decimal.createError(new IllegalArgumentException("unused constant [" + decimal.constant + "]"));
         }
 
-        if (value.endsWith("f") || value.endsWith("F")) {
+        if (decimal.value.endsWith("f") || decimal.value.endsWith("F")) {
             try {
-                constant = Float.parseFloat(value.substring(0, value.length() - 1));
-                actual = float.class;
+                decimal.constant = Float.parseFloat(decimal.value.substring(0, decimal.value.length() - 1));
+                decimal.actual = float.class;
             } catch (NumberFormatException exception) {
-                throw createError(new IllegalArgumentException("Invalid float constant [" + value + "]."));
+                throw decimal.createError(new IllegalArgumentException("invalid float constant [" + decimal.value + "]"));
             }
         } else {
-            String toParse = value;
-            if (toParse.endsWith("d") || value.endsWith("D")) {
-                toParse = toParse.substring(0, value.length() - 1);
+            String toParse = decimal.value;
+            if (toParse.endsWith("d") || decimal.value.endsWith("D")) {
+                toParse = toParse.substring(0, decimal.value.length() - 1);
             }
             try {
-                constant = Double.parseDouble(toParse);
-                actual = double.class;
+                decimal.constant = Double.parseDouble(toParse);
+                decimal.actual = double.class;
             } catch (NumberFormatException exception) {
-                throw createError(new IllegalArgumentException("Invalid double constant [" + value + "]."));
+                throw decimal.createError(new IllegalArgumentException("invalid double constant [" + decimal.value + "]"));
             }
         }
     }

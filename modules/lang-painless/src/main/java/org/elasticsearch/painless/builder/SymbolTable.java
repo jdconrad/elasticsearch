@@ -28,19 +28,14 @@ import java.util.Objects;
 
 public class SymbolTable {
 
-    public static final String SYMBOL_TABLE = "symbol_table";
-
     public final CompilerSettings compilerSettings;
     public final PainlessLookup painlessLookup;
 
     public final Class<?> baseClass;
     public final List<Class<?>> baseInterfaces;
 
-    public final FunctionTable syntheticFunctions = new FunctionTable();
-    public final FunctionTable definedFunctions = new FunctionTable();
+    public final FunctionTable functionTable = new FunctionTable();
     public final ScopeTable scopeTable = new ScopeTable();
-
-    public int syntheticCounter = 0;
 
     public SymbolTable(CompilerSettings compilerSettings, PainlessLookup painlessLookup,
             Class<?> baseClass, List<Class<?>> baseInterfaces) {

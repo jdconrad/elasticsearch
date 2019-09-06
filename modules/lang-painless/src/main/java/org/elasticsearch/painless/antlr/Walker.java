@@ -215,7 +215,7 @@ public final class Walker extends PainlessParserBaseVisitor<Void> {
         String rtnType = ctx.decltype().getText();
         String name = ctx.ID().getText();
 
-        builder.visitFunction(location(ctx), name, false, true, false)
+        builder.visitFunction(location(ctx), name, false, false, true, false)
                 .visitTypeString(location(ctx), rtnType).endVisit();
         visit(ctx.parameters());
         builder.visitEmpty();
@@ -353,7 +353,8 @@ public final class Walker extends PainlessParserBaseVisitor<Void> {
 
         builder.visitEach(location(ctx))
                 .visitDeclaration(location(ctx.ID()), name, false)
-                        .visitTypeString(location(ctx.decltype()), type).endVisit().visitEmpty()
+                        .visitTypeString(location(ctx.decltype()), type).endVisit()
+                        .visitEmpty()
                 .endVisit();
 
         visit(ctx.expression());
@@ -370,7 +371,8 @@ public final class Walker extends PainlessParserBaseVisitor<Void> {
 
         builder.visitEach(location(ctx))
                 .visitDeclaration(location(ctx.ID()), name, false)
-                        .visitTypeString(location(ctx), "def").endVisit().visitEmpty()
+                        .visitTypeString(location(ctx), "def").endVisit()
+                        .visitEmpty()
                 .endVisit();
 
         visit(ctx.expression());

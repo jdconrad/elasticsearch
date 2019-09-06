@@ -39,6 +39,7 @@ import java.util.Objects;
 public final class SFunction extends AStatement {
 
     public final String name;
+    public final boolean internal;
     public final boolean auto;
     public final boolean statik;
     public final boolean synthetic;
@@ -52,10 +53,11 @@ public final class SFunction extends AStatement {
     private Variable loop = null;
 
     public SFunction(Location location, String name,
-            boolean auto, boolean statik, boolean synthetic) {
+            boolean internal, boolean auto, boolean statik, boolean synthetic) {
         super(location);
 
         this.name = Objects.requireNonNull(name);
+        this.internal = internal;
         this.auto = auto;
         this.statik = statik;
         this.synthetic = synthetic;

@@ -134,7 +134,7 @@ public final class Locals {
             locals.defineVariable(null, Object.class, THIS, true);
         }
         for (int i = 0; i < parameters.children.size(); i++) {
-            SDeclaration parameter = (SDeclaration) parameters.children.get(i);
+            SDeclaration parameter = (SDeclaration)parameters.children.get(i);
             Class<?> type = ((DTypeClass)parameter.children.get(0)).type;
             locals.addVariable(parameter.location, type, parameter.name, false);
         }

@@ -54,7 +54,7 @@ public abstract class AExpression extends ANode {
      * Set to the actual type this node is.  Note this variable is always
      * set by the node as output and should only be read from outside of the
      * node itself.  <b>Also, actual can always be read after a cast is
-     * called on this node to get the type of the node after the cast.</b>
+     * called on this node to getFunction the type of the node after the cast.</b>
      */
     Class<?> actual = null;
 
@@ -90,12 +90,28 @@ public abstract class AExpression extends ANode {
         super(location);
     }
 
+    @Override
+    void analyze(Locals locals) {
+        throw new IllegalStateException("illegal tree structure");
+    }
+
+    ECast cast() {
+        PainlessCast cast = AnalyzerCaster.getLegalCast(location, actual, expected, explicit, internal);
+
+        ECast ecast = new ECast(location, cast);
+        ecast.statement = statement;
+        ecast.actual = expected;
+        ecast.isNull = isNull;
+
+        return ecast;
+    }
+
     /**
      * Inserts {@link ECast} nodes into the tree for implicit casts.  Also replaces
      * nodes with the constant variable set to a non-null value with {@link EConstant}.
      * @return The new child node for the parent node calling this method.
      */
-    AExpression cast(Locals locals) {
+    /*AExpression cast(Locals locals) {
         PainlessCast cast = AnalyzerCaster.getLegalCast(location, actual, expected, explicit, internal);
 
         if (cast == null) {
@@ -191,5 +207,5 @@ public abstract class AExpression extends ANode {
                 }
             }
         }
-    }
+    }*/
 }

@@ -25,9 +25,11 @@ import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.Operation;
+import org.elasticsearch.painless.builder.SymbolTable;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.Opcodes;
 
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -49,20 +51,23 @@ public final class EBool extends AExpression {
         children.get(1).storeSettings(settings);
     }
 
-    @Override
-    void analyze(Locals locals) {
-        AExpression left = (AExpression)children.get(0);
-        AExpression right = (AExpression)children.get(1);
+    public static void enter(ANode node, SymbolTable table, Map<String, Object> data) {
+        AExpression lhs = (AExpression)node.children.get(0);
+        AExpression rhs = (AExpression)node.children.get(1);
 
-        left.expected = boolean.class;
-        left.analyze(locals);
-        children.set(0, left.cast(locals));
+        lhs.expected = boolean.class;
+        rhs.expected = boolean.class;
+    }
 
-        right.expected = boolean.class;
-        right.analyze(locals);
-        children.set(1, right.cast(locals));
+    public static void exit(ANode node, SymbolTable table, Map<String, Object> data) {
+        EBool bool = (EBool)node;
+        AExpression lhs = (AExpression)bool.children.get(0);
+        AExpression rhs = (AExpression)bool.children.get(1);
 
-        actual = boolean.class;
+        bool.children.set(0, lhs.cast());
+        bool.children.set(1, rhs.cast());
+
+        bool.actual = boolean.class;
     }
 
     @Override

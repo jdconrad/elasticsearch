@@ -24,6 +24,9 @@ import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.builder.SymbolTable;
+
+import java.util.Map;
 
 /**
  * Represents a boolean constant.
@@ -41,13 +44,16 @@ public final class EBoolean extends AExpression {
         // Do nothing.
     }
 
-    @Override
-    void analyze(Locals locals) {
-        if (!read) {
-            throw createError(new IllegalArgumentException("Must read from constant [" + constant + "]."));
+    public static void exit(ANode node, SymbolTable table, Map<String, Object> data) {
+        EBoolean bool = (EBoolean)node;
+
+        if (!bool.read) {
+            throw bool.createError(new IllegalArgumentException("unused constant [" + bool.constant + "]"));
         }
 
-        actual = boolean.class;
+        EConstant replace = new EConstant(bool.location, bool.constant);
+        replace.actual = boolean.class;
+        bool.replace(replace);
     }
 
     @Override

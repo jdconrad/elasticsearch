@@ -236,7 +236,7 @@ public class ScriptClassInfo {
             String needsName = needsMethod.getName().substring(5);
             needsName = Character.toLowerCase(needsName.charAt(0)) + needsName.substring(1);
 
-            builder.visitFunction(location, needsMethod.getName(), false, false, true)
+            builder.visitFunction(location, needsMethod.getName(), true, false, false, true)
                     .visitTypeClass(location, boolean.class).endVisit()
                     .visitDeclBlock(location).endVisit()
                     .visitEmpty()
@@ -248,13 +248,14 @@ public class ScriptClassInfo {
             .endVisit();
         }
 
-        builder.visitFunction(location, executeMethod.getName(), true, false, true)
+        builder.visitFunction(location, executeMethod.getName(), true, true, false, false)
                 .visitTypeClass(location, executeMethodReturnType).endVisit()
                 .visitDeclBlock(location);
 
         for (MethodArgument argument : executeArguments) {
             builder.visitDeclaration(location, argument.getName(), false)
                     .visitTypeClass(location, argument.getClazz()).endVisit()
+                    .visitEmpty()
             .endVisit();
         }
 

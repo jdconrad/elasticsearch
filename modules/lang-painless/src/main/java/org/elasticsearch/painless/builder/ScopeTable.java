@@ -37,6 +37,7 @@ public class ScopeTable {
         protected final boolean readonly;
 
         protected Class<?> type;
+        protected int slot;
 
         public Variable(String name, boolean readonly) {
             this.name = name;
@@ -57,6 +58,10 @@ public class ScopeTable {
 
         public Class<?> getType() {
             return type;
+        }
+
+        public int getSlot() {
+            return slot;
         }
     }
 

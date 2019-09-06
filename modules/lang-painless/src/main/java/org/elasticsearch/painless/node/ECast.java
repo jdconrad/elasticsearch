@@ -36,21 +36,15 @@ final class ECast extends AExpression {
 
     private final PainlessCast cast;
 
-    ECast(Location location, AExpression child, PainlessCast cast) {
+    ECast(Location location, PainlessCast cast) {
         super(location);
 
-        children.add(Objects.requireNonNull(child));
         this.cast = Objects.requireNonNull(cast);
     }
 
     @Override
     void storeSettings(CompilerSettings settings) {
         throw createError(new IllegalStateException("illegal tree structure"));
-    }
-
-    @Override
-    void analyze(Locals locals) {
-        throw createError(new IllegalStateException("Illegal tree structure."));
     }
 
     @Override

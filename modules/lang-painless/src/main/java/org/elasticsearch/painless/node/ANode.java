@@ -47,14 +47,24 @@ public abstract class ANode {
     public final Location location;
 
     public ANode parent;
-
-    /**
-     * Child nodes.
-     */
     public final List<ANode> children;
 
-    public void replace(ANode target) {
-        parent.children.set(parent.children.indexOf(this), target);
+    public void replace(ANode replace) {
+        parent.children.set(parent.children.indexOf(this), replace);
+        replace.children.addAll(children);
+    }
+
+    public void replace(int index, ANode replace) {
+        ANode original = children.set(index, replace);
+
+        if (original != null) {
+            replace.children.addAll(original.children);
+        }
+    }
+
+    public void insert(int index, ANode insert) {
+        ANode original = children.set(index, insert);
+        insert.children.add(original);
     }
 
     /**

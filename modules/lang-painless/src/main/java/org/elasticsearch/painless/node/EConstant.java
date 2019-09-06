@@ -24,12 +24,15 @@ import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.builder.SymbolTable;
+
+import java.util.Map;
 
 /**
  * Represents a constant inserted into the tree replacing
  * other constants during constant folding.  (Internal only.)
  */
-final class EConstant extends AExpression {
+public final class EConstant extends AExpression {
 
     EConstant(Location location, Object constant) {
         super(location);
@@ -42,28 +45,29 @@ final class EConstant extends AExpression {
         throw new IllegalStateException("illegal tree structure");
     }
 
-    @Override
-    void analyze(Locals locals) {
-        if (constant instanceof String) {
-            actual = String.class;
-        } else if (constant instanceof Double) {
-            actual = double.class;
-        } else if (constant instanceof Float) {
-            actual = float.class;
-        } else if (constant instanceof Long) {
-            actual = long.class;
-        } else if (constant instanceof Integer) {
-            actual = int.class;
-        } else if (constant instanceof Character) {
-            actual = char.class;
-        } else if (constant instanceof Short) {
-            actual = short.class;
-        } else if (constant instanceof Byte) {
-            actual = byte.class;
-        } else if (constant instanceof Boolean) {
-            actual = boolean.class;
+    public static void exit(ANode node, SymbolTable table, Map<String, Object> data) {
+        EConstant con = (EConstant)node;
+
+        if (con.constant instanceof String) {
+            con.actual = String.class;
+        } else if (con.constant instanceof Double) {
+            con.actual = double.class;
+        } else if (con.constant instanceof Float) {
+            con.actual = float.class;
+        } else if (con.constant instanceof Long) {
+            con.actual = long.class;
+        } else if (con.constant instanceof Integer) {
+            con.actual = int.class;
+        } else if (con.constant instanceof Character) {
+            con.actual = char.class;
+        } else if (con.constant instanceof Short) {
+            con.actual = short.class;
+        } else if (con.constant instanceof Byte) {
+            con.actual = byte.class;
+        } else if (con.constant instanceof Boolean) {
+            con.actual = boolean.class;
         } else {
-            throw createError(new IllegalStateException("Illegal tree structure."));
+            throw con.createError(new IllegalStateException("illegal tree structure"));
         }
     }
 

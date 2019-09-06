@@ -28,9 +28,11 @@ import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.Operation;
 import org.elasticsearch.painless.WriterConstants;
+import org.elasticsearch.painless.builder.SymbolTable;
 import org.elasticsearch.painless.lookup.PainlessLookupUtility;
 import org.elasticsearch.painless.lookup.def;
 
+import java.util.Map;
 import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -59,452 +61,98 @@ public final class EBinary extends AExpression {
         children.get(1).storeSettings(settings);
     }
 
-    @Override
-    void analyze(Locals locals) {
-        originallyExplicit = explicit;
+    public static void enter(ANode node, SymbolTable table, Map<String, Object> data) {
+        EBinary binary = (EBinary)node;
+        Operation operation = binary.operation;
 
-        if (operation == Operation.MUL) {
-            analyzeMul(locals);
-        } else if (operation == Operation.DIV) {
-            analyzeDiv(locals);
-        } else if (operation == Operation.REM) {
-            analyzeRem(locals);
-        } else if (operation == Operation.ADD) {
-            analyzeAdd(locals);
-        } else if (operation == Operation.SUB) {
-            analyzeSub(locals);
-        } else if (operation == Operation.FIND) {
-            analyzeRegexOp(locals);
-        } else if (operation == Operation.MATCH) {
-            analyzeRegexOp(locals);
-        } else if (operation == Operation.LSH) {
-            analyzeLSH(locals);
-        } else if (operation == Operation.RSH) {
-            analyzeRSH(locals);
-        } else if (operation == Operation.USH) {
-            analyzeUSH(locals);
-        } else if (operation == Operation.BWAND) {
-            analyzeBWAnd(locals);
-        } else if (operation == Operation.XOR) {
-            analyzeXor(locals);
-        } else if (operation == Operation.BWOR) {
-            analyzeBWOr(locals);
-        } else {
-            throw createError(new IllegalStateException("Illegal tree structure."));
+        binary.originallyExplicit = binary.explicit;
+
+        if (operation == Operation.FIND || operation == operation.MATCH) {
+            AExpression lhs = (AExpression)binary.children.get(0);
+            AExpression rhs = (AExpression)binary.children.get(0);
+
+            lhs.expected = String.class;
+            rhs.expected = Pattern.class;
         }
     }
 
-    private void analyzeMul(Locals variables) {
-        AExpression left = (AExpression)children.get(0);
-        AExpression right = (AExpression)children.get(1);
+    public static void exit(ANode node, SymbolTable table, Map<String, Object> data) {
+        EBinary binary = (EBinary) node;
+        Operation operation = binary.operation;
+        AExpression lhs = (AExpression) binary.children.get(0);
+        AExpression rhs = (AExpression) binary.children.get(0);
 
-        left.analyze(variables);
-        right.analyze(variables);
+        boolean shift = false;
 
-        promote = AnalyzerCaster.promoteNumeric(left.actual, right.actual, true);
-
-        if (promote == null) {
-            throw createError(new ClassCastException("Cannot apply multiply [*] to types " +
-                    "[" + PainlessLookupUtility.typeToCanonicalTypeName(left.actual) + "] and " +
-                    "[" + PainlessLookupUtility.typeToCanonicalTypeName(right.actual) + "]."));
+        switch (operation) {
+            case MUL:
+            case DIV:
+            case REM:
+            case SUB:
+                binary.promote = AnalyzerCaster.promoteNumeric(lhs.actual, rhs.actual, true);
+                break;
+            case ADD:
+                binary.promote = AnalyzerCaster.promoteAdd(lhs.actual, rhs.actual);
+                break;
+            case LSH:
+            case RSH:
+            case USH:
+                binary.promote = AnalyzerCaster.promoteNumeric(lhs.actual, false);
+                binary.shiftDistance = AnalyzerCaster.promoteNumeric(rhs.actual, false);
+                shift = true;
+                break;
+            case BWAND:
+            case BWOR:
+                binary.promote = AnalyzerCaster.promoteNumeric(lhs.actual, rhs.actual, false);
+                break;
+            case XOR:
+                binary.promote = AnalyzerCaster.promoteXor(lhs.actual, rhs.actual);
+                break;
+            case FIND:
+            case MATCH:
+                binary.promote = boolean.class;
+                break;
+            default:
+                throw binary.createError(new IllegalStateException("illegal tree structure"));
         }
 
-        actual = promote;
-
-        if (promote == def.class) {
-            left.expected = left.actual;
-            right.expected = right.actual;
-            if (expected != null) {
-                actual = expected;
-            }
-        } else {
-            left.expected = promote;
-            right.expected = promote;
+        if (binary.promote == null || (shift && binary.shiftDistance == null)) {
+            throw binary.createError(new ClassCastException(
+                    "illegal operation [" + operation.symbol + "] for types " +
+                    "[" + PainlessLookupUtility.typeToCanonicalTypeName(lhs.actual) + "] and " +
+                    "[" + PainlessLookupUtility.typeToCanonicalTypeName(rhs.actual) + "]"));
         }
 
-        children.set(0, left.cast(variables));
-        children.set(1, right.cast(variables));
-    }
+        binary.actual = binary.promote;
 
-    private void analyzeDiv(Locals variables) {
-        AExpression left = (AExpression)children.get(0);
-        AExpression right = (AExpression)children.get(1);
+        if (operation != Operation.FIND && operation != Operation.MATCH) {
+            if (operation == Operation.ADD && binary.promote == String.class) {
+                lhs.expected = lhs.actual;
 
-        left.analyze(variables);
-        right.analyze(variables);
+                if (lhs instanceof EBinary && ((EBinary) lhs).operation == Operation.ADD && lhs.actual == String.class) {
+                    ((EBinary) lhs).cat = true;
+                }
 
-        promote = AnalyzerCaster.promoteNumeric(left.actual, right.actual, true);
+                rhs.expected = rhs.actual;
 
-        if (promote == null) {
-            throw createError(new ClassCastException("Cannot apply divide [/] to types " +
-                    "[" + PainlessLookupUtility.typeToCanonicalTypeName(left.actual) + "] and " +
-                    "[" + PainlessLookupUtility.typeToCanonicalTypeName(right.actual) + "]."));
-        }
+                if (rhs instanceof EBinary && ((EBinary) rhs).operation == Operation.ADD && rhs.actual == String.class) {
+                    ((EBinary) rhs).cat = true;
+                }
+            } else if (binary.promote == def.class) {
+                lhs.expected = lhs.actual;
+                rhs.expected = rhs.actual;
 
-        actual = promote;
-
-        if (promote == def.class) {
-            left.expected = left.actual;
-            right.expected = right.actual;
-
-            if (expected != null) {
-                actual = expected;
-            }
-        } else {
-            left.expected = promote;
-            right.expected = promote;
-        }
-
-        children.set(0, left.cast(variables));
-        children.set(1, right.cast(variables));
-    }
-
-    private void analyzeRem(Locals variables) {
-        AExpression left = (AExpression)children.get(0);
-        AExpression right = (AExpression)children.get(1);
-
-        left.analyze(variables);
-        right.analyze(variables);
-
-        promote = AnalyzerCaster.promoteNumeric(left.actual, right.actual, true);
-
-        if (promote == null) {
-            throw createError(new ClassCastException("Cannot apply remainder [%] to types " +
-                    "[" + PainlessLookupUtility.typeToCanonicalTypeName(left.actual) + "] and " +
-                    "[" + PainlessLookupUtility.typeToCanonicalTypeName(right.actual) + "]."));
-        }
-
-        actual = promote;
-
-        if (promote == def.class) {
-            left.expected = left.actual;
-            right.expected = right.actual;
-
-            if (expected != null) {
-                actual = expected;
-            }
-        } else {
-            left.expected = promote;
-            right.expected = promote;
-        }
-
-        children.set(0, left.cast(variables));
-        children.set(1, right.cast(variables));
-    }
-
-    private void analyzeAdd(Locals variables) {
-        AExpression left = (AExpression)children.get(0);
-        AExpression right = (AExpression)children.get(1);
-
-        left.analyze(variables);
-        right.analyze(variables);
-
-        promote = AnalyzerCaster.promoteAdd(left.actual, right.actual);
-
-        if (promote == null) {
-            throw createError(new ClassCastException("Cannot apply add [+] to types " +
-                    "[" + PainlessLookupUtility.typeToCanonicalTypeName(left.actual) + "] and " +
-                    "[" + PainlessLookupUtility.typeToCanonicalTypeName(right.actual) + "]."));
-        }
-
-        actual = promote;
-
-        if (promote == String.class) {
-            left.expected = left.actual;
-
-            if (left instanceof EBinary && ((EBinary)left).operation == Operation.ADD && left.actual == String.class) {
-                ((EBinary)left).cat = true;
-            }
-
-            right.expected = right.actual;
-
-            if (right instanceof EBinary && ((EBinary)right).operation == Operation.ADD && right.actual == String.class) {
-                ((EBinary)right).cat = true;
-            }
-        } else if (promote == def.class) {
-            left.expected = left.actual;
-            right.expected = right.actual;
-
-            if (expected != null) {
-                actual = expected;
-            }
-        } else {
-            left.expected = promote;
-            right.expected = promote;
-        }
-
-        children.set(0, left.cast(variables));
-        children.set(1, right.cast(variables));
-    }
-
-    private void analyzeSub(Locals variables) {
-        AExpression left = (AExpression)children.get(0);
-        AExpression right = (AExpression)children.get(1);
-
-        left.analyze(variables);
-        right.analyze(variables);
-
-        promote = AnalyzerCaster.promoteNumeric(left.actual, right.actual, true);
-
-        if (promote == null) {
-            throw createError(new ClassCastException("Cannot apply subtract [-] to types " +
-                    "[" + PainlessLookupUtility.typeToCanonicalTypeName(left.actual) + "] and " +
-                    "[" + PainlessLookupUtility.typeToCanonicalTypeName(right.actual) + "]."));
-        }
-
-        actual = promote;
-
-        if (promote == def.class) {
-            left.expected = left.actual;
-            right.expected = right.actual;
-
-            if (expected != null) {
-                actual = expected;
-            }
-        } else {
-            left.expected = promote;
-            right.expected = promote;
-        }
-
-        children.set(0, left.cast(variables));
-        children.set(1, right.cast(variables));
-    }
-
-    private void analyzeRegexOp(Locals variables) {
-        AExpression left = (AExpression)children.get(0);
-        AExpression right = (AExpression)children.get(1);
-
-        left.analyze(variables);
-        right.analyze(variables);
-
-        left.expected = String.class;
-        right.expected = Pattern.class;
-
-        children.set(0, left.cast(variables));
-        children.set(1, right.cast(variables));
-
-        promote = boolean.class;
-        actual = boolean.class;
-    }
-
-    private void analyzeLSH(Locals variables) {
-        AExpression left = (AExpression)children.get(0);
-        AExpression right = (AExpression)children.get(1);
-
-        left.analyze(variables);
-        right.analyze(variables);
-
-        Class<?> lhspromote = AnalyzerCaster.promoteNumeric(left.actual, false);
-        Class<?> rhspromote = AnalyzerCaster.promoteNumeric(right.actual, false);
-
-        if (lhspromote == null || rhspromote == null) {
-            throw createError(new ClassCastException("Cannot apply left shift [<<] to types " +
-                    "[" + PainlessLookupUtility.typeToCanonicalTypeName(left.actual) + "] and " +
-                    "[" + PainlessLookupUtility.typeToCanonicalTypeName(right.actual) + "]."));
-        }
-
-        actual = promote = lhspromote;
-        shiftDistance = rhspromote;
-
-        if (lhspromote == def.class || rhspromote == def.class) {
-            left.expected = left.actual;
-            right.expected = right.actual;
-
-            if (expected != null) {
-                actual = expected;
-            }
-        } else {
-            left.expected = lhspromote;
-
-            if (rhspromote == long.class) {
-                right.expected = int.class;
-                right.explicit = true;
+                if (binary.expected != null) {
+                    binary.actual = binary.expected;
+                }
             } else {
-                right.expected = rhspromote;
+                lhs.expected = binary.promote;
+                rhs.expected = binary.promote;
             }
         }
 
-        children.set(0, left.cast(variables));
-        children.set(1, right.cast(variables));
-    }
-
-    private void analyzeRSH(Locals variables) {
-        AExpression left = (AExpression)children.get(0);
-        AExpression right = (AExpression)children.get(1);
-
-        left.analyze(variables);
-        right.analyze(variables);
-
-        Class<?> lhspromote = AnalyzerCaster.promoteNumeric(left.actual, false);
-        Class<?> rhspromote = AnalyzerCaster.promoteNumeric(right.actual, false);
-
-        if (lhspromote == null || rhspromote == null) {
-            throw createError(new ClassCastException("Cannot apply right shift [>>] to types " +
-                    "[" + PainlessLookupUtility.typeToCanonicalTypeName(left.actual) + "] and " +
-                    "[" + PainlessLookupUtility.typeToCanonicalTypeName(right.actual) + "]."));
-        }
-
-        actual = promote = lhspromote;
-        shiftDistance = rhspromote;
-
-        if (lhspromote == def.class || rhspromote == def.class) {
-            left.expected = left.actual;
-            right.expected = right.actual;
-
-            if (expected != null) {
-                actual = expected;
-            }
-        } else {
-            left.expected = lhspromote;
-
-            if (rhspromote == long.class) {
-                right.expected = int.class;
-                right.explicit = true;
-            } else {
-                right.expected = rhspromote;
-            }
-        }
-
-        children.set(0, left.cast(variables));
-        children.set(1, right.cast(variables));
-    }
-
-    private void analyzeUSH(Locals variables) {
-        AExpression left = (AExpression)children.get(0);
-        AExpression right = (AExpression)children.get(1);
-
-        left.analyze(variables);
-        right.analyze(variables);
-
-        Class<?> lhspromote = AnalyzerCaster.promoteNumeric(left.actual, false);
-        Class<?> rhspromote = AnalyzerCaster.promoteNumeric(right.actual, false);
-
-        actual = promote = lhspromote;
-        shiftDistance = rhspromote;
-
-        if (lhspromote == null || rhspromote == null) {
-            throw createError(new ClassCastException("Cannot apply unsigned shift [>>>] to types " +
-                    "[" + PainlessLookupUtility.typeToCanonicalTypeName(left.actual) + "] and " +
-                    "[" + PainlessLookupUtility.typeToCanonicalTypeName(right.actual) + "]."));
-        }
-
-        if (lhspromote == def.class || rhspromote == def.class) {
-            left.expected = left.actual;
-            right.expected = right.actual;
-
-            if (expected != null) {
-                actual = expected;
-            }
-        } else {
-            left.expected = lhspromote;
-
-            if (rhspromote == long.class) {
-                right.expected = int.class;
-                right.explicit = true;
-            } else {
-                right.expected = rhspromote;
-            }
-        }
-
-        children.set(0, left.cast(variables));
-        children.set(1, right.cast(variables));
-    }
-
-    private void analyzeBWAnd(Locals variables) {
-        AExpression left = (AExpression)children.get(0);
-        AExpression right = (AExpression)children.get(1);
-
-        left.analyze(variables);
-        right.analyze(variables);
-
-        promote = AnalyzerCaster.promoteNumeric(left.actual, right.actual, false);
-
-        if (promote == null) {
-            throw createError(new ClassCastException("Cannot apply and [&] to types " +
-                    "[" + PainlessLookupUtility.typeToCanonicalTypeName(left.actual) + "] and " +
-                    "[" + PainlessLookupUtility.typeToCanonicalTypeName(right.actual) + "]."));
-        }
-
-        actual = promote;
-
-        if (promote == def.class) {
-            left.expected = left.actual;
-            right.expected = right.actual;
-
-            if (expected != null) {
-                actual = expected;
-            }
-        } else {
-            left.expected = promote;
-            right.expected = promote;
-        }
-
-        children.set(0, left.cast(variables));
-        children.set(1, right.cast(variables));
-    }
-
-    private void analyzeXor(Locals variables) {
-        AExpression left = (AExpression)children.get(0);
-        AExpression right = (AExpression)children.get(1);
-
-        left.analyze(variables);
-        right.analyze(variables);
-
-        promote = AnalyzerCaster.promoteXor(left.actual, right.actual);
-
-        if (promote == null) {
-            throw createError(new ClassCastException("Cannot apply xor [^] to types " +
-                    "[" + PainlessLookupUtility.typeToCanonicalTypeName(left.actual) + "] and " +
-                    "[" + PainlessLookupUtility.typeToCanonicalTypeName(right.actual) + "]."));
-        }
-
-        actual = promote;
-
-        if (promote == def.class) {
-            left.expected = left.actual;
-            right.expected = right.actual;
-            if (expected != null) {
-                actual = expected;
-            }
-        } else {
-            left.expected = promote;
-            right.expected = promote;
-        }
-
-        children.set(0, left.cast(variables));
-        children.set(1, right.cast(variables));
-    }
-
-    private void analyzeBWOr(Locals variables) {
-        AExpression left = (AExpression)children.get(0);
-        AExpression right = (AExpression)children.get(1);
-
-        left.analyze(variables);
-        right.analyze(variables);
-
-        promote = AnalyzerCaster.promoteNumeric(left.actual, right.actual, false);
-
-        if (promote == null) {
-            throw createError(new ClassCastException("Cannot apply or [|] to types " +
-                    "[" + PainlessLookupUtility.typeToCanonicalTypeName(left.actual) + "] and " +
-                    "[" + PainlessLookupUtility.typeToCanonicalTypeName(right.actual) + "]."));
-        }
-
-        actual = promote;
-
-        if (promote == def.class) {
-            left.expected = left.actual;
-            right.expected = right.actual;
-            if (expected != null) {
-                actual = expected;
-            }
-        } else {
-            left.expected = promote;
-            right.expected = promote;
-        }
-
-        children.set(0, left.cast(variables));
-        children.set(1, right.cast(variables));
+        binary.children.set(0, lhs.cast());
+        binary.children.set(1, rhs.cast());
     }
 
     @Override
