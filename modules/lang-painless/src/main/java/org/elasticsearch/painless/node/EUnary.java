@@ -27,12 +27,14 @@ import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.Operation;
+import org.elasticsearch.painless.builder.SymbolTable;
 import org.elasticsearch.painless.lookup.PainlessLookupUtility;
 import org.elasticsearch.painless.lookup.def;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -56,96 +58,55 @@ public final class EUnary extends AExpression {
         children.get(0).storeSettings(settings);
     }
 
-    @Override
-    void analyze(Locals locals) {
-        originallyExplicit = explicit;
+    public static void enter(ANode node, SymbolTable table, Map<String, Object> data) {
+        EUnary unary = (EUnary)node;
+        AExpression child = (AExpression)unary.children.get(0);
 
-        if (operation == Operation.NOT) {
-            analyzeNot(locals);
-        } else if (operation == Operation.BWNOT) {
-            analyzeBWNot(locals);
-        } else if (operation == Operation.ADD) {
-            analyzerAdd(locals);
-        } else if (operation == Operation.SUB) {
-            analyzerSub(locals);
-        } else {
-            throw createError(new IllegalStateException("Illegal tree structure."));
+        unary.originallyExplicit = unary.explicit;
+
+        if (unary.operation == Operation.NOT) {
+            child.expected = boolean.class;
+        } else if (
+                unary.operation != Operation.BWNOT &&
+                unary.operation != Operation.ADD &&
+                unary.operation != Operation.SUB
+        ) {
+            throw unary.createError(new IllegalStateException("illegal tree structure"));
         }
     }
 
-    void analyzeNot(Locals variables) {
-        AExpression child = (AExpression)children.get(0);
+    public static void exit(ANode node, SymbolTable table, Map<String, Object> data) {
+        EUnary unary = (EUnary)node;
+        AExpression child = (AExpression)unary.children.get(0);
 
-        child.expected = boolean.class;
-        child.analyze(variables);
-        children.set(0, child.cast(variables));
+        unary.originallyExplicit = unary.explicit;
 
-        actual = boolean.class;
-    }
+        if (unary.operation == Operation.NOT) {
+            unary.children.set(0, child.cast());
+            unary.actual = boolean.class;
+        } else if (
+                unary.operation == Operation.BWNOT ||
+                unary.operation == Operation.ADD ||
+                unary.operation == Operation.SUB
+        ) {
+            unary.promote = AnalyzerCaster.promoteNumeric(child.actual, false);
 
-    void analyzeBWNot(Locals variables) {
-        AExpression child = (AExpression)children.get(0);
+            if (unary.promote == null) {
+                throw unary.createError(new ClassCastException("cannot apply " +
+                        "[" + unary.operation.symbol + "] to type " +
+                        "[" + PainlessLookupUtility.typeToCanonicalTypeName(child.actual) + "]"));
+            }
 
-        child.analyze(variables);
+            child.expected = unary.promote;
+            unary.children.set(0, child.cast());
 
-        promote = AnalyzerCaster.promoteNumeric(child.actual, false);
-
-        if (promote == null) {
-            throw createError(new ClassCastException("Cannot apply not [~] to type " +
-                    "[" + PainlessLookupUtility.typeToCanonicalTypeName(child.actual) + "]."));
-        }
-
-        child.expected = promote;
-        children.set(0, child.cast(variables));
-
-        if (promote == def.class && expected != null) {
-            actual = expected;
+            if (unary.promote == def.class && unary.expected != null) {
+                unary.actual = unary.expected;
+            } else {
+                unary.actual = unary.promote;
+            }
         } else {
-            actual = promote;
-        }
-    }
-
-    void analyzerAdd(Locals variables) {
-        AExpression child = (AExpression)children.get(0);
-
-        child.analyze(variables);
-
-        promote = AnalyzerCaster.promoteNumeric(child.actual, true);
-
-        if (promote == null) {
-            throw createError(new ClassCastException("Cannot apply positive [+] to type " +
-                    "[" + PainlessLookupUtility.typeToJavaType(child.actual) + "]."));
-        }
-
-        child.expected = promote;
-        children.set(0, child.cast(variables));
-
-        if (promote == def.class && expected != null) {
-            actual = expected;
-        } else {
-            actual = promote;
-        }
-    }
-
-    void analyzerSub(Locals variables) {
-        AExpression child = (AExpression)children.get(0);
-
-        child.analyze(variables);
-
-        promote = AnalyzerCaster.promoteNumeric(child.actual, true);
-
-        if (promote == null) {
-            throw createError(new ClassCastException("Cannot apply negative [-] to type " +
-                    "[" + PainlessLookupUtility.typeToJavaType(child.actual) + "]."));
-        }
-
-        child.expected = promote;
-        children.set(0, child.cast(variables));
-
-        if (promote == def.class && expected != null) {
-            actual = expected;
-        } else {
-            actual = promote;
+            throw unary.createError(new IllegalStateException("illegal tree structure"));
         }
     }
 

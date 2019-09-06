@@ -24,7 +24,10 @@ import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.builder.SymbolTable;
 import org.elasticsearch.painless.lookup.$this;
+
+import java.util.Map;
 
 public class EThis extends AExpression {
 
@@ -37,9 +40,9 @@ public class EThis extends AExpression {
 
     }
 
-    @Override
-    void analyze(Locals locals) {
-        actual = $this.class;
+    public static void enter(ANode node, SymbolTable table, Map<String, Object> data) {
+        EThis $this = (EThis)node;
+        $this.actual = $this.class;
     }
 
     @Override

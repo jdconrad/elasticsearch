@@ -25,8 +25,11 @@ import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.builder.ScopeTable;
+import org.elasticsearch.painless.builder.SymbolTable;
 import org.objectweb.asm.Type;
 
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -34,8 +37,6 @@ import java.util.Objects;
  */
 public final class ENewArrayFunctionRef extends AExpression implements ILambda {
     private final String type;
-
-    private CompilerSettings settings;
 
     private FunctionRef ref;
     private String defPointer;
@@ -48,50 +49,49 @@ public final class ENewArrayFunctionRef extends AExpression implements ILambda {
 
     @Override
     void storeSettings(CompilerSettings settings) {
-        this.settings = settings;
+
     }
 
-    @Override
-    void analyze(Locals locals) {
-        Class<?> type = locals.getPainlessLookup().canonicalTypeNameToType(this.type);
+    public static void enter(ANode node, SymbolTable table, Map<String, Object> data) {
+        ENewArrayFunctionRef nafr = (ENewArrayFunctionRef)node;
+        Class<?> type = table.painlessLookup.canonicalTypeNameToType(nafr.type);
 
         if (type == null) {
-            throw createError(new IllegalArgumentException("cannot resolve symbol [" + this.type + "]"));
+            throw nafr.createError(new IllegalArgumentException("cannot resolve symbol [" + nafr.type + "]"));
         }
 
-        SFunction function = new SFunction(location, locals.getNextSyntheticName(), false, true, true);
-        function.children.add(new DTypeClass(location, type));
-        SDeclBlock parameters = new SDeclBlock(location);
-        SDeclaration parameter = new SDeclaration(location, "size", false);
-        parameter.children.add(new DTypeClass(location, int.class));
+        SFunction function = new SFunction(nafr.location, table.functionTable.getNextSyntheticName(), true, false, true, true);
+        function.children.add(new DTypeClass(nafr.location, type));
+        SDeclBlock parameters = new SDeclBlock(nafr.location);
+        SDeclaration parameter = new SDeclaration(nafr.location, "size", false);
+        parameter.children.add(new DTypeClass(nafr.location, int.class));
         parameters.children.add(parameter);
         function.children.add(parameters);
         function.children.add(null);
-        EVariable size = new EVariable(location, "size");
-        ENewArray array = new ENewArray(location, false);
-        array.children.add(new DTypeClass(location, type));
+        EVariable size = new EVariable(nafr.location, "size");
+        ENewArray array = new ENewArray(nafr.location, false);
+        array.children.add(new DTypeClass(nafr.location, type));
         array.children.add(size);
-        SReturn rtn = new SReturn(location);
+        SReturn rtn = new SReturn(nafr.location);
         rtn.children.add(array);
-        SBlock block = new SBlock(location);
+        SBlock block = new SBlock(nafr.location);
         block.children.add(rtn);
         function.children.add(block);
-        children.add(function);
-        function.storeSettings(settings);
-        function.generateSignature();
-        //function.extractVariables(null);
-        function.analyze(Locals.newLambdaScope(locals.getProgramScope(), function.name, ((DTypeClass)function.children.get(0)).type,
-                (SDeclBlock)function.children.get(1), 0, settings.getMaxLoopCounter()));
-        children.set(0, function);
+        nafr.children.add(function);
+        function.storeSettings(table.compilerSettings);
+        ScopeTable.FunctionScope functionScope = table.scopeTable.newFunctionScope(function);
+        functionScope.addVariable("size", true);
+        functionScope.updateVariable("size", int.class);
 
-        if (expected == null) {
-            ref = null;
-            actual = String.class;
-            defPointer = "Sthis." + function.name + ",0";
+        if (nafr.expected == null) {
+            nafr.ref = null;
+            nafr.actual = String.class;
+            nafr.defPointer = "Sthis." + function.name + ",0";
         } else {
-            defPointer = null;
-            ref = FunctionRef.create(locals.getPainlessLookup(), locals.getMethods(), location, expected, "this", function.name, 0);
-            actual = expected;
+            nafr.defPointer = null;
+            nafr.ref =
+                    FunctionRef.create(table.painlessLookup, table.functionTable, nafr.location, nafr.expected, "this", function.name, 0);
+            nafr.actual = nafr.expected;
         }
     }
 

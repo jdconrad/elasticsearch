@@ -24,7 +24,9 @@ import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.builder.SymbolTable;
 
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -43,13 +45,14 @@ public final class EString extends AExpression {
         // do nothing
     }
 
-    @Override
-    void analyze(Locals locals) {
-        if (!read) {
-            throw createError(new IllegalArgumentException("Must read from constant [" + constant + "]."));
+    public static void enter(ANode node, SymbolTable table, Map<String, Object> data) {
+        EString string = (EString)node;
+
+        if (!string.read) {
+            throw string.createError(new IllegalArgumentException("Mmst read from constant [" + string.constant + "]"));
         }
 
-        actual = String.class;
+        string.replace(new EConstant(string.location, string.constant));
     }
 
     @Override

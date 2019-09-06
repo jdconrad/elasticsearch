@@ -112,6 +112,14 @@ public class ResolveSymbolsPass implements SemanticPass {
         baseEnters.put(ELambda.class, (node, table, data) -> {
             ELambda lambda = (ELambda)node;
             table.scopeTable.newLambdaScope(lambda);
+            // TODO: move this to a validation pass?
+            if (lambda.children.get(1) == null) {
+                throw node.createError(new IllegalArgumentException("lambda cannot have an empty body"));
+            }
+            ScopeTable.LocalScope localScope = table.scopeTable.newLocalScope(lambda.children.get(1));
+            if (table.compilerSettings.getMaxLoopCounter() > 0) {
+                localScope.addVariable("#loop", false);
+            }
         });
 
         baseEnters.put(EVariable.class, (node, table, data) -> {

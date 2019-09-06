@@ -25,7 +25,11 @@ import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.builder.SymbolTable;
+import org.elasticsearch.painless.lookup.PainlessLookupUtility;
 import org.objectweb.asm.Label;
+
+import java.util.Map;
 
 /**
  * The Elvis operator ({@code ?:}), a null coalescing operator. Binary operator that evaluates the first expression and return it if it is
@@ -43,47 +47,59 @@ public class EElvis extends AExpression {
         children.get(1).storeSettings(settings);
     }
 
-    @Override
-    void analyze(Locals locals) {
-        AExpression lhs = (AExpression)children.get(0);
-        AExpression rhs = (AExpression)children.get(1);
+    public static void enter(ANode node, SymbolTable table, Map<String, Object> data) {
+        EConditional elvis = (EConditional)node;
 
-        if (expected != null && expected.isPrimitive()) {
-            throw createError(new IllegalArgumentException("Elvis operator cannot return primitives"));
+        if (elvis.expected != null && elvis.expected.isPrimitive()) {
+            throw elvis.createError(new IllegalArgumentException("[?:] operator cannot return a primitive type " +
+                    "[" + PainlessLookupUtility.typeToCanonicalTypeName(elvis.expected) + "]"));
         }
-        lhs.expected = expected;
-        lhs.explicit = explicit;
-        lhs.internal = internal;
-        rhs.expected = expected;
-        rhs.explicit = explicit;
-        rhs.internal = internal;
-        actual = expected;
-        lhs.analyze(locals);
-        rhs.analyze(locals);
+
+        AExpression lhs = (AExpression)elvis.children.get(0);
+        AExpression rhs = (AExpression)elvis.children.get(1);
+
+        lhs.expected = elvis.expected;
+        lhs.explicit = elvis.explicit;
+        lhs.internal = elvis.internal;
+        rhs.expected = elvis.expected;
+        rhs.explicit = elvis.explicit;
+        rhs.internal = elvis.internal;
+    }
+
+    public static void exit(ANode node, SymbolTable table, Map<String, Object> data) {
+        EConditional elvis = (EConditional)node;
+        AExpression lhs = (AExpression)elvis.children.get(0);
+        AExpression rhs = (AExpression)elvis.children.get(1);
 
         if (lhs.isNull) {
-            throw createError(new IllegalArgumentException("Extraneous elvis operator. LHS is null."));
-        }
-        if (lhs.constant != null) {
-            throw createError(new IllegalArgumentException("Extraneous elvis operator. LHS is a constant."));
-        }
-        if (lhs.actual.isPrimitive()) {
-            throw createError(new IllegalArgumentException("Extraneous elvis operator. LHS is a primitive."));
-        }
-        if (rhs.isNull) {
-            throw createError(new IllegalArgumentException("Extraneous elvis operator. RHS is null."));
+            throw elvis.createError(new IllegalArgumentException("extraneous elvis operator: left-hand side cannot be [null]"));
         }
 
-        if (expected == null) {
+        if (lhs.constant != null) {
+            throw elvis.createError(new IllegalArgumentException("extraneous elvis operator: left-hand side cannot be a constant"));
+        }
+
+        if (lhs.actual.isPrimitive()) {
+            throw elvis.createError(new IllegalArgumentException("extraneous elvis operator: left-hand side cannot be a primitive type" +
+                    "[" + PainlessLookupUtility.typeToCanonicalTypeName(lhs.actual) + "]"));
+        }
+
+        if (rhs.isNull) {
+            throw elvis.createError(new IllegalArgumentException("extraneous elvis operator: right-hand side cannot be [null]"));
+        }
+
+        if (elvis.expected == null) {
             Class<?> promote = AnalyzerCaster.promoteConditional(lhs.actual, rhs.actual, lhs.constant, rhs.constant);
 
             lhs.expected = promote;
             rhs.expected = promote;
-            actual = promote;
+            elvis.actual = promote;
+        } else {
+            elvis.actual = elvis.expected;
         }
 
-        children.set(0, lhs.cast(locals));
-        children.set(1, rhs.cast(locals));
+        elvis.children.set(0, elvis.cast());
+        elvis.children.set(1, elvis.cast());
     }
 
     @Override

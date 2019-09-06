@@ -24,7 +24,10 @@ import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.builder.SymbolTable;
 import org.elasticsearch.painless.lookup.PainlessLookupUtility;
+
+import java.util.Map;
 
 /**
  * Represents {@code instanceof} operator.
@@ -45,27 +48,32 @@ public final class EInstanceof extends AExpression {
         children.get(1).storeSettings(settings);
     }
 
-    @Override
-    void analyze(Locals locals) {
-        Class<?> clazz = ((DTypeClass)children.get(0)).type;
-        AExpression expression = (AExpression)children.get(1);
+    public static void enter(ANode node, SymbolTable table, Map<String, Object> data) {
+        EInstanceof of = (EInstanceof)node;
+        Class<?> clazz = ((DTypeClass)of.children.get(0)).type;
 
         // map to wrapped type for primitive types
-        resolvedType = clazz.isPrimitive() ? PainlessLookupUtility.typeToBoxedType(clazz) :
+        of.resolvedType = clazz.isPrimitive() ? PainlessLookupUtility.typeToBoxedType(clazz) :
                 PainlessLookupUtility.typeToJavaType(clazz);
+    }
 
-        // analyze and cast the expression
-        expression.analyze(locals);
+    public static void exit(ANode node, SymbolTable table, Map<String, Object> data) {
+        EInstanceof of = (EInstanceof)node;
+        AExpression expression = (AExpression)of.children.get(1);
+
+        Class<?> clazz = ((DTypeClass)of.children.get(0)).type;
+
         expression.expected = expression.actual;
-        children.set(0, expression = expression.cast(locals));
+        of.children.set(0, expression = expression.cast());
 
         // record if the expression returns a primitive
-        primitiveExpression = expression.actual.isPrimitive();
+        of.primitiveExpression = expression.actual.isPrimitive();
         // map to wrapped type for primitive types
-        expressionType = expression.actual.isPrimitive() ?
-            PainlessLookupUtility.typeToBoxedType(expression.actual) : PainlessLookupUtility.typeToJavaType(clazz);
+        of.expressionType = expression.actual.isPrimitive() ?
+                PainlessLookupUtility.typeToBoxedType(expression.actual) :
+                PainlessLookupUtility.typeToJavaType(clazz);
 
-        actual = boolean.class;
+        of.actual = boolean.class;
     }
 
     @Override

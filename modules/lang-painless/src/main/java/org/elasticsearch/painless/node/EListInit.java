@@ -24,6 +24,7 @@ import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.builder.SymbolTable;
 import org.elasticsearch.painless.lookup.PainlessConstructor;
 import org.elasticsearch.painless.lookup.PainlessMethod;
 import org.elasticsearch.painless.lookup.def;
@@ -31,6 +32,7 @@ import org.objectweb.asm.Type;
 import org.objectweb.asm.commons.Method;
 
 import java.util.ArrayList;
+import java.util.Map;
 
 import static org.elasticsearch.painless.lookup.PainlessLookupUtility.typeToCanonicalTypeName;
 
@@ -52,35 +54,38 @@ public final class EListInit extends AExpression {
         }
     }
 
-    @Override
-    void analyze(Locals locals) {
-        if (!read) {
-            throw createError(new IllegalArgumentException("Must read from list initializer."));
+    public static void enter(ANode node, SymbolTable table, Map<String, Object> data) {
+        EListInit init = (EListInit)node;
+
+        if (!init.read) {
+            throw init.createError(new IllegalArgumentException("must read from list initializer"));
         }
 
-        actual = ArrayList.class;
+        init.actual = ArrayList.class;
+        init.constructor = table.painlessLookup.lookupPainlessConstructor(init.actual, 0);
 
-        constructor = locals.getPainlessLookup().lookupPainlessConstructor(actual, 0);
-
-        if (constructor == null) {
-            throw createError(new IllegalArgumentException(
-                    "constructor [" + typeToCanonicalTypeName(actual) + ", <init>/0] not found"));
+        if (init.constructor == null) {
+            throw init.createError(new IllegalArgumentException(
+                    "constructor [" + typeToCanonicalTypeName(init.actual) + ", <init>/0] not found"));
         }
 
-        method = locals.getPainlessLookup().lookupPainlessMethod(actual, false, "add", 1);
+        init.method = table.painlessLookup.lookupPainlessMethod(init.actual, false, "add", 1);
 
-        if (method == null) {
-            throw createError(new IllegalArgumentException("method [" + typeToCanonicalTypeName(actual) + ", add/1] not found"));
+        if (init.method == null) {
+            throw init.createError(new IllegalArgumentException("method [" + typeToCanonicalTypeName(init.actual) + ", add/1] not found"));
         }
+    }
 
-        for (int index = 0; index < children.size(); ++index) {
-            AExpression expression = (AExpression)children.get(index);
+    public static void before(ANode node, ANode child, int index, SymbolTable table, Map<String, Object> data) {
+        AExpression expression = (AExpression)child;
 
-            expression.expected = def.class;
-            expression.internal = true;
-            expression.analyze(locals);
-            children.set(index, expression.cast(locals));
-        }
+        expression.expected = def.class;
+        expression.internal = true;
+    }
+
+    public static void after(ANode node, ANode child, int index, SymbolTable table, Map<String, Object> data) {
+        AExpression expression = (AExpression)child;
+        node.children.set(index, expression.cast());
     }
 
     @Override

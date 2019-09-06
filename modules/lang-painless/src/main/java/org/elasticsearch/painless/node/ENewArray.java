@@ -24,6 +24,10 @@ import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.builder.SymbolTable;
+import org.elasticsearch.painless.lookup.def;
+
+import java.util.Map;
 
 /**
  * Represents an array instantiation.
@@ -49,24 +53,31 @@ public final class ENewArray extends AExpression {
         }
     }
 
-    @Override
-    void analyze(Locals locals) {
-        if (!read) {
-             throw createError(new IllegalArgumentException("A newly created array must be read from."));
+    public static void enter(ANode node, SymbolTable table, Map<String, Object> data) {
+        ENewArray array = (ENewArray) node;
+
+        if (!array.read) {
+             throw array.createError(new IllegalArgumentException("a newly initialized array must be read from"));
         }
 
-        Class<?> clazz = ((DTypeClass)children.get(0)).type;
+        array.actual = ((DTypeClass)array.children.get(0)).type;
+    }
 
-        for (int argument = 1; argument < children.size(); ++argument) {
-            AExpression expression = (AExpression)children.get(argument);
+    public static void before(ANode node, ANode child, int index, SymbolTable table, Map<String, Object> data) {
+        if (index > 0) {
+            ENewArray array = (ENewArray)node;
+            AExpression expression = (AExpression) child;
 
-            expression.expected = initialize ? clazz.getComponentType() : int.class;
+            expression.expected = array.initialize ? array.actual.getComponentType() : int.class;
             expression.internal = true;
-            expression.analyze(locals);
-            children.set(argument, expression.cast(locals));
         }
+    }
 
-        actual = clazz;
+    public static void after(ANode node, ANode child, int index, SymbolTable table, Map<String, Object> data) {
+        if (index > 0) {
+            AExpression expression = (AExpression)child;
+            node.children.set(index, expression.cast());
+        }
     }
 
     @Override

@@ -23,9 +23,11 @@ import org.elasticsearch.painless.node.ANode;
 import org.elasticsearch.painless.node.ELambda;
 import org.elasticsearch.painless.node.SFunction;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -74,7 +76,7 @@ public class ScopeTable {
         Variable getVariable(String name);
     }
 
-    public static class FunctionScope implements Scope {
+    public class FunctionScope implements Scope {
 
         protected final Map<String, Variable> variables = new HashMap<>();
         protected final Set<String> usedVariables = new HashSet<>();
@@ -124,17 +126,29 @@ public class ScopeTable {
         }
     }
 
-    public static class LambdaScope implements Scope {
+    public class LambdaScope implements Scope {
 
-        protected final Scope parent;
+        protected final ANode node;
 
         protected final Map<String, Variable> variables = new HashMap<>();
-        protected final Set<String> captures = new HashSet<>();
+        protected final List<Variable> captures = new ArrayList<>();
 
         protected Class<?> returnType;
 
-        public LambdaScope(Scope parent) {
-            this.parent = parent;
+        public LambdaScope(ANode node) {
+            this.node = node;
+        }
+
+        protected Scope getParent() {
+            ANode parent = node;
+            Scope scope = null;
+
+            while (scope == null) {
+                parent = parent.parent;
+                scope = nodeScopes.get(parent);
+            }
+
+            return scope;
         }
 
         public void setReturnType(Class<?> type) {
@@ -169,31 +183,45 @@ public class ScopeTable {
             Variable variable = variables.get(name);
 
             if (variable == null) {
-                captures.add(name);
-                variable = parent.getVariable(name);
+                variable = getParent().getVariable(name);
+
+                if (captures.contains(variable) == false) {
+                    captures.add(variable);
+                }
             }
 
             return variable;
         }
 
-        public Set<String> captures() {
-            return Collections.unmodifiableSet(captures);
+        public List<Variable> captures() {
+            return Collections.unmodifiableList(captures);
         }
     }
 
-    public static class LocalScope implements Scope {
+    public class LocalScope implements Scope {
 
-        protected final Scope parent;
-
+        protected final ANode node;
         protected final Map<String, Variable> variables = new HashMap<>();
 
-        public LocalScope(Scope parent) {
-            this.parent = parent;
+        public LocalScope(ANode node) {
+            this.node = node;
+        }
+
+        protected Scope getParent() {
+            ANode parent = node;
+            Scope scope = null;
+
+            while (scope == null) {
+                parent = parent.parent;
+                scope = nodeScopes.get(parent);
+            }
+
+            return scope;
         }
 
         @Override
         public Class<?> getReturnType() {
-            return parent.getReturnType();
+            return getParent().getReturnType();
         }
 
         @Override
@@ -219,7 +247,7 @@ public class ScopeTable {
             Variable variable = variables.get(name);
 
             if (variable == null) {
-                variable = parent.getVariable(name);
+                variable = getParent().getVariable(name);
             }
 
             return variable;
@@ -237,15 +265,13 @@ public class ScopeTable {
     }
 
     public LambdaScope newLambdaScope(ELambda node) {
-        Scope parent = getNodeScope(node.parent);
-        LambdaScope scope = new LambdaScope(parent);
+        LambdaScope scope = new LambdaScope(node);
         nodeScopes.put(node, scope);
         return scope;
     }
 
     public LocalScope newLocalScope(ANode node) {
-        Scope parent = getNodeScope(node.parent);
-        LocalScope scope = new LocalScope(parent);
+        LocalScope scope = new LocalScope(node);
         nodeScopes.put(node, scope);
         return scope;
     }

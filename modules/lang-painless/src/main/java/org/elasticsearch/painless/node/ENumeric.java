@@ -24,7 +24,9 @@ import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.builder.SymbolTable;
 
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -47,76 +49,64 @@ public final class ENumeric extends AExpression {
         // do nothing
     }
 
-    @Override
-    void analyze(Locals locals) {
-        if (!read) {
-            throw createError(new IllegalArgumentException("Must read from constant [" + value + "]."));
+    public static void enter(ANode node, SymbolTable table, Map<String, Object> data) {
+        ENumeric numeric = (ENumeric)node;
+
+        if (!numeric.read) {
+            throw numeric.createError(new IllegalArgumentException("must read from constant [" + numeric.value + "]"));
         }
 
-        if (value.endsWith("d") || value.endsWith("D")) {
-            if (radix != 10) {
-                throw createError(new IllegalStateException("Illegal tree structure."));
+        if (numeric.value.endsWith("d") || numeric.value.endsWith("D")) {
+            if (numeric.radix != 10) {
+                throw numeric.createError(new IllegalStateException("illegal tree structure"));
             }
 
             try {
-                constant = Double.parseDouble(value.substring(0, value.length() - 1));
-                actual = double.class;
+                numeric.constant = Double.parseDouble(numeric.value.substring(0, numeric.value.length() - 1));
             } catch (NumberFormatException exception) {
-                throw createError(new IllegalArgumentException("Invalid double constant [" + value + "]."));
+                throw numeric.createError(new IllegalArgumentException("invalid double constant [" + numeric.value + "]"));
             }
-        } else if (value.endsWith("f") || value.endsWith("F")) {
-            if (radix != 10) {
-                throw createError(new IllegalStateException("Illegal tree structure."));
+        } else if (numeric.value.endsWith("f") || numeric.value.endsWith("F")) {
+            if (numeric.radix != 10) {
+                throw numeric.createError(new IllegalStateException("illegal tree structure"));
             }
 
             try {
-                constant = Float.parseFloat(value.substring(0, value.length() - 1));
-                actual = float.class;
+                numeric.constant = Float.parseFloat(numeric.value.substring(0, numeric.value.length() - 1));
             } catch (NumberFormatException exception) {
-                throw createError(new IllegalArgumentException("Invalid float constant [" + value + "]."));
+                throw numeric.createError(new IllegalArgumentException("invalid float constant [" + numeric.value + "]."));
             }
-        } else if (value.endsWith("l") || value.endsWith("L")) {
+        } else if (numeric.value.endsWith("l") || numeric.value.endsWith("L")) {
             try {
-                constant = Long.parseLong(value.substring(0, value.length() - 1), radix);
-                actual = long.class;
+                numeric.constant = Long.parseLong(numeric.value.substring(0, numeric.value.length() - 1), numeric.radix);
             } catch (NumberFormatException exception) {
-                throw createError(new IllegalArgumentException("Invalid long constant [" + value + "]."));
+                throw numeric.createError(new IllegalArgumentException("invalid long constant [" + numeric.value + "]."));
             }
         } else {
             try {
-                Class<?> sort = expected == null ? int.class : expected;
-                int integer = Integer.parseInt(value, radix);
+                Class<?> sort = numeric.expected == null ? int.class : numeric.expected;
+                int integer = Integer.parseInt(numeric.value, numeric.radix);
 
                 if (sort == byte.class && integer >= Byte.MIN_VALUE && integer <= Byte.MAX_VALUE) {
-                    constant = (byte)integer;
-                    actual = byte.class;
+                    numeric.constant = (byte)integer;
                 } else if (sort == char.class && integer >= Character.MIN_VALUE && integer <= Character.MAX_VALUE) {
-                    constant = (char)integer;
-                    actual = char.class;
+                    numeric.constant = (char)integer;
                 } else if (sort == short.class && integer >= Short.MIN_VALUE && integer <= Short.MAX_VALUE) {
-                    constant = (short)integer;
-                    actual = short.class;
+                    numeric.constant = (short)integer;
                 } else {
-                    constant = integer;
-                    actual = int.class;
+                    numeric.constant = integer;
                 }
             } catch (NumberFormatException exception) {
-                try {
-                    // Check if we can parse as a long. If so then hint that the user might prefer that.
-                    Long.parseLong(value, radix);
-                    throw createError(new IllegalArgumentException("Invalid int constant [" + value + "]. If you want a long constant "
-                            + "then change it to [" + value + "L]."));
-                } catch (NumberFormatException longNoGood) {
-                    // Ignored
-                }
-                throw createError(new IllegalArgumentException("Invalid int constant [" + value + "]."));
+                throw numeric.createError(new IllegalArgumentException("invalid int constant [" + numeric.value + "]."));
             }
         }
+
+        numeric.replace(new EConstant(numeric.location, numeric.constant));
     }
 
     @Override
     void write(MethodWriter writer, Globals globals) {
-        throw createError(new IllegalStateException("Illegal tree structure."));
+        throw createError(new IllegalStateException("illegal tree structure"));
     }
 
     @Override

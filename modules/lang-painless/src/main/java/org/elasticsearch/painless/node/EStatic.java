@@ -24,6 +24,9 @@ import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.builder.SymbolTable;
+
+import java.util.Map;
 
 /**
  * Represents a static type target.
@@ -39,9 +42,9 @@ public final class EStatic extends AExpression {
         // do nothing
     }
 
-    @Override
-    void analyze(Locals locals) {
-        actual = ((DTypeClass)children.get(0)).type;
+    public static void enter(ANode node, SymbolTable table, Map<String, Object> data) {
+        EStatic statik = (EStatic)node;
+        statik.actual = ((DTypeClass)statik.children.get(0)).type;
     }
 
     @Override

@@ -62,7 +62,7 @@ public class FunctionTable {
     }
 
     protected final Map<String, LocalFunction> localFunctions = new HashMap<>();
-
+    protected int syntheticCount = 0;
 
     public LocalFunction addFunction(String name, boolean internal,
             Class<?> returnType, List<Class<?>> typeParameters, List<String> parameterNames) {
@@ -78,5 +78,9 @@ public class FunctionTable {
 
     public LocalFunction getFunction(String name, int parametersSize) {
         return localFunctions.get(buildKey(name, parametersSize));
+    }
+
+    public String getNextSyntheticName() {
+        return "painless$synthetic$" + syntheticCount++;
     }
 }

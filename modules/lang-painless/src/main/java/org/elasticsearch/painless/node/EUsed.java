@@ -24,6 +24,9 @@ import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.builder.SymbolTable;
+
+import java.util.Map;
 
 public class EUsed extends AExpression {
 
@@ -44,9 +47,9 @@ public class EUsed extends AExpression {
 
     }
 
-    @Override
-    void analyze(Locals locals) {
-        actual = boolean.class;
+    public static void enter(ANode node, SymbolTable table, Map<String, Object> data) {
+        EUsed used = (EUsed)node;
+        used.actual = boolean.class;
     }
 
     @Override

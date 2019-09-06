@@ -21,12 +21,13 @@ package org.elasticsearch.painless.node;
 
 import org.elasticsearch.painless.CompilerSettings;
 import org.elasticsearch.painless.Globals;
-import org.elasticsearch.painless.Locals;
-import org.elasticsearch.painless.Locals.Variable;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.builder.ScopeTable;
+import org.elasticsearch.painless.builder.SymbolTable;
 import org.objectweb.asm.Opcodes;
 
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -36,7 +37,7 @@ public final class EVariable extends AStoreable {
 
     public final String name;
 
-    private Variable variable = null;
+    private ScopeTable.Variable variable = null;
 
     public EVariable(Location location, String name) {
         super(location);
@@ -49,15 +50,16 @@ public final class EVariable extends AStoreable {
         // do nothing
     }
 
-    @Override
-    void analyze(Locals locals) {
-        variable = locals.getVariable(location, name);
+    public static void enter(ANode node, SymbolTable table, Map<String, Object> data) {
+        EVariable variableNode = (EVariable)node;
+        variableNode.variable = table.scopeTable.getNodeScope(variableNode).getVariable(variableNode.name);
 
-        if (write && variable.readonly) {
-            throw createError(new IllegalArgumentException("Variable [" + variable.name + "] is read-only."));
+        if (variableNode.write && variableNode.variable.isReadonly()) {
+            throw variableNode.createError(
+                    new IllegalArgumentException("variable [" + variableNode.variable.getName() + "] is read-only."));
         }
 
-        actual = variable.clazz;
+        variableNode.actual = variableNode.variable.getClass();
     }
 
     @Override

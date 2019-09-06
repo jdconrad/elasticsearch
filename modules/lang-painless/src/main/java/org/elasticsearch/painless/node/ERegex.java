@@ -25,8 +25,10 @@ import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.WriterConstants;
+import org.elasticsearch.painless.builder.SymbolTable;
 import org.objectweb.asm.Opcodes;
 
+import java.util.Map;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
@@ -62,27 +64,28 @@ public final class ERegex extends AExpression {
         this.settings = settings;
     }
 
-    @Override
-    void analyze(Locals locals) {
-        if (false == settings.areRegexesEnabled()) {
-            throw createError(new IllegalStateException("Regexes are disabled. Set [script.painless.regex.enabled] to [true] "
+    public static void enter(ANode node, SymbolTable table, Map<String, Object> data) {
+        ERegex regex = (ERegex)node;
+
+        if (false == table.compilerSettings.areRegexesEnabled()) {
+            throw regex.createError(new IllegalStateException("Regexes are disabled. Set [script.painless.regex.enabled] to [true] "
                     + "in elasticsearch.yaml to allow them. Be careful though, regexes break out of Painless's protection against deep "
                     + "recursion and long loops."));
         }
 
-        if (!read) {
-            throw createError(new IllegalArgumentException("Regex constant may only be read [" + pattern + "]."));
+        if (!regex.read) {
+            throw regex.createError(new IllegalArgumentException("regex constant may only be read [" + regex.pattern + "]"));
         }
 
         try {
-            Pattern.compile(pattern, flags);
+            Pattern.compile(regex.pattern, regex.flags);
         } catch (PatternSyntaxException e) {
-            throw new Location(location.getSourceName(), location.getOffset() + 1 + e.getIndex()).createError(
-                    new IllegalArgumentException("Error compiling regex: " + e.getDescription()));
+            throw new Location(regex.location.getSourceName(), regex.location.getOffset() + 1 + e.getIndex()).createError(
+                    new IllegalArgumentException("error compiling regex: " + e.getDescription()));
         }
 
-        name = "regexAt$" + location.getOffset();
-        actual = Pattern.class;
+        regex.name = "regexAt$" + regex.location.getOffset();
+        regex.actual = Pattern.class;
     }
 
     @Override

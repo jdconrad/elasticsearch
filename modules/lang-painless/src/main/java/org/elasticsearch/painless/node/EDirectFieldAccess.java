@@ -24,9 +24,12 @@ import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.builder.SymbolTable;
 import org.elasticsearch.painless.lookup.$this;
 import org.elasticsearch.painless.lookup.def;
 import org.objectweb.asm.Type;
+
+import java.util.Map;
 
 import static org.elasticsearch.painless.WriterConstants.CLASS_TYPE;
 
@@ -51,19 +54,18 @@ public class EDirectFieldAccess extends AExpression {
         }
     }
 
-    @Override
-    void analyze(Locals locals) {
-        AExpression prefix = (AExpression)children.get(0);
+    public static void exit(ANode node, SymbolTable table, Map<String, Object> data) {
+        EDirectFieldAccess access = (EDirectFieldAccess)node;
+        AExpression prefix = (AExpression)access.children.get(0);
 
-        prefix.analyze(locals);
         prefix.expected = prefix.actual;
-        children.set(0, prefix.cast(locals));
+        access.children.set(0, prefix.cast());
 
-        Class<?> fieldType = locals.getPainlessLookup().canonicalTypeNameToType(type.getClassName().replace('$', '.'));
+        Class<?> fieldType = table.painlessLookup.canonicalTypeNameToType(access.type.getClassName().replace('$', '.'));
 
         if (fieldType == null) {
             try {
-                fieldType = Class.forName(type.getInternalName().replace('/', '.'));
+                fieldType = Class.forName(access.type.getInternalName().replace('/', '.'));
             } catch (ClassNotFoundException cnfe) {
                 throw new IllegalStateException(cnfe);
             }
@@ -73,7 +75,7 @@ public class EDirectFieldAccess extends AExpression {
             fieldType = def.class;
         }
 
-        actual = fieldType;
+        access.actual = fieldType;
     }
 
     @Override

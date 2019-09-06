@@ -24,10 +24,14 @@ import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.builder.SymbolTable;
 import org.elasticsearch.painless.lookup.PainlessConstructor;
 import org.elasticsearch.painless.lookup.PainlessLookupUtility;
+import org.elasticsearch.painless.lookup.def;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.commons.Method;
+
+import java.util.Map;
 
 import static org.elasticsearch.painless.lookup.PainlessLookupUtility.typeToCanonicalTypeName;
 
@@ -53,37 +57,35 @@ public final class ENewObj extends AExpression {
         }
     }
 
-    @Override
-    void analyze(Locals locals) {
-        actual = ((DTypeClass)children.get(0)).type;
+    public static void enter(ANode node, SymbolTable table, Map<String, Object> data) {
+        ENewObj obj = (ENewObj) node;
 
-        int size = children.size() - 1;
-        constructor = locals.getPainlessLookup().lookupPainlessConstructor(actual, size);
+        obj.actual = ((DTypeClass) obj.children.get(0)).type;
 
-        if (constructor == null) {
-            throw createError(new IllegalArgumentException(
-                    "constructor [" + typeToCanonicalTypeName(actual) + ", <init>/" + size + "] not found"));
+        int size = obj.children.size() - 1;
+        obj.constructor = table.painlessLookup.lookupPainlessConstructor(obj.actual, size);
+
+        if (obj.constructor == null) {
+            throw obj.createError(new IllegalArgumentException(
+                    "constructor [" + typeToCanonicalTypeName(obj.actual) + ", <init>/" + size + "] not found"));
         }
 
-        Class<?>[] types = new Class<?>[constructor.typeParameters.size()];
-        constructor.typeParameters.toArray(types);
+        obj.statement = true;
+    }
 
-        if (constructor.typeParameters.size() != size) {
-            throw createError(new IllegalArgumentException(
-                    "When calling constructor on type [" + PainlessLookupUtility.typeToCanonicalTypeName(actual) + "] " +
-                    "expected [" + constructor.typeParameters.size() + "] arguments, but found [" + size + "]."));
-        }
+    public static void before(ANode node, ANode child, int index, SymbolTable table, Map<String, Object> data) {
+        if (index > 0) {
+            ENewObj obj = (ENewObj) node;
+            AExpression expression = (AExpression)child;
 
-        for (int argument = 1; argument < size + 1; ++argument) {
-            AExpression expression = (AExpression)children.get(argument);
-
-            expression.expected = types[argument - 1];
+            expression.expected = obj.constructor.typeParameters.get(index - 1);
             expression.internal = true;
-            expression.analyze(locals);
-            children.set(argument, expression.cast(locals));
         }
+    }
 
-        statement = true;
+    public static void after(ANode node, ANode child, int index, SymbolTable table, Map<String, Object> data) {
+        AExpression expression = (AExpression)child;
+        node.children.set(index, expression.cast());
     }
 
     @Override

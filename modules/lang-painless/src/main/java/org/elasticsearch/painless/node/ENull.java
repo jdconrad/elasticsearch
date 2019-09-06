@@ -24,8 +24,11 @@ import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.builder.SymbolTable;
 import org.elasticsearch.painless.lookup.PainlessLookupUtility;
 import org.objectweb.asm.Opcodes;
+
+import java.util.Map;
 
 /**
  * Represents a null constant.
@@ -41,23 +44,24 @@ public final class ENull extends AExpression {
         // do nothing
     }
 
-    @Override
-    void analyze(Locals locals) {
-        if (!read) {
-            throw createError(new IllegalArgumentException("Must read from null constant."));
+    public static void enter(ANode node, SymbolTable table, Map<String, Object> data) {
+        ENull nul = (ENull)node;
+
+        if (!nul.read) {
+            throw nul.createError(new IllegalArgumentException("must read from null constant"));
         }
 
-        isNull = true;
+        nul.isNull = true;
 
-        if (expected != null) {
-            if (expected.isPrimitive()) {
-                throw createError(new IllegalArgumentException(
-                    "Cannot cast null to a primitive type [" + PainlessLookupUtility.typeToCanonicalTypeName(expected) + "]."));
+        if (nul.expected != null) {
+            if (nul.expected.isPrimitive()) {
+                throw nul.createError(new IllegalArgumentException(
+                    "primitive type [" + PainlessLookupUtility.typeToCanonicalTypeName(nul.expected) + "] cannot be null"));
             }
 
-            actual = expected;
+            nul.actual = nul.expected;
         } else {
-            actual = Object.class;
+            nul.actual = Object.class;
         }
     }
 

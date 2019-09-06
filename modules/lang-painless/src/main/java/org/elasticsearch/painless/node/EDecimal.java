@@ -47,7 +47,7 @@ public final class EDecimal extends AExpression {
         // Do nothing.
     }
 
-    public static void exit(ANode node, SymbolTable table, Map<String, Object> data) {
+    public static void enter(ANode node, SymbolTable table, Map<String, Object> data) {
         EDecimal decimal = (EDecimal)node;
 
         if (!decimal.read) {
@@ -57,7 +57,6 @@ public final class EDecimal extends AExpression {
         if (decimal.value.endsWith("f") || decimal.value.endsWith("F")) {
             try {
                 decimal.constant = Float.parseFloat(decimal.value.substring(0, decimal.value.length() - 1));
-                decimal.actual = float.class;
             } catch (NumberFormatException exception) {
                 throw decimal.createError(new IllegalArgumentException("invalid float constant [" + decimal.value + "]"));
             }
@@ -68,11 +67,12 @@ public final class EDecimal extends AExpression {
             }
             try {
                 decimal.constant = Double.parseDouble(toParse);
-                decimal.actual = double.class;
             } catch (NumberFormatException exception) {
                 throw decimal.createError(new IllegalArgumentException("invalid double constant [" + decimal.value + "]"));
             }
         }
+
+        decimal.replace(new EConstant(decimal.location, decimal.constant));
     }
 
     @Override

@@ -44,16 +44,14 @@ public final class EBoolean extends AExpression {
         // Do nothing.
     }
 
-    public static void exit(ANode node, SymbolTable table, Map<String, Object> data) {
+    public static void enter(ANode node, SymbolTable table, Map<String, Object> data) {
         EBoolean bool = (EBoolean)node;
 
         if (!bool.read) {
             throw bool.createError(new IllegalArgumentException("unused constant [" + bool.constant + "]"));
         }
 
-        EConstant replace = new EConstant(bool.location, bool.constant);
-        replace.actual = boolean.class;
-        bool.replace(replace);
+        bool.replace(new EConstant(bool.location, bool.constant));
     }
 
     @Override

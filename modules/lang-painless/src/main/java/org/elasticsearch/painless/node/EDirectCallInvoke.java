@@ -24,11 +24,14 @@ import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.builder.SymbolTable;
 import org.elasticsearch.painless.lookup.$this;
 import org.elasticsearch.painless.lookup.def;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.commons.Method;
+
+import java.util.Map;
 
 import static org.elasticsearch.painless.WriterConstants.CLASS_TYPE;
 
@@ -53,19 +56,13 @@ public class EDirectCallInvoke extends AExpression {
         }
     }
 
-    @Override
-    void analyze(Locals locals) {
-        AExpression prefix = (AExpression)children.get(0);
+    public static void before(ANode node, ANode child, int index, SymbolTable table, Map<String, Object> data) {
+        if (index > 0) {
+            EDirectCallInvoke invoke = (EDirectCallInvoke)node;
+            AExpression expression = (AExpression)node.children.get(index);
 
-        prefix.analyze(locals);
-        prefix.expected = prefix.actual;
-        children.set(0, prefix.cast(locals));
-
-        for (int argument = 1; argument < children.size(); ++argument) {
-            AExpression expression = (AExpression)children.get(argument);
-
-            Type type = method.getArgumentTypes()[argument - 1];
-            Class<?> parameterType = locals.getPainlessLookup().canonicalTypeNameToType(type.getClassName().replace('$', '.'));
+            Type type = invoke.method.getArgumentTypes()[index - 1];
+            Class<?> parameterType = table.painlessLookup.canonicalTypeNameToType(type.getClassName().replace('$', '.'));
 
             if (parameterType == null) {
                 try {
@@ -81,17 +78,28 @@ public class EDirectCallInvoke extends AExpression {
 
             expression.expected = parameterType;
             expression.internal = true;
-            expression.analyze(locals);
-            children.set(argument, expression.cast(locals));
         }
+    }
 
-        statement = true;
+    public static void after(ANode node, ANode child, int index, SymbolTable table, Map<String, Object> data) {
+        if (index == 0) {
+            AExpression prefix = (AExpression)node.children.get(0);
+            prefix.expected = prefix.actual;
+            node.children.set(0, prefix.cast());
+        } else {
+            AExpression expression = (AExpression)node.children.get(index);
+            node.children.set(index, expression.cast());
+        }
+    }
 
-        Class<?> returnType = locals.getPainlessLookup().canonicalTypeNameToType(method.getReturnType().getClassName().replace('$', '.'));
+    public static void exit(ANode node, SymbolTable table, Map<String, Object> data) {
+        EDirectCallInvoke invoke = (EDirectCallInvoke)node;
+
+        Class<?> returnType = table.painlessLookup.canonicalTypeNameToType(invoke.method.getReturnType().getClassName().replace('$', '.'));
 
         if (returnType == null) {
             try {
-                returnType = Class.forName(method.getReturnType().getInternalName().replace('/', '.'));
+                returnType = Class.forName(invoke.method.getReturnType().getInternalName().replace('/', '.'));
             } catch (ClassNotFoundException cnfe) {
                 throw new IllegalStateException(cnfe);
             }
@@ -101,7 +109,8 @@ public class EDirectCallInvoke extends AExpression {
             returnType = def.class;
         }
 
-        actual = returnType;
+        invoke.actual = returnType;
+        invoke.statement = true;
     }
 
     @Override
