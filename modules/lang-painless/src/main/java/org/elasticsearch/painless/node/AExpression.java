@@ -38,6 +38,12 @@ public abstract class AExpression extends ANode {
     boolean read = true;
 
     /**
+     * Set to true when this node is an lhs-expression and will be storing
+     * a value from an rhs-expression.
+     */
+    boolean write = false;
+
+    /**
      * Set to true when an expression can be considered a stand alone
      * statement.  Used to prevent extraneous bytecode. This is always
      * set by the node as output.

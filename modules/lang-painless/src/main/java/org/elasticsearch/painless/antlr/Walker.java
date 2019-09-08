@@ -1021,19 +1021,27 @@ public final class Walker extends PainlessParserBaseVisitor<Void> {
     }
 
     private void buildPrefixChain(ParserRuleContext prefix, PostdotContext postdot, List<PostfixContext> postfixes) {
-        Stack<ParserRuleContext> prefixes = new Stack<>();
-
-        prefixes.push(prefix);
-
         if (postdot != null) {
-            prefixes.push(postdot);
+            builder.visitPostfixBridge(location(postdot));
+            //prefixes.push(postdot);
         }
 
         for (PostfixContext postfix : postfixes) {
-            prefixes.push(postfix);
+            builder.visitPostfixBridge(location(postfix));
+            //prefixes.push(postfix);
         }
 
-        visitPrefix(prefixes);
+        visit(prefix);
+
+        if (postdot != null) {
+            visit(postdot);
+            builder.endVisit();
+        }
+
+        for (PostfixContext postfix : postfixes) {
+            builder.visitPostfixBridge(location(postfix));
+            //prefixes.push(postfix);
+        }
     }
 
     @Override
@@ -1051,25 +1059,37 @@ public final class Walker extends PainlessParserBaseVisitor<Void> {
         if (prefix instanceof DynamicContext) {
             DynamicContext ctx = (DynamicContext)prefix;
 
+            builder.setRightToLeft();
             visit(ctx.primary());
+            builder.setLeftToRight();
         } else if (prefix instanceof StaticContext) {
             StaticContext ctx = (StaticContext)prefix;
 
+            builder.setRightToLeft();
             visitPrefixStatic(ctx);
+            builder.setLeftToRight();
         } else if (prefix instanceof NewstandardarrayContext) {
             NewstandardarrayContext ctx = (NewstandardarrayContext)prefix;
 
+            builder.setRightToLeft();
             visitPrefixNewstandardArray(ctx);
+            builder.setLeftToRight();
         } else if (prefix instanceof NewinitializedarrayContext) {
             NewinitializedarrayContext ctx = (NewinitializedarrayContext)prefix;
 
+            builder.setRightToLeft();
             visitPrefixNewinitializedarray(ctx);
+            builder.setLeftToRight();
         } else if (prefix instanceof PostdotContext) {
             PostdotContext ctx = (PostdotContext)prefix;
 
+            builder.visitPostfixBridge(location(ctx));
             visitPostdot(ctx, prefixes);
+            builder.endVisit();
         } else if (prefix instanceof PostfixContext) {
             PostfixContext ctx = (PostfixContext)prefix;
+
+            builder.visitPostfixBridge(location(ctx));
 
             if (ctx.callinvoke() != null) {
                 visitCallinvoke(ctx.callinvoke(), prefixes);
@@ -1080,6 +1100,8 @@ public final class Walker extends PainlessParserBaseVisitor<Void> {
             } else {
                 throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
             }
+
+            builder.endVisit();
         } else {
             throw location(prefix).createError(new IllegalStateException("illegal tree structure"));
         }
@@ -1108,12 +1130,10 @@ public final class Walker extends PainlessParserBaseVisitor<Void> {
     private void visitCallinvoke(CallinvokeContext ctx, Stack<ParserRuleContext> prefixes) {
         String name = ctx.DOTID().getText();
 
-        builder.visitCallInvoke(location(ctx), name, ctx.NSDOT() != null);
+        builder.visitCallInvoke(location(ctx), name, ctx.NSDOT() != null).endVisit();
 
         visitPrefix(prefixes);
         visit(ctx.arguments());
-
-        builder.endVisit();
     }
 
     @Override
@@ -1132,11 +1152,9 @@ public final class Walker extends PainlessParserBaseVisitor<Void> {
             throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
         }
 
-        builder.visitField(location(ctx), value, ctx.NSDOT() != null);
+        builder.visitField(location(ctx), value, ctx.NSDOT() != null).endVisit();
 
         visitPrefix(prefixes);
-
-        builder.endVisit();
     }
 
     @Override
@@ -1145,12 +1163,10 @@ public final class Walker extends PainlessParserBaseVisitor<Void> {
     }
 
     private void visitBraceaccess(BraceaccessContext ctx, Stack<ParserRuleContext> prefixes) {
-        builder.visitBrace(location(ctx));
+        builder.visitBrace(location(ctx)).endVisit();
 
         visitPrefix(prefixes);
         visit(ctx.expression());
-
-        builder.endVisit();
     }
 
     @Override

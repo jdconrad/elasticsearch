@@ -33,12 +33,6 @@ import java.util.function.Consumer;
 abstract class AStoreable extends AExpression {
 
     /**
-     * Set to true when this node is an lhs-expression and will be storing
-     * a value from an rhs-expression.
-     */
-    boolean write = false;
-
-    /**
      * Standard constructor with location used for error tracking.
      */
     AStoreable(Location location) {

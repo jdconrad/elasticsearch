@@ -57,6 +57,7 @@ import org.elasticsearch.painless.node.EVariable;
 import org.elasticsearch.painless.node.PBrace;
 import org.elasticsearch.painless.node.PCallInvoke;
 import org.elasticsearch.painless.node.PField;
+import org.elasticsearch.painless.node.PPostfixBridge;
 import org.elasticsearch.painless.node.SBlock;
 import org.elasticsearch.painless.node.SBreak;
 import org.elasticsearch.painless.node.SCatch;
@@ -86,6 +87,7 @@ public class ASTBuilder {
 
     protected ANode root = null;
     protected ANode current = null;
+    protected boolean right = true;
 
     protected final Map<String, ANode> saves = new HashMap<>();
 
@@ -119,6 +121,18 @@ public class ASTBuilder {
         return this;
     }
 
+    public ASTBuilder setLeftToRight() {
+        right = true;
+
+        return this;
+    }
+
+    public ASTBuilder setRightToLeft() {
+        right = false;
+
+        return this;
+    }
+
     protected ASTBuilder visitChild(ANode child) {
         if (current == null) {
             if (root != null) {
@@ -128,7 +142,12 @@ public class ASTBuilder {
             root = child;
         } else {
             child.parent = current;
-            current.children.add(child);
+
+            if (right) {
+                current.children.add(child);
+            } else {
+                current.children.add(0, child);
+            }
         }
 
         current = child;
@@ -336,6 +355,10 @@ public class ASTBuilder {
 
     public ASTBuilder visitVariable(Location location, String name) {
         return visitChild(new EVariable(location, name));
+    }
+
+    public ASTBuilder visitPostfixBridge(Location location) {
+        return visitChild(new PPostfixBridge(location));
     }
 
     public ASTBuilder visitBrace(Location location) {
