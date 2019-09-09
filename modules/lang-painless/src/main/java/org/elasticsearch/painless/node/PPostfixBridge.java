@@ -45,6 +45,7 @@ public class PPostfixBridge extends AExpression {
         rhs.expected = lhs.actual;
         rhs.write = write;
         rhs.analyze(locals);
+        actual = rhs.actual;
         statement = rhs.statement;
     }
 

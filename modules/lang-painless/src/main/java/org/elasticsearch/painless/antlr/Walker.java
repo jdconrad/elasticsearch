@@ -110,9 +110,6 @@ import org.elasticsearch.painless.lookup.PainlessLookup;
 import org.elasticsearch.painless.node.SSource;
 import org.objectweb.asm.util.Printer;
 
-import java.util.List;
-import java.util.Stack;
-
 /**
  * Converts the ANTLR tree to a Painless tree.
  */
@@ -855,24 +852,50 @@ public final class Walker extends PainlessParserBaseVisitor<Void> {
 
     @Override
     public Void visitDynamic(DynamicContext ctx) {
-        buildPrefixChain(ctx, null, ctx.postfix());
+        for (PostfixContext postfix : ctx.postfix()) {
+            builder.visitPostfixBridge(location(postfix));
+        }
+
+        visit(ctx.primary());
+
+        for (PostfixContext postfix : ctx.postfix()) {
+            visit(postfix);
+            builder.endVisit();
+        }
 
         return null;
     }
 
     @Override
     public Void visitStatic(StaticContext ctx) {
-        buildPrefixChain(ctx, ctx.postdot(), ctx.postfix());
+        if (ctx.postdot() != null) {
+            builder.visitPostfixBridge(location(ctx.postdot()));
+        }
+
+        for (PostfixContext postfix : ctx.postfix()) {
+            builder.visitPostfixBridge(location(postfix));
+        }
+
+        String type = ctx.decltype().getText();
+        builder.visitStatic(location(ctx))
+                .visitTypeString(location(ctx.decltype()), type).endVisit()
+        .endVisit();
+
+        if (ctx.postdot() != null) {
+            visit(ctx.postdot());
+            builder.endVisit();
+        }
+
+        for (PostfixContext postfix : ctx.postfix()) {
+            visit(postfix);
+            builder.endVisit();
+        }
 
         return null;
     }
 
     private void visitPrefixStatic(StaticContext ctx) {
-        String type = ctx.decltype().getText();
 
-        builder.visitStatic(location(ctx))
-                .visitTypeString(location(ctx.decltype()), type).endVisit()
-        .endVisit();
     }
 
     @Override
@@ -1020,128 +1043,47 @@ public final class Walker extends PainlessParserBaseVisitor<Void> {
         return null;
     }
 
-    private void buildPrefixChain(ParserRuleContext prefix, PostdotContext postdot, List<PostfixContext> postfixes) {
-        if (postdot != null) {
-            builder.visitPostfixBridge(location(postdot));
-            //prefixes.push(postdot);
-        }
-
-        for (PostfixContext postfix : postfixes) {
-            builder.visitPostfixBridge(location(postfix));
-            //prefixes.push(postfix);
-        }
-
-        visit(prefix);
-
-        if (postdot != null) {
-            visit(postdot);
-            builder.endVisit();
-        }
-
-        for (PostfixContext postfix : postfixes) {
-            builder.visitPostfixBridge(location(postfix));
-            //prefixes.push(postfix);
-        }
-    }
-
     @Override
     public Void visitPostfix(PostfixContext ctx) {
-        throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
-    }
-
-    private void visitPrefix(Stack<ParserRuleContext> prefixes) {
-        if (prefixes.isEmpty()) {
-            throw new IllegalStateException("illegal tree structure");
-        }
-
-        ParserRuleContext prefix = prefixes.pop();
-
-        if (prefix instanceof DynamicContext) {
-            DynamicContext ctx = (DynamicContext)prefix;
-
-            builder.setRightToLeft();
-            visit(ctx.primary());
-            builder.setLeftToRight();
-        } else if (prefix instanceof StaticContext) {
-            StaticContext ctx = (StaticContext)prefix;
-
-            builder.setRightToLeft();
-            visitPrefixStatic(ctx);
-            builder.setLeftToRight();
-        } else if (prefix instanceof NewstandardarrayContext) {
-            NewstandardarrayContext ctx = (NewstandardarrayContext)prefix;
-
-            builder.setRightToLeft();
-            visitPrefixNewstandardArray(ctx);
-            builder.setLeftToRight();
-        } else if (prefix instanceof NewinitializedarrayContext) {
-            NewinitializedarrayContext ctx = (NewinitializedarrayContext)prefix;
-
-            builder.setRightToLeft();
-            visitPrefixNewinitializedarray(ctx);
-            builder.setLeftToRight();
-        } else if (prefix instanceof PostdotContext) {
-            PostdotContext ctx = (PostdotContext)prefix;
-
-            builder.visitPostfixBridge(location(ctx));
-            visitPostdot(ctx, prefixes);
-            builder.endVisit();
-        } else if (prefix instanceof PostfixContext) {
-            PostfixContext ctx = (PostfixContext)prefix;
-
-            builder.visitPostfixBridge(location(ctx));
-
-            if (ctx.callinvoke() != null) {
-                visitCallinvoke(ctx.callinvoke(), prefixes);
-            } else if (ctx.fieldaccess() != null) {
-                visitFieldaccess(ctx.fieldaccess(), prefixes);
-            } else if (ctx.braceaccess() != null) {
-                visitBraceaccess(ctx.braceaccess(), prefixes);
-            } else {
-                throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
-            }
-
-            builder.endVisit();
+        if (ctx.callinvoke() != null) {
+            visitCallinvoke(ctx.callinvoke());
+        } else if (ctx.fieldaccess() != null) {
+            visitFieldaccess(ctx.fieldaccess());
+        } else if (ctx.braceaccess() != null) {
+            visitBraceaccess(ctx.braceaccess());
         } else {
-            throw location(prefix).createError(new IllegalStateException("illegal tree structure"));
+            throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
         }
+
+        return null;
     }
 
     @Override
     public Void visitPostdot(PostdotContext ctx) {
-        throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
-    }
-
-    private void visitPostdot(PostdotContext ctx, Stack<ParserRuleContext> prefixes) {
         if (ctx.callinvoke() != null) {
-            visitCallinvoke(ctx.callinvoke(), prefixes);
+            visitCallinvoke(ctx.callinvoke());
         } else if (ctx.fieldaccess() != null) {
-            visitFieldaccess(ctx.fieldaccess(), prefixes);
+            visitFieldaccess(ctx.fieldaccess());
         } else {
             throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
         }
+
+        return null;
     }
 
     @Override
     public Void visitCallinvoke(CallinvokeContext ctx) {
-        throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
-    }
-
-    private void visitCallinvoke(CallinvokeContext ctx, Stack<ParserRuleContext> prefixes) {
         String name = ctx.DOTID().getText();
 
-        builder.visitCallInvoke(location(ctx), name, ctx.NSDOT() != null).endVisit();
-
-        visitPrefix(prefixes);
+        builder.visitCallInvoke(location(ctx), name, ctx.NSDOT() != null);
         visit(ctx.arguments());
+        builder.endVisit();
+
+        return null;
     }
 
     @Override
     public Void visitFieldaccess(FieldaccessContext ctx) {
-        throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
-    }
-
-    private void visitFieldaccess(FieldaccessContext ctx, Stack<ParserRuleContext> prefixes) {
         final String value;
 
         if (ctx.DOTID() != null) {
@@ -1154,29 +1096,28 @@ public final class Walker extends PainlessParserBaseVisitor<Void> {
 
         builder.visitField(location(ctx), value, ctx.NSDOT() != null).endVisit();
 
-        visitPrefix(prefixes);
+        return null;
     }
 
     @Override
     public Void visitBraceaccess(BraceaccessContext ctx) {
-        throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
-    }
-
-    private void visitBraceaccess(BraceaccessContext ctx, Stack<ParserRuleContext> prefixes) {
-        builder.visitBrace(location(ctx)).endVisit();
-
-        visitPrefix(prefixes);
+        builder.visitBrace(location(ctx));
         visit(ctx.expression());
-    }
-
-    @Override
-    public Void visitNewstandardarray(NewstandardarrayContext ctx) {
-        buildPrefixChain(ctx, ctx.postdot(), ctx.postfix());
+        builder.endVisit();
 
         return null;
     }
 
-    private void visitPrefixNewstandardArray(NewstandardarrayContext ctx) {
+    @Override
+    public Void visitNewstandardarray(NewstandardarrayContext ctx) {
+        if (ctx.postdot() != null) {
+            builder.visitPostfixBridge(location(ctx.postdot()));
+        }
+
+        for (PostfixContext postfix : ctx.postfix()) {
+            builder.visitPostfixBridge(location(postfix));
+        }
+
         StringBuilder type = new StringBuilder(ctx.TYPE().getText());
 
         for (int dimensions = 0; dimensions < ctx.expression().size(); ++dimensions) {
@@ -1191,16 +1132,26 @@ public final class Walker extends PainlessParserBaseVisitor<Void> {
         }
 
         builder.endVisit();
-    }
 
-    @Override
-    public Void visitNewinitializedarray(NewinitializedarrayContext ctx) {
-        buildPrefixChain(ctx, null, ctx.postfix());
+        if (ctx.postdot() != null) {
+            visit(ctx.postdot());
+            builder.endVisit();
+        }
+
+        for (PostfixContext postfix : ctx.postfix()) {
+            visit(postfix);
+            builder.endVisit();
+        }
 
         return null;
     }
 
-    private void visitPrefixNewinitializedarray(NewinitializedarrayContext ctx) {
+    @Override
+    public Void visitNewinitializedarray(NewinitializedarrayContext ctx) {
+        for (PostfixContext postfix : ctx.postfix()) {
+            builder.visitPostfixBridge(location(postfix));
+        }
+
         String type = ctx.TYPE().getText() + "[]";
 
         builder.visitNewArray(location(ctx), true)
@@ -1211,6 +1162,13 @@ public final class Walker extends PainlessParserBaseVisitor<Void> {
         }
 
         builder.endVisit();
+
+        for (PostfixContext postfix : ctx.postfix()) {
+            visit(postfix);
+            builder.endVisit();
+        }
+
+        return null;
     }
 
     @Override
