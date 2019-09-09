@@ -29,9 +29,9 @@ import org.elasticsearch.painless.MethodWriter;
  * Represents a constant inserted into the tree replacing
  * other constants during constant folding.  (Internal only.)
  */
-final class EConstant extends AExpression {
+public final class EConstant extends AExpression {
 
-    EConstant(Location location, Object constant) {
+    public EConstant(Location location, Object constant) {
         super(location);
 
         this.constant = constant;

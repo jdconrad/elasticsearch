@@ -22,6 +22,7 @@ package org.elasticsearch.painless.node;
 import org.elasticsearch.painless.AnalyzerCaster;
 import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
+import org.elasticsearch.painless.Operation;
 import org.elasticsearch.painless.lookup.PainlessCast;
 import org.elasticsearch.painless.lookup.PainlessLookupUtility;
 
@@ -38,10 +39,10 @@ public abstract class AExpression extends ANode {
     boolean read = true;
 
     /**
-     * Set to true when this node is an lhs-expression and will be storing
-     * a value from an rhs-expression.
+     * Set to the type of write when this node is an lhs-expression and will be
+     * storing a value from an rhs-expression.
      */
-    boolean write = false;
+    Operation write = null;
 
     /**
      * Set to true when an expression can be considered a stand alone

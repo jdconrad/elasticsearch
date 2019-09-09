@@ -32,6 +32,7 @@ import org.elasticsearch.painless.node.ECallLocal;
 import org.elasticsearch.painless.node.ECapturingFunctionRef;
 import org.elasticsearch.painless.node.EComp;
 import org.elasticsearch.painless.node.EConditional;
+import org.elasticsearch.painless.node.EConstant;
 import org.elasticsearch.painless.node.EDecimal;
 import org.elasticsearch.painless.node.EDirectCallInvoke;
 import org.elasticsearch.painless.node.EDirectFieldAccess;
@@ -371,6 +372,10 @@ public class ASTBuilder {
 
     public ASTBuilder visitField(Location location, String value, boolean nullSafe) {
         return visitChild(new PField(location, nullSafe, value));
+    }
+
+    public ASTBuilder visitConstant(Location location, Object constant) {
+        return visitChild(new EConstant(location, constant));
     }
 
     public ASTBuilder visitTypeString(Location location, String string) {

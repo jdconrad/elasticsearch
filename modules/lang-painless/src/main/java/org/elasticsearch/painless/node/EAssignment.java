@@ -28,6 +28,7 @@ import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.Operation;
+import org.elasticsearch.painless.builder.ASTBuilder;
 import org.elasticsearch.painless.lookup.PainlessCast;
 import org.elasticsearch.painless.lookup.def;
 
@@ -68,28 +69,48 @@ public final class EAssignment extends AExpression {
 
     @Override
     void analyze(Locals locals) {
-        analyzeLHS(locals);
-        analyzeIncrDecr();
+        AExpression lhs = (AExpression)children.get(0);
 
-        if (operation != null) {
-            analyzeCompound(locals);
-        } else if (children.get(1) != null) {
-            analyzeSimple(locals);
+        lhs.read = read;
+
+        ASTBuilder builder = new ASTBuilder();
+
+        if (pre) {
+            lhs.write = Operation.PRE;
+
+            builder.visitBinary(location, Operation.ADD)
+                    .visitEmpty()
+                    .visitConstant(location, 1)
+            .endVisit();
+        } else if (post) {
+            lhs.write = Operation.POST;
+        } else if (operation != null) {
+            lhs.write = Operation.COMPOUND;
+
+            builder.visitBinary(location, Operation.SUB)
+                    .visitEmpty()
+                    .visitConstant(location, 1)
+            .endVisit();
         } else {
-            throw new IllegalStateException("Illegal tree structure.");
+            lhs.write = Operation.ASSIGN;
         }
+
+        if (lhs.children.isEmpty()) {
+            lhs.children.add(builder.endBuild());
+        } else {
+            lhs.children.get(1).children.add(builder.endBuild());
+        }
+
+        children.remove(1);
+
+        lhs.analyze(locals);
+
+        this.statement = true;
+        this.actual = read ? lhs.actual : void.class;
     }
 
     private void analyzeLHS(Locals locals) {
-        if (children.get(0) instanceof AStoreable) {
-            AStoreable lhs = (AStoreable)children.get(0);
 
-            lhs.read = read;
-            lhs.write = true;
-            lhs.analyze(locals);
-        } else {
-            throw new IllegalArgumentException("Left-hand side cannot be assigned a value.");
-        }
     }
 
     private void analyzeIncrDecr() {
@@ -203,9 +224,6 @@ public final class EAssignment extends AExpression {
 
         there = AnalyzerCaster.getLegalCast(location, lhs.actual, promote, false, false);
         back = AnalyzerCaster.getLegalCast(location, promote, lhs.actual, true, false);
-
-        this.statement = true;
-        this.actual = read ? lhs.actual : void.class;
     }
 
     private void analyzeSimple(Locals locals) {

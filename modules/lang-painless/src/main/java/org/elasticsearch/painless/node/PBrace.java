@@ -33,9 +33,7 @@ import java.util.Map;
 /**
  * Represents an array load/store and defers to a child subnode.
  */
-public final class PBrace extends AStoreable {
-
-    private AStoreable sub = null;
+public final class PBrace extends AExpression {
 
     public PBrace(Location location) {
         super(location);
@@ -44,75 +42,55 @@ public final class PBrace extends AStoreable {
     @Override
     void storeSettings(CompilerSettings settings) {
         children.get(0).storeSettings(settings);
-        children.get(1).storeSettings(settings);
     }
 
     @Override
     void analyze(Locals locals) {
-        AExpression prefix = (AExpression)children.get(0);
-        AExpression index = (AExpression)children.get(1);
+        PPostfixBridge bridge = (PPostfixBridge)parent;
+        AExpression brace;
 
-        prefix.analyze(locals);
-        prefix.expected = prefix.actual;
-        children.set(0, prefix = prefix.cast(locals));
-
-        if (prefix.actual.isArray()) {
-            sub = new PSubBrace(location, prefix.actual, index);
-        } else if (prefix.actual == def.class) {
-            sub = new PSubDefArray(location, index);
-        } else if (Map.class.isAssignableFrom(prefix.actual)) {
-            sub = new PSubMapShortcut(location, prefix.actual, index);
-        } else if (List.class.isAssignableFrom(prefix.actual)) {
-            sub = new PSubListShortcut(location, prefix.actual, index);
+        if (bridge.actual.isArray()) {
+            if (write == null) {
+                brace = new PArrayRead(location, expected);
+            } else {
+                brace = new PArrayWrite(location, expected);
+            }
+        } else if (bridge.actual == def.class) {
+            if (write == null) {
+                brace = new PDefArrayRead(location);
+            } else {
+                brace = new PDefArrayWrite(location);
+            }
+        } else if (Map.class.isAssignableFrom(bridge.actual)) {
+            if (write == null) {
+                brace = new PMapRead(location, bridge.actual);
+            } else {
+                brace = new PMapWrite(location, bridge.actual);
+            }
+        } else if (List.class.isAssignableFrom(bridge.actual)) {
+            if (write == null) {
+                brace = new PListRead(location, bridge.actual);
+            } else {
+                brace = new PListWrite(location, bridge.actual);
+            }
         } else {
             throw createError(new IllegalArgumentException("Illegal array access on type " +
-                    "[" + PainlessLookupUtility.typeToCanonicalTypeName(prefix.actual) + "]."));
+                    "[" + PainlessLookupUtility.typeToCanonicalTypeName(bridge.actual) + "]."));
         }
 
-        sub.write = write;
-        sub.read = read;
-        sub.expected = expected;
-        sub.explicit = explicit;
-        sub.analyze(locals);
-        actual = sub.actual;
+        brace.children.add(children.get(0));
+        brace.write = write;
+        brace.read = read;
+        brace.expected = expected;
+        brace.explicit = explicit;
+        brace.internal = internal;
+        brace.analyze(locals);
+        replace(brace);
     }
 
     @Override
     void write(MethodWriter writer, Globals globals) {
-        children.get(0).write(writer, globals);
-        sub.write(writer, globals);
-    }
-
-    @Override
-    boolean isDefOptimized() {
-        return sub.isDefOptimized();
-    }
-
-    @Override
-    void updateActual(Class<?> actual) {
-        sub.updateActual(actual);
-        this.actual = actual;
-    }
-
-    @Override
-    int accessElementCount() {
-        return sub.accessElementCount();
-    }
-
-    @Override
-    void setup(MethodWriter writer, Globals globals) {
-        children.get(0).write(writer, globals);
-        sub.setup(writer, globals);
-    }
-
-    @Override
-    void load(MethodWriter writer, Globals globals) {
-        sub.load(writer, globals);
-    }
-
-    @Override
-    void store(MethodWriter writer, Globals globals) {
-        sub.store(writer, globals);
+        throw createError(new IllegalStateException("illegal tree structure"));
     }
 
     @Override

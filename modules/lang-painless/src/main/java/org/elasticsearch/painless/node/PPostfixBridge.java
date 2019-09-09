@@ -42,8 +42,12 @@ public class PPostfixBridge extends AExpression {
         AExpression rhs = (AExpression)children.get(1);
 
         lhs.analyze(locals);
-        rhs.expected = lhs.actual;
+        actual = lhs.actual;
         rhs.write = write;
+        rhs.read = read;
+        rhs.expected = expected;
+        rhs.explicit = explicit;
+        rhs.internal = internal;
         rhs.analyze(locals);
         actual = rhs.actual;
         statement = rhs.statement;

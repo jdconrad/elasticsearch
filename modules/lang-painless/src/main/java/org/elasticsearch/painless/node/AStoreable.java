@@ -50,7 +50,7 @@ abstract class AStoreable extends AExpression {
      *                   a load/store
      * {@link PSubField} returns 1 because it requires the name of the field as
      *                   an index on the stack to perform a load/store
-     * {@link PSubBrace} returns 2 because it requires both the variable slot and
+     * {@link PArrayRead} returns 2 because it requires both the variable slot and
      *                   an index into the array on the stack to perform a
      *                   load/store
      */

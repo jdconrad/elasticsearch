@@ -25,6 +25,7 @@ import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Locals.Variable;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.Operation;
 import org.objectweb.asm.Opcodes;
 
 import java.util.Objects;
@@ -32,14 +33,16 @@ import java.util.Objects;
 /**
  * Represents a variable load/store.
  */
-public final class EVariable extends AExpression {
+public final class EVariableRead extends AExpression {
 
     public final String name;
+    public final Variable variable;
 
-    public EVariable(Location location, String name) {
+    public EVariableRead(Location location, String name, Variable variable) {
         super(location);
 
         this.name = Objects.requireNonNull(name);
+        this.variable = Objects.requireNonNull(variable);
     }
 
     @Override
@@ -49,27 +52,16 @@ public final class EVariable extends AExpression {
 
     @Override
     void analyze(Locals locals) {
-        Variable variable = locals.getVariable(location, name);
-        AExpression expression;
-
-        if (write != null) {
-            expression = new EVariableWrite(location, name, variable);
-        } else {
-            expression = new EVariableRead(location, name, variable);
-        }
-
-        expression.write = write;
-        expression.read = read;
-        expression.expected = expected;
-        expression.explicit = explicit;
-        expression.internal = internal;
-        expression.analyze(locals);
-        replace(expression);
+        actual = variable.clazz;
     }
 
     @Override
     void write(MethodWriter writer, Globals globals) {
-        throw createError(new IllegalStateException("illegal tree structure"));
+        writer.visitVarInsn(MethodWriter.getType(actual).getOpcode(Opcodes.ILOAD), variable.getSlot());
+
+        if (read && write == Operation.POST) {
+            writer.writeDup(MethodWriter.getType(actual).getSize(), 0);
+        }
     }
 
     @Override

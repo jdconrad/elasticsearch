@@ -24,21 +24,23 @@ import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.Operation;
+import org.objectweb.asm.Label;
+import org.objectweb.asm.Opcodes;
 
 import java.util.Objects;
 
 /**
  * Represents an array load/store.
  */
-final class PSubBrace extends AStoreable {
+final class PArrayRead extends AExpression {
 
-    private final Class<?> clazz;
+    private final Class<?> type;
 
-    PSubBrace(Location location, Class<?> clazz, AExpression index) {
+    PArrayRead(Location location, Class<?> type) {
         super(location);
 
-        this.clazz = Objects.requireNonNull(clazz);
-        children.add(Objects.requireNonNull(index));
+        this.type = Objects.requireNonNull(type);
     }
 
     @Override
@@ -48,52 +50,37 @@ final class PSubBrace extends AStoreable {
 
     @Override
     void analyze(Locals locals) {
-        AExpression index = (AExpression)children.get(0);
+        if (children.get(0) != null) {
+            AExpression index = (AExpression)children.get(0);
+            index.expected = int.class;
+            index.analyze(locals);
+            children.set(0, index.cast(locals));
+        }
 
-        index.expected = int.class;
-        index.analyze(locals);
-        children.set(0, index.cast(locals));
-
-        actual = clazz.getComponentType();
+        actual = type.getComponentType();
     }
 
     @Override
     void write(MethodWriter writer, Globals globals) {
-        setup(writer, globals);
-        load(writer, globals);
-    }
+        if (children.get(0) != null) {
+            children.get(0).write(writer, globals);
 
-    @Override
-    int accessElementCount() {
-        return 2;
-    }
+            Label noFlip = new Label();
+            writer.dup();
+            writer.ifZCmp(Opcodes.IFGE, noFlip);
+            writer.swap();
+            writer.dupX1();
+            writer.arrayLength();
+            writer.visitInsn(Opcodes.IADD);
+            writer.mark(noFlip);
+        }
 
-    @Override
-    boolean isDefOptimized() {
-        return false;
-    }
-
-    @Override
-    void updateActual(Class<?> actual) {
-        throw createError(new IllegalStateException("Illegal tree structure."));
-    }
-
-    @Override
-    void setup(MethodWriter writer, Globals globals) {
-        children.get(0).write(writer, globals);
-        writeIndexFlip(writer, MethodWriter::arrayLength);
-    }
-
-    @Override
-    void load(MethodWriter writer, Globals globals) {
         writer.writeDebugInfo(location);
         writer.arrayLoad(MethodWriter.getType(actual));
-    }
 
-    @Override
-    void store(MethodWriter writer, Globals globals) {
-        writer.writeDebugInfo(location);
-        writer.arrayStore(MethodWriter.getType(actual));
+        if (read && write == Operation.POST) {
+            writer.writeDup(MethodWriter.getType(actual).getSize(), 2);
+        }
     }
 
     @Override

@@ -65,14 +65,14 @@
  * {@link org.elasticsearch.painless.node.PCallInvoke} - Represents a method call and defers to a child subnode.
  * {@link org.elasticsearch.painless.node.PField} - Represents a field load/store and defers to a child subnode.
  * {@link org.elasticsearch.painless.node.PSubArrayLength} - Represents an array length field load.
- * {@link org.elasticsearch.painless.node.PSubBrace} - Represents an array load/store.
+ * {@link org.elasticsearch.painless.node.PArrayRead} - Represents an array load/store.
  * {@link org.elasticsearch.painless.node.PSubCallInvoke} - Represents a method call.
- * {@link org.elasticsearch.painless.node.PSubDefArray} - Represents an array load/store or shortcut on a def type.  (Internal only.)
+ * {@link org.elasticsearch.painless.node.PDefArrayRead} - Represents an array load/store or shortcut on a def type.  (Internal only.)
  * {@link org.elasticsearch.painless.node.PSubDefCall} - Represents a method call made on a def type. (Internal only.)
  * {@link org.elasticsearch.painless.node.PSubDefField} - Represents a field load/store or shortcut on a def type.  (Internal only.)
  * {@link org.elasticsearch.painless.node.PSubField} - Represents a field load/store.
- * {@link org.elasticsearch.painless.node.PSubListShortcut} - Represents a list load/store shortcut.  (Internal only.)
- * {@link org.elasticsearch.painless.node.PSubMapShortcut} - Represents a map load/store shortcut. (Internal only.)
+ * {@link org.elasticsearch.painless.node.PListRead} - Represents a list load/store shortcut.  (Internal only.)
+ * {@link org.elasticsearch.painless.node.PMapRead} - Represents a map load/store shortcut. (Internal only.)
  * {@link org.elasticsearch.painless.node.PSubShortcut} - Represents a field load/store shortcut.  (Internal only.)
  * {@link org.elasticsearch.painless.node.SBlock} - Represents a set of statements as a branch of control-flow.
  * {@link org.elasticsearch.painless.node.SBreak} - Represents a break statement.

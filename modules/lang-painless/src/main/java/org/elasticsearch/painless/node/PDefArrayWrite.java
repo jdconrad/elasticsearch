@@ -25,6 +25,7 @@ import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.Operation;
 import org.elasticsearch.painless.lookup.def;
 import org.objectweb.asm.Type;
 
@@ -34,11 +35,10 @@ import java.util.Objects;
 /**
  * Represents an array load/store or shortcut on a def type.  (Internal only.)
  */
-final class PSubDefArray extends AStoreable {
-    PSubDefArray(Location location, AExpression index) {
-        super(location);
+final class PDefArrayWrite extends AExpression {
 
-        children.add(Objects.requireNonNull(index));
+    PDefArrayWrite(Location location) {
+        super(location);
     }
 
     @Override
@@ -54,64 +54,48 @@ final class PSubDefArray extends AStoreable {
         index.expected = index.actual;
         children.set(0, index.cast(locals));
 
-        // TODO: remove ZonedDateTime exception when JodaCompatibleDateTime is removed
-        actual = expected == null || expected == ZonedDateTime.class || explicit ? def.class : expected;
+        AExpression rhs = (AExpression)children.get(1);
+
+        if (write == Operation.POST || write == Operation.PRE || write == Operation.COMPOUND) {
+            PDefArrayRead dar = new PDefArrayRead(location);
+            dar.write = write;
+            dar.read = read;
+            dar.children.add(new DTypeClass(location, index.actual));
+            rhs.children.set(0, dar);
+            rhs.explicit = true;
+        }
+
+        rhs.analyze(locals);
+        rhs.expected = rhs.actual;
+        children.set(1, rhs.cast(locals));
+
+        actual = rhs.actual;
     }
 
     @Override
     void write(MethodWriter writer, Globals globals) {
-        setup(writer, globals);
-        load(writer, globals);
-    }
-
-    @Override
-    int accessElementCount() {
-        return 2;
-    }
-
-    @Override
-    boolean isDefOptimized() {
-        return true;
-    }
-
-    @Override
-    void updateActual(Class<?> actual) {
-        this.actual = actual;
-    }
-
-    @Override
-    void setup(MethodWriter writer, Globals globals) {
         AExpression index = (AExpression)children.get(0);
-
-        // Current stack:                                                                    def
-        writer.dup();                                                                     // def, def
-        index.write(writer, globals);                                                     // def, def, unnormalized_index
-        Type methodType = Type.getMethodType(
+        writer.dup();
+        index.write(writer, globals);
+        Type indexMethodType = Type.getMethodType(
                 MethodWriter.getType(index.actual), Type.getType(Object.class), MethodWriter.getType(index.actual));
-        writer.invokeDefCall("normalizeIndex", methodType, DefBootstrap.INDEX_NORMALIZE); // def, normalized_index
-    }
+        writer.invokeDefCall("normalizeIndex", indexMethodType, DefBootstrap.INDEX_NORMALIZE);
 
-    @Override
-    void load(MethodWriter writer, Globals globals) {
-        AExpression index = (AExpression)children.get(0);
+        if (write == Operation.POST || write == Operation.PRE || write == Operation.COMPOUND) {
+            writer.writeDup(2, 0);
+        }
 
-        writer.writeDebugInfo(location);
+        children.get(1).write(writer, globals);
 
-        Type methodType =
-            Type.getMethodType(MethodWriter.getType(actual), Type.getType(Object.class), MethodWriter.getType(index.actual));
-        writer.invokeDefCall("arrayLoad", methodType, DefBootstrap.ARRAY_LOAD);
-    }
-
-    @Override
-    void store(MethodWriter writer, Globals globals) {
-        AExpression index = (AExpression)children.get(0);
+        if (read && write != Operation.POST) {
+            writer.writeDup(MethodWriter.getType(actual).getSize(), 2);
+        }
 
         writer.writeDebugInfo(location);
 
-        Type methodType =
-            Type.getMethodType(
+        Type storeMethodType = Type.getMethodType(
                 Type.getType(void.class), Type.getType(Object.class), MethodWriter.getType(index.actual), MethodWriter.getType(actual));
-        writer.invokeDefCall("arrayStore", methodType, DefBootstrap.ARRAY_STORE);
+        writer.invokeDefCall("arrayStore", storeMethodType, DefBootstrap.ARRAY_STORE);
     }
 
     @Override
