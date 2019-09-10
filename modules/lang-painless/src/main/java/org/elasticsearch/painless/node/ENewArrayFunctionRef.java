@@ -25,6 +25,7 @@ import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.builder.SymbolTable;
 import org.objectweb.asm.Type;
 
 import java.util.Objects;
@@ -33,9 +34,8 @@ import java.util.Objects;
  * Represents a function reference.
  */
 public final class ENewArrayFunctionRef extends AExpression implements ILambda {
-    private final String type;
 
-    private CompilerSettings settings;
+    private final String type;
 
     private FunctionRef ref;
     private String defPointer;
@@ -47,19 +47,14 @@ public final class ENewArrayFunctionRef extends AExpression implements ILambda {
     }
 
     @Override
-    void storeSettings(CompilerSettings settings) {
-        this.settings = settings;
-    }
-
-    @Override
-    void analyze(Locals locals) {
+    void analyze(SymbolTable table) {
         Class<?> type = locals.getPainlessLookup().canonicalTypeNameToType(this.type);
 
         if (type == null) {
             throw createError(new IllegalArgumentException("cannot resolve symbol [" + this.type + "]"));
         }
 
-        SFunction function = new SFunction(location, locals.getNextSyntheticName(), false, true, true);
+        SFunction function = new SFunction(location, table.nextSyntheticName("newarrayfuncref"), false, true, true);
         function.children.add(new DTypeClass(location, type));
         SDeclBlock parameters = new SDeclBlock(location);
         SDeclaration parameter = new SDeclaration(location, "size", false);
@@ -77,11 +72,10 @@ public final class ENewArrayFunctionRef extends AExpression implements ILambda {
         block.children.add(rtn);
         function.children.add(block);
         children.add(function);
-        function.storeSettings(settings);
         function.generateSignature();
         //function.extractVariables(null);
         function.analyze(Locals.newLambdaScope(locals.getProgramScope(), function.name, ((DTypeClass)function.children.get(0)).type,
-                (SDeclBlock)function.children.get(1), 0, settings.getMaxLoopCounter()));
+                (SDeclBlock)function.children.get(1), 0, table..getMaxLoopCounter()));
         children.set(0, function);
 
         if (expected == null) {

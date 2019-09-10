@@ -24,6 +24,7 @@ import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.builder.SymbolTable;
 import org.elasticsearch.painless.lookup.PainlessConstructor;
 import org.elasticsearch.painless.lookup.PainlessMethod;
 import org.elasticsearch.painless.lookup.def;
@@ -38,6 +39,7 @@ import static org.elasticsearch.painless.lookup.PainlessLookupUtility.typeToCano
  * Represents a list initialization shortcut.
  */
 public final class EListInit extends AExpression {
+
     private PainlessConstructor constructor = null;
     private PainlessMethod method = null;
 
@@ -46,28 +48,21 @@ public final class EListInit extends AExpression {
     }
 
     @Override
-    void storeSettings(CompilerSettings settings) {
-        for (ANode value : children) {
-            value.storeSettings(settings);
-        }
-    }
-
-    @Override
-    void analyze(Locals locals) {
+    void analyze(SymbolTable table) {
         if (!read) {
             throw createError(new IllegalArgumentException("Must read from list initializer."));
         }
 
         actual = ArrayList.class;
 
-        constructor = locals.getPainlessLookup().lookupPainlessConstructor(actual, 0);
+        constructor = table.lookup().lookupPainlessConstructor(actual, 0);
 
         if (constructor == null) {
             throw createError(new IllegalArgumentException(
                     "constructor [" + typeToCanonicalTypeName(actual) + ", <init>/0] not found"));
         }
 
-        method = locals.getPainlessLookup().lookupPainlessMethod(actual, false, "add", 1);
+        method = table.lookup().lookupPainlessMethod(actual, false, "add", 1);
 
         if (method == null) {
             throw createError(new IllegalArgumentException("method [" + typeToCanonicalTypeName(actual) + ", add/1] not found"));
@@ -78,8 +73,8 @@ public final class EListInit extends AExpression {
 
             expression.expected = def.class;
             expression.internal = true;
-            expression.analyze(locals);
-            children.set(index, expression.cast(locals));
+            expression.analyze(table);
+            children.set(index, expression.cast(table));
         }
     }
 

@@ -27,6 +27,7 @@ import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.builder.ASTBuilder;
 import org.elasticsearch.painless.builder.ScopeTable;
+import org.elasticsearch.painless.builder.ScopeTable.FunctionScope;
 import org.elasticsearch.painless.builder.ScopeTable.LambdaScope;
 import org.elasticsearch.painless.builder.ScopeTable.Variable;
 import org.elasticsearch.painless.builder.SymbolTable;
@@ -146,38 +147,42 @@ public final class ELambda extends AExpression implements ILambda {
             paramNames.add(index, var.getName());
         }
 
-        String name = locals.getNextSyntheticName();
+        String synthetic = table.nextSyntheticName("lambda");
         ASTBuilder builder = new ASTBuilder();
-        builder.visitFunction(location, name, false, true, true)
+        builder.visitFunction(location, synthetic, true, false, true, true)
                 .visitTypeClass(location, returnType).endVisit()
                 .visitDeclBlock(location);
                         for (int index = 0; index < paramTypes.size(); ++index) {
-                            builder.visitDeclaration(location, paramNames.get(index), false)
-                                    .visitTypeClass(location, paramTypes.get(index)).endVisit()
-                            .endVisit();
+                                builder.visitDeclaration(location, paramNames.get(index), false)
+                                        .visitTypeClass(location, paramTypes.get(index)).endVisit()
+                                .endVisit();
                         }
                 builder.endVisit()
                 .visitEmpty()
                 .visitNode(children.get(1)).endVisit()
         .endVisit();
 
-        desugared = (SFunction)builder.endBuild();
-        children.set(1, desugared);
+        SFunction function = (SFunction)builder.endBuild();
+        children.set(1, function);
 
-        desugared.storeSettings(settings);
-        desugared.generateSignature();
-        desugared.analyze(Locals.newLambdaScope(locals.getProgramScope(), desugared.name, returnType,
-                (SDeclBlock)desugared.children.get(1), captures.size(), settings.getMaxLoopCounter()));
+        FunctionScope functionScope = table.scopes().newFunctionScope(function);
+        for (int index = 0; index < paramTypes.size(); ++index) {
+            String name = paramNames.get(index);
+            Class<?> type = paramTypes.get(index);
+            functionScope.addVariable(name, true);
+            functionScope.updateVariable(name, type);
+        }
+
+        table.functions().addFunction(function.name, true, returnType, paramTypes, paramNames);
 
         // setup method reference to synthetic method
         if (expected == null) {
             ref = null;
             actual = String.class;
-            defPointer = "Sthis." + name + "," + captures.size();
+            defPointer = "Sthis." + synthetic + "," + captures.size();
         } else {
             defPointer = null;
-            ref = FunctionRef.create(
-                    locals.getPainlessLookup(), locals.getMethods(), location, expected, "this", desugared.name, captures.size());
+            ref = FunctionRef.create(table.lookup(), table.functions(), location, expected, "this", desugared.name, captures.size());
             actual = expected;
         }
     }

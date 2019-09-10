@@ -19,11 +19,10 @@
 
 package org.elasticsearch.painless.node;
 
-import org.elasticsearch.painless.CompilerSettings;
 import org.elasticsearch.painless.Globals;
-import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.builder.SymbolTable;
 
 /**
  * Represents an array instantiation.
@@ -39,18 +38,7 @@ public final class ENewArray extends AExpression {
     }
 
     @Override
-    void storeSettings(CompilerSettings settings) {
-        for (ANode argument : children) {
-            if (argument instanceof AData) {
-                continue;
-            }
-
-            argument.storeSettings(settings);
-        }
-    }
-
-    @Override
-    void analyze(Locals locals) {
+    void analyze(SymbolTable table) {
         if (!read) {
              throw createError(new IllegalArgumentException("A newly created array must be read from."));
         }
@@ -62,8 +50,8 @@ public final class ENewArray extends AExpression {
 
             expression.expected = initialize ? clazz.getComponentType() : int.class;
             expression.internal = true;
-            expression.analyze(locals);
-            children.set(argument, expression.cast(locals));
+            expression.analyze(table);
+            children.set(argument, expression.cast(table));
         }
 
         actual = clazz;
