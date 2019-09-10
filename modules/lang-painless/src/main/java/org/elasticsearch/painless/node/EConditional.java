@@ -25,6 +25,7 @@ import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.builder.SymbolTable;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.Opcodes;
 
@@ -38,21 +39,14 @@ public final class EConditional extends AExpression {
     }
 
     @Override
-    void storeSettings(CompilerSettings settings) {
-        children.get(0).storeSettings(settings);
-        children.get(1).storeSettings(settings);
-        children.get(2).storeSettings(settings);
-    }
-
-    @Override
-    void analyze(Locals locals) {
+    void analyze(SymbolTable table) {
         AExpression condition = (AExpression)children.get(0);
         AExpression left = (AExpression)children.get(1);
         AExpression right = (AExpression)children.get(2);
 
         condition.expected = boolean.class;
-        condition.analyze(locals);
-        children.set(0, condition = condition.cast(locals));
+        condition.analyze(table);
+        children.set(0, condition = condition.cast(table));
 
         if (condition.constant != null) {
             throw createError(new IllegalArgumentException("Extraneous conditional statement."));
@@ -66,8 +60,8 @@ public final class EConditional extends AExpression {
         right.internal = internal;
         actual = expected;
 
-        left.analyze(locals);
-        right.analyze(locals);
+        left.analyze(table);
+        right.analyze(table);
 
         if (expected == null) {
             Class<?> promote = AnalyzerCaster.promoteConditional(left.actual, right.actual, left.constant, right.constant);
@@ -77,8 +71,8 @@ public final class EConditional extends AExpression {
             actual = promote;
         }
 
-        children.set(1, left.cast(locals));
-        children.set(2, right.cast(locals));
+        children.set(1, left.cast(table));
+        children.set(2, right.cast(table));
     }
 
     @Override

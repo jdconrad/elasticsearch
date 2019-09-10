@@ -25,6 +25,7 @@ import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.Operation;
+import org.elasticsearch.painless.builder.SymbolTable;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.Opcodes;
 
@@ -44,23 +45,17 @@ public final class EBool extends AExpression {
     }
 
     @Override
-    void storeSettings(CompilerSettings settings) {
-        children.get(0).storeSettings(settings);
-        children.get(1).storeSettings(settings);
-    }
-
-    @Override
-    void analyze(Locals locals) {
+    void analyze(SymbolTable table) {
         AExpression left = (AExpression)children.get(0);
         AExpression right = (AExpression)children.get(1);
 
         left.expected = boolean.class;
-        left.analyze(locals);
-        children.set(0, left.cast(locals));
+        left.analyze(table);
+        children.set(0, left.cast(table));
 
         right.expected = boolean.class;
-        right.analyze(locals);
-        children.set(1, right.cast(locals));
+        right.analyze(table);
+        children.set(1, right.cast(table));
 
         actual = boolean.class;
     }

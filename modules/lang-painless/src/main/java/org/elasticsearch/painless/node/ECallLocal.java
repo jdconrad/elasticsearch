@@ -19,12 +19,13 @@
 
 package org.elasticsearch.painless.node;
 
-import org.elasticsearch.painless.CompilerSettings;
 import org.elasticsearch.painless.Globals;
-import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Locals.LocalMethod;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.builder.FunctionTable;
+import org.elasticsearch.painless.builder.FunctionTable.LocalFunction;
+import org.elasticsearch.painless.builder.SymbolTable;
 import org.elasticsearch.painless.lookup.PainlessClassBinding;
 import org.elasticsearch.painless.lookup.PainlessInstanceBinding;
 import org.elasticsearch.painless.lookup.PainlessMethod;
@@ -46,7 +47,7 @@ public final class ECallLocal extends AExpression {
 
     public final String name;
 
-    private LocalMethod localMethod = null;
+    private LocalFunction localFunction = null;
     private PainlessMethod importedMethod = null;
     private PainlessClassBinding classBinding = null;
     private int classBindingOffset = 0;
@@ -58,26 +59,24 @@ public final class ECallLocal extends AExpression {
         this.name = Objects.requireNonNull(name);
     }
 
+
     @Override
-    void storeSettings(CompilerSettings settings) {
-        for (ANode argument : children) {
-            argument.storeSettings(settings);
+    void analyze(SymbolTable table) {
+        localFunction = table.functions().getFunction(name, children.size());
+
+        if (localFunction.internal) {
+            localFunction = null;
         }
-    }
 
-    @Override
-    void analyze(Locals locals) {
-        localMethod = locals.getMethod(name, children.size());
-
-        if (localMethod == null) {
-            importedMethod = locals.getPainlessLookup().lookupImportedPainlessMethod(name, children.size());
+        if (localFunction == null) {
+            importedMethod = table.lookup().lookupImportedPainlessMethod(name, children.size());
 
             if (importedMethod == null) {
-                classBinding = locals.getPainlessLookup().lookupPainlessClassBinding(name, children.size());
+                classBinding = table.lookup().lookupPainlessClassBinding(name, children.size());
 
                 // check to see if this class binding requires an implicit this reference
                 if (classBinding != null && classBinding.typeParameters.isEmpty() == false &&
-                        classBinding.typeParameters.get(0) == locals.getBaseClass()) {
+                        classBinding.typeParameters.get(0) == table.baseClass()) {
                     classBinding = null;
                 }
 
@@ -88,11 +87,11 @@ public final class ECallLocal extends AExpression {
                     // will likely involve adding a class instance binding where any instance can have a class binding
                     // as part of its API.  However, the situation at run-time is difficult and will modifications that
                     // are a substantial change if even possible to do.
-                    classBinding = locals.getPainlessLookup().lookupPainlessClassBinding(name, children.size() + 1);
+                    classBinding = table.lookup().lookupPainlessClassBinding(name, children.size() + 1);
 
                     if (classBinding != null) {
                         if (classBinding.typeParameters.isEmpty() == false &&
-                                classBinding.typeParameters.get(0) == locals.getBaseClass()) {
+                                classBinding.typeParameters.get(0) == table.baseClass()) {
                             classBindingOffset = 1;
                         } else {
                             classBinding = null;
@@ -100,7 +99,7 @@ public final class ECallLocal extends AExpression {
                     }
 
                     if (classBinding == null) {
-                        instanceBinding = locals.getPainlessLookup().lookupPainlessInstanceBinding(name, children.size());
+                        instanceBinding = table.lookup().lookupPainlessInstanceBinding(name, children.size());
 
                         if (instanceBinding == null) {
                             throw createError(new IllegalArgumentException(
@@ -113,9 +112,9 @@ public final class ECallLocal extends AExpression {
 
         List<Class<?>> typeParameters;
 
-        if (localMethod != null) {
-            typeParameters = new ArrayList<>(localMethod.typeParameters);
-            actual = localMethod.returnType;
+        if (localFunction != null) {
+            typeParameters = new ArrayList<>(localFunction.typeParameters);
+            actual = localFunction.returnType;
         } else if (importedMethod != null) {
             typeParameters = new ArrayList<>(importedMethod.typeParameters);
             actual = importedMethod.returnType;
@@ -137,8 +136,8 @@ public final class ECallLocal extends AExpression {
 
             expression.expected = typeParameters.get(argument + classBindingOffset);
             expression.internal = true;
-            expression.analyze(locals);
-            children.set(argument, expression.cast(locals));
+            expression.analyze(table);
+            children.set(argument, expression.cast(table));
         }
 
         statement = true;
@@ -148,12 +147,12 @@ public final class ECallLocal extends AExpression {
     void write(MethodWriter writer, Globals globals) {
         writer.writeDebugInfo(location);
 
-        if (localMethod != null) {
+        if (localFunction != null) {
             for (ANode argument : children) {
                 argument.write(writer, globals);
             }
 
-            writer.invokeStatic(CLASS_TYPE, new Method(localMethod.name, localMethod.methodType.toMethodDescriptorString()));
+            writer.invokeStatic(CLASS_TYPE, new Method(localFunction.name, localFunction.methodType.toMethodDescriptorString()));
         } else if (importedMethod != null) {
             for (ANode argument : children) {
                 argument.write(writer, globals);

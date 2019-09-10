@@ -19,13 +19,12 @@
 
 package org.elasticsearch.painless.node;
 
-import org.elasticsearch.painless.CompilerSettings;
 import org.elasticsearch.painless.Globals;
-import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.Operation;
 import org.elasticsearch.painless.builder.ASTBuilder;
+import org.elasticsearch.painless.builder.SymbolTable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -48,16 +47,7 @@ public final class EAssignment extends AExpression {
     }
 
     @Override
-    void storeSettings(CompilerSettings settings) {
-        children.get(0).storeSettings(settings);
-
-        if (children.get(1) != null) {
-            children.get(1).storeSettings(settings);
-        }
-    }
-
-    @Override
-    void analyze(Locals locals) {
+    void analyze(SymbolTable table) {
         AExpression lhs = (AExpression)children.get(0);
         ANode rhs;
 
@@ -118,7 +108,7 @@ public final class EAssignment extends AExpression {
         children.remove(1);
 
         lhs.read = read;
-        lhs.analyze(locals);
+        lhs.analyze(table);
 
         this.statement = true;
         this.actual = read ? lhs.actual : void.class;

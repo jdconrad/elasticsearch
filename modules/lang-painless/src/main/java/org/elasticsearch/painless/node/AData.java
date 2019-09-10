@@ -19,11 +19,10 @@
 
 package org.elasticsearch.painless.node;
 
-import org.elasticsearch.painless.CompilerSettings;
 import org.elasticsearch.painless.Globals;
-import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.builder.SymbolTable;
 
 public class AData extends ANode {
 
@@ -32,12 +31,7 @@ public class AData extends ANode {
     }
 
     @Override
-    void storeSettings(CompilerSettings settings) {
-        throw new IllegalStateException("illegal tree structure");
-    }
-
-    @Override
-    void analyze(Locals locals) {
+    void analyze(SymbolTable table) {
         throw new IllegalStateException("illegal tree structure");
     }
 

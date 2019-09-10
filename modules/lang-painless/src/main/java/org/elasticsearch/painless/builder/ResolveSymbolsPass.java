@@ -73,20 +73,18 @@ public class ResolveSymbolsPass implements SemanticPass {
 
         baseEnters.put(SFunction.class, (node, table, data) -> {
             SFunction function = (SFunction)node;
-            ScopeTable.FunctionScope scope = table.scopeTable.newFunctionScope(function);
-            /*for (ANode parameter : function.children.get(1).children) {
-                String parameterName = ((SDeclaration)parameter).name;
-                if (scope.getVariable(parameterName) != null) {
-                    throw node.createError(
-                            new IllegalArgumentException("symbol [" + parameterName + "] is already defined in the scope"));
-                }
-                scope.addVariable(parameterName, false);
-            }*/
+            ScopeTable.FunctionScope functionScope = table.scopeTable.newFunctionScope(function);
+            if (function.statik == false) {
+                functionScope.addVariable("#this", true);
+            }
             // TODO: move this to a validation pass?
             if (function.children.get(3) == null) {
                 throw node.createError(new IllegalArgumentException("function [" + function.getKey() + "] cannot have an empty body"));
             }
-            table.scopeTable.newLocalScope(function.children.get(3));
+            ScopeTable.LocalScope localScope = table.scopeTable.newLocalScope(function.children.get(3));
+            if (table.compilerSettings.getMaxLoopCounter() > 0) {
+                localScope.addVariable("#loop", false);
+            }
         });
 
         baseEnters.put(SDeclaration.class, (node, table, data) -> {
@@ -113,16 +111,15 @@ public class ResolveSymbolsPass implements SemanticPass {
 
         baseEnters.put(ELambda.class, (node, table, data) -> {
             ELambda lambda = (ELambda)node;
-            ScopeTable.LambdaScope scope = table.scopeTable.newLambdaScope(lambda);
-            /*for (ANode parameter : lambda.children.get(0).children) {
-                String parameterName = ((SDeclaration)parameter).name;
-                if (scope.getVariable(parameterName) != null) {
-                    throw node.createError(
-                            new IllegalArgumentException("variable [" + parameterName + "] is already defined in the scope"));
-                }
-                scope.addVariable(parameterName, false);
-            }*/
-            lambda.scope = scope;
+            table.scopeTable.newLambdaScope(lambda);
+            // TODO: move this to a validation pass?
+            if (lambda.children.get(1) == null) {
+                throw node.createError(new IllegalArgumentException("lambda cannot have an empty body"));
+            }
+            ScopeTable.LocalScope localScope = table.scopeTable.newLocalScope(lambda.children.get(1));
+            if (table.compilerSettings.getMaxLoopCounter() > 0) {
+                localScope.addVariable("#loop", false);
+            }
         });
 
         baseEnters.put(EVariable.class, (node, table, data) -> {
@@ -162,7 +159,7 @@ public class ResolveSymbolsPass implements SemanticPass {
                 parameterNames.add(parameter.name);
             }
 
-            table.functionTable.addFunction(function.name, returnType, typeParameters, parameterNames, function.internal);
+            table.functionTable.addFunction(function.name, function.internal, returnType, typeParameters, parameterNames);
         });
 
         return baseExits;
@@ -173,23 +170,23 @@ public class ResolveSymbolsPass implements SemanticPass {
         visit(root, table, data);
     }
 
-    protected void visit(ANode parent, SymbolTable table, Map<String, Object> data) {
-        Visitor enter = enters.get(parent.getClass());
+    protected void visit(ANode node, SymbolTable table, Map<String, Object> data) {
+        Visitor enter = enters.get(node.getClass());
 
         if (enter != null) {
-            enter.visit(parent, table, data);
+            enter.visit(node, table, data);
         }
 
-        for (ANode child : parent.children) {
+        for (ANode child : node.children) {
             if (child != null) {
                 visit(child, table, data);
             }
         }
 
-        Visitor exit = exits.get(parent.getClass());
+        Visitor exit = exits.get(node.getClass());
 
         if (exit != null) {
-            exit.visit(parent, table, data);
+            exit.visit(node, table, data);
         }
     }
 }

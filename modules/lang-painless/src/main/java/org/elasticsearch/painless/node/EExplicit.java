@@ -24,6 +24,7 @@ import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.builder.SymbolTable;
 
 /**
  * Represents an explicit cast.
@@ -35,20 +36,15 @@ public final class EExplicit extends AExpression {
     }
 
     @Override
-    void storeSettings(CompilerSettings settings) {
-        children.get(1).storeSettings(settings);
-    }
-
-    @Override
-    void analyze(Locals locals) {
+    void analyze(SymbolTable table) {
         AExpression child = (AExpression)children.get(1);
 
         actual = ((DTypeClass)children.get(0)).type;
 
         child.expected = actual;
         child.explicit = true;
-        child.analyze(locals);
-        children.set(1, child.cast(locals));
+        child.analyze(table);
+        children.set(1, child.cast(table));
     }
 
     @Override
@@ -56,14 +52,15 @@ public final class EExplicit extends AExpression {
         throw createError(new IllegalStateException("Illegal tree structure."));
     }
 
-    AExpression cast(Locals locals) {
+    @Override
+    AExpression cast(SymbolTable table) {
         AExpression child = (AExpression)children.get(1);
 
         child.expected = expected;
         child.explicit = explicit;
         child.internal = internal;
 
-        return child.cast(locals);
+        return child.cast(table);
     }
 
     @Override

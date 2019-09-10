@@ -24,6 +24,7 @@ import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.builder.SymbolTable;
 import org.elasticsearch.painless.lookup.$this;
 import org.elasticsearch.painless.lookup.def;
 import org.objectweb.asm.Opcodes;
@@ -47,25 +48,18 @@ public class EDirectCallInvoke extends AExpression {
     }
 
     @Override
-    void storeSettings(CompilerSettings settings) {
-        for (ANode child : children) {
-            child.storeSettings(settings);
-        }
-    }
-
-    @Override
-    void analyze(Locals locals) {
+    void analyze(SymbolTable table) {
         AExpression prefix = (AExpression)children.get(0);
 
-        prefix.analyze(locals);
+        prefix.analyze(table);
         prefix.expected = prefix.actual;
-        children.set(0, prefix.cast(locals));
+        children.set(0, prefix.cast(table));
 
         for (int argument = 1; argument < children.size(); ++argument) {
             AExpression expression = (AExpression)children.get(argument);
 
             Type type = method.getArgumentTypes()[argument - 1];
-            Class<?> parameterType = locals.getPainlessLookup().canonicalTypeNameToType(type.getClassName().replace('$', '.'));
+            Class<?> parameterType = table.lookup().canonicalTypeNameToType(type.getClassName().replace('$', '.'));
 
             if (parameterType == null) {
                 try {
@@ -81,13 +75,13 @@ public class EDirectCallInvoke extends AExpression {
 
             expression.expected = parameterType;
             expression.internal = true;
-            expression.analyze(locals);
-            children.set(argument, expression.cast(locals));
+            expression.analyze(table);
+            children.set(argument, expression.cast(table));
         }
 
         statement = true;
 
-        Class<?> returnType = locals.getPainlessLookup().canonicalTypeNameToType(method.getReturnType().getClassName().replace('$', '.'));
+        Class<?> returnType = table.lookup().canonicalTypeNameToType(method.getReturnType().getClassName().replace('$', '.'));
 
         if (returnType == null) {
             try {

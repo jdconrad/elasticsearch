@@ -33,22 +33,22 @@ public class FunctionTable {
     public static class LocalFunction {
 
         public final String name;
+        public final boolean internal;
         public final Class<?> returnType;
         public final List<Class<?>> typeParameters;
         public final List<String> parameterNames;
-        public final boolean internal;
 
         public final MethodType methodType;
         public final org.objectweb.asm.commons.Method asmMethod;
 
-        public LocalFunction(String name,
-                Class<?> returnType, List<Class<?>> typeParameters, List<String> parameterNames, boolean internal) {
+        public LocalFunction(String name, boolean internal,
+                Class<?> returnType, List<Class<?>> typeParameters, List<String> parameterNames) {
 
             this.name = Objects.requireNonNull(name);
+            this.internal = internal;
             this.returnType = Objects.requireNonNull(returnType);
             this.typeParameters = Collections.unmodifiableList(Objects.requireNonNull(typeParameters));
             this.parameterNames = Collections.unmodifiableList(Objects.requireNonNull(parameterNames));
-            this.internal = internal;
 
             if (typeParameters.size() != parameterNames.size()) {
                 throw new IllegalStateException("illegal function declaration");
@@ -69,10 +69,10 @@ public class FunctionTable {
 
     protected final Map<String, LocalFunction> localFunctions = new HashMap<>();
 
-    public LocalFunction addFunction(String name,
-            Class<?> returnType, List<Class<?>> typeParameters, List<String> parameterNames, boolean internal) {
+    public LocalFunction addFunction(String name, boolean internal,
+            Class<?> returnType, List<Class<?>> typeParameters, List<String> parameterNames) {
 
-        LocalFunction localFunction = new LocalFunction(name, returnType, typeParameters, parameterNames, internal);
+        LocalFunction localFunction = new LocalFunction(name, internal, returnType, typeParameters, parameterNames);
         localFunctions.put(buildKey(name, typeParameters.size()), localFunction);
         return localFunction;
     }

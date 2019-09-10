@@ -24,6 +24,7 @@ import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.builder.SymbolTable;
 import org.elasticsearch.painless.lookup.$this;
 import org.elasticsearch.painless.lookup.def;
 import org.objectweb.asm.Type;
@@ -45,21 +46,14 @@ public class EDirectFieldAccess extends AExpression {
     }
 
     @Override
-    void storeSettings(CompilerSettings settings) {
-        for (ANode child : children) {
-            child.storeSettings(settings);
-        }
-    }
-
-    @Override
-    void analyze(Locals locals) {
+    void analyze(SymbolTable table) {
         AExpression prefix = (AExpression)children.get(0);
 
-        prefix.analyze(locals);
+        prefix.analyze(table);
         prefix.expected = prefix.actual;
-        children.set(0, prefix.cast(locals));
+        children.set(0, prefix.cast(table));
 
-        Class<?> fieldType = locals.getPainlessLookup().canonicalTypeNameToType(type.getClassName().replace('$', '.'));
+        Class<?> fieldType = table.lookup().canonicalTypeNameToType(type.getClassName().replace('$', '.'));
 
         if (fieldType == null) {
             try {

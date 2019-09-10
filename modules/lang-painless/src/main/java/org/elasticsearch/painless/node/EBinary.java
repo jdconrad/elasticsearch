@@ -28,6 +28,7 @@ import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.Operation;
 import org.elasticsearch.painless.WriterConstants;
+import org.elasticsearch.painless.builder.SymbolTable;
 import org.elasticsearch.painless.lookup.PainlessLookupUtility;
 import org.elasticsearch.painless.lookup.def;
 
@@ -56,52 +57,46 @@ public final class EBinary extends AExpression {
     }
 
     @Override
-    void storeSettings(CompilerSettings settings) {
-        children.get(0).storeSettings(settings);
-        children.get(1).storeSettings(settings);
-    }
-
-    @Override
-    void analyze(Locals locals) {
+    void analyze(SymbolTable table) {
         originallyExplicit = explicit;
 
         if (operation == Operation.MUL) {
-            analyzeMul(locals);
+            analyzeMul(table);
         } else if (operation == Operation.DIV) {
-            analyzeDiv(locals);
+            analyzeDiv(table);
         } else if (operation == Operation.REM) {
-            analyzeRem(locals);
+            analyzeRem(table);
         } else if (operation == Operation.ADD) {
-            analyzeAdd(locals);
+            analyzeAdd(table);
         } else if (operation == Operation.SUB) {
-            analyzeSub(locals);
+            analyzeSub(table);
         } else if (operation == Operation.FIND) {
-            analyzeRegexOp(locals);
+            analyzeRegexOp(table);
         } else if (operation == Operation.MATCH) {
-            analyzeRegexOp(locals);
+            analyzeRegexOp(table);
         } else if (operation == Operation.LSH) {
-            analyzeLSH(locals);
+            analyzeLSH(table);
         } else if (operation == Operation.RSH) {
-            analyzeRSH(locals);
+            analyzeRSH(table);
         } else if (operation == Operation.USH) {
-            analyzeUSH(locals);
+            analyzeUSH(table);
         } else if (operation == Operation.BWAND) {
-            analyzeBWAnd(locals);
+            analyzeBWAnd(table);
         } else if (operation == Operation.XOR) {
-            analyzeXor(locals);
+            analyzeXor(table);
         } else if (operation == Operation.BWOR) {
-            analyzeBWOr(locals);
+            analyzeBWOr(table);
         } else {
             throw createError(new IllegalStateException("Illegal tree structure."));
         }
     }
 
-    private void analyzeMul(Locals variables) {
+    private void analyzeMul(SymbolTable table) {
         AExpression left = (AExpression)children.get(0);
         AExpression right = (AExpression)children.get(1);
 
-        left.analyze(variables);
-        right.analyze(variables);
+        left.analyze(table);
+        right.analyze(table);
 
         promote = AnalyzerCaster.promoteNumeric(left.actual, right.actual, true);
 
@@ -124,16 +119,16 @@ public final class EBinary extends AExpression {
             right.expected = promote;
         }
 
-        children.set(0, left.cast(variables));
-        children.set(1, right.cast(variables));
+        children.set(0, left.cast(table));
+        children.set(1, right.cast(table));
     }
 
-    private void analyzeDiv(Locals variables) {
+    private void analyzeDiv(SymbolTable table) {
         AExpression left = (AExpression)children.get(0);
         AExpression right = (AExpression)children.get(1);
 
-        left.analyze(variables);
-        right.analyze(variables);
+        left.analyze(table);
+        right.analyze(table);
 
         promote = AnalyzerCaster.promoteNumeric(left.actual, right.actual, true);
 
@@ -157,16 +152,16 @@ public final class EBinary extends AExpression {
             right.expected = promote;
         }
 
-        children.set(0, left.cast(variables));
-        children.set(1, right.cast(variables));
+        children.set(0, left.cast(table));
+        children.set(1, right.cast(table));
     }
 
-    private void analyzeRem(Locals variables) {
+    private void analyzeRem(SymbolTable table) {
         AExpression left = (AExpression)children.get(0);
         AExpression right = (AExpression)children.get(1);
 
-        left.analyze(variables);
-        right.analyze(variables);
+        left.analyze(table);
+        right.analyze(table);
 
         promote = AnalyzerCaster.promoteNumeric(left.actual, right.actual, true);
 
@@ -190,16 +185,16 @@ public final class EBinary extends AExpression {
             right.expected = promote;
         }
 
-        children.set(0, left.cast(variables));
-        children.set(1, right.cast(variables));
+        children.set(0, left.cast(table));
+        children.set(1, right.cast(table));
     }
 
-    private void analyzeAdd(Locals variables) {
+    private void analyzeAdd(SymbolTable table) {
         AExpression left = (AExpression)children.get(0);
         AExpression right = (AExpression)children.get(1);
 
-        left.analyze(variables);
-        right.analyze(variables);
+        left.analyze(table);
+        right.analyze(table);
 
         promote = AnalyzerCaster.promoteAdd(left.actual, right.actual);
 
@@ -235,16 +230,16 @@ public final class EBinary extends AExpression {
             right.expected = promote;
         }
 
-        children.set(0, left.cast(variables));
-        children.set(1, right.cast(variables));
+        children.set(0, left.cast(table));
+        children.set(1, right.cast(table));
     }
 
-    private void analyzeSub(Locals variables) {
+    private void analyzeSub(SymbolTable table) {
         AExpression left = (AExpression)children.get(0);
         AExpression right = (AExpression)children.get(1);
 
-        left.analyze(variables);
-        right.analyze(variables);
+        left.analyze(table);
+        right.analyze(table);
 
         promote = AnalyzerCaster.promoteNumeric(left.actual, right.actual, true);
 
@@ -268,33 +263,33 @@ public final class EBinary extends AExpression {
             right.expected = promote;
         }
 
-        children.set(0, left.cast(variables));
-        children.set(1, right.cast(variables));
+        children.set(0, left.cast(table));
+        children.set(1, right.cast(table));
     }
 
-    private void analyzeRegexOp(Locals variables) {
+    private void analyzeRegexOp(SymbolTable table) {
         AExpression left = (AExpression)children.get(0);
         AExpression right = (AExpression)children.get(1);
 
-        left.analyze(variables);
-        right.analyze(variables);
+        left.analyze(table);
+        right.analyze(table);
 
         left.expected = String.class;
         right.expected = Pattern.class;
 
-        children.set(0, left.cast(variables));
-        children.set(1, right.cast(variables));
+        children.set(0, left.cast(table));
+        children.set(1, right.cast(table));
 
         promote = boolean.class;
         actual = boolean.class;
     }
 
-    private void analyzeLSH(Locals variables) {
+    private void analyzeLSH(SymbolTable table) {
         AExpression left = (AExpression)children.get(0);
         AExpression right = (AExpression)children.get(1);
 
-        left.analyze(variables);
-        right.analyze(variables);
+        left.analyze(table);
+        right.analyze(table);
 
         Class<?> lhspromote = AnalyzerCaster.promoteNumeric(left.actual, false);
         Class<?> rhspromote = AnalyzerCaster.promoteNumeric(right.actual, false);
@@ -326,16 +321,16 @@ public final class EBinary extends AExpression {
             }
         }
 
-        children.set(0, left.cast(variables));
-        children.set(1, right.cast(variables));
+        children.set(0, left.cast(table));
+        children.set(1, right.cast(table));
     }
 
-    private void analyzeRSH(Locals variables) {
+    private void analyzeRSH(SymbolTable table) {
         AExpression left = (AExpression)children.get(0);
         AExpression right = (AExpression)children.get(1);
 
-        left.analyze(variables);
-        right.analyze(variables);
+        left.analyze(table);
+        right.analyze(table);
 
         Class<?> lhspromote = AnalyzerCaster.promoteNumeric(left.actual, false);
         Class<?> rhspromote = AnalyzerCaster.promoteNumeric(right.actual, false);
@@ -367,16 +362,16 @@ public final class EBinary extends AExpression {
             }
         }
 
-        children.set(0, left.cast(variables));
-        children.set(1, right.cast(variables));
+        children.set(0, left.cast(table));
+        children.set(1, right.cast(table));
     }
 
-    private void analyzeUSH(Locals variables) {
+    private void analyzeUSH(SymbolTable table) {
         AExpression left = (AExpression)children.get(0);
         AExpression right = (AExpression)children.get(1);
 
-        left.analyze(variables);
-        right.analyze(variables);
+        left.analyze(table);
+        right.analyze(table);
 
         Class<?> lhspromote = AnalyzerCaster.promoteNumeric(left.actual, false);
         Class<?> rhspromote = AnalyzerCaster.promoteNumeric(right.actual, false);
@@ -408,16 +403,16 @@ public final class EBinary extends AExpression {
             }
         }
 
-        children.set(0, left.cast(variables));
-        children.set(1, right.cast(variables));
+        children.set(0, left.cast(table));
+        children.set(1, right.cast(table));
     }
 
-    private void analyzeBWAnd(Locals variables) {
+    private void analyzeBWAnd(SymbolTable table) {
         AExpression left = (AExpression)children.get(0);
         AExpression right = (AExpression)children.get(1);
 
-        left.analyze(variables);
-        right.analyze(variables);
+        left.analyze(table);
+        right.analyze(table);
 
         if (compound) {
             promote = AnalyzerCaster.promoteXor(left.actual, right.actual);
@@ -445,16 +440,16 @@ public final class EBinary extends AExpression {
             right.expected = promote;
         }
 
-        children.set(0, left.cast(variables));
-        children.set(1, right.cast(variables));
+        children.set(0, left.cast(table));
+        children.set(1, right.cast(table));
     }
 
-    private void analyzeXor(Locals variables) {
+    private void analyzeXor(SymbolTable table) {
         AExpression left = (AExpression)children.get(0);
         AExpression right = (AExpression)children.get(1);
 
-        left.analyze(variables);
-        right.analyze(variables);
+        left.analyze(table);
+        right.analyze(table);
 
         promote = AnalyzerCaster.promoteXor(left.actual, right.actual);
 
@@ -477,16 +472,16 @@ public final class EBinary extends AExpression {
             right.expected = promote;
         }
 
-        children.set(0, left.cast(variables));
-        children.set(1, right.cast(variables));
+        children.set(0, left.cast(table));
+        children.set(1, right.cast(table));
     }
 
-    private void analyzeBWOr(Locals variables) {
+    private void analyzeBWOr(SymbolTable table) {
         AExpression left = (AExpression)children.get(0);
         AExpression right = (AExpression)children.get(1);
 
-        left.analyze(variables);
-        right.analyze(variables);
+        left.analyze(table);
+        right.analyze(table);
 
         if (compound) {
             promote = AnalyzerCaster.promoteXor(left.actual, right.actual);
@@ -513,8 +508,8 @@ public final class EBinary extends AExpression {
             right.expected = promote;
         }
 
-        children.set(0, left.cast(variables));
-        children.set(1, right.cast(variables));
+        children.set(0, left.cast(table));
+        children.set(1, right.cast(table));
     }
 
     @Override

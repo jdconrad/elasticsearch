@@ -24,6 +24,7 @@ import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.builder.SymbolTable;
 import org.elasticsearch.painless.lookup.PainlessLookupUtility;
 
 /**
@@ -32,6 +33,7 @@ import org.elasticsearch.painless.lookup.PainlessLookupUtility;
  * Unlike java's, this works for primitive types too.
  */
 public final class EInstanceof extends AExpression {
+
     private Class<?> resolvedType;
     private Class<?> expressionType;
     private boolean primitiveExpression;
@@ -41,12 +43,7 @@ public final class EInstanceof extends AExpression {
     }
 
     @Override
-    void storeSettings(CompilerSettings settings) {
-        children.get(1).storeSettings(settings);
-    }
-
-    @Override
-    void analyze(Locals locals) {
+    void analyze(SymbolTable table) {
         Class<?> clazz = ((DTypeClass)children.get(0)).type;
         AExpression expression = (AExpression)children.get(1);
 
@@ -55,9 +52,9 @@ public final class EInstanceof extends AExpression {
                 PainlessLookupUtility.typeToJavaType(clazz);
 
         // analyze and cast the expression
-        expression.analyze(locals);
+        expression.analyze(table);
         expression.expected = expression.actual;
-        children.set(0, expression = expression.cast(locals));
+        children.set(0, expression = expression.cast(table));
 
         // record if the expression returns a primitive
         primitiveExpression = expression.actual.isPrimitive();

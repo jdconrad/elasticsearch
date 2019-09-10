@@ -23,11 +23,13 @@ import org.elasticsearch.painless.CompilerSettings;
 import org.elasticsearch.painless.FunctionRef;
 import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Locals;
-import org.elasticsearch.painless.Locals.Variable;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.builder.ASTBuilder;
 import org.elasticsearch.painless.builder.ScopeTable;
+import org.elasticsearch.painless.builder.ScopeTable.LambdaScope;
+import org.elasticsearch.painless.builder.ScopeTable.Variable;
+import org.elasticsearch.painless.builder.SymbolTable;
 import org.elasticsearch.painless.lookup.PainlessLookupUtility;
 import org.elasticsearch.painless.lookup.PainlessMethod;
 import org.elasticsearch.painless.lookup.def;
@@ -63,8 +65,6 @@ import java.util.Set;
  */
 public final class ELambda extends AExpression implements ILambda {
 
-    private CompilerSettings settings;
-
     // extracted variables required to determine captures
     private final Set<String> extractedVariables;
     // desugared synthetic method (lambda body)
@@ -76,8 +76,6 @@ public final class ELambda extends AExpression implements ILambda {
     // dynamic parent, deferred until link time
     private String defPointer;
 
-    public ScopeTable.LambdaScope scope;
-
     public ELambda(Location location) {
         super(location);
 
@@ -85,16 +83,7 @@ public final class ELambda extends AExpression implements ILambda {
     }
 
     @Override
-    void storeSettings(CompilerSettings settings) {
-        for (ANode statement : children) {
-            statement.storeSettings(settings);
-        }
-
-        this.settings = settings;
-    }
-
-    @Override
-    void analyze(Locals locals) {
+    void analyze(SymbolTable table) {
         Class<?> returnType;
         List<Class<?>> paramTypes = new ArrayList<>();
         List<String> paramNames = new ArrayList<>();
@@ -120,7 +109,7 @@ public final class ELambda extends AExpression implements ILambda {
             }
         } else {
             // we know the method statically, infer return type and any unknown/def types
-            interfaceMethod = locals.getPainlessLookup().lookupFunctionalInterfacePainlessMethod(expected);
+            interfaceMethod = table.lookup().lookupFunctionalInterfacePainlessMethod(expected);
             if (interfaceMethod == null) {
                 throw createError(new IllegalArgumentException("Cannot pass lambda to " +
                         "[" + PainlessLookupUtility.typeToCanonicalTypeName(expected) + "], not a functional interface"));
@@ -148,17 +137,13 @@ public final class ELambda extends AExpression implements ILambda {
             }
         }
         // any of those variables defined in our scope need to be captured
-        captures = new ArrayList<>();
-        for (String variable : scope.captures()) {
-            if (locals.hasVariable(variable)) {
-                captures.add(locals.getVariable(location, variable));
-            }
-        }
+        LambdaScope lambdaScope = (LambdaScope)table.scopes().getNodeScope(this);
+        captures = lambdaScope.captures();
         // prepend capture list to lambda's arguments
         for (int index = 0; index < captures.size(); ++index) {
             Variable var = captures.get(index);
-            paramTypes.add(index, var.clazz);
-            paramNames.add(index, var.name);
+            paramTypes.add(index, var.getType());
+            paramNames.add(index, var.getName());
         }
 
         String name = locals.getNextSyntheticName();
@@ -205,7 +190,7 @@ public final class ELambda extends AExpression implements ILambda {
             writer.writeDebugInfo(location);
             // load captures
             for (Variable capture : captures) {
-                writer.visitVarInsn(MethodWriter.getType(capture.clazz).getOpcode(Opcodes.ILOAD), capture.getSlot());
+                writer.visitVarInsn(MethodWriter.getType(capture.getType()).getOpcode(Opcodes.ILOAD), capture.getSlot());
             }
 
             writer.invokeLambdaCall(ref);
@@ -214,7 +199,7 @@ public final class ELambda extends AExpression implements ILambda {
             writer.push((String)null);
             // load captures
             for (Variable capture : captures) {
-                writer.visitVarInsn(MethodWriter.getType(capture.clazz).getOpcode(Opcodes.ILOAD), capture.getSlot());
+                writer.visitVarInsn(MethodWriter.getType(capture.getType()).getOpcode(Opcodes.ILOAD), capture.getSlot());
             }
         }
 
@@ -231,7 +216,7 @@ public final class ELambda extends AExpression implements ILambda {
     public org.objectweb.asm.Type[] getCaptures() {
         org.objectweb.asm.Type[] types = new org.objectweb.asm.Type[captures.size()];
         for (int i = 0; i < types.length; i++) {
-            types[i] = MethodWriter.getType(captures.get(i).clazz);
+            types[i] = MethodWriter.getType(captures.get(i).getType());
         }
         return types;
     }

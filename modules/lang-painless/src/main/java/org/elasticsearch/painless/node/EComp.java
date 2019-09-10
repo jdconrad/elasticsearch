@@ -27,6 +27,7 @@ import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.Operation;
+import org.elasticsearch.painless.builder.SymbolTable;
 import org.elasticsearch.painless.lookup.PainlessLookupUtility;
 import org.elasticsearch.painless.lookup.def;
 import org.objectweb.asm.Label;
@@ -53,40 +54,34 @@ public final class EComp extends AExpression {
     }
 
     @Override
-    void storeSettings(CompilerSettings settings) {
-        children.get(0).storeSettings(settings);
-        children.get(1).storeSettings(settings);
-    }
-
-    @Override
-    void analyze(Locals locals) {
+    void analyze(SymbolTable table) {
         if (operation == Operation.EQ) {
-            analyzeEq(locals);
+            analyzeEq(table);
         } else if (operation == Operation.EQR) {
-            analyzeEqR(locals);
+            analyzeEqR(table);
         } else if (operation == Operation.NE) {
-            analyzeNE(locals);
+            analyzeNE(table);
         } else if (operation == Operation.NER) {
-            analyzeNER(locals);
+            analyzeNER(table);
         } else if (operation == Operation.GTE) {
-            analyzeGTE(locals);
+            analyzeGTE(table);
         } else if (operation == Operation.GT) {
-            analyzeGT(locals);
+            analyzeGT(table);
         } else if (operation == Operation.LTE) {
-            analyzeLTE(locals);
+            analyzeLTE(table);
         } else if (operation == Operation.LT) {
-            analyzeLT(locals);
+            analyzeLT(table);
         } else {
             throw createError(new IllegalStateException("Illegal tree structure."));
         }
     }
 
-    private void analyzeEq(Locals variables) {
+    private void analyzeEq(SymbolTable table) {
         AExpression left = (AExpression)children.get(0);
         AExpression right = (AExpression)children.get(1);
 
-        left.analyze(variables);
-        right.analyze(variables);
+        left.analyze(table);
+        right.analyze(table);
 
         promotedType = AnalyzerCaster.promoteEquality(left.actual, right.actual);
 
@@ -104,8 +99,8 @@ public final class EComp extends AExpression {
             right.expected = promotedType;
         }
 
-        children.set(0, left = left.cast(variables));
-        children.set(1, right = right.cast(variables));
+        children.set(0, left = left.cast(table));
+        children.set(1, right = right.cast(table));
 
         if (left.isNull && right.isNull) {
             throw createError(new IllegalArgumentException("Extraneous comparison of null constants."));
@@ -114,12 +109,12 @@ public final class EComp extends AExpression {
         actual = boolean.class;
     }
 
-    private void analyzeEqR(Locals variables) {
+    private void analyzeEqR(SymbolTable table) {
         AExpression left = (AExpression)children.get(0);
         AExpression right = (AExpression)children.get(1);
 
-        left.analyze(variables);
-        right.analyze(variables);
+        left.analyze(table);
+        right.analyze(table);
 
         promotedType = AnalyzerCaster.promoteEquality(left.actual, right.actual);
 
@@ -132,8 +127,8 @@ public final class EComp extends AExpression {
         left.expected = promotedType;
         right.expected = promotedType;
 
-        children.set(0, left = left.cast(variables));
-        children.set(1, right = right.cast(variables));
+        children.set(0, left = left.cast(table));
+        children.set(1, right = right.cast(table));
 
         if (left.isNull && right.isNull) {
             throw createError(new IllegalArgumentException("Extraneous comparison of null constants."));
@@ -142,12 +137,12 @@ public final class EComp extends AExpression {
         actual = boolean.class;
     }
 
-    private void analyzeNE(Locals variables) {
+    private void analyzeNE(SymbolTable table) {
         AExpression left = (AExpression)children.get(0);
         AExpression right = (AExpression)children.get(1);
 
-        left.analyze(variables);
-        right.analyze(variables);
+        left.analyze(table);
+        right.analyze(table);
 
         promotedType = AnalyzerCaster.promoteEquality(left.actual, right.actual);
 
@@ -165,8 +160,8 @@ public final class EComp extends AExpression {
             right.expected = promotedType;
         }
 
-        children.set(0, left = left.cast(variables));
-        children.set(1, right = right.cast(variables));
+        children.set(0, left = left.cast(table));
+        children.set(1, right = right.cast(table));
 
         if (left.isNull && right.isNull) {
             throw createError(new IllegalArgumentException("Extraneous comparison of null constants."));
@@ -175,12 +170,12 @@ public final class EComp extends AExpression {
         actual = boolean.class;
     }
 
-    private void analyzeNER(Locals variables) {
+    private void analyzeNER(SymbolTable table) {
         AExpression left = (AExpression)children.get(0);
         AExpression right = (AExpression)children.get(1);
 
-        left.analyze(variables);
-        right.analyze(variables);
+        left.analyze(table);
+        right.analyze(table);
 
         promotedType = AnalyzerCaster.promoteEquality(left.actual, right.actual);
 
@@ -193,8 +188,8 @@ public final class EComp extends AExpression {
         left.expected = promotedType;
         right.expected = promotedType;
 
-        children.set(0, left = left.cast(variables));
-        children.set(1, right = right.cast(variables));
+        children.set(0, left = left.cast(table));
+        children.set(1, right = right.cast(table));
 
         if (left.isNull && right.isNull) {
             throw createError(new IllegalArgumentException("Extraneous comparison of null constants."));
@@ -203,12 +198,12 @@ public final class EComp extends AExpression {
         actual = boolean.class;
     }
 
-    private void analyzeGTE(Locals variables) {
+    private void analyzeGTE(SymbolTable table) {
         AExpression left = (AExpression)children.get(0);
         AExpression right = (AExpression)children.get(1);
 
-        left.analyze(variables);
-        right.analyze(variables);
+        left.analyze(table);
+        right.analyze(table);
 
         promotedType = AnalyzerCaster.promoteNumeric(left.actual, right.actual, true);
 
@@ -226,18 +221,18 @@ public final class EComp extends AExpression {
             right.expected = promotedType;
         }
 
-        children.set(0, left.cast(variables));
-        children.set(1, right.cast(variables));
+        children.set(0, left.cast(table));
+        children.set(1, right.cast(table));
 
         actual = boolean.class;
     }
 
-    private void analyzeGT(Locals variables) {
+    private void analyzeGT(SymbolTable table) {
         AExpression left = (AExpression)children.get(0);
         AExpression right = (AExpression)children.get(1);
 
-        left.analyze(variables);
-        right.analyze(variables);
+        left.analyze(table);
+        right.analyze(table);
 
         promotedType = AnalyzerCaster.promoteNumeric(left.actual, right.actual, true);
 
@@ -255,18 +250,18 @@ public final class EComp extends AExpression {
             right.expected = promotedType;
         }
 
-        children.set(0, left.cast(variables));
-        children.set(1, right.cast(variables));
+        children.set(0, left.cast(table));
+        children.set(1, right.cast(table));
 
         actual = boolean.class;
     }
 
-    private void analyzeLTE(Locals variables) {
+    private void analyzeLTE(SymbolTable table) {
         AExpression left = (AExpression)children.get(0);
         AExpression right = (AExpression)children.get(1);
 
-        left.analyze(variables);
-        right.analyze(variables);
+        left.analyze(table);
+        right.analyze(table);
 
         promotedType = AnalyzerCaster.promoteNumeric(left.actual, right.actual, true);
 
@@ -284,18 +279,18 @@ public final class EComp extends AExpression {
             right.expected = promotedType;
         }
 
-        children.set(0, left.cast(variables));
-        children.set(1, right.cast(variables));
+        children.set(0, left.cast(table));
+        children.set(1, right.cast(table));
 
         actual = boolean.class;
     }
 
-    private void analyzeLT(Locals variables) {
+    private void analyzeLT(SymbolTable table) {
         AExpression left = (AExpression)children.get(0);
         AExpression right = (AExpression)children.get(1);
 
-        left.analyze(variables);
-        right.analyze(variables);
+        left.analyze(table);
+        right.analyze(table);
 
         promotedType = AnalyzerCaster.promoteNumeric(left.actual, right.actual, true);
 
@@ -313,8 +308,8 @@ public final class EComp extends AExpression {
             right.expected = promotedType;
         }
 
-        children.set(0, left.cast(variables));
-        children.set(1, right.cast(variables));
+        children.set(0, left.cast(table));
+        children.set(1, right.cast(table));
 
         actual = boolean.class;
     }

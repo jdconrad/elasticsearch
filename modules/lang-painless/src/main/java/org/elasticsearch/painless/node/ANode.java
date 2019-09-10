@@ -24,6 +24,7 @@ import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.builder.SymbolTable;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -66,14 +67,9 @@ public abstract class ANode {
     }
 
     /**
-     * Store settings required for future compiler passes.
-     */
-    abstract void storeSettings(CompilerSettings settings);
-
-    /**
      * Checks for errors and collects data for the writing phase.
      */
-    abstract void analyze(Locals locals);
+    abstract void analyze(SymbolTable table);
 
     /**
      * Writes ASM based on the data collected during the analysis phase.
