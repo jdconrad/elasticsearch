@@ -26,6 +26,7 @@ import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.Operation;
+import org.elasticsearch.painless.lookup.def;
 
 import java.util.Objects;
 
@@ -56,7 +57,6 @@ final class PDefFieldWrite extends AExpression {
             dar.write = write;
             dar.read = read;
             rhs.children.set(0, dar);
-            rhs.explicit = true;
         }
 
         rhs.analyze(locals);

@@ -62,32 +62,46 @@ public final class EAssignment extends AExpression {
 
         lhs.read = read;
 
-        ASTBuilder builder = new ASTBuilder();
+        ANode rhs;
 
         if (pre) {
             lhs.write = Operation.PRE;
 
-            builder.visitBinary(location, Operation.ADD)
-                    .visitEmpty()
-                    .visitConstant(location, 1)
-            .endVisit();
+            rhs = new ASTBuilder()
+                    .visitBinary(location, Operation.ADD, true)
+                            .visitEmpty()
+                            .visitConstant(location, 1).endVisit()
+                    .endVisit()
+            .endBuild();
         } else if (post) {
             lhs.write = Operation.POST;
+
+            rhs = new ASTBuilder()
+                    .visitBinary(location, Operation.SUB, true)
+                            .visitEmpty()
+                            .visitConstant(location, 1).endVisit()
+                    .endVisit()
+            .endBuild();
         } else if (operation != null) {
             lhs.write = Operation.COMPOUND;
 
-            builder.visitBinary(location, Operation.SUB)
-                    .visitEmpty()
-                    .visitConstant(location, 1)
-            .endVisit();
+            rhs = new ASTBuilder()
+                    .visitBinary(location, operation, true)
+                            .visitEmpty()
+                            .visitNode(children.get(1)).endVisit()
+                    .endVisit()
+            .endBuild();
         } else {
             lhs.write = Operation.ASSIGN;
+            rhs = children.get(1);
         }
 
         if (lhs.children.isEmpty()) {
-            lhs.children.add(builder.endBuild());
+            rhs.parent = lhs;
+            lhs.children.add(rhs);
         } else {
-            lhs.children.get(1).children.add(builder.endBuild());
+            rhs.parent = lhs.children.get(1);
+            lhs.children.get(1).children.add(rhs);
         }
 
         children.remove(1);

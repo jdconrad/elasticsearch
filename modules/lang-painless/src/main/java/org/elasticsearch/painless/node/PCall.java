@@ -84,12 +84,17 @@ public final class PCall extends AExpression {
         call.explicit = explicit;
         call.internal = internal;
         call.analyze(locals);
-        replace(call);
+        //replace(call);
+        actual = call.actual;
+        children.clear();
+        children.add(call);
+        statement = true;
     }
 
     @Override
     void write(MethodWriter writer, Globals globals) {
-        throw createError(new IllegalStateException("illegal tree structure"));
+        //throw createError(new IllegalStateException("illegal tree structure"));
+        children.get(0).write(writer, globals);
     }
 
     @Override

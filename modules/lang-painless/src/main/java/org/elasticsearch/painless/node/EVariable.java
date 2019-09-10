@@ -53,6 +53,7 @@ public final class EVariable extends AExpression {
 
         if (write != null) {
             expression = new EVariableWrite(location, name, variable);
+            expression.children.add(children.get(0));
         } else {
             expression = new EVariableRead(location, name, variable);
         }
@@ -63,12 +64,16 @@ public final class EVariable extends AExpression {
         expression.explicit = explicit;
         expression.internal = internal;
         expression.analyze(locals);
-        replace(expression);
+        //replace(expression);
+        actual = expression.actual;
+        children.clear();
+        children.add(expression);
     }
 
     @Override
     void write(MethodWriter writer, Globals globals) {
-        throw createError(new IllegalStateException("illegal tree structure"));
+        //throw createError(new IllegalStateException("illegal tree structure"));
+        children.get(0).write(writer, globals);
     }
 
     @Override

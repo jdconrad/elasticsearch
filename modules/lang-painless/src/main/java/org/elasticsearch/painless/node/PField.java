@@ -143,12 +143,15 @@ public final class PField extends AExpression {
         field.explicit = explicit;
         field.internal = internal;
         field.analyze(locals);
-        replace(field);
+        children.add(field);
+        //replace(field);
+        actual = field.actual;
     }
 
     @Override
     void write(MethodWriter writer, Globals globals) {
-        throw createError(new IllegalStateException("illegal tree structure"));
+        //throw createError(new IllegalStateException("illegal tree structure"));
+        children.get(0).write(writer, globals);
     }
 
     @Override

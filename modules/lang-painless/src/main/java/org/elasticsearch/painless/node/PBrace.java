@@ -51,9 +51,9 @@ public final class PBrace extends AExpression {
 
         if (bridge.actual.isArray()) {
             if (write == null) {
-                brace = new PArrayRead(location, expected);
+                brace = new PArrayRead(location, bridge.actual);
             } else {
-                brace = new PArrayWrite(location, expected);
+                brace = new PArrayWrite(location, bridge.actual);
             }
         } else if (bridge.actual == def.class) {
             if (write == null) {
@@ -79,18 +79,27 @@ public final class PBrace extends AExpression {
         }
 
         brace.children.add(children.get(0));
+
+        if (write != null) {
+            brace.children.add(children.get(1));
+        }
+
         brace.write = write;
         brace.read = read;
         brace.expected = expected;
         brace.explicit = explicit;
         brace.internal = internal;
         brace.analyze(locals);
-        replace(brace);
+        //replace(brace);
+        actual = brace.actual;
+        children.clear();
+        children.add(brace);
     }
 
     @Override
     void write(MethodWriter writer, Globals globals) {
-        throw createError(new IllegalStateException("illegal tree structure"));
+        //throw createError(new IllegalStateException("illegal tree structure"));
+        children.get(0).write(writer, globals);
     }
 
     @Override

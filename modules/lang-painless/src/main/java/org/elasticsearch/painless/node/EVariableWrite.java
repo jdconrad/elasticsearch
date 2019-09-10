@@ -20,12 +20,14 @@
 package org.elasticsearch.painless.node;
 
 import org.elasticsearch.painless.CompilerSettings;
+import org.elasticsearch.painless.DefBootstrap;
 import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Locals.Variable;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.Operation;
+import org.elasticsearch.painless.lookup.def;
 import org.objectweb.asm.Opcodes;
 
 import java.util.Objects;
@@ -56,7 +58,7 @@ public final class EVariableWrite extends AExpression {
             throw createError(new IllegalArgumentException("Variable [" + variable.name + "] is read-only."));
         }
 
-        actual = read ? variable.clazz : void.class;
+        actual = variable.clazz;
         statement = true;
 
         AExpression rhs = (AExpression)children.get(0);
@@ -66,7 +68,6 @@ public final class EVariableWrite extends AExpression {
             vr.write = write;
             vr.read = read;
             rhs.children.set(0, vr);
-            rhs.explicit = true;
         }
 
         rhs.expected = actual;

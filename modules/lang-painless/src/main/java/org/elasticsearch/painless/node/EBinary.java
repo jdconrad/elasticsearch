@@ -41,16 +41,18 @@ import java.util.regex.Pattern;
 public final class EBinary extends AExpression {
 
     final Operation operation;
+    final boolean compound;
 
     private Class<?> promote = null;            // promoted type
     private Class<?> shiftDistance = null;      // for shifts, the rhs is promoted independently
     boolean cat = false;
     private boolean originallyExplicit = false; // record whether there was originally an explicit cast
 
-    public EBinary(Location location, Operation operation) {
+    public EBinary(Location location, Operation operation, boolean compound) {
         super(location);
 
         this.operation = Objects.requireNonNull(operation);
+        this.compound = compound;
     }
 
     @Override
@@ -417,7 +419,11 @@ public final class EBinary extends AExpression {
         left.analyze(variables);
         right.analyze(variables);
 
-        promote = AnalyzerCaster.promoteNumeric(left.actual, right.actual, false);
+        if (compound) {
+            promote = AnalyzerCaster.promoteXor(left.actual, right.actual);
+        } else {
+            promote = AnalyzerCaster.promoteNumeric(left.actual, right.actual, false);
+        }
 
         if (promote == null) {
             throw createError(new ClassCastException("Cannot apply and [&] to types " +
@@ -482,7 +488,11 @@ public final class EBinary extends AExpression {
         left.analyze(variables);
         right.analyze(variables);
 
-        promote = AnalyzerCaster.promoteNumeric(left.actual, right.actual, false);
+        if (compound) {
+            promote = AnalyzerCaster.promoteXor(left.actual, right.actual);
+        } else {
+            promote = AnalyzerCaster.promoteNumeric(left.actual, right.actual, false);
+        }
 
         if (promote == null) {
             throw createError(new ClassCastException("Cannot apply or [|] to types " +
@@ -554,7 +564,9 @@ public final class EBinary extends AExpression {
                 // def calls adopt the wanted return value. if there was a narrowing cast,
                 // we need to flag that so that its done at runtime.
                 int flags = 0;
-                if (originallyExplicit) {
+                if (compound) {
+                    flags |= DefBootstrap.OPERATOR_COMPOUND_ASSIGNMENT;
+                } else if (originallyExplicit) {
                     flags |= DefBootstrap.OPERATOR_EXPLICIT_CAST;
                 }
                 writer.writeDynamicBinaryInstruction(location, actual, left.actual, right.actual, operation, flags);

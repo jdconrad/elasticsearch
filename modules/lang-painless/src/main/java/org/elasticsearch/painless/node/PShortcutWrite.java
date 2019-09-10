@@ -20,12 +20,14 @@
 package org.elasticsearch.painless.node;
 
 import org.elasticsearch.painless.CompilerSettings;
+import org.elasticsearch.painless.DefBootstrap;
 import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.Operation;
 import org.elasticsearch.painless.lookup.PainlessMethod;
+import org.elasticsearch.painless.lookup.def;
 
 import java.util.Objects;
 
@@ -74,7 +76,6 @@ final class PShortcutWrite extends AExpression {
             sr.write = write;
             sr.read = read;
             rhs.children.set(0, sr);
-            rhs.explicit = true;
         }
 
         rhs.expected = actual;

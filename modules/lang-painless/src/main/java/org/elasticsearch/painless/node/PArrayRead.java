@@ -50,7 +50,7 @@ final class PArrayRead extends AExpression {
 
     @Override
     void analyze(Locals locals) {
-        if (children.get(0) != null) {
+        if (children.isEmpty() == false) {
             AExpression index = (AExpression)children.get(0);
             index.expected = int.class;
             index.analyze(locals);
@@ -62,7 +62,7 @@ final class PArrayRead extends AExpression {
 
     @Override
     void write(MethodWriter writer, Globals globals) {
-        if (children.get(0) != null) {
+        if (children.isEmpty() == false) {
             children.get(0).write(writer, globals);
 
             Label noFlip = new Label();

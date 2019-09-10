@@ -266,8 +266,8 @@ public class ASTBuilder {
         return visitChild(new EAssignment(location, pre, post, operation));
     }
 
-    public ASTBuilder visitBinary(Location location, Operation operation) {
-        return visitChild(new EBinary(location, operation));
+    public ASTBuilder visitBinary(Location location, Operation operation, boolean compound) {
+        return visitChild(new EBinary(location, operation, compound));
     }
 
     public ASTBuilder visitUnary(Location location, Operation operation) {
