@@ -56,7 +56,7 @@ import org.elasticsearch.painless.node.EUnary;
 import org.elasticsearch.painless.node.EUsed;
 import org.elasticsearch.painless.node.EVariable;
 import org.elasticsearch.painless.node.PBrace;
-import org.elasticsearch.painless.node.PCallInvoke;
+import org.elasticsearch.painless.node.PCall;
 import org.elasticsearch.painless.node.PField;
 import org.elasticsearch.painless.node.PPostfixBridge;
 import org.elasticsearch.painless.node.SBlock;
@@ -367,7 +367,7 @@ public class ASTBuilder {
     }
 
     public ASTBuilder visitCallInvoke(Location location, String name, boolean nullSafe) {
-        return visitChild(new PCallInvoke(location, name, nullSafe));
+        return visitChild(new PCall(location, name, nullSafe));
     }
 
     public ASTBuilder visitField(Location location, String value, boolean nullSafe) {

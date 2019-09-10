@@ -38,12 +38,10 @@ import static org.elasticsearch.painless.lookup.PainlessLookupUtility.typeToCano
 /**
  * Represents a field load/store and defers to a child subnode.
  */
-public final class PField extends AStoreable {
+public final class PField extends AExpression {
 
     private final boolean nullSafe;
     private final String value;
-
-    private AStoreable sub = null;
 
     public PField(Location location, boolean nullSafe, String value) {
         super(location);
@@ -54,111 +52,103 @@ public final class PField extends AStoreable {
 
     @Override
     void storeSettings(CompilerSettings settings) {
-        children.get(0).storeSettings(settings);
     }
 
     @Override
     void analyze(Locals locals) {
-        AExpression prefix = (AExpression)children.get(0);
+        PPostfixBridge bridge = (PPostfixBridge)parent;
+        AExpression field = null;
 
-        prefix.analyze(locals);
-        prefix.expected = prefix.actual;
-        children.set(0, prefix = prefix.cast(locals));
-
-        if (prefix.actual.isArray()) {
-            sub = new PSubArrayLength(location, PainlessLookupUtility.typeToCanonicalTypeName(prefix.actual), value);
-        } else if (prefix.actual == def.class) {
-            sub = new PSubDefField(location, value);
+        if (bridge.actual.isArray()) {
+            field = new PArrayLength(location, PainlessLookupUtility.typeToCanonicalTypeName(bridge.actual), value);
+        } else if (bridge.actual == def.class) {
+            if (write == null) {
+                field = new PDefFieldRead(location, value);
+            } else {
+                field = new PDefFieldWrite(location, value);
+            }
         } else {
-            PainlessField field = locals.getPainlessLookup().lookupPainlessField(prefix.actual, prefix instanceof EStatic, value);
+            PainlessField access = locals.getPainlessLookup().lookupPainlessField(
+                    bridge.actual, bridge.children.get(0) instanceof EStatic, value);
 
-            if (field == null) {
+            if (access == null) {
                 PainlessMethod getter;
                 PainlessMethod setter;
 
-                getter = locals.getPainlessLookup().lookupPainlessMethod(prefix.actual, false,
+                getter = locals.getPainlessLookup().lookupPainlessMethod(bridge.actual, false,
                         "get" + Character.toUpperCase(value.charAt(0)) + value.substring(1), 0);
 
                 if (getter == null) {
-                    getter = locals.getPainlessLookup().lookupPainlessMethod(prefix.actual, false,
+                    getter = locals.getPainlessLookup().lookupPainlessMethod(bridge.actual, false,
                             "is" + Character.toUpperCase(value.charAt(0)) + value.substring(1), 0);
                 }
 
-                setter = locals.getPainlessLookup().lookupPainlessMethod(prefix.actual, false,
+                setter = locals.getPainlessLookup().lookupPainlessMethod(bridge.actual, false,
                         "set" + Character.toUpperCase(value.charAt(0)) + value.substring(1), 0);
 
-                if (getter != null || setter != null) {
-                    sub = new PSubShortcut(location, value, PainlessLookupUtility.typeToCanonicalTypeName(prefix.actual), getter, setter);
+                if (getter != null && write == null || setter != null && write != null) {
+                    if (write == null) {
+                        field = new PShortcutWrite(
+                                location, value, PainlessLookupUtility.typeToCanonicalTypeName(bridge.actual), setter, getter);
+                    } else {
+                        field = new PShortcutRead(location, value, PainlessLookupUtility.typeToCanonicalTypeName(bridge.actual), getter);
+                    }
                 } else {
                     EConstant index = new EConstant(location, value);
                     index.analyze(locals);
 
-                    if (Map.class.isAssignableFrom(prefix.actual)) {
-                        sub = new PMapRead(location, prefix.actual, index);
+                    if (Map.class.isAssignableFrom(bridge.actual)) {
+                        if (write == null) {
+                            field = new PMapRead(location, bridge.actual);
+                        } else {
+                            field = new PMapWrite(location, bridge.actual);
+                        }
                     }
 
-                    if (List.class.isAssignableFrom(prefix.actual)) {
-                        sub = new PListRead(location, prefix.actual, index);
+                    if (List.class.isAssignableFrom(bridge.actual)) {
+                        if (write == null) {
+                            field = new PListRead(location, bridge.actual);
+                        } else {
+                            field = new PListWrite(location, bridge.actual);
+                        }
+                    }
+
+                    if (field != null) {
+                        field.children.add(index);
                     }
                 }
 
-                if (sub == null) {
+                if (field == null) {
                     throw createError(new IllegalArgumentException(
-                            "field [" + typeToCanonicalTypeName(prefix.actual) + ", " + value + "] not found"));
+                            "field [" + typeToCanonicalTypeName(bridge.actual) + ", " + value + "] not found"));
                 }
             } else {
-                sub = new PSubField(location, field);
+                if (write == null) {
+                    field = new PFieldRead(location, access);
+                } else {
+                    field = new PFieldWrite(location, access);
+                }
             }
         }
 
         if (nullSafe) {
-            sub = new PSubNullSafeField(location, sub);
+            AExpression ns = new PNullSafeCallInvoke(location);
+            ns.children.add(field);
+            field = ns;
         }
 
-        sub.write = write;
-        sub.read = read;
-        sub.expected = expected;
-        sub.explicit = explicit;
-        sub.analyze(locals);
-        actual = sub.actual;
+        field.write = write;
+        field.read = read;
+        field.expected = expected;
+        field.explicit = explicit;
+        field.internal = internal;
+        field.analyze(locals);
+        replace(field);
     }
 
     @Override
     void write(MethodWriter writer, Globals globals) {
-        children.get(0).write(writer, globals);
-        sub.write(writer, globals);
-    }
-
-    @Override
-    boolean isDefOptimized() {
-        return sub.isDefOptimized();
-    }
-
-    @Override
-    void updateActual(Class<?> actual) {
-        sub.updateActual(actual);
-        this.actual = actual;
-    }
-
-    @Override
-    int accessElementCount() {
-        return sub.accessElementCount();
-    }
-
-    @Override
-    void setup(MethodWriter writer, Globals globals) {
-        children.get(0).write(writer, globals);
-        sub.setup(writer, globals);
-    }
-
-    @Override
-    void load(MethodWriter writer, Globals globals) {
-        sub.load(writer, globals);
-    }
-
-    @Override
-    void store(MethodWriter writer, Globals globals) {
-        sub.store(writer, globals);
+        throw createError(new IllegalStateException("illegal tree structure"));
     }
 
     @Override

@@ -33,7 +33,7 @@ import java.util.Objects;
 /**
  * Represents an array load/store.
  */
-final class PArrayWrite extends AStoreable {
+final class PArrayWrite extends AExpression {
 
     private final Class<?> type;
 
@@ -97,38 +97,6 @@ final class PArrayWrite extends AStoreable {
 
         writer.writeDebugInfo(location);
         writer.arrayStore(MethodWriter.getType(actual));
-    }
-
-    @Override
-    int accessElementCount() {
-        return 2;
-    }
-
-    @Override
-    boolean isDefOptimized() {
-        return false;
-    }
-
-    @Override
-    void updateActual(Class<?> actual) {
-        throw createError(new IllegalStateException("Illegal tree structure."));
-    }
-
-    @Override
-    void setup(MethodWriter writer, Globals globals) {
-        children.get(0).write(writer, globals);
-        writeIndexFlip(writer, MethodWriter::arrayLength);
-    }
-
-    @Override
-    void load(MethodWriter writer, Globals globals) {
-        writer.writeDebugInfo(location);
-        writer.arrayLoad(MethodWriter.getType(actual));
-    }
-
-    @Override
-    void store(MethodWriter writer, Globals globals) {
-
     }
 
     @Override

@@ -25,78 +25,61 @@ import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.lookup.PainlessMethod;
-import org.elasticsearch.painless.lookup.def;
 
 import java.util.Objects;
 
-import static org.elasticsearch.painless.lookup.PainlessLookupUtility.typeToCanonicalTypeName;
-
 /**
- * Represents a method call and defers to a child subnode.
+ * Represents a method call.
  */
-public final class PCallInvoke extends AExpression {
+final class PCallInvoke extends AExpression {
 
-    private final String name;
-    private final boolean nullSafe;
+    private final PainlessMethod method;
+    private final Class<?> box;
 
-    private AExpression sub = null;
-
-    public PCallInvoke(Location location, String name, boolean nullSafe) {
+    PCallInvoke(Location location, PainlessMethod method, Class<?> box) {
         super(location);
 
-        this.name = Objects.requireNonNull(name);
-        this.nullSafe = nullSafe;
+        this.method = Objects.requireNonNull(method);
+        this.box = box;
     }
 
     @Override
     void storeSettings(CompilerSettings settings) {
-        for (ANode child : children) {
-            child.storeSettings(settings);
-        }
+        throw createError(new IllegalStateException("illegal tree structure"));
     }
 
     @Override
     void analyze(Locals locals) {
-        AExpression prefix = (AExpression)children.get(0);
+        for (int argument = 0; argument < children.size(); ++argument) {
+            AExpression expression = (AExpression)children.get(argument);
 
-        prefix.analyze(locals);
-        prefix.expected = prefix.actual;
-        children.set(0, prefix = prefix.cast(locals));
-
-        if (prefix.actual == def.class) {
-            sub = new PSubDefCall(location, name, children.subList(1, children.size()));
-        } else {
-            PainlessMethod method =
-                    locals.getPainlessLookup().lookupPainlessMethod(prefix.actual, prefix instanceof EStatic, name, children.size() - 1);
-
-            if (method == null) {
-                throw createError(new IllegalArgumentException(
-                        "method [" + typeToCanonicalTypeName(prefix.actual) + ", " + name + "/" + (children.size() - 1) + "] not found"));
-            }
-
-            sub = new PSubCallInvoke(location, method, prefix.actual, children.subList(1, children.size()));
+            expression.expected = method.typeParameters.get(argument);
+            expression.internal = true;
+            expression.analyze(locals);
+            children.set(argument, expression.cast(locals));
         }
-
-        if (nullSafe) {
-            sub = new PSubNullSafeCallInvoke(location, sub);
-        }
-
-        sub.expected = expected;
-        sub.explicit = explicit;
-        sub.analyze(locals);
-        actual = sub.actual;
 
         statement = true;
+        actual = method.returnType;
     }
 
     @Override
     void write(MethodWriter writer, Globals globals) {
-        children.get(0).write(writer, globals);
-        sub.write(writer, globals);
+        writer.writeDebugInfo(location);
+
+        if (box.isPrimitive()) {
+            writer.box(MethodWriter.getType(box));
+        }
+
+        for (ANode argument : children) {
+            argument.write(writer, globals);
+        }
+
+        writer.invokeMethodCall(method);
     }
 
     @Override
     public String toString() {
-        return singleLineToStringWithOptionalArgs(children.subList(1, children.size()), children.get(0), name);
+        throw new UnsupportedOperationException("unexpected node");
     }
 }

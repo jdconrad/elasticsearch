@@ -25,6 +25,7 @@ import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.Operation;
 import org.elasticsearch.painless.lookup.def;
 
 import java.time.ZonedDateTime;
@@ -33,11 +34,11 @@ import java.util.Objects;
 /**
  * Represents a field load/store or shortcut on a def type.  (Internal only.)
  */
-final class PSubDefField extends AStoreable {
+final class PDefFieldRead extends AExpression {
 
     private final String value;
 
-    PSubDefField(Location location, String value) {
+    PDefFieldRead(Location location, String value) {
         super(location);
 
         this.value = Objects.requireNonNull(value);
@@ -61,44 +62,10 @@ final class PSubDefField extends AStoreable {
         org.objectweb.asm.Type methodType =
             org.objectweb.asm.Type.getMethodType(MethodWriter.getType(actual), org.objectweb.asm.Type.getType(Object.class));
         writer.invokeDefCall(value, methodType, DefBootstrap.LOAD);
-    }
 
-    @Override
-    int accessElementCount() {
-        return 1;
-    }
-
-    @Override
-    boolean isDefOptimized() {
-        return true;
-    }
-
-    @Override
-    void updateActual(Class<?> actual) {
-        this.actual = actual;
-    }
-
-    @Override
-    void setup(MethodWriter writer, Globals globals) {
-        // Do nothing.
-    }
-
-    @Override
-    void load(MethodWriter writer, Globals globals) {
-        writer.writeDebugInfo(location);
-
-        org.objectweb.asm.Type methodType =
-            org.objectweb.asm.Type.getMethodType(MethodWriter.getType(actual), org.objectweb.asm.Type.getType(Object.class));
-        writer.invokeDefCall(value, methodType, DefBootstrap.LOAD);
-    }
-
-    @Override
-    void store(MethodWriter writer, Globals globals) {
-        writer.writeDebugInfo(location);
-
-        org.objectweb.asm.Type methodType = org.objectweb.asm.Type.getMethodType(
-            org.objectweb.asm.Type.getType(void.class), org.objectweb.asm.Type.getType(Object.class), MethodWriter.getType(actual));
-        writer.invokeDefCall(value, methodType, DefBootstrap.STORE);
+        if (read && write == Operation.POST) {
+            writer.writeDup(MethodWriter.getType(actual).getSize(), 1);
+        }
     }
 
     @Override

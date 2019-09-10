@@ -22,57 +22,61 @@ package org.elasticsearch.painless.node;
 import org.elasticsearch.painless.CompilerSettings;
 import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Locals;
-import org.elasticsearch.painless.Locals.Variable;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.Operation;
+import org.elasticsearch.painless.lookup.PainlessMethod;
 
 import java.util.Objects;
 
 /**
- * Represents a variable load/store.
+ * Represents a field load/store shortcut.  (Internal only.)
  */
-public final class EVariable extends AExpression {
+final class PShortcutRead extends AExpression {
 
-    public final String name;
+    private final String value;
+    private final String type;
+    private final PainlessMethod getter;
 
-    public EVariable(Location location, String name) {
+    PShortcutRead(Location location, String value, String type, PainlessMethod getter) {
         super(location);
 
-        this.name = Objects.requireNonNull(name);
+        this.value = Objects.requireNonNull(value);
+        this.type = Objects.requireNonNull(type);
+        this.getter = Objects.requireNonNull(getter);
     }
 
     @Override
     void storeSettings(CompilerSettings settings) {
-        // do nothing
-    }
-
-    @Override
-    void analyze(Locals locals) {
-        Variable variable = locals.getVariable(location, name);
-        AExpression expression;
-
-        if (write != null) {
-            expression = new EVariableWrite(location, name, variable);
-        } else {
-            expression = new EVariableRead(location, name, variable);
-        }
-
-        expression.write = write;
-        expression.read = read;
-        expression.expected = expected;
-        expression.explicit = explicit;
-        expression.internal = internal;
-        expression.analyze(locals);
-        replace(expression);
-    }
-
-    @Override
-    void write(MethodWriter writer, Globals globals) {
         throw createError(new IllegalStateException("illegal tree structure"));
     }
 
     @Override
+    void analyze(Locals locals) {
+        if (getter.returnType == void.class || !getter.typeParameters.isEmpty()) {
+            throw createError(new IllegalArgumentException(
+                    "Illegal get shortcut on field [" + value + "] for type [" + type + "]."));
+        }
+
+        actual = getter.returnType;
+    }
+
+    @Override
+    void write(MethodWriter writer, Globals globals) {
+        writer.writeDebugInfo(location);
+        writer.invokeMethodCall(getter);
+
+        if (!getter.returnType.equals(getter.javaMethod.getReturnType())) {
+            writer.checkCast(MethodWriter.getType(getter.returnType));
+        }
+
+        if (read && write == Operation.POST) {
+            writer.writeDup(MethodWriter.getType(actual).getSize(), 1);
+        }
+    }
+
+    @Override
     public String toString() {
-        return singleLineToString(name);
+        throw new UnsupportedOperationException("unexpected node");
     }
 }

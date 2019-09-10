@@ -24,22 +24,22 @@ import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
-import org.objectweb.asm.Label;
 
-import static java.util.Objects.requireNonNull;
+import java.util.Objects;
 
 /**
- * Implements a call who's value is null if the prefix is null rather than throwing an NPE.
+ * Represents an array length field load.
  */
-public class PSubNullSafeCallInvoke extends AExpression {
-    /**
-     * The expression gaurded by the null check. Required at construction time and replaced at analysis time.
-     */
-    private AExpression guarded;
+final class PArrayLength extends AExpression {
 
-    public PSubNullSafeCallInvoke(Location location, AExpression guarded) {
+    private final String type;
+    private final String value;
+
+    PArrayLength(Location location, String type, String value) {
         super(location);
-        this.guarded = requireNonNull(guarded);
+
+        this.type = Objects.requireNonNull(type);
+        this.value = Objects.requireNonNull(value);
     }
 
     @Override
@@ -49,22 +49,21 @@ public class PSubNullSafeCallInvoke extends AExpression {
 
     @Override
     void analyze(Locals locals) {
-        guarded.analyze(locals);
-        actual = guarded.actual;
-        if (actual.isPrimitive()) {
-            throw new IllegalArgumentException("Result of null safe operator must be nullable");
+        if ("length".equals(value)) {
+            if (write != null) {
+                throw createError(new IllegalArgumentException("Cannot write to read-only field [length] for an array."));
+            }
+
+            actual = int.class;
+        } else {
+            throw createError(new IllegalArgumentException("Field [" + value + "] does not exist for type [" + type + "]."));
         }
     }
 
     @Override
     void write(MethodWriter writer, Globals globals) {
         writer.writeDebugInfo(location);
-
-        Label end = new Label();
-        writer.dup();
-        writer.ifNull(end);
-        guarded.write(writer, globals);
-        writer.mark(end);
+        writer.arrayLength();
     }
 
     @Override

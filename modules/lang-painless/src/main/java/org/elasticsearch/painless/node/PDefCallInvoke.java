@@ -37,18 +37,17 @@ import java.util.Objects;
 /**
  * Represents a method call made on a def type. (Internal only.)
  */
-final class PSubDefCall extends AExpression {
+final class PDefCallInvoke extends AExpression {
 
     private final String name;
 
     private StringBuilder recipe = null;
     private List<String> pointers = new ArrayList<>();
 
-    PSubDefCall(Location location, String name, List<ANode> arguments) {
+    PDefCallInvoke(Location location, String name) {
         super(location);
 
         this.name = Objects.requireNonNull(name);
-        children.addAll(Objects.requireNonNull(arguments));
     }
 
     @Override
@@ -86,6 +85,8 @@ final class PSubDefCall extends AExpression {
 
         // TODO: remove ZonedDateTime exception when JodaCompatibleDateTime is removed
         actual = expected == null || expected == ZonedDateTime.class || explicit ? def.class : expected;
+
+        statement = true;
     }
 
     @Override
@@ -103,7 +104,7 @@ final class PSubDefCall extends AExpression {
             parameterTypes.add(MethodWriter.getType(argument.actual));
 
             if (argument instanceof ILambda) {
-                ILambda lambda = (ILambda) argument;
+                ILambda lambda = (ILambda)argument;
                 Collections.addAll(parameterTypes, lambda.getCaptures());
             }
 

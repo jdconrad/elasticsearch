@@ -67,6 +67,8 @@ final class PListWrite extends AExpression {
             throw createError(new IllegalArgumentException("Illegal list set shortcut for type [" + canonicalClassName + "]."));
         }
 
+        actual = setter.typeParameters.get(1);
+
         AExpression index = (AExpression)children.get(0);
         index.expected = int.class;
         index.analyze(locals);
@@ -82,11 +84,9 @@ final class PListWrite extends AExpression {
             rhs.explicit = true;
         }
 
+        rhs.expected = actual;
         rhs.analyze(locals);
-        rhs.expected = rhs.actual;
         children.set(1, rhs.cast(locals));
-
-        actual = setter.typeParameters.get(1);
     }
 
     @Override

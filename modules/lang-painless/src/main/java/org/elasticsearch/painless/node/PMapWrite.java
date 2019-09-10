@@ -64,6 +64,8 @@ final class PMapWrite extends AExpression {
             throw createError(new IllegalArgumentException("Illegal map set shortcut for type [" + canonicalClassName + "]."));
         }
 
+        actual = setter.typeParameters.get(1);
+
         AExpression index = (AExpression)children.get(0);
         index.expected = setter.typeParameters.get(0);
         index.analyze(locals);
@@ -80,10 +82,8 @@ final class PMapWrite extends AExpression {
         }
 
         rhs.analyze(locals);
-        rhs.expected = rhs.actual;
+        rhs.expected = actual;
         children.set(1, rhs.cast(locals));
-
-        actual = setter.typeParameters.get(1);
     }
 
     @Override

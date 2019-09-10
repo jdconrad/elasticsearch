@@ -24,6 +24,7 @@ import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.Operation;
 import org.elasticsearch.painless.lookup.PainlessField;
 import org.elasticsearch.painless.lookup.PainlessLookupUtility;
 import org.objectweb.asm.Type;
@@ -34,11 +35,11 @@ import java.util.Objects;
 /**
  * Represents a field load/store.
  */
-final class PSubField extends AStoreable {
+final class PFieldWrite extends AExpression {
 
     private final PainlessField field;
 
-    PSubField(Location location, PainlessField field) {
+    PFieldWrite(Location location, PainlessField field) {
         super(location);
 
         this.field = Objects.requireNonNull(field);
@@ -51,62 +52,40 @@ final class PSubField extends AStoreable {
 
     @Override
     void analyze(Locals locals) {
-         if (write && Modifier.isFinal(field.javaField.getModifiers())) {
-             throw createError(new IllegalArgumentException("Cannot write to read-only field [" + field.javaField.getName() + "] " +
-                     "for type [" + PainlessLookupUtility.typeToCanonicalTypeName(field.javaField.getDeclaringClass()) + "]."));
-         }
+        if (write != null && Modifier.isFinal(field.javaField.getModifiers())) {
+            throw createError(new IllegalArgumentException("Cannot write to read-only field [" + field.javaField.getName() + "] " +
+                    "for type [" + PainlessLookupUtility.typeToCanonicalTypeName(field.javaField.getDeclaringClass()) + "]."));
+        }
 
         actual = field.typeParameter;
+
+        AExpression rhs = (AExpression)children.get(0);
+
+        if (write == Operation.POST || write == Operation.PRE || write == Operation.COMPOUND) {
+            PFieldRead fr = new PFieldRead(location, field);
+            fr.write = write;
+            fr.read = read;
+            rhs.children.set(0, fr);
+            rhs.explicit = true;
+        }
+
+        rhs.expected = actual;
+        rhs.analyze(locals);
+        children.set(0, rhs.cast(locals));
     }
 
     @Override
     void write(MethodWriter writer, Globals globals) {
-        writer.writeDebugInfo(location);
-
-        if (java.lang.reflect.Modifier.isStatic(field.javaField.getModifiers())) {
-            writer.getStatic(Type.getType(
-                    field.javaField.getDeclaringClass()), field.javaField.getName(), MethodWriter.getType(field.typeParameter));
-        } else {
-            writer.getField(Type.getType(
-                    field.javaField.getDeclaringClass()), field.javaField.getName(), MethodWriter.getType(field.typeParameter));
+        if (write == Operation.POST || write == Operation.PRE || write == Operation.COMPOUND) {
+            writer.writeDup(1, 0);
         }
-    }
 
-    @Override
-    int accessElementCount() {
-        return 1;
-    }
+        children.get(0).write(writer, globals);
 
-    @Override
-    boolean isDefOptimized() {
-        return false;
-    }
-
-    @Override
-    void updateActual(Class<?> actual) {
-        throw new IllegalArgumentException("Illegal tree structure.");
-    }
-
-    @Override
-    void setup(MethodWriter writer, Globals globals) {
-        // Do nothing.
-    }
-
-    @Override
-    void load(MethodWriter writer, Globals globals) {
-        writer.writeDebugInfo(location);
-
-        if (java.lang.reflect.Modifier.isStatic(field.javaField.getModifiers())) {
-            writer.getStatic(Type.getType(
-                    field.javaField.getDeclaringClass()), field.javaField.getName(), MethodWriter.getType(field.typeParameter));
-        } else {
-            writer.getField(Type.getType(
-                    field.javaField.getDeclaringClass()), field.javaField.getName(), MethodWriter.getType(field.typeParameter));
+        if (read && write != Operation.POST) {
+            writer.writeDup(MethodWriter.getType(actual).getSize(), 1);
         }
-    }
 
-    @Override
-    void store(MethodWriter writer, Globals globals) {
         writer.writeDebugInfo(location);
 
         if (java.lang.reflect.Modifier.isStatic(field.javaField.getModifiers())) {

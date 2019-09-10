@@ -24,25 +24,15 @@ import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
-import org.elasticsearch.painless.lookup.PainlessMethod;
-
-import java.util.List;
-import java.util.Objects;
+import org.objectweb.asm.Label;
 
 /**
- * Represents a method call.
+ * Implements a field who's value is null if the prefix is null rather than throwing an NPE.
  */
-final class PSubCallInvoke extends AExpression {
+public class PNullSafeField extends AExpression {
 
-    private final PainlessMethod method;
-    private final Class<?> box;
-
-    PSubCallInvoke(Location location, PainlessMethod method, Class<?> box, List<ANode> arguments) {
+    public PNullSafeField(Location location) {
         super(location);
-
-        this.method = Objects.requireNonNull(method);
-        this.box = box;
-        children.addAll(Objects.requireNonNull(arguments));
     }
 
     @Override
@@ -52,32 +42,26 @@ final class PSubCallInvoke extends AExpression {
 
     @Override
     void analyze(Locals locals) {
-        for (int argument = 0; argument < children.size(); ++argument) {
-            AExpression expression = (AExpression)children.get(argument);
-
-            expression.expected = method.typeParameters.get(argument);
-            expression.internal = true;
-            expression.analyze(locals);
-            children.set(argument, expression.cast(locals));
+        if (write != null) {
+            throw createError(new IllegalArgumentException("Can't write to null safe reference"));
         }
 
-        statement = true;
-        actual = method.returnType;
+        AExpression expression = (AExpression)children.get(0);
+        expression.analyze(locals);
+        actual = expression.actual;
+
+        if (actual.isPrimitive()) {
+            throw new IllegalArgumentException("Result of null safe operator must be nullable");
+        }
     }
 
     @Override
     void write(MethodWriter writer, Globals globals) {
-        writer.writeDebugInfo(location);
-
-        if (box.isPrimitive()) {
-            writer.box(MethodWriter.getType(box));
-        }
-
-        for (ANode argument : children) {
-            argument.write(writer, globals);
-        }
-
-        writer.invokeMethodCall(method);
+        Label end = new Label();
+        writer.dup();
+        writer.ifNull(end);
+        children.get(0).write(writer, globals);
+        writer.mark(end);
     }
 
     @Override

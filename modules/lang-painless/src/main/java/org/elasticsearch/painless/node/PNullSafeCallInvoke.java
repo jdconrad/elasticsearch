@@ -24,22 +24,15 @@ import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
-
-import java.util.Objects;
+import org.objectweb.asm.Label;
 
 /**
- * Represents an array length field load.
+ * Implements a call who's value is null if the prefix is null rather than throwing an NPE.
  */
-final class PSubArrayLength extends AStoreable {
+public class PNullSafeCallInvoke extends AExpression {
 
-    private final String type;
-    private final String value;
-
-    PSubArrayLength(Location location, String type, String value) {
+    public PNullSafeCallInvoke(Location location) {
         super(location);
-
-        this.type = Objects.requireNonNull(type);
-        this.value = Objects.requireNonNull(value);
     }
 
     @Override
@@ -49,51 +42,26 @@ final class PSubArrayLength extends AStoreable {
 
     @Override
     void analyze(Locals locals) {
-        if ("length".equals(value)) {
-            if (write) {
-                throw createError(new IllegalArgumentException("Cannot write to read-only field [length] for an array."));
-            }
+        AExpression expression = (AExpression)children.get(0);
+        expression.analyze(locals);
+        actual = expression.actual;
 
-            actual = int.class;
-        } else {
-            throw createError(new IllegalArgumentException("Field [" + value + "] does not exist for type [" + type + "]."));
+        if (actual.isPrimitive()) {
+            throw new IllegalArgumentException("Result of null safe operator must be nullable");
         }
+
+        statement = true;
     }
 
     @Override
     void write(MethodWriter writer, Globals globals) {
         writer.writeDebugInfo(location);
-        writer.arrayLength();
-    }
 
-    @Override
-    int accessElementCount() {
-        throw new IllegalStateException("Illegal tree structure.");
-    }
-
-    @Override
-    boolean isDefOptimized() {
-        throw new IllegalStateException("Illegal tree structure.");
-    }
-
-    @Override
-    void updateActual(Class<?> actual) {
-        throw new IllegalStateException("Illegal tree structure.");
-    }
-
-    @Override
-    void setup(MethodWriter writer, Globals globals) {
-        throw new IllegalStateException("Illegal tree structure.");
-    }
-
-    @Override
-    void load(MethodWriter writer, Globals globals) {
-        throw new IllegalStateException("Illegal tree structure.");
-    }
-
-    @Override
-    void store(MethodWriter writer, Globals globals) {
-        throw new IllegalStateException("Illegal tree structure.");
+        Label end = new Label();
+        writer.dup();
+        writer.ifNull(end);
+        children.get(0).write(writer, globals);
+        writer.mark(end);
     }
 
     @Override

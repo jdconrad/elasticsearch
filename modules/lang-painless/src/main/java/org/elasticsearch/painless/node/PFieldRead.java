@@ -22,57 +22,56 @@ package org.elasticsearch.painless.node;
 import org.elasticsearch.painless.CompilerSettings;
 import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Locals;
-import org.elasticsearch.painless.Locals.Variable;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.Operation;
+import org.elasticsearch.painless.lookup.PainlessField;
+import org.objectweb.asm.Type;
 
 import java.util.Objects;
 
 /**
- * Represents a variable load/store.
+ * Represents a field load/store.
  */
-public final class EVariable extends AExpression {
+final class PFieldRead extends AExpression {
 
-    public final String name;
+    private final PainlessField field;
 
-    public EVariable(Location location, String name) {
+    PFieldRead(Location location, PainlessField field) {
         super(location);
 
-        this.name = Objects.requireNonNull(name);
+        this.field = Objects.requireNonNull(field);
     }
 
     @Override
     void storeSettings(CompilerSettings settings) {
-        // do nothing
-    }
-
-    @Override
-    void analyze(Locals locals) {
-        Variable variable = locals.getVariable(location, name);
-        AExpression expression;
-
-        if (write != null) {
-            expression = new EVariableWrite(location, name, variable);
-        } else {
-            expression = new EVariableRead(location, name, variable);
-        }
-
-        expression.write = write;
-        expression.read = read;
-        expression.expected = expected;
-        expression.explicit = explicit;
-        expression.internal = internal;
-        expression.analyze(locals);
-        replace(expression);
-    }
-
-    @Override
-    void write(MethodWriter writer, Globals globals) {
         throw createError(new IllegalStateException("illegal tree structure"));
     }
 
     @Override
+    void analyze(Locals locals) {
+        actual = field.typeParameter;
+    }
+
+    @Override
+    void write(MethodWriter writer, Globals globals) {
+        writer.writeDebugInfo(location);
+
+        if (java.lang.reflect.Modifier.isStatic(field.javaField.getModifiers())) {
+            writer.getStatic(Type.getType(
+                    field.javaField.getDeclaringClass()), field.javaField.getName(), MethodWriter.getType(field.typeParameter));
+        } else {
+            writer.getField(Type.getType(
+                    field.javaField.getDeclaringClass()), field.javaField.getName(), MethodWriter.getType(field.typeParameter));
+        }
+
+        if (read && write == Operation.POST) {
+            writer.writeDup(MethodWriter.getType(actual).getSize(), 1);
+        }
+    }
+
+    @Override
     public String toString() {
-        return singleLineToString(name);
+        throw new UnsupportedOperationException("unexpected node");
     }
 }

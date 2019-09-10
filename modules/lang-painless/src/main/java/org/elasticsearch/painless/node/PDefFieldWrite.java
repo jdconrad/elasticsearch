@@ -26,15 +26,20 @@ import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.Operation;
-import org.objectweb.asm.Type;
+
+import java.util.Objects;
 
 /**
- * Represents an array load/store or shortcut on a def type.  (Internal only.)
+ * Represents a field load/store or shortcut on a def type.  (Internal only.)
  */
-final class PDefArrayWrite extends AExpression {
+final class PDefFieldWrite extends AExpression {
 
-    PDefArrayWrite(Location location) {
+    private final String value;
+
+    PDefFieldWrite(Location location, String value) {
         super(location);
+
+        this.value = Objects.requireNonNull(value);
     }
 
     @Override
@@ -44,19 +49,12 @@ final class PDefArrayWrite extends AExpression {
 
     @Override
     void analyze(Locals locals) {
-        AExpression index = (AExpression)children.get(0);
-
-        index.analyze(locals);
-        index.expected = index.actual;
-        children.set(0, index.cast(locals));
-
         AExpression rhs = (AExpression)children.get(1);
 
         if (write == Operation.POST || write == Operation.PRE || write == Operation.COMPOUND) {
             PDefArrayRead dar = new PDefArrayRead(location);
             dar.write = write;
             dar.read = read;
-            dar.children.add(new DTypeClass(location, index.actual));
             rhs.children.set(0, dar);
             rhs.explicit = true;
         }
@@ -70,28 +68,21 @@ final class PDefArrayWrite extends AExpression {
 
     @Override
     void write(MethodWriter writer, Globals globals) {
-        AExpression index = (AExpression)children.get(0);
-        writer.dup();
-        index.write(writer, globals);
-        Type indexMethodType = Type.getMethodType(
-                MethodWriter.getType(index.actual), Type.getType(Object.class), MethodWriter.getType(index.actual));
-        writer.invokeDefCall("normalizeIndex", indexMethodType, DefBootstrap.INDEX_NORMALIZE);
+        writer.writeDebugInfo(location);
 
         if (write == Operation.POST || write == Operation.PRE || write == Operation.COMPOUND) {
-            writer.writeDup(2, 0);
+            writer.writeDup(1, 0);
         }
 
         children.get(1).write(writer, globals);
 
         if (read && write != Operation.POST) {
-            writer.writeDup(MethodWriter.getType(actual).getSize(), 2);
+            writer.writeDup(MethodWriter.getType(actual).getSize(), 1);
         }
 
-        writer.writeDebugInfo(location);
-
-        Type storeMethodType = Type.getMethodType(
-                Type.getType(void.class), Type.getType(Object.class), MethodWriter.getType(index.actual), MethodWriter.getType(actual));
-        writer.invokeDefCall("arrayStore", storeMethodType, DefBootstrap.ARRAY_STORE);
+        org.objectweb.asm.Type methodType = org.objectweb.asm.Type.getMethodType(
+                org.objectweb.asm.Type.getType(void.class), org.objectweb.asm.Type.getType(Object.class), MethodWriter.getType(actual));
+        writer.invokeDefCall(value, methodType, DefBootstrap.STORE);
     }
 
     @Override

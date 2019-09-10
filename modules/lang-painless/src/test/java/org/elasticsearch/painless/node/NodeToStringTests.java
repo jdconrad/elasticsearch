@@ -107,8 +107,8 @@ public class NodeToStringTests extends ESTestCase {
     public void testECapturingFunctionRef() {
         assertToString(
                   "(SSource\n"
-                + "  (SDeclBlock (SDeclaration Integer x (PCallInvoke (EStatic Integer) valueOf (Args (ENumeric 5)))))\n"
-                + "  (SReturn (PCallInvoke (PCallInvoke (EStatic Optional) empty) orElseGet (Args (ECapturingFunctionRef x toString)))))",
+                + "  (SDeclBlock (SDeclaration Integer x (PCall (EStatic Integer) valueOf (Args (ENumeric 5)))))\n"
+                + "  (SReturn (PCall (PCall (EStatic Optional) empty) orElseGet (Args (ECapturingFunctionRef x toString)))))",
                   "Integer x = Integer.valueOf(5);\n"
                 + "return Optional.empty().orElseGet(x::toString)");
     }
@@ -170,7 +170,7 @@ public class NodeToStringTests extends ESTestCase {
     public void testEFunctionRef() {
         assertToString(
                 "(SSource (SReturn "
-                        + "(PCallInvoke (PCallInvoke (EStatic Optional) empty) orElseGet (Args (EFunctionRef Optional empty)))))",
+                        + "(PCall (PCall (EStatic Optional) empty) orElseGet (Args (EFunctionRef Optional empty)))))",
                 "return Optional.empty().orElseGet(Optional::empty)");
     }
 
@@ -181,36 +181,36 @@ public class NodeToStringTests extends ESTestCase {
 
     public void testELambda() {
         assertToString(
-                  "(SSource (SReturn (PCallInvoke (PCallInvoke (EStatic Optional) empty) orElseGet (Args "
+                  "(SSource (SReturn (PCall (PCall (EStatic Optional) empty) orElseGet (Args "
                 + "(ELambda (SBlock (SReturn (ENumeric 1))))))))",
                   "return Optional.empty().orElseGet(() -> {\n"
                 + "  return 1\n"
                 + "})");
         assertToString(
-                  "(SSource (SReturn (PCallInvoke (PCallInvoke (EStatic Optional) empty) orElseGet (Args "
+                  "(SSource (SReturn (PCall (PCall (EStatic Optional) empty) orElseGet (Args "
                 + "(ELambda (SBlock (SReturn (ENumeric 1))))))))",
                   "return Optional.empty().orElseGet(() -> 1)");
         assertToString(
-                  "(SSource (SReturn (PCallInvoke (PCallInvoke (PCallInvoke (EListInit (ENumeric 1) (ENumeric 2) (ENumeric 3)) stream) "
+                  "(SSource (SReturn (PCall (PCall (PCall (EListInit (ENumeric 1) (ENumeric 2) (ENumeric 3)) stream) "
                 + "mapToInt (Args (ELambda (Pair def x)\n"
                 + "  (SBlock (SReturn (EBinary (EVariable x) + (ENumeric 1))))))) sum)))",
                   "return [1, 2, 3].stream().mapToInt((def x) -> {\n"
                 + "  return x + 1\n"
                 + "}).sum()");
         assertToString(
-                  "(SSource (SReturn (PCallInvoke (PCallInvoke (PCallInvoke (EListInit (ENumeric 1) (ENumeric 2) (ENumeric 3)) stream) "
+                  "(SSource (SReturn (PCall (PCall (PCall (EListInit (ENumeric 1) (ENumeric 2) (ENumeric 3)) stream) "
                 + "mapToInt (Args (ELambda (Pair null x)\n"
                 + "  (SBlock (SReturn (EBinary (EVariable x) + (ENumeric 1))))))) sum)))",
                   "return [1, 2, 3].stream().mapToInt(x -> x + 1).sum()");
         assertToString(
-                  "(SSource (SReturn (PCallInvoke (EListInit (EString 'a') (EString 'b')) sort (Args (ELambda (Pair def a) (Pair def b)\n"
-                + "  (SBlock (SReturn (EBinary (PCallInvoke (EVariable a) length) - (PCallInvoke (EVariable b) length)))))))))",
+                  "(SSource (SReturn (PCall (EListInit (EString 'a') (EString 'b')) sort (Args (ELambda (Pair def a) (Pair def b)\n"
+                + "  (SBlock (SReturn (EBinary (PCall (EVariable a) length) - (PCall (EVariable b) length)))))))))",
                   "return ['a', 'b'].sort((def a, def b) -> {\n"
                 + "  return a.length() - b.length()\n"
                 + "})");
         assertToString(
-                  "(SSource (SReturn (PCallInvoke (EListInit (EString 'a') (EString 'b')) sort (Args (ELambda (Pair null a) (Pair null b)\n"
-                + "  (SBlock (SReturn (EBinary (PCallInvoke (EVariable a) length) - (PCallInvoke (EVariable b) length)))))))))",
+                  "(SSource (SReturn (PCall (EListInit (EString 'a') (EString 'b')) sort (Args (ELambda (Pair null a) (Pair null b)\n"
+                + "  (SBlock (SReturn (EBinary (PCall (EVariable a) length) - (PCall (EVariable b) length)))))))))",
                   "return ['a', 'b'].sort((a, b) -> a.length() - b.length())");
     }
 
@@ -273,7 +273,7 @@ public class NodeToStringTests extends ESTestCase {
     }
 
     public void testEStatic() {
-        assertToString("(SSource (SReturn (PCallInvoke (EStatic Optional) empty)))", "return Optional.empty()");
+        assertToString("(SSource (SReturn (PCall (EStatic Optional) empty)))", "return Optional.empty()");
     }
 
     public void testEString() {
@@ -306,11 +306,11 @@ public class NodeToStringTests extends ESTestCase {
     }
 
     public void testPCallInvoke() {
-        assertToString("(SSource (SReturn (PCallInvoke (EStatic Optional) empty)))", "return Optional.empty()");
-        assertToString("(SSource (SReturn (PCallInvoke (EStatic Optional) of (Args (ENumeric 1)))))", "return Optional.of(1)");
-        assertToString("(SSource (SReturn (PCallInvoke (EStatic Objects) equals (Args (ENumeric 1) (ENumeric 2)))))",
+        assertToString("(SSource (SReturn (PCall (EStatic Optional) empty)))", "return Optional.empty()");
+        assertToString("(SSource (SReturn (PCall (EStatic Optional) of (Args (ENumeric 1)))))", "return Optional.of(1)");
+        assertToString("(SSource (SReturn (PCall (EStatic Objects) equals (Args (ENumeric 1) (ENumeric 2)))))",
                 "return Objects.equals(1, 2)");
-        assertToString("(SSource (SReturn (PCallInvoke (EVariable params) equals (Args (ENumeric 1)))))", "return params.equals(1)");
+        assertToString("(SSource (SReturn (PCall (EVariable params) equals (Args (ENumeric 1)))))", "return params.equals(1)");
     }
 
     public void testPField() {
@@ -476,7 +476,7 @@ public class NodeToStringTests extends ESTestCase {
                 "(SSource\n"
               + "  (SDeclBlock (SDeclaration int l (ENumeric 0)))\n"
               + "  (SEach String s (EListInit (EString 'cat') (EString 'dog') (EString 'chicken')) (SBlock "
-                  + "(SExpression (EAssignment (EVariable l) += (PCallInvoke (EVariable s) length)))))\n"
+                  + "(SExpression (EAssignment (EVariable l) += (PCall (EVariable s) length)))))\n"
               + "  (SReturn (EVariable l)))",
                   "int l = 0;\n"
                 + "for (String s : ['cat', 'dog', 'chicken']) {\n"
@@ -488,7 +488,7 @@ public class NodeToStringTests extends ESTestCase {
               + "  (SDeclBlock (SDeclaration int l (ENumeric 0)))\n"
               + "  (SEach String s (EListInit (EString 'cat') (EString 'dog') (EString 'chicken')) (SBlock\n"
               + "    (SDeclBlock (SDeclaration String s2 (EBinary (EString 'dire ') + (EVariable s))))\n"
-              + "    (SExpression (EAssignment (EVariable l) += (PCallInvoke (EVariable s2) length)))))\n"
+              + "    (SExpression (EAssignment (EVariable l) += (PCall (EVariable s2) length)))))\n"
               + "  (SReturn (EVariable l)))",
                 "int l = 0;\n"
               + "for (String s : ['cat', 'dog', 'chicken']) {\n"
