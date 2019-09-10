@@ -67,7 +67,7 @@ final class PListRead extends AExpression {
             throw createError(new IllegalArgumentException("Illegal list get shortcut for type [" + canonicalClassName + "]."));
         }
 
-        if (children.get(0) != null) {
+        if (children.isEmpty() == false) {
             AExpression index = (AExpression) children.get(0);
 
             index.expected = int.class;
@@ -80,7 +80,7 @@ final class PListRead extends AExpression {
 
     @Override
     void write(MethodWriter writer, Globals globals) {
-        if (children.get(0) != null) {
+        if (children.isEmpty() == false) {
             children.get(0).write(writer, globals);
 
             Label noFlip = new Label();

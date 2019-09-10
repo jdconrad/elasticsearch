@@ -33,7 +33,9 @@ public class PPostfixBridge extends AExpression {
 
     @Override
     void storeSettings(CompilerSettings settings) {
-
+        for (ANode child : children) {
+            child.storeSettings(settings);
+        }
     }
 
     @Override
@@ -42,6 +44,8 @@ public class PPostfixBridge extends AExpression {
         AExpression rhs = (AExpression)children.get(1);
 
         lhs.analyze(locals);
+        lhs.expected = lhs.actual;
+        children.set(0, lhs = lhs.cast(locals));
         actual = lhs.actual;
         rhs.write = write;
         rhs.read = read;

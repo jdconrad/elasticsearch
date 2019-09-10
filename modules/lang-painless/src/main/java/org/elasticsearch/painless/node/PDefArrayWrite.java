@@ -26,7 +26,6 @@ import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.Operation;
-import org.elasticsearch.painless.lookup.def;
 import org.objectweb.asm.Type;
 
 /**
@@ -59,6 +58,7 @@ final class PDefArrayWrite extends AExpression {
             dar.read = read;
             dar.children.add(new DTypeClass(location, index.actual));
             rhs.children.set(0, dar);
+            rhs.explicit = true;
         }
 
         rhs.analyze(locals);

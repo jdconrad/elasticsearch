@@ -109,6 +109,12 @@ public class BasicExpressionTests extends ScriptTestCase {
                 "Object y = x;\n" +
                 "((Map)y).put(2, 3);\n" +
                 "return x.get(2);\n"));
+
+        assertEquals("3", exec(
+                "Map x = new HashMap();\n" +
+                "Object y = x;\n" +
+                "((Map)y).put(2, 3);\n" +
+                "((int)((Map)y).get(2)).toString();\n"));
     }
 
     public void testIllegalDefCast() {

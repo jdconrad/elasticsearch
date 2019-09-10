@@ -20,7 +20,6 @@
 package org.elasticsearch.painless.node;
 
 import org.elasticsearch.painless.CompilerSettings;
-import org.elasticsearch.painless.DefBootstrap;
 import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
@@ -28,7 +27,6 @@ import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.Operation;
 import org.elasticsearch.painless.lookup.PainlessField;
 import org.elasticsearch.painless.lookup.PainlessLookupUtility;
-import org.elasticsearch.painless.lookup.def;
 import org.objectweb.asm.Type;
 
 import java.lang.reflect.Modifier;
@@ -68,6 +66,7 @@ final class PFieldWrite extends AExpression {
             fr.write = write;
             fr.read = read;
             rhs.children.set(0, fr);
+            rhs.explicit = true;
         }
 
         rhs.expected = actual;

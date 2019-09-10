@@ -26,7 +26,6 @@ import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.Operation;
-import org.elasticsearch.painless.lookup.def;
 
 import java.util.Objects;
 
@@ -50,18 +49,24 @@ final class PDefFieldWrite extends AExpression {
 
     @Override
     void analyze(Locals locals) {
-        AExpression rhs = (AExpression)children.get(1);
+        AExpression rhs = (AExpression)children.get(0);
 
         if (write == Operation.POST || write == Operation.PRE || write == Operation.COMPOUND) {
-            PDefArrayRead dar = new PDefArrayRead(location);
-            dar.write = write;
-            dar.read = read;
-            rhs.children.set(0, dar);
+            PDefFieldRead dfr = new PDefFieldRead(location, value);
+            dfr.write = write;
+            dfr.read = read;
+            rhs.children.set(0, dfr);
+            rhs.explicit = true;
         }
 
         rhs.analyze(locals);
+
+        if (rhs.actual == void.class) {
+            throw createError(new IllegalArgumentException("cannot assign [void]"));
+        }
+
         rhs.expected = rhs.actual;
-        children.set(1, rhs.cast(locals));
+        children.set(0, rhs.cast(locals));
 
         actual = rhs.actual;
     }
@@ -74,7 +79,7 @@ final class PDefFieldWrite extends AExpression {
             writer.writeDup(1, 0);
         }
 
-        children.get(1).write(writer, globals);
+        children.get(0).write(writer, globals);
 
         if (read && write != Operation.POST) {
             writer.writeDup(MethodWriter.getType(actual).getSize(), 1);

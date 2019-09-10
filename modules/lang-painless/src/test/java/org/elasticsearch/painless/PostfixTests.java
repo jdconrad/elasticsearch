@@ -22,6 +22,7 @@ package org.elasticsearch.painless;
 public class PostfixTests extends ScriptTestCase {
     public void testConstantPostfixes() {
         assertEquals("2", exec("2.toString()"));
+        assertEquals("1.1", exec("1.1.toString()"));
         assertEquals(4, exec("[1, 2, 3, 4, 5][3]"));
         assertEquals("4", exec("[1, 2, 3, 4, 5][3].toString()"));
         assertEquals(3, exec("new int[] {1, 2, 3, 4, 5}[2]"));

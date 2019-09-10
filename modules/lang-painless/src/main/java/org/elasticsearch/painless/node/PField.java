@@ -88,10 +88,10 @@ public final class PField extends AExpression {
 
                 if (getter != null && write == null || setter != null && write != null) {
                     if (write == null) {
+                        field = new PShortcutRead(location, value, PainlessLookupUtility.typeToCanonicalTypeName(bridge.actual), getter);
+                    } else {
                         field = new PShortcutWrite(
                                 location, value, PainlessLookupUtility.typeToCanonicalTypeName(bridge.actual), setter, getter);
-                    } else {
-                        field = new PShortcutRead(location, value, PainlessLookupUtility.typeToCanonicalTypeName(bridge.actual), getter);
                     }
                 } else {
                     EConstant index = new EConstant(location, value);
@@ -137,14 +137,19 @@ public final class PField extends AExpression {
             field = ns;
         }
 
+        if (write != null) {
+            field.children.add(children.get(0));
+        }
+
         field.write = write;
         field.read = read;
         field.expected = expected;
         field.explicit = explicit;
         field.internal = internal;
         field.analyze(locals);
-        children.add(field);
         //replace(field);
+        children.clear();
+        children.add(field);
         actual = field.actual;
     }
 

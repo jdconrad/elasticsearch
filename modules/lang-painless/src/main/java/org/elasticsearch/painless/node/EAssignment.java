@@ -59,25 +59,36 @@ public final class EAssignment extends AExpression {
     @Override
     void analyze(Locals locals) {
         AExpression lhs = (AExpression)children.get(0);
-
-        lhs.read = read;
-
         ANode rhs;
 
         if (pre) {
-            lhs.write = Operation.PRE;
+            if (operation == Operation.INCR) {
+                operation = Operation.ADD;
+            } else if (operation == Operation.DECR) {
+                operation = Operation.SUB;
+            } else {
+                throw createError(new IllegalStateException("illegal tree structure"));
+            }
 
+            lhs.write = Operation.PRE;
             rhs = new ASTBuilder()
-                    .visitBinary(location, Operation.ADD, true)
+                    .visitBinary(location, operation, true)
                             .visitEmpty()
                             .visitConstant(location, 1).endVisit()
                     .endVisit()
             .endBuild();
         } else if (post) {
-            lhs.write = Operation.POST;
+            if (operation == Operation.INCR) {
+                operation = Operation.ADD;
+            } else if (operation == Operation.DECR) {
+                operation = Operation.SUB;
+            } else {
+                throw createError(new IllegalStateException("illegal tree structure"));
+            }
 
+            lhs.write = Operation.POST;
             rhs = new ASTBuilder()
-                    .visitBinary(location, Operation.SUB, true)
+                    .visitBinary(location, operation, true)
                             .visitEmpty()
                             .visitConstant(location, 1).endVisit()
                     .endVisit()
@@ -106,6 +117,7 @@ public final class EAssignment extends AExpression {
 
         children.remove(1);
 
+        lhs.read = read;
         lhs.analyze(locals);
 
         this.statement = true;

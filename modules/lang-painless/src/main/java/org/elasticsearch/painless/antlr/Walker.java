@@ -604,7 +604,7 @@ public final class Walker extends PainlessParserBaseVisitor<Void> {
             throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
         }
 
-        builder.visitBinary(location(ctx), operation);
+        builder.visitBinary(location(ctx), operation, false);
 
         visit(ctx.expression(0));
         visit(ctx.expression(1));

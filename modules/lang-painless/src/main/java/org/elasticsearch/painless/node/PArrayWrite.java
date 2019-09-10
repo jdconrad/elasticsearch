@@ -20,13 +20,11 @@
 package org.elasticsearch.painless.node;
 
 import org.elasticsearch.painless.CompilerSettings;
-import org.elasticsearch.painless.DefBootstrap;
 import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.Operation;
-import org.elasticsearch.painless.lookup.def;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.Opcodes;
 
@@ -66,6 +64,7 @@ final class PArrayWrite extends AExpression {
             ar.write = write;
             ar.read = read;
             rhs.children.set(0, ar);
+            rhs.explicit = true;
         }
 
         rhs.expected = actual;
