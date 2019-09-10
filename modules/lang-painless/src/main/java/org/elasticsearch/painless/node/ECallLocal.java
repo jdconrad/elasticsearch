@@ -20,10 +20,8 @@
 package org.elasticsearch.painless.node;
 
 import org.elasticsearch.painless.Globals;
-import org.elasticsearch.painless.Locals.LocalMethod;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
-import org.elasticsearch.painless.builder.FunctionTable;
 import org.elasticsearch.painless.builder.FunctionTable.LocalFunction;
 import org.elasticsearch.painless.builder.SymbolTable;
 import org.elasticsearch.painless.lookup.PainlessClassBinding;

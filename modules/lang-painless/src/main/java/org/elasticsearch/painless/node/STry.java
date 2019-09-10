@@ -19,11 +19,10 @@
 
 package org.elasticsearch.painless.node;
 
-import org.elasticsearch.painless.CompilerSettings;
 import org.elasticsearch.painless.Globals;
-import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.builder.SymbolTable;
 import org.objectweb.asm.Label;
 
 import static java.util.Collections.singleton;
@@ -38,14 +37,7 @@ public final class STry extends AStatement {
     }
 
     @Override
-    void storeSettings(CompilerSettings settings) {
-        for (ANode child : children) {
-            child.storeSettings(settings);
-        }
-    }
-
-    @Override
-    void analyze(Locals locals) {
+    void analyze(SymbolTable table) {
         SBlock block = (SBlock)children.get(0);
 
         if (block == null) {
@@ -56,7 +48,7 @@ public final class STry extends AStatement {
         block.inLoop = inLoop;
         block.lastLoop = lastLoop;
 
-        block.analyze(Locals.newLocalScope(locals));
+        block.analyze(table);
 
         methodEscape = block.methodEscape;
         loopEscape = block.loopEscape;
@@ -73,7 +65,7 @@ public final class STry extends AStatement {
             catc.inLoop = inLoop;
             catc.lastLoop = lastLoop;
 
-            catc.analyze(Locals.newLocalScope(locals));
+            catc.analyze(table);
 
             methodEscape &= catc.methodEscape;
             loopEscape &= catc.loopEscape;

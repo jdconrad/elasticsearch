@@ -19,11 +19,10 @@
 
 package org.elasticsearch.painless.node;
 
-import org.elasticsearch.painless.CompilerSettings;
 import org.elasticsearch.painless.Globals;
-import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.builder.SymbolTable;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.Opcodes;
 
@@ -39,20 +38,9 @@ public final class SDo extends AStatement {
     }
 
     @Override
-    void storeSettings(CompilerSettings settings) {
-        children.get(0).storeSettings(settings);
-
-        if (children.get(1) != null) {
-            children.get(1).storeSettings(settings);
-        }
-    }
-
-    @Override
-    void analyze(Locals locals) {
+    void analyze(SymbolTable table) {
         AExpression condition = (AExpression)children.get(0);
         AStatement block = (AStatement)children.get(1);
-
-        locals = Locals.newLocalScope(locals);
 
         if (block == null) {
             throw createError(new IllegalArgumentException("Extraneous do while loop."));
@@ -61,15 +49,15 @@ public final class SDo extends AStatement {
         block.beginLoop = true;
         block.inLoop = true;
 
-        block.analyze(locals);
+        block.analyze(table);
 
         if (block.loopEscape && !block.anyContinue) {
             throw createError(new IllegalArgumentException("Extraneous do while loop."));
         }
 
         condition.expected = boolean.class;
-        condition.analyze(locals);
-        children.set(0, condition = condition.cast(locals));
+        condition.analyze(table);
+        children.set(0, condition = condition.cast(table));
 
         if (condition.constant != null) {
             continuous = (boolean)condition.constant;
@@ -85,10 +73,7 @@ public final class SDo extends AStatement {
         }
 
         statementCount = 1;
-
-        if (locals.hasVariable(Locals.LOOP)) {
-            loopCounter = locals.getVariable(location, Locals.LOOP);
-        }
+        loopCounter = table.scopes().getNodeScope(this).getVariable("#loop");
     }
 
     @Override

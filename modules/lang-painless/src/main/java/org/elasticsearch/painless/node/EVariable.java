@@ -19,12 +19,9 @@
 
 package org.elasticsearch.painless.node;
 
-import org.elasticsearch.painless.CompilerSettings;
 import org.elasticsearch.painless.Globals;
-import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
-import org.elasticsearch.painless.builder.ScopeTable;
 import org.elasticsearch.painless.builder.ScopeTable.Variable;
 import org.elasticsearch.painless.builder.SymbolTable;
 

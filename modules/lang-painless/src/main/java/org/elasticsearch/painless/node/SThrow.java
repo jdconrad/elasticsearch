@@ -19,11 +19,10 @@
 
 package org.elasticsearch.painless.node;
 
-import org.elasticsearch.painless.CompilerSettings;
 import org.elasticsearch.painless.Globals;
-import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.builder.SymbolTable;
 
 /**
  * Represents a throw statement.
@@ -35,18 +34,13 @@ public final class SThrow extends AStatement {
     }
 
     @Override
-    void storeSettings(CompilerSettings settings) {
-        children.get(1).storeSettings(settings);
-    }
-
-    @Override
-    void analyze(Locals locals) {
+    void analyze(SymbolTable table) {
         Class<?> exception = ((DTypeClass)children.get(0)).type;
         AExpression expression = (AExpression)children.get(1);
 
         expression.expected = exception;
-        expression.analyze(locals);
-        children.set(1, expression.cast(locals));
+        expression.analyze(table);
+        children.set(1, expression.cast(table));
 
         methodEscape = true;
         loopEscape = true;

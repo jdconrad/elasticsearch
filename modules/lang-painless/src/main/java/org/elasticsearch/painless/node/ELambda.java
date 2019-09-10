@@ -19,14 +19,11 @@
 
 package org.elasticsearch.painless.node;
 
-import org.elasticsearch.painless.CompilerSettings;
 import org.elasticsearch.painless.FunctionRef;
 import org.elasticsearch.painless.Globals;
-import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.builder.ASTBuilder;
-import org.elasticsearch.painless.builder.ScopeTable;
 import org.elasticsearch.painless.builder.ScopeTable.FunctionScope;
 import org.elasticsearch.painless.builder.ScopeTable.LambdaScope;
 import org.elasticsearch.painless.builder.ScopeTable.Variable;

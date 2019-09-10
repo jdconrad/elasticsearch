@@ -20,13 +20,13 @@
 package org.elasticsearch.painless.node;
 
 import org.elasticsearch.painless.AnalyzerCaster;
-import org.elasticsearch.painless.CompilerSettings;
 import org.elasticsearch.painless.DefBootstrap;
 import org.elasticsearch.painless.Globals;
-import org.elasticsearch.painless.Locals;
-import org.elasticsearch.painless.Locals.Variable;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.builder.ScopeTable.Scope;
+import org.elasticsearch.painless.builder.ScopeTable.Variable;
+import org.elasticsearch.painless.builder.SymbolTable;
 import org.elasticsearch.painless.lookup.PainlessCast;
 import org.elasticsearch.painless.lookup.PainlessMethod;
 import org.elasticsearch.painless.lookup.def;
@@ -52,31 +52,26 @@ final class SSubEachIterable extends AStatement {
     private Variable iterator = null;
     private PainlessMethod method = null;
 
-    SSubEachIterable(Location location, Variable variable, AExpression expression, SBlock block) {
+    SSubEachIterable(Location location, Variable variable) {
         super(location);
 
         this.variable = Objects.requireNonNull(variable);
-        children.add(Objects.requireNonNull(expression));
-        children.add(block);
     }
 
     @Override
-    void storeSettings(CompilerSettings settings) {
-        throw createError(new IllegalStateException("illegal tree structure"));
-    }
-
-    @Override
-    void analyze(Locals locals) {
+    void analyze(SymbolTable table) {
+        Scope scope = table.scopes().getNodeScope(this);
         AExpression expression = (AExpression)children.get(0);
 
         // We must store the iterator as a variable for securing a slot on the stack, and
         // also add the location offset to make the name unique in case of nested for each loops.
-        iterator = locals.addVariable(location, Iterator.class, "#itr" + location.getOffset(), true);
+        scope.addVariable("#itr" + location.getOffset(), true);
+        iterator = scope.updateVariable("#itr" + location.getOffset(), Iterator.class);
 
         if (expression.actual == def.class) {
             method = null;
         } else {
-            method = locals.getPainlessLookup().lookupPainlessMethod(expression.actual, false, "iterator", 0);
+            method = table.lookup().lookupPainlessMethod(expression.actual, false, "iterator", 0);
 
             if (method == null) {
                     throw createError(new IllegalArgumentException(
@@ -84,7 +79,7 @@ final class SSubEachIterable extends AStatement {
             }
         }
 
-        cast = AnalyzerCaster.getLegalCast(location, def.class, variable.clazz, true, true);
+        cast = AnalyzerCaster.getLegalCast(location, def.class, variable.getType(), true, true);
     }
 
     @Override
@@ -104,21 +99,21 @@ final class SSubEachIterable extends AStatement {
             writer.invokeMethodCall(method);
         }
 
-        writer.visitVarInsn(MethodWriter.getType(iterator.clazz).getOpcode(Opcodes.ISTORE), iterator.getSlot());
+        writer.visitVarInsn(MethodWriter.getType(iterator.getType()).getOpcode(Opcodes.ISTORE), iterator.getSlot());
 
         Label begin = new Label();
         Label end = new Label();
 
         writer.mark(begin);
 
-        writer.visitVarInsn(MethodWriter.getType(iterator.clazz).getOpcode(Opcodes.ILOAD), iterator.getSlot());
+        writer.visitVarInsn(MethodWriter.getType(iterator.getType()).getOpcode(Opcodes.ILOAD), iterator.getSlot());
         writer.invokeInterface(ITERATOR_TYPE, ITERATOR_HASNEXT);
         writer.ifZCmp(MethodWriter.EQ, end);
 
-        writer.visitVarInsn(MethodWriter.getType(iterator.clazz).getOpcode(Opcodes.ILOAD), iterator.getSlot());
+        writer.visitVarInsn(MethodWriter.getType(iterator.getType()).getOpcode(Opcodes.ILOAD), iterator.getSlot());
         writer.invokeInterface(ITERATOR_TYPE, ITERATOR_NEXT);
         writer.writeCast(cast);
-        writer.visitVarInsn(MethodWriter.getType(variable.clazz).getOpcode(Opcodes.ISTORE), variable.getSlot());
+        writer.visitVarInsn(MethodWriter.getType(variable.getType()).getOpcode(Opcodes.ISTORE), variable.getSlot());
 
         if (loopCounter != null) {
             writer.writeLoopCounter(loopCounter.getSlot(), statementCount, location);

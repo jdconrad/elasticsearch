@@ -21,12 +21,11 @@ package org.elasticsearch.painless.node;
 
 import org.elasticsearch.painless.CompilerSettings;
 import org.elasticsearch.painless.Globals;
-import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Locals.Variable;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.builder.FunctionTable;
-import org.elasticsearch.painless.lookup.PainlessLookupUtility;
+import org.elasticsearch.painless.builder.SymbolTable;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.Opcodes;
 
@@ -67,18 +66,7 @@ public final class SFunction extends AStatement {
         return FunctionTable.buildKey(name, children.get(1).children.size());
     }
 
-    @Override
-    void storeSettings(CompilerSettings settings) {
-        if (children.get(2) != null) {
-            children.get(2).storeSettings(settings);
-        }
-        if (children.get(3) != null) {
-            children.get(3).storeSettings(settings);
-        }
-        this.settings = settings;
-    }
-
-    public void generateSignature() {
+    /*public void generateSignature() {
         Class<?> returnType = ((DTypeClass)children.get(0)).type;
 
         int parametersSize = children.get(1).children.size();
@@ -92,26 +80,24 @@ public final class SFunction extends AStatement {
         methodType = MethodType.methodType(PainlessLookupUtility.typeToJavaType(returnType), paramClasses);
         method = new org.objectweb.asm.commons.Method(name, MethodType.methodType(
                 PainlessLookupUtility.typeToJavaType(returnType), paramClasses).toMethodDescriptorString());
-    }
+    }*/
 
     @Override
-    void analyze(Locals locals) {
+    void analyze(SymbolTable table) {
         if (children.get(2) != null) {
-            children.get(2).analyze(locals);
+            children.get(2).analyze(table);
         }
 
         SBlock block = (SBlock)children.get(3);
         block.lastSource = true;
-        block.analyze(Locals.newLocalScope(locals));
+        block.analyze(table);
         methodEscape = block.methodEscape;
 
         if (!auto && !methodEscape && ((DTypeClass)children.get(0)).type != void.class) {
             throw createError(new IllegalArgumentException("Not all paths provide a return value for method [" + name + "]."));
         }
 
-        if (settings.getMaxLoopCounter() > 0) {
-            loop = locals.getVariable(null, Locals.LOOP);
-        }
+        loopCounter = table.scopes().getNodeScope(this).getVariable("#loop");
     }
 
     /** Writes the function to given ClassVisitor. */

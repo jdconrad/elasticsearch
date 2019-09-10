@@ -19,11 +19,10 @@
 
 package org.elasticsearch.painless.node;
 
-import org.elasticsearch.painless.CompilerSettings;
 import org.elasticsearch.painless.Globals;
-import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.builder.SymbolTable;
 import org.elasticsearch.painless.lookup.PainlessLookupUtility;
 
 /**
@@ -36,27 +35,21 @@ public final class SReturn extends AStatement {
     }
 
     @Override
-    void storeSettings(CompilerSettings settings) {
-        if (children.get(0) != null) {
-            children.get(0).storeSettings(settings);
-        }
-    }
-
-    @Override
-    void analyze(Locals locals) {
+    void analyze(SymbolTable table) {
+        Class<?> returnType = table.scopes().getNodeScope(this).getReturnType();
         AExpression expression = (AExpression)children.get(0);
 
         if (expression == null) {
-            if (locals.getReturnType() != void.class) {
+            if (returnType != void.class) {
                 throw location.createError(new ClassCastException("Cannot cast from " +
-                        "[" + PainlessLookupUtility.typeToCanonicalTypeName(locals.getReturnType()) + "] to " +
+                        "[" + PainlessLookupUtility.typeToCanonicalTypeName(returnType) + "] to " +
                         "[" + PainlessLookupUtility.typeToCanonicalTypeName(void.class) + "]."));
             }
         } else {
-            expression.expected = locals.getReturnType();
+            expression.expected = returnType;
             expression.internal = true;
-            expression.analyze(locals);
-            children.set(0, expression.cast(locals));
+            expression.analyze(table);
+            children.set(0, expression.cast(table));
         }
 
         methodEscape = true;

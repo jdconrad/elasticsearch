@@ -19,12 +19,11 @@
 
 package org.elasticsearch.painless.node;
 
-import org.elasticsearch.painless.CompilerSettings;
 import org.elasticsearch.painless.Globals;
-import org.elasticsearch.painless.Locals;
-import org.elasticsearch.painless.Locals.Variable;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.builder.ScopeTable.Variable;
+import org.elasticsearch.painless.builder.SymbolTable;
 import org.objectweb.asm.Opcodes;
 
 import java.util.Objects;
@@ -47,25 +46,18 @@ public final class SDeclaration extends AStatement {
     }
 
     @Override
-    void storeSettings(CompilerSettings settings) {
-        if (children.size() > 1 && children.get(1) != null) {
-            children.get(1).storeSettings(settings);
-        }
-    }
-
-    @Override
-    void analyze(Locals locals) {
-        Class<?> clazz = ((DTypeClass)children.get(0)).type;
+    void analyze(SymbolTable table) {
+        Class<?> type = ((DTypeClass)children.get(0)).type;
 
         AExpression expression = (AExpression) children.get(1);
 
         if (expression != null) {
-            expression.expected = clazz;
-            expression.analyze(locals);
-            children.set(1, expression.cast(locals));
+            expression.expected = type;
+            expression.analyze(table);
+            children.set(1, expression.cast(table));
         }
 
-        variable = locals.addVariable(location, clazz, name, false);
+        variable = table.scopes().getNodeScope(this).updateVariable(name, type);
     }
 
     @Override
@@ -74,7 +66,7 @@ public final class SDeclaration extends AStatement {
 
         if (initialize) {
             if (children.get(1) == null) {
-                Class<?> sort = variable.clazz;
+                Class<?> sort = variable.getType();
 
                 if (sort == void.class || sort == boolean.class || sort == byte.class ||
                         sort == short.class || sort == char.class || sort == int.class) {
@@ -92,7 +84,7 @@ public final class SDeclaration extends AStatement {
                 children.get(1).write(writer, globals);
             }
 
-            writer.visitVarInsn(MethodWriter.getType(variable.clazz).getOpcode(Opcodes.ISTORE), variable.getSlot());
+            writer.visitVarInsn(MethodWriter.getType(variable.getType()).getOpcode(Opcodes.ISTORE), variable.getSlot());
         }
     }
 

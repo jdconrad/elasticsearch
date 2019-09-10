@@ -20,12 +20,12 @@
 package org.elasticsearch.painless.node;
 
 import org.elasticsearch.painless.AnalyzerCaster;
-import org.elasticsearch.painless.CompilerSettings;
 import org.elasticsearch.painless.Globals;
-import org.elasticsearch.painless.Locals;
-import org.elasticsearch.painless.Locals.Variable;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.builder.ScopeTable.Scope;
+import org.elasticsearch.painless.builder.ScopeTable.Variable;
+import org.elasticsearch.painless.builder.SymbolTable;
 import org.elasticsearch.painless.lookup.PainlessCast;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.Opcodes;
@@ -43,29 +43,25 @@ final class SSubEachArray extends AStatement {
     private Variable index = null;
     private Class<?> indexed = null;
 
-    SSubEachArray(Location location, Variable variable, AExpression expression, SBlock block) {
+    SSubEachArray(Location location, Variable variable) {
         super(location);
 
         this.variable = Objects.requireNonNull(variable);
-        children.add(Objects.requireNonNull(expression));
-        children.add(block);
     }
 
     @Override
-    void storeSettings(CompilerSettings settings) {
-        throw createError(new IllegalStateException("illegal tree structure"));
-    }
-
-    @Override
-    void analyze(Locals locals) {
+    void analyze(SymbolTable table) {
+        Scope scope = table.scopes().getNodeScope(this);
         AExpression expression = (AExpression)children.get(0);
 
         // We must store the array and index as variables for securing slots on the stack, and
         // also add the location offset to make the names unique in case of nested for each loops.
-        array = locals.addVariable(location, expression.actual, "#array" + location.getOffset(), true);
-        index = locals.addVariable(location, int.class, "#index" + location.getOffset(), true);
+        scope.addVariable("#array" + location.getOffset(), true);
+        array = scope.updateVariable("#array" + location.getOffset(), expression.actual);
+        scope.addVariable("#index" + location.getOffset(), true);
+        index = scope.updateVariable("#index" + location.getOffset(), int.class);
         indexed = expression.actual.getComponentType();
-        cast = AnalyzerCaster.getLegalCast(location, indexed, variable.clazz, true, true);
+        cast = AnalyzerCaster.getLegalCast(location, indexed, variable.getType(), true, true);
     }
 
     @Override
@@ -76,9 +72,9 @@ final class SSubEachArray extends AStatement {
         writer.writeStatementOffset(location);
 
         expression.write(writer, globals);
-        writer.visitVarInsn(MethodWriter.getType(array.clazz).getOpcode(Opcodes.ISTORE), array.getSlot());
+        writer.visitVarInsn(MethodWriter.getType(array.getType()).getOpcode(Opcodes.ISTORE), array.getSlot());
         writer.push(-1);
-        writer.visitVarInsn(MethodWriter.getType(index.clazz).getOpcode(Opcodes.ISTORE), index.getSlot());
+        writer.visitVarInsn(MethodWriter.getType(index.getType()).getOpcode(Opcodes.ISTORE), index.getSlot());
 
         Label begin = new Label();
         Label end = new Label();
@@ -86,16 +82,16 @@ final class SSubEachArray extends AStatement {
         writer.mark(begin);
 
         writer.visitIincInsn(index.getSlot(), 1);
-        writer.visitVarInsn(MethodWriter.getType(index.clazz).getOpcode(Opcodes.ILOAD), index.getSlot());
-        writer.visitVarInsn(MethodWriter.getType(array.clazz).getOpcode(Opcodes.ILOAD), array.getSlot());
+        writer.visitVarInsn(MethodWriter.getType(index.getType()).getOpcode(Opcodes.ILOAD), index.getSlot());
+        writer.visitVarInsn(MethodWriter.getType(array.getType()).getOpcode(Opcodes.ILOAD), array.getSlot());
         writer.arrayLength();
         writer.ifICmp(MethodWriter.GE, end);
 
-        writer.visitVarInsn(MethodWriter.getType(array.clazz).getOpcode(Opcodes.ILOAD), array.getSlot());
-        writer.visitVarInsn(MethodWriter.getType(index.clazz).getOpcode(Opcodes.ILOAD), index.getSlot());
+        writer.visitVarInsn(MethodWriter.getType(array.getType()).getOpcode(Opcodes.ILOAD), array.getSlot());
+        writer.visitVarInsn(MethodWriter.getType(index.getType()).getOpcode(Opcodes.ILOAD), index.getSlot());
         writer.arrayLoad(MethodWriter.getType(indexed));
         writer.writeCast(cast);
-        writer.visitVarInsn(MethodWriter.getType(variable.clazz).getOpcode(Opcodes.ISTORE), variable.getSlot());
+        writer.visitVarInsn(MethodWriter.getType(variable.getType()).getOpcode(Opcodes.ISTORE), variable.getSlot());
 
         if (loopCounter != null) {
             writer.writeLoopCounter(loopCounter.getSlot(), statementCount, location);

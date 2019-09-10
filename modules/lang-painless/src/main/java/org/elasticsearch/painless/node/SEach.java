@@ -19,12 +19,11 @@
 
 package org.elasticsearch.painless.node;
 
-import org.elasticsearch.painless.CompilerSettings;
 import org.elasticsearch.painless.Globals;
-import org.elasticsearch.painless.Locals;
-import org.elasticsearch.painless.Locals.Variable;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.builder.ScopeTable.Variable;
+import org.elasticsearch.painless.builder.SymbolTable;
 import org.elasticsearch.painless.lookup.PainlessLookupUtility;
 import org.elasticsearch.painless.lookup.def;
 
@@ -33,47 +32,38 @@ import org.elasticsearch.painless.lookup.def;
  */
 public class SEach extends AStatement {
 
-    private AStatement sub = null;
-
     public SEach(Location location) {
         super(location);
     }
 
     @Override
-    void storeSettings(CompilerSettings settings) {
-        children.get(0).storeSettings(settings);
-        children.get(1).storeSettings(settings);
-
-        if (children.get(1) != null) {
-            children.get(1).storeSettings(settings);
-        }
-    }
-
-    @Override
-    void analyze(Locals locals) {
+    void analyze(SymbolTable table) {
+        AStatement each;
         SDeclaration declaration = (SDeclaration)children.get(0);
         AExpression expression = (AExpression)children.get(1);
         SBlock block = (SBlock)children.get(2);
 
-        expression.analyze(locals);
+        expression.analyze(table);
         expression.expected = expression.actual;
-        expression = expression.cast(locals);
+        expression = expression.cast(table);
 
-        locals = Locals.newLocalScope(locals);
-        declaration.analyze(locals);
+        declaration.analyze(table);
 
-        Variable variable = locals.getVariable(location, declaration.name);
+        Variable variable = table.scopes().getNodeScope(this).getVariable(declaration.name);
 
         if (expression.actual.isArray()) {
-            sub = new SSubEachArray(location, variable, expression, block);
+            each = new SSubEachArray(location, variable);
         } else if (expression.actual == def.class || Iterable.class.isAssignableFrom(expression.actual)) {
-            sub = new SSubEachIterable(location, variable, expression, block);
+            each = new SSubEachIterable(location, variable);
         } else {
             throw createError(new IllegalArgumentException("Illegal for each type " +
                     "[" + PainlessLookupUtility.typeToCanonicalTypeName(expression.actual) + "]."));
         }
 
-        sub.analyze(locals);
+        each.children.add(expression);
+        each.children.add(block);
+
+        each.analyze(table);
 
         if (block == null) {
             throw createError(new IllegalArgumentException("Extraneous for each loop."));
@@ -81,7 +71,7 @@ public class SEach extends AStatement {
 
         block.beginLoop = true;
         block.inLoop = true;
-        block.analyze(locals);
+        block.analyze(table);
         block.statementCount = Math.max(1, block.statementCount);
 
         if (block.loopEscape && !block.anyContinue) {
@@ -89,15 +79,12 @@ public class SEach extends AStatement {
         }
 
         statementCount = 1;
-
-        if (locals.hasVariable(Locals.LOOP)) {
-            sub.loopCounter = locals.getVariable(location, Locals.LOOP);
-        }
+        loopCounter = table.scopes().getNodeScope(this).getVariable("#loop");
     }
 
     @Override
     void write(MethodWriter writer, Globals globals) {
-        sub.write(writer, globals);
+        children.get(0).write(writer, globals);
     }
 
     @Override

@@ -19,11 +19,10 @@
 
 package org.elasticsearch.painless.node;
 
-import org.elasticsearch.painless.CompilerSettings;
 import org.elasticsearch.painless.Globals;
-import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.builder.SymbolTable;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.Opcodes;
 
@@ -41,27 +40,14 @@ public final class SIfElse extends AStatement {
     }
 
     @Override
-    void storeSettings(CompilerSettings settings) {
-        children.get(0).storeSettings(settings);
-
-        if (children.get(1) != null) {
-            children.get(1).storeSettings(settings);
-        }
-
-        if (children.get(2) != null) {
-            children.get(2).storeSettings(settings);
-        }
-    }
-
-    @Override
-    void analyze(Locals locals) {
+    void analyze(SymbolTable table) {
         AExpression condition = (AExpression)children.get(0);
         SBlock ifblock = (SBlock)children.get(1);
         SBlock elseblock = (SBlock)children.get(2);
 
         condition.expected = boolean.class;
-        condition.analyze(locals);
-        children.set(0, condition = condition.cast(locals));
+        condition.analyze(table);
+        children.set(0, condition = condition.cast(table));
 
         if (condition.constant != null) {
             throw createError(new IllegalArgumentException("Extraneous if statement."));
@@ -75,7 +61,7 @@ public final class SIfElse extends AStatement {
         ifblock.inLoop = inLoop;
         ifblock.lastLoop = lastLoop;
 
-        ifblock.analyze(Locals.newLocalScope(locals));
+        ifblock.analyze(table);
 
         anyContinue = ifblock.anyContinue;
         anyBreak = ifblock.anyBreak;
@@ -89,7 +75,7 @@ public final class SIfElse extends AStatement {
         elseblock.inLoop = inLoop;
         elseblock.lastLoop = lastLoop;
 
-        elseblock.analyze(Locals.newLocalScope(locals));
+        elseblock.analyze(table);
 
         methodEscape = ifblock.methodEscape && elseblock.methodEscape;
         loopEscape = ifblock.loopEscape && elseblock.loopEscape;

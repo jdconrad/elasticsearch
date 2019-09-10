@@ -19,8 +19,8 @@
 
 package org.elasticsearch.painless.node;
 
-import org.elasticsearch.painless.Locals.Variable;
 import org.elasticsearch.painless.Location;
+import org.elasticsearch.painless.builder.ScopeTable.Variable;
 import org.objectweb.asm.Label;
 
 /**

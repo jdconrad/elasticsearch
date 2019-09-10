@@ -19,15 +19,12 @@
 
 package org.elasticsearch.painless.node;
 
-import org.elasticsearch.painless.CompilerSettings;
 import org.elasticsearch.painless.Globals;
-import org.elasticsearch.painless.Locals;
-import org.elasticsearch.painless.Locals.LocalMethod;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.SimpleChecksAdapter;
 import org.elasticsearch.painless.WriterConstants;
-import org.elasticsearch.painless.lookup.PainlessLookup;
+import org.elasticsearch.painless.builder.SymbolTable;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
@@ -36,10 +33,8 @@ import org.objectweb.asm.util.Printer;
 import org.objectweb.asm.util.TraceClassVisitor;
 
 import java.lang.invoke.MethodType;
-import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -67,9 +62,9 @@ public final class SSource extends AStatement {
     private final Class<?> baseClass;
     private final Printer debugStream;
 
-    private CompilerSettings settings;
+    //private CompilerSettings settings;
 
-    private Locals mainMethod;
+    //private Locals mainMethod;
     private byte[] bytes;
 
     public SSource(Location location, String name, String sourceText, Class<?> baseClass, Printer debugStream) {
@@ -81,16 +76,7 @@ public final class SSource extends AStatement {
         this.debugStream = debugStream;
     }
 
-    @Override
-    public void storeSettings(CompilerSettings settings) {
-        for (ANode child : children) {
-            child.storeSettings(settings);
-        }
-
-        this.settings = settings;
-    }
-
-    public void analyze(PainlessLookup painlessLookup) {
+    /*public void analyze(PainlessLookup painlessLookup) {
         Map<String, LocalMethod> methods = new HashMap<>();
 
         for (ANode child : children) {
@@ -117,27 +103,21 @@ public final class SSource extends AStatement {
 
         Locals locals = Locals.newProgramScope(baseClass, painlessLookup, methods.values());
         analyze(locals);
-    }
+    }*/
 
     @Override
-    void analyze(Locals program) {
+    void analyze(SymbolTable table) {
         for (ANode child : children) {
             if (child instanceof SFunction) {
                 SFunction function = (SFunction)child;
-                Class<?> returnType = ((DTypeClass)function.children.get(0)).type;
-                Locals functionLocals =
-                        Locals.newFunctionScope(program, returnType, (SDeclBlock)function.children.get(1), settings.getMaxLoopCounter(),
-                                function.statik);
-                function.analyze(functionLocals);
+                function.analyze(table);
             } else {
                 break;
             }
         }
-
-        mainMethod = Locals.newMainMethodScope(baseClass, program, settings.getMaxLoopCounter());
     }
 
-    public Map<String, Object> write() {
+    public Map<String, Object> write(SymbolTable table) {
         // Create the ClassWriter.
 
         int classFrames = ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS;
@@ -150,7 +130,7 @@ public final class SSource extends AStatement {
         ClassVisitor visitor = writer;
 
         // if picky is enabled, turn on some checks. instead of VerifyError at the end, you get a helpful stacktrace.
-        if (settings.isPicky()) {
+        if (table.settings().isPicky()) {
             visitor = new SimpleChecksAdapter(visitor);
         }
 
@@ -163,13 +143,13 @@ public final class SSource extends AStatement {
 
         BitSet statements = new BitSet(sourceText.length());
         final MethodWriter clinit = new MethodWriter(Opcodes.ACC_STATIC,
-                WriterConstants.CLINIT, visitor, statements, settings);
+                WriterConstants.CLINIT, visitor, statements, table.settings());
         clinit.visitCode();
         Globals globals = new Globals(visitor, clinit, statements);
 
         // Write the a method to bootstrap def calls
         MethodWriter bootstrapDef = new MethodWriter(Opcodes.ACC_STATIC | Opcodes.ACC_VARARGS, DEF_BOOTSTRAP_METHOD, visitor,
-                globals.getStatements(), settings);
+                globals.getStatements(), table.settings());
         bootstrapDef.visitCode();
         bootstrapDef.getStatic(CLASS_TYPE, "$DEFINITION", DEFINITION_TYPE);
         bootstrapDef.getStatic(CLASS_TYPE, "$LOCALS", MAP_TYPE);
@@ -197,7 +177,7 @@ public final class SSource extends AStatement {
         }
 
         // Write the constructor:
-        MethodWriter constructor = new MethodWriter(Opcodes.ACC_PUBLIC, init, visitor, globals.getStatements(), settings);
+        MethodWriter constructor = new MethodWriter(Opcodes.ACC_PUBLIC, init, visitor, globals.getStatements(), table.settings());
         constructor.visitCode();
         constructor.loadThis();
         constructor.loadArgs();
@@ -206,14 +186,15 @@ public final class SSource extends AStatement {
         constructor.endMethod();
 
         // Write a method to get static variable source
-        MethodWriter nameMethod = new MethodWriter(Opcodes.ACC_PUBLIC, GET_NAME_METHOD, visitor, globals.getStatements(), settings);
+        MethodWriter nameMethod = new MethodWriter(Opcodes.ACC_PUBLIC, GET_NAME_METHOD, visitor, globals.getStatements(), table.settings());
         nameMethod.visitCode();
         nameMethod.getStatic(CLASS_TYPE, "$NAME", STRING_TYPE);
         nameMethod.returnValue();
         nameMethod.endMethod();
 
         // Write a method to get static variable source
-        MethodWriter sourceMethod = new MethodWriter(Opcodes.ACC_PUBLIC, GET_SOURCE_METHOD, visitor, globals.getStatements(), settings);
+        MethodWriter sourceMethod =
+                new MethodWriter(Opcodes.ACC_PUBLIC, GET_SOURCE_METHOD, visitor, globals.getStatements(), table.settings());
         sourceMethod.visitCode();
         sourceMethod.getStatic(CLASS_TYPE, "$SOURCE", STRING_TYPE);
         sourceMethod.returnValue();
@@ -221,7 +202,7 @@ public final class SSource extends AStatement {
 
         // Write a method to get static variable statements
         MethodWriter statementsMethod =
-            new MethodWriter(Opcodes.ACC_PUBLIC, GET_STATEMENTS_METHOD, visitor, globals.getStatements(), settings);
+            new MethodWriter(Opcodes.ACC_PUBLIC, GET_STATEMENTS_METHOD, visitor, globals.getStatements(), table.settings());
         statementsMethod.visitCode();
         statementsMethod.getStatic(CLASS_TYPE, "$STATEMENTS", BITSET_TYPE);
         statementsMethod.returnValue();
@@ -245,7 +226,7 @@ public final class SSource extends AStatement {
         bytes = writer.toByteArray();
 
         Map<String, Object> statics = new HashMap<>(globals.statics);
-        statics.put("$LOCALS", mainMethod.getMethods());
+        statics.put("$LOCALS", table.functions());
         return statics;
     }
 

@@ -19,12 +19,9 @@
 
 package org.elasticsearch.painless.node;
 
-import org.elasticsearch.painless.CompilerSettings;
 import org.elasticsearch.painless.Globals;
-import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
-import org.elasticsearch.painless.builder.ScopeTable;
 import org.elasticsearch.painless.builder.ScopeTable.Variable;
 import org.elasticsearch.painless.builder.SymbolTable;
 import org.elasticsearch.painless.lookup.PainlessLookupUtility;
@@ -54,10 +51,10 @@ public final class SCatch extends AStatement {
 
         variable = table.scopes().getNodeScope(this).getVariable(declaration.name);
 
-        if (!exception.isAssignableFrom(variable.clazz)) {
+        if (!exception.isAssignableFrom(variable.getType())) {
             throw createError(new ClassCastException("base exception type " +
                     "[" + PainlessLookupUtility.typeToCanonicalTypeName(exception) + "], but found " +
-                    "[" + PainlessLookupUtility.typeToCanonicalTypeName(variable.clazz) + "]"));
+                    "[" + PainlessLookupUtility.typeToCanonicalTypeName(variable.getType()) + "]"));
         }
 
         SBlock block = (SBlock)children.get(2);
@@ -87,7 +84,7 @@ public final class SCatch extends AStatement {
         Label jump = new Label();
 
         writer.mark(jump);
-        writer.visitVarInsn(MethodWriter.getType(variable.clazz).getOpcode(Opcodes.ISTORE), variable.getSlot());
+        writer.visitVarInsn(MethodWriter.getType(variable.getType()).getOpcode(Opcodes.ISTORE), variable.getSlot());
 
         if (block != null) {
             block.continu = continu;
@@ -95,7 +92,7 @@ public final class SCatch extends AStatement {
             block.write(writer, globals);
         }
 
-        writer.visitTryCatchBlock(begin, end, jump, MethodWriter.getType(variable.clazz).getInternalName());
+        writer.visitTryCatchBlock(begin, end, jump, MethodWriter.getType(variable.getType()).getInternalName());
 
         if (exception != null && (block == null || !block.allEscape)) {
             writer.goTo(exception);

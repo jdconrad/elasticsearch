@@ -19,11 +19,10 @@
 
 package org.elasticsearch.painless.node;
 
-import org.elasticsearch.painless.CompilerSettings;
 import org.elasticsearch.painless.Globals;
-import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.builder.SymbolTable;
 
 /**
  * Represents the top-level node for an expression as a statement.
@@ -35,19 +34,14 @@ public final class SExpression extends AStatement {
     }
 
     @Override
-    void storeSettings(CompilerSettings settings) {
-        children.get(0).storeSettings(settings);
-    }
-
-    @Override
-    void analyze(Locals locals) {
+    void analyze(SymbolTable table) {
         AExpression expression = (AExpression)children.get(0);
 
-        Class<?> rtnType = locals.getReturnType();
+        Class<?> rtnType = table.scopes().getNodeScope(this).getReturnType();
         boolean isVoid = rtnType == void.class;
 
         expression.read = lastSource && !isVoid;
-        expression.analyze(locals);
+        expression.analyze(table);
 
         if (!lastSource && !expression.statement) {
             throw createError(new IllegalArgumentException("Not a statement."));
@@ -57,7 +51,7 @@ public final class SExpression extends AStatement {
 
         expression.expected = rtn ? rtnType : expression.actual;
         expression.internal = rtn;
-        children.set(0, expression.cast(locals));
+        children.set(0, expression.cast(table));
 
         methodEscape = rtn;
         loopEscape = rtn;

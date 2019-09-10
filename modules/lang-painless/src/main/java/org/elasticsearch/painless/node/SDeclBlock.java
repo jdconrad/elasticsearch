@@ -19,11 +19,10 @@
 
 package org.elasticsearch.painless.node;
 
-import org.elasticsearch.painless.CompilerSettings;
 import org.elasticsearch.painless.Globals;
-import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.builder.SymbolTable;
 
 import static java.util.Collections.emptyList;
 
@@ -37,17 +36,10 @@ public final class SDeclBlock extends AStatement {
     }
 
     @Override
-    void storeSettings(CompilerSettings settings) {
-        for (ANode declaration: children) {
-            declaration.storeSettings(settings);
-        }
-    }
-
-    @Override
-    void analyze(Locals locals) {
+    void analyze(SymbolTable table) {
         for (ANode child : children) {
             SDeclaration declaration = (SDeclaration)child;
-            declaration.analyze(locals);
+            declaration.analyze(table);
         }
 
         statementCount = children.size();

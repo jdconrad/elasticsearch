@@ -19,11 +19,10 @@
 
 package org.elasticsearch.painless.node;
 
-import org.elasticsearch.painless.CompilerSettings;
 import org.elasticsearch.painless.Globals;
-import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.builder.SymbolTable;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.Opcodes;
 
@@ -41,47 +40,26 @@ public final class SFor extends AStatement {
     }
 
     @Override
-    void storeSettings(CompilerSettings settings) {
-        if (children.get(0) != null) {
-            children.get(0).storeSettings(settings);
-        }
-
-        if (children.get(1) != null) {
-            children.get(1).storeSettings(settings);
-        }
-
-        if (children.get(2) != null) {
-            children.get(2).storeSettings(settings);
-        }
-
-        if (children.get(3) != null) {
-            children.get(3).storeSettings(settings);
-        }
-    }
-
-    @Override
-    void analyze(Locals locals) {
+    void analyze(SymbolTable table) {
         AExpression condition = (AExpression)children.get(1);
         AExpression afterthought = (AExpression)children.get(2);
         SBlock block = (SBlock)children.get(3);
 
-        locals = Locals.newLocalScope(locals);
-
         if (children.get(0) != null) {
             if (children.get(0) instanceof SDeclBlock) {
-                children.get(0).analyze(locals);
+                children.get(0).analyze(table);
             } else if (children.get(0) instanceof AExpression) {
                 AExpression initializer = (AExpression)children.get(0);
 
                 initializer.read = false;
-                initializer.analyze(locals);
+                initializer.analyze(table);
 
                 if (!initializer.statement) {
                     throw createError(new IllegalArgumentException("Not a statement."));
                 }
 
                 initializer.expected = initializer.actual;
-                children.set(0, initializer.cast(locals));
+                children.set(0, initializer.cast(table));
             } else {
                 throw createError(new IllegalStateException("Illegal tree structure."));
             }
@@ -89,8 +67,8 @@ public final class SFor extends AStatement {
 
         if (condition != null) {
             condition.expected = boolean.class;
-            condition.analyze(locals);
-            children.set(1, condition = condition.cast(locals));
+            condition.analyze(table);
+            children.set(1, condition = condition.cast(table));
 
             if (condition.constant != null) {
                 continuous = (boolean)condition.constant;
@@ -109,21 +87,21 @@ public final class SFor extends AStatement {
 
         if (afterthought != null) {
             afterthought.read = false;
-            afterthought.analyze(locals);
+            afterthought.analyze(table);
 
             if (!afterthought.statement) {
                 throw createError(new IllegalArgumentException("Not a statement."));
             }
 
             afterthought.expected = afterthought.actual;
-            children.set(2, afterthought.cast(locals));
+            children.set(2, afterthought.cast(table));
         }
 
         if (block != null) {
             block.beginLoop = true;
             block.inLoop = true;
 
-            block.analyze(locals);
+            block.analyze(table);
 
             if (block.loopEscape && !block.anyContinue) {
                 throw createError(new IllegalArgumentException("Extraneous for loop."));
@@ -138,10 +116,7 @@ public final class SFor extends AStatement {
         }
 
         statementCount = 1;
-
-        if (locals.hasVariable(Locals.LOOP)) {
-            loopCounter = locals.getVariable(location, Locals.LOOP);
-        }
+        loopCounter = table.scopes().getNodeScope(this).getVariable("#loop");
     }
 
     @Override
