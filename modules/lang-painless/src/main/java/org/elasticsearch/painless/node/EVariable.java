@@ -22,9 +22,11 @@ package org.elasticsearch.painless.node;
 import org.elasticsearch.painless.CompilerSettings;
 import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Locals;
-import org.elasticsearch.painless.Locals.Variable;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.builder.ScopeTable;
+import org.elasticsearch.painless.builder.ScopeTable.Variable;
+import org.elasticsearch.painless.builder.SymbolTable;
 
 import java.util.Objects;
 
@@ -42,13 +44,8 @@ public final class EVariable extends AExpression {
     }
 
     @Override
-    void storeSettings(CompilerSettings settings) {
-        // do nothing
-    }
-
-    @Override
-    void analyze(Locals locals) {
-        Variable variable = locals.getVariable(location, name);
+    void analyze(SymbolTable table) {
+        Variable variable = table.scopes().getNodeScope(this).getVariable(name);
         AExpression expression;
 
         if (write != null) {
@@ -63,7 +60,7 @@ public final class EVariable extends AExpression {
         expression.expected = expected;
         expression.explicit = explicit;
         expression.internal = internal;
-        expression.analyze(locals);
+        expression.analyze(table);
         //replace(expression);
         actual = expression.actual;
         children.clear();

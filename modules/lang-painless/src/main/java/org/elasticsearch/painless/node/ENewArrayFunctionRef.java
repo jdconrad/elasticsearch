@@ -25,6 +25,7 @@ import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.builder.ScopeTable;
 import org.elasticsearch.painless.builder.SymbolTable;
 import org.objectweb.asm.Type;
 
@@ -48,13 +49,13 @@ public final class ENewArrayFunctionRef extends AExpression implements ILambda {
 
     @Override
     void analyze(SymbolTable table) {
-        Class<?> type = locals.getPainlessLookup().canonicalTypeNameToType(this.type);
+        Class<?> type = table.lookup().canonicalTypeNameToType(this.type);
 
         if (type == null) {
             throw createError(new IllegalArgumentException("cannot resolve symbol [" + this.type + "]"));
         }
 
-        SFunction function = new SFunction(location, table.nextSyntheticName("newarrayfuncref"), false, true, true);
+        SFunction function = new SFunction(location, table.nextSyntheticName("newarray"), true, false, true, true);
         function.children.add(new DTypeClass(location, type));
         SDeclBlock parameters = new SDeclBlock(location);
         SDeclaration parameter = new SDeclaration(location, "size", false);
@@ -72,11 +73,9 @@ public final class ENewArrayFunctionRef extends AExpression implements ILambda {
         block.children.add(rtn);
         function.children.add(block);
         children.add(function);
-        function.generateSignature();
-        //function.extractVariables(null);
-        function.analyze(Locals.newLambdaScope(locals.getProgramScope(), function.name, ((DTypeClass)function.children.get(0)).type,
-                (SDeclBlock)function.children.get(1), 0, table..getMaxLoopCounter()));
-        children.set(0, function);
+        ScopeTable.FunctionScope functionScope = table.scopes().newFunctionScope(function);
+        functionScope.addVariable("size", true);
+        functionScope.updateVariable("size", int.class);
 
         if (expected == null) {
             ref = null;
@@ -84,7 +83,7 @@ public final class ENewArrayFunctionRef extends AExpression implements ILambda {
             defPointer = "Sthis." + function.name + ",0";
         } else {
             defPointer = null;
-            ref = FunctionRef.create(locals.getPainlessLookup(), locals.getMethods(), location, expected, "this", function.name, 0);
+            ref = FunctionRef.create(table.lookup(), table.functions(), location, expected, "this", function.name, 0);
             actual = expected;
         }
     }

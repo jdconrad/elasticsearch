@@ -25,6 +25,7 @@ import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.Operation;
+import org.elasticsearch.painless.builder.SymbolTable;
 import org.elasticsearch.painless.lookup.PainlessField;
 import org.elasticsearch.painless.lookup.PainlessLookupUtility;
 import org.objectweb.asm.Type;
@@ -46,12 +47,7 @@ final class PFieldWrite extends AExpression {
     }
 
     @Override
-    void storeSettings(CompilerSettings settings) {
-        throw createError(new IllegalStateException("illegal tree structure"));
-    }
-
-    @Override
-    void analyze(Locals locals) {
+    void analyze(SymbolTable table) {
         if (write != null && Modifier.isFinal(field.javaField.getModifiers())) {
             throw createError(new IllegalArgumentException("Cannot write to read-only field [" + field.javaField.getName() + "] " +
                     "for type [" + PainlessLookupUtility.typeToCanonicalTypeName(field.javaField.getDeclaringClass()) + "]."));
@@ -70,8 +66,8 @@ final class PFieldWrite extends AExpression {
         }
 
         rhs.expected = actual;
-        rhs.analyze(locals);
-        children.set(0, rhs.cast(locals));
+        rhs.analyze(table);
+        children.set(0, rhs.cast(table));
     }
 
     @Override

@@ -22,10 +22,12 @@ package org.elasticsearch.painless.node;
 import org.elasticsearch.painless.CompilerSettings;
 import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Locals;
-import org.elasticsearch.painless.Locals.Variable;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.Operation;
+import org.elasticsearch.painless.builder.ScopeTable;
+import org.elasticsearch.painless.builder.ScopeTable.Variable;
+import org.elasticsearch.painless.builder.SymbolTable;
 import org.objectweb.asm.Opcodes;
 
 import java.util.Objects;
@@ -45,14 +47,10 @@ public final class EVariableRead extends AExpression {
         this.variable = Objects.requireNonNull(variable);
     }
 
-    @Override
-    void storeSettings(CompilerSettings settings) {
-        // do nothing
-    }
 
     @Override
-    void analyze(Locals locals) {
-        actual = variable.clazz;
+    void analyze(SymbolTable table) {
+        actual = variable.getType();
     }
 
     @Override

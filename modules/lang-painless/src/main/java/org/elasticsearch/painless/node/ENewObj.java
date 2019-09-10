@@ -24,6 +24,7 @@ import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.builder.SymbolTable;
 import org.elasticsearch.painless.lookup.PainlessConstructor;
 import org.elasticsearch.painless.lookup.PainlessLookupUtility;
 import org.objectweb.asm.Type;
@@ -43,22 +44,11 @@ public final class ENewObj extends AExpression {
     }
 
     @Override
-    void storeSettings(CompilerSettings settings) {
-        for (ANode argument : children) {
-            if (argument instanceof AData) {
-                continue;
-            }
-
-            argument.storeSettings(settings);
-        }
-    }
-
-    @Override
-    void analyze(Locals locals) {
+    void analyze(SymbolTable table) {
         actual = ((DTypeClass)children.get(0)).type;
 
         int size = children.size() - 1;
-        constructor = locals.getPainlessLookup().lookupPainlessConstructor(actual, size);
+        constructor = table.lookup().lookupPainlessConstructor(actual, size);
 
         if (constructor == null) {
             throw createError(new IllegalArgumentException(
@@ -79,8 +69,8 @@ public final class ENewObj extends AExpression {
 
             expression.expected = types[argument - 1];
             expression.internal = true;
-            expression.analyze(locals);
-            children.set(argument, expression.cast(locals));
+            expression.analyze(table);
+            children.set(argument, expression.cast(table));
         }
 
         statement = true;

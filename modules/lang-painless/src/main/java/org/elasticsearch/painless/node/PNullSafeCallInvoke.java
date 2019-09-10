@@ -24,6 +24,7 @@ import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.builder.SymbolTable;
 import org.objectweb.asm.Label;
 
 /**
@@ -36,14 +37,9 @@ public class PNullSafeCallInvoke extends AExpression {
     }
 
     @Override
-    void storeSettings(CompilerSettings settings) {
-        throw createError(new IllegalStateException("illegal tree structure"));
-    }
-
-    @Override
-    void analyze(Locals locals) {
+    void analyze(SymbolTable table) {
         AExpression expression = (AExpression)children.get(0);
-        expression.analyze(locals);
+        expression.analyze(table);
         actual = expression.actual;
 
         if (actual.isPrimitive()) {

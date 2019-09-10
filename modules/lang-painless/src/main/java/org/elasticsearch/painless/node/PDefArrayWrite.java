@@ -26,6 +26,7 @@ import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.Operation;
+import org.elasticsearch.painless.builder.SymbolTable;
 import org.objectweb.asm.Type;
 
 /**
@@ -38,17 +39,12 @@ final class PDefArrayWrite extends AExpression {
     }
 
     @Override
-    void storeSettings(CompilerSettings settings) {
-        throw createError(new IllegalStateException("illegal tree structure"));
-    }
-
-    @Override
-    void analyze(Locals locals) {
+    void analyze(SymbolTable table) {
         AExpression index = (AExpression)children.get(0);
 
-        index.analyze(locals);
+        index.analyze(table);
         index.expected = index.actual;
-        children.set(0, index.cast(locals));
+        children.set(0, index.cast(table));
 
         AExpression rhs = (AExpression)children.get(1);
 
@@ -61,9 +57,9 @@ final class PDefArrayWrite extends AExpression {
             rhs.explicit = true;
         }
 
-        rhs.analyze(locals);
+        rhs.analyze(table);
         rhs.expected = rhs.actual;
-        children.set(1, rhs.cast(locals));
+        children.set(1, rhs.cast(table));
 
         actual = rhs.actual;
     }

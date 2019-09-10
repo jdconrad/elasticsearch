@@ -22,10 +22,11 @@ package org.elasticsearch.painless.node;
 import org.elasticsearch.painless.CompilerSettings;
 import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Locals;
-import org.elasticsearch.painless.Locals.Variable;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.Operation;
+import org.elasticsearch.painless.builder.ScopeTable;
+import org.elasticsearch.painless.builder.SymbolTable;
 import org.objectweb.asm.Opcodes;
 
 import java.util.Objects;
@@ -36,9 +37,9 @@ import java.util.Objects;
 public final class EVariableWrite extends AExpression {
 
     public final String name;
-    public final Variable variable;
+    public final ScopeTable.Variable variable;
 
-    public EVariableWrite(Location location, String name, Variable variable) {
+    public EVariableWrite(Location location, String name, ScopeTable.Variable variable) {
         super(location);
 
         this.name = Objects.requireNonNull(name);
@@ -46,17 +47,12 @@ public final class EVariableWrite extends AExpression {
     }
 
     @Override
-    void storeSettings(CompilerSettings settings) {
-        // do nothing
-    }
-
-    @Override
-    void analyze(Locals locals) {
-        if (write != null && variable.readonly) {
-            throw createError(new IllegalArgumentException("Variable [" + variable.name + "] is read-only."));
+    void analyze(SymbolTable table) {
+        if (write != null && variable.isReadonly()) {
+            throw createError(new IllegalArgumentException("Variable [" + variable.getName() + "] is read-only."));
         }
 
-        actual = variable.clazz;
+        actual = variable.getType();
         statement = true;
 
         AExpression rhs = (AExpression)children.get(0);
@@ -70,8 +66,8 @@ public final class EVariableWrite extends AExpression {
         }
 
         rhs.expected = actual;
-        rhs.analyze(locals);
-        children.set(0, rhs.cast(locals));
+        rhs.analyze(table);
+        children.set(0, rhs.cast(table));
     }
 
     @Override

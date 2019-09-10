@@ -25,6 +25,7 @@ import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.Operation;
+import org.elasticsearch.painless.builder.SymbolTable;
 import org.elasticsearch.painless.lookup.PainlessMethod;
 
 import java.util.Objects;
@@ -49,12 +50,7 @@ final class PShortcutWrite extends AExpression {
     }
 
     @Override
-    void storeSettings(CompilerSettings settings) {
-        throw createError(new IllegalStateException("illegal tree structure"));
-    }
-
-    @Override
-    void analyze(Locals locals) {
+    void analyze(SymbolTable table) {
         if (setter.returnType != void.class || setter.typeParameters.size() != 1) {
             throw createError(new IllegalArgumentException(
                     "Illegal set shortcut on field [" + value + "] for type [" + type + "]."));
@@ -78,8 +74,8 @@ final class PShortcutWrite extends AExpression {
         }
 
         rhs.expected = actual;
-        rhs.analyze(locals);
-        children.set(0, rhs.cast(locals));
+        rhs.analyze(table);
+        children.set(0, rhs.cast(table));
     }
 
     @Override

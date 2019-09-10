@@ -25,6 +25,7 @@ import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.builder.SymbolTable;
 import org.elasticsearch.painless.lookup.def;
 import org.objectweb.asm.Type;
 
@@ -51,12 +52,7 @@ final class PDefCallInvoke extends AExpression {
     }
 
     @Override
-    void storeSettings(CompilerSettings settings) {
-        throw createError(new IllegalStateException("illegal tree structure"));
-    }
-
-    @Override
-    void analyze(Locals locals) {
+    void analyze(SymbolTable table) {
         recipe = new StringBuilder();
         int totalCaptures = 0;
 
@@ -64,7 +60,7 @@ final class PDefCallInvoke extends AExpression {
             AExpression expression = (AExpression)children.get(argument);
 
             expression.internal = true;
-            expression.analyze(locals);
+            expression.analyze(table);
 
             if (expression instanceof ILambda) {
                 ILambda lambda = (ILambda) expression;
@@ -80,7 +76,7 @@ final class PDefCallInvoke extends AExpression {
             }
 
             expression.expected = expression.actual;
-            children.set(argument, expression.cast(locals));
+            children.set(argument, expression.cast(table));
         }
 
         // TODO: remove ZonedDateTime exception when JodaCompatibleDateTime is removed

@@ -24,6 +24,7 @@ import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.builder.SymbolTable;
 import org.elasticsearch.painless.lookup.PainlessField;
 import org.elasticsearch.painless.lookup.PainlessLookupUtility;
 import org.elasticsearch.painless.lookup.PainlessMethod;
@@ -51,11 +52,7 @@ public final class PField extends AExpression {
     }
 
     @Override
-    void storeSettings(CompilerSettings settings) {
-    }
-
-    @Override
-    void analyze(Locals locals) {
+    void analyze(SymbolTable table) {
         PPostfixBridge bridge = (PPostfixBridge)parent;
         AExpression field = null;
 
@@ -68,22 +65,22 @@ public final class PField extends AExpression {
                 field = new PDefFieldWrite(location, value);
             }
         } else {
-            PainlessField access = locals.getPainlessLookup().lookupPainlessField(
+            PainlessField access = table.lookup().lookupPainlessField(
                     bridge.actual, bridge.children.get(0) instanceof EStatic, value);
 
             if (access == null) {
                 PainlessMethod getter;
                 PainlessMethod setter;
 
-                getter = locals.getPainlessLookup().lookupPainlessMethod(bridge.actual, false,
+                getter = table.lookup().lookupPainlessMethod(bridge.actual, false,
                         "get" + Character.toUpperCase(value.charAt(0)) + value.substring(1), 0);
 
                 if (getter == null) {
-                    getter = locals.getPainlessLookup().lookupPainlessMethod(bridge.actual, false,
+                    getter = table.lookup().lookupPainlessMethod(bridge.actual, false,
                             "is" + Character.toUpperCase(value.charAt(0)) + value.substring(1), 0);
                 }
 
-                setter = locals.getPainlessLookup().lookupPainlessMethod(bridge.actual, false,
+                setter = table.lookup().lookupPainlessMethod(bridge.actual, false,
                         "set" + Character.toUpperCase(value.charAt(0)) + value.substring(1), 0);
 
                 if (getter != null && write == null || setter != null && write != null) {
@@ -95,7 +92,7 @@ public final class PField extends AExpression {
                     }
                 } else {
                     EConstant index = new EConstant(location, value);
-                    index.analyze(locals);
+                    index.analyze(table);
 
                     if (Map.class.isAssignableFrom(bridge.actual)) {
                         if (write == null) {
@@ -146,7 +143,7 @@ public final class PField extends AExpression {
         field.expected = expected;
         field.explicit = explicit;
         field.internal = internal;
-        field.analyze(locals);
+        field.analyze(table);
         //replace(field);
         children.clear();
         children.add(field);

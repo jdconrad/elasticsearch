@@ -26,6 +26,7 @@ import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.Operation;
+import org.elasticsearch.painless.builder.SymbolTable;
 
 import java.util.Objects;
 
@@ -43,12 +44,7 @@ final class PDefFieldWrite extends AExpression {
     }
 
     @Override
-    void storeSettings(CompilerSettings settings) {
-        throw createError(new IllegalStateException("illegal tree structure"));
-    }
-
-    @Override
-    void analyze(Locals locals) {
+    void analyze(SymbolTable table) {
         AExpression rhs = (AExpression)children.get(0);
 
         if (write == Operation.POST || write == Operation.PRE || write == Operation.COMPOUND) {
@@ -59,14 +55,14 @@ final class PDefFieldWrite extends AExpression {
             rhs.explicit = true;
         }
 
-        rhs.analyze(locals);
+        rhs.analyze(table);
 
         if (rhs.actual == void.class) {
             throw createError(new IllegalArgumentException("cannot assign [void]"));
         }
 
         rhs.expected = rhs.actual;
-        children.set(0, rhs.cast(locals));
+        children.set(0, rhs.cast(table));
 
         actual = rhs.actual;
     }

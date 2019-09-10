@@ -24,6 +24,7 @@ import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.builder.SymbolTable;
 import org.elasticsearch.painless.lookup.PainlessMethod;
 import org.elasticsearch.painless.lookup.def;
 
@@ -47,21 +48,14 @@ public final class PCall extends AExpression {
     }
 
     @Override
-    void storeSettings(CompilerSettings settings) {
-        for (ANode child : children) {
-            child.storeSettings(settings);
-        }
-    }
-
-    @Override
-    void analyze(Locals locals) {
+    void analyze(SymbolTable table) {
         AExpression bridge = (PPostfixBridge)parent;
         AExpression call;
 
         if (bridge.actual == def.class) {
             call = new PDefCallInvoke(location, name);
         } else {
-            PainlessMethod method = locals.getPainlessLookup().lookupPainlessMethod(
+            PainlessMethod method = table.lookup().lookupPainlessMethod(
                     bridge.actual, bridge.children.get(0) instanceof EStatic, name, children.size());
 
             if (method == null) {
@@ -83,7 +77,7 @@ public final class PCall extends AExpression {
         call.expected = expected;
         call.explicit = explicit;
         call.internal = internal;
-        call.analyze(locals);
+        call.analyze(table);
         //replace(call);
         actual = call.actual;
         children.clear();

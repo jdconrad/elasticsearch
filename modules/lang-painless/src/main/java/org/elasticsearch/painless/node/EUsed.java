@@ -24,6 +24,7 @@ import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.builder.SymbolTable;
 
 public class EUsed extends AExpression {
 
@@ -40,12 +41,7 @@ public class EUsed extends AExpression {
     }
 
     @Override
-    void storeSettings(CompilerSettings settings) {
-
-    }
-
-    @Override
-    void analyze(Locals locals) {
+    void analyze(SymbolTable table) {
         actual = boolean.class;
     }
 

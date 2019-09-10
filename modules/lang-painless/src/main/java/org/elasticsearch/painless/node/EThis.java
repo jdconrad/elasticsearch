@@ -24,6 +24,7 @@ import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.builder.SymbolTable;
 import org.elasticsearch.painless.lookup.$this;
 
 public class EThis extends AExpression {
@@ -33,12 +34,7 @@ public class EThis extends AExpression {
     }
 
     @Override
-    void storeSettings(CompilerSettings settings) {
-
-    }
-
-    @Override
-    void analyze(Locals locals) {
+    void analyze(SymbolTable table) {
         actual = $this.class;
     }
 

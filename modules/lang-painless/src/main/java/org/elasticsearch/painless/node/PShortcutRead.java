@@ -25,6 +25,7 @@ import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.Operation;
+import org.elasticsearch.painless.builder.SymbolTable;
 import org.elasticsearch.painless.lookup.PainlessMethod;
 
 import java.util.Objects;
@@ -47,12 +48,7 @@ final class PShortcutRead extends AExpression {
     }
 
     @Override
-    void storeSettings(CompilerSettings settings) {
-        throw createError(new IllegalStateException("illegal tree structure"));
-    }
-
-    @Override
-    void analyze(Locals locals) {
+    void analyze(SymbolTable table) {
         if (getter.returnType == void.class || !getter.typeParameters.isEmpty()) {
             throw createError(new IllegalArgumentException(
                     "Illegal get shortcut on field [" + value + "] for type [" + type + "]."));

@@ -25,6 +25,7 @@ import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.Operation;
+import org.elasticsearch.painless.builder.SymbolTable;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.Opcodes;
 
@@ -44,17 +45,12 @@ final class PArrayRead extends AExpression {
     }
 
     @Override
-    void storeSettings(CompilerSettings settings) {
-        throw createError(new IllegalStateException("illegal tree structure"));
-    }
-
-    @Override
-    void analyze(Locals locals) {
+    void analyze(SymbolTable table) {
         if (children.isEmpty() == false) {
             AExpression index = (AExpression)children.get(0);
             index.expected = int.class;
-            index.analyze(locals);
-            children.set(0, index.cast(locals));
+            index.analyze(table);
+            children.set(0, index.cast(table));
         }
 
         actual = type.getComponentType();

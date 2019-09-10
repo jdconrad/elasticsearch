@@ -24,6 +24,7 @@ import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.builder.SymbolTable;
 import org.elasticsearch.painless.lookup.PainlessMethod;
 
 import java.util.Objects;
@@ -44,19 +45,14 @@ final class PCallInvoke extends AExpression {
     }
 
     @Override
-    void storeSettings(CompilerSettings settings) {
-        throw createError(new IllegalStateException("illegal tree structure"));
-    }
-
-    @Override
-    void analyze(Locals locals) {
+    void analyze(SymbolTable table) {
         for (int argument = 0; argument < children.size(); ++argument) {
             AExpression expression = (AExpression)children.get(argument);
 
             expression.expected = method.typeParameters.get(argument);
             expression.internal = true;
-            expression.analyze(locals);
-            children.set(argument, expression.cast(locals));
+            expression.analyze(table);
+            children.set(argument, expression.cast(table));
         }
 
         statement = true;

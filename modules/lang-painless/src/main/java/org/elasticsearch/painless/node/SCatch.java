@@ -22,9 +22,11 @@ package org.elasticsearch.painless.node;
 import org.elasticsearch.painless.CompilerSettings;
 import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Locals;
-import org.elasticsearch.painless.Locals.Variable;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.builder.ScopeTable;
+import org.elasticsearch.painless.builder.ScopeTable.Variable;
+import org.elasticsearch.painless.builder.SymbolTable;
 import org.elasticsearch.painless.lookup.PainlessLookupUtility;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.Opcodes;
@@ -45,21 +47,12 @@ public final class SCatch extends AStatement {
     }
 
     @Override
-    void storeSettings(CompilerSettings settings) {
-        children.get(1).storeSettings(settings);
-
-        if (children.get(2) != null) {
-            children.get(2).storeSettings(settings);
-        }
-    }
-
-    @Override
-    void analyze(Locals locals) {
+    void analyze(SymbolTable table) {
         Class<?> exception = ((DTypeClass)children.get(0)).type;
         SDeclaration declaration = (SDeclaration)children.get(1);
-        declaration.analyze(locals);
+        declaration.analyze(table);
 
-        variable = locals.getVariable(location, declaration.name);
+        variable = table.scopes().getNodeScope(this).getVariable(declaration.name);
 
         if (!exception.isAssignableFrom(variable.clazz)) {
             throw createError(new ClassCastException("base exception type " +
@@ -74,7 +67,7 @@ public final class SCatch extends AStatement {
             block.inLoop = inLoop;
             block.lastLoop = lastLoop;
 
-            block.analyze(locals);
+            block.analyze(table);
 
             methodEscape = block.methodEscape;
             loopEscape = block.loopEscape;

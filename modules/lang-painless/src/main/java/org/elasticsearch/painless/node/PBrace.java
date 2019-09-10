@@ -24,6 +24,7 @@ import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.builder.SymbolTable;
 import org.elasticsearch.painless.lookup.PainlessLookupUtility;
 import org.elasticsearch.painless.lookup.def;
 
@@ -40,12 +41,7 @@ public final class PBrace extends AExpression {
     }
 
     @Override
-    void storeSettings(CompilerSettings settings) {
-        children.get(0).storeSettings(settings);
-    }
-
-    @Override
-    void analyze(Locals locals) {
+    void analyze(SymbolTable table) {
         PPostfixBridge bridge = (PPostfixBridge)parent;
         AExpression brace;
 
@@ -89,7 +85,7 @@ public final class PBrace extends AExpression {
         brace.expected = expected;
         brace.explicit = explicit;
         brace.internal = internal;
-        brace.analyze(locals);
+        brace.analyze(table);
         //replace(brace);
         actual = brace.actual;
         children.clear();

@@ -24,6 +24,7 @@ import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.builder.SymbolTable;
 
 public class PPostfixBridge extends AExpression {
 
@@ -32,27 +33,20 @@ public class PPostfixBridge extends AExpression {
     }
 
     @Override
-    void storeSettings(CompilerSettings settings) {
-        for (ANode child : children) {
-            child.storeSettings(settings);
-        }
-    }
-
-    @Override
-    void analyze(Locals locals) {
+    void analyze(SymbolTable table) {
         AExpression lhs = (AExpression)children.get(0);
         AExpression rhs = (AExpression)children.get(1);
 
-        lhs.analyze(locals);
+        lhs.analyze(table);
         lhs.expected = lhs.actual;
-        children.set(0, lhs = lhs.cast(locals));
+        children.set(0, lhs = lhs.cast(table));
         actual = lhs.actual;
         rhs.write = write;
         rhs.read = read;
         rhs.expected = expected;
         rhs.explicit = explicit;
         rhs.internal = internal;
-        rhs.analyze(locals);
+        rhs.analyze(table);
         actual = rhs.actual;
         statement = rhs.statement;
     }

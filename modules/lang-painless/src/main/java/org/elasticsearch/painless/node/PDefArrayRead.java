@@ -26,6 +26,7 @@ import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.Operation;
+import org.elasticsearch.painless.builder.SymbolTable;
 import org.elasticsearch.painless.lookup.def;
 import org.objectweb.asm.Type;
 
@@ -41,17 +42,12 @@ final class PDefArrayRead extends AExpression {
     }
 
     @Override
-    void storeSettings(CompilerSettings settings) {
-        throw createError(new IllegalStateException("illegal tree structure"));
-    }
-
-    @Override
-    void analyze(Locals locals) {
+    void analyze(SymbolTable table) {
         if (children.get(0) instanceof DTypeClass == false) {
             AExpression index = (AExpression) children.get(0);
-            index.analyze(locals);
+            index.analyze(table);
             index.expected = index.actual;
-            children.set(0, index.cast(locals));
+            children.set(0, index.cast(table));
         }
 
         // TODO: remove ZonedDateTime exception when JodaCompatibleDateTime is removed

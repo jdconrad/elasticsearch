@@ -24,6 +24,7 @@ import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.builder.SymbolTable;
 
 import static java.util.Collections.emptyList;
 
@@ -37,14 +38,7 @@ public final class SBlock extends AStatement {
     }
 
     @Override
-    void storeSettings(CompilerSettings settings) {
-        for (ANode statement : children) {
-            statement.storeSettings(settings);
-        }
-    }
-
-    @Override
-    void analyze(Locals locals) {
+    void analyze(SymbolTable table) {
         if (children.isEmpty()) {
             throw createError(new IllegalArgumentException("A block must contain at least one statement."));
         }
@@ -64,7 +58,7 @@ public final class SBlock extends AStatement {
             statement.lastSource = lastSource && statement == last;
             statement.lastLoop = (beginLoop || lastLoop) && statement == last;
 
-            statement.analyze(locals);
+            statement.analyze(table);
 
             methodEscape = statement.methodEscape;
             loopEscape = statement.loopEscape;

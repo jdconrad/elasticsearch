@@ -26,6 +26,7 @@ import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.Operation;
 import org.elasticsearch.painless.WriterConstants;
+import org.elasticsearch.painless.builder.SymbolTable;
 import org.elasticsearch.painless.lookup.PainlessLookupUtility;
 import org.elasticsearch.painless.lookup.PainlessMethod;
 import org.objectweb.asm.Label;
@@ -49,15 +50,10 @@ final class PListWrite extends AExpression {
     }
 
     @Override
-    void storeSettings(CompilerSettings settings) {
-        throw createError(new IllegalStateException("illegal tree structure"));
-    }
-
-    @Override
-    void analyze(Locals locals) {
+    void analyze(SymbolTable table) {
         String canonicalClassName = PainlessLookupUtility.typeToCanonicalTypeName(targetClass);
 
-        setter = locals.getPainlessLookup().lookupPainlessMethod(targetClass, false, "set", 2);
+        setter = table.lookup().lookupPainlessMethod(targetClass, false, "set", 2);
 
         if (setter == null) {
             throw createError(new IllegalArgumentException("Illegal list shortcut for type [" + canonicalClassName + "]."));
@@ -71,8 +67,8 @@ final class PListWrite extends AExpression {
 
         AExpression index = (AExpression)children.get(0);
         index.expected = int.class;
-        index.analyze(locals);
-        children.set(0, index.cast(locals));
+        index.analyze(table);
+        children.set(0, index.cast(table));
 
         AExpression rhs = (AExpression)children.get(1);
 
@@ -85,8 +81,8 @@ final class PListWrite extends AExpression {
         }
 
         rhs.expected = actual;
-        rhs.analyze(locals);
-        children.set(1, rhs.cast(locals));
+        rhs.analyze(table);
+        children.set(1, rhs.cast(table));
     }
 
     @Override
