@@ -186,8 +186,8 @@ public class ASTBuilder {
         return visitChild(new SSource(location, scriptName, sourceText, baseClass, debugStream));
     }
 
-    public ASTBuilder visitFunction(Location location, String name, boolean auto, boolean statik, boolean synthetic) {
-        return visitChild(new SFunction(location, name, auto, statik, synthetic));
+    public ASTBuilder visitFunction(Location location, String name, boolean internal, boolean auto, boolean statik, boolean synthetic) {
+        return visitChild(new SFunction(location, name, internal, auto, statik, synthetic));
     }
 
     public ASTBuilder visitBlock(Location location) {

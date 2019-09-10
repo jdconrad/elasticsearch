@@ -190,8 +190,6 @@ public final class Walker extends PainlessParserBaseVisitor<Void> {
 
     @Override
     public Void visitSource(SourceContext ctx) {
-        //builder.visitSource(scriptClassInfo, sourceName, sourceText, debugStream, location(ctx));
-
         for (FunctionContext function : ctx.function()) {
             visit(function);
         }
@@ -202,8 +200,6 @@ public final class Walker extends PainlessParserBaseVisitor<Void> {
             visit(statement);
         }
 
-        //builder.endVisit();
-
         return null;
     }
 
@@ -212,7 +208,7 @@ public final class Walker extends PainlessParserBaseVisitor<Void> {
         String rtnType = ctx.decltype().getText();
         String name = ctx.ID().getText();
 
-        builder.visitFunction(location(ctx), name, false, true, false)
+        builder.visitFunction(location(ctx), name, false, false, true, false)
                 .visitTypeString(location(ctx), rtnType).endVisit();
         visit(ctx.parameters());
         builder.visitEmpty();

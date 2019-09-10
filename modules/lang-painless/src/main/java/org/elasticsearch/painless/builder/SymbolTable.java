@@ -28,19 +28,16 @@ import java.util.Objects;
 
 public class SymbolTable {
 
-    public static final String SYMBOL_TABLE = "symbol_table";
+    protected final CompilerSettings compilerSettings;
+    protected final PainlessLookup painlessLookup;
 
-    public final CompilerSettings compilerSettings;
-    public final PainlessLookup painlessLookup;
+    protected final Class<?> baseClass;
+    protected final List<Class<?>> baseInterfaces;
 
-    public final Class<?> baseClass;
-    public final List<Class<?>> baseInterfaces;
+    protected final FunctionTable functionTable = new FunctionTable();
+    protected final ScopeTable scopeTable = new ScopeTable();
 
-    public final FunctionTable syntheticFunctions = new FunctionTable();
-    public final FunctionTable definedFunctions = new FunctionTable();
-    public final ScopeTable scopeTable = new ScopeTable();
-
-    public int syntheticCounter = 0;
+    protected int syntheticCounter = 0;
 
     public SymbolTable(CompilerSettings compilerSettings, PainlessLookup painlessLookup,
             Class<?> baseClass, List<Class<?>> baseInterfaces) {
@@ -50,5 +47,33 @@ public class SymbolTable {
 
         this.baseClass = Objects.requireNonNull(baseClass);
         this.baseInterfaces = Collections.unmodifiableList(Objects.requireNonNull(baseInterfaces));
+    }
+
+    public CompilerSettings settings() {
+        return compilerSettings;
+    }
+
+    public PainlessLookup lookup() {
+        return painlessLookup;
+    }
+
+    public Class<?> baseClass() {
+        return baseClass;
+    }
+
+    public List<Class<?>> baseInterfaces() {
+        return baseInterfaces;
+    }
+
+    public FunctionTable functions() {
+        return functionTable;
+    }
+
+    public ScopeTable scopes() {
+        return scopeTable;
+    }
+
+    public String nextSyntheticName(String syntheticPrefix) {
+        return syntheticPrefix + "$" + syntheticCounter++;
     }
 }

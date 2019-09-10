@@ -22,9 +22,11 @@ package org.elasticsearch.painless.builder;
 import org.elasticsearch.painless.lookup.PainlessLookupUtility;
 
 import java.lang.invoke.MethodType;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 public class FunctionTable {
 
@@ -34,15 +36,23 @@ public class FunctionTable {
         public final Class<?> returnType;
         public final List<Class<?>> typeParameters;
         public final List<String> parameterNames;
+        public final boolean internal;
 
         public final MethodType methodType;
         public final org.objectweb.asm.commons.Method asmMethod;
 
-        public LocalFunction(String name, Class<?> returnType, List<Class<?>> typeParameters, List<String> parameterNames) {
-            this.name = name;
-            this.returnType = returnType;
-            this.typeParameters = typeParameters;
-            this.parameterNames = parameterNames;
+        public LocalFunction(String name,
+                Class<?> returnType, List<Class<?>> typeParameters, List<String> parameterNames, boolean internal) {
+
+            this.name = Objects.requireNonNull(name);
+            this.returnType = Objects.requireNonNull(returnType);
+            this.typeParameters = Collections.unmodifiableList(Objects.requireNonNull(typeParameters));
+            this.parameterNames = Collections.unmodifiableList(Objects.requireNonNull(parameterNames));
+            this.internal = internal;
+
+            if (typeParameters.size() != parameterNames.size()) {
+                throw new IllegalStateException("illegal function declaration");
+            }
 
             Class<?> javaReturnType = PainlessLookupUtility.typeToJavaType(returnType);
             Class<?>[] javaTypeParameters = typeParameters.stream().map(PainlessLookupUtility::typeToJavaType).toArray(Class<?>[]::new);
@@ -59,13 +69,19 @@ public class FunctionTable {
 
     protected final Map<String, LocalFunction> localFunctions = new HashMap<>();
 
-    public LocalFunction add(String name, Class<?> returnType, List<Class<?>> typeParameters, List<String> parameterNames) {
-        LocalFunction localFunction = new LocalFunction(name, returnType, typeParameters, parameterNames);
+    public LocalFunction addFunction(String name,
+            Class<?> returnType, List<Class<?>> typeParameters, List<String> parameterNames, boolean internal) {
+
+        LocalFunction localFunction = new LocalFunction(name, returnType, typeParameters, parameterNames, internal);
         localFunctions.put(buildKey(name, typeParameters.size()), localFunction);
         return localFunction;
     }
 
-    public LocalFunction get(String key) {
+    public LocalFunction getFunction(String key) {
         return localFunctions.get(key);
+    }
+
+    public LocalFunction getFunction(String name, int arity) {
+        return localFunctions.get(buildKey(name, arity));
     }
 }

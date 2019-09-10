@@ -162,7 +162,7 @@ public class ResolveSymbolsPass implements SemanticPass {
                 parameterNames.add(parameter.name);
             }
 
-            table.definedFunctions.add(function.name, returnType, typeParameters, parameterNames);
+            table.functionTable.addFunction(function.name, returnType, typeParameters, parameterNames, function.internal);
         });
 
         return baseExits;
