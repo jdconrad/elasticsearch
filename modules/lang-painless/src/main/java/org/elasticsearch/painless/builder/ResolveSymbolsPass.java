@@ -76,7 +76,8 @@ public class ResolveSymbolsPass implements SemanticPass {
 
         baseEnters.put(SFunction.class, (node, table, data) -> {
             SFunction function = (SFunction)node;
-            table.scopeTable.newFunctionScope(function);
+            Scope scope = table.scopeTable.newFunctionScope(function);
+            table.scopeTable.setNamedScope(function.name, scope);
             // TODO: move this to a validation pass?
             if (function.children.get(3) == null) {
                 throw node.createError(new IllegalArgumentException("function [" + function.getKey() + "] cannot have an empty body"));
@@ -103,7 +104,7 @@ public class ResolveSymbolsPass implements SemanticPass {
             if (scope.getVariable(name) != null) {
                 throw node.createError(new IllegalArgumentException("variable [" + name + "] is already defined in the scope"));
             }
-            scope.addVariable(name, true);
+            scope.addVariable(name, false);
         });
 
         baseEnters.put(SFor.class, (node, table, data) -> table.scopeTable.newLocalScope(node));

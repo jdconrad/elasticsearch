@@ -62,7 +62,7 @@ public final class ECallLocal extends AExpression {
     void analyze(SymbolTable table) {
         localFunction = table.functions().getFunction(name, children.size());
 
-        if (localFunction.internal) {
+        if (localFunction != null && localFunction.internal) {
             localFunction = null;
         }
 
