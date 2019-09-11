@@ -20,7 +20,6 @@
 package org.elasticsearch.painless;
 
 import org.elasticsearch.common.SuppressForbidden;
-import org.elasticsearch.painless.Locals.LocalMethod;
 import org.elasticsearch.painless.builder.FunctionTable;
 import org.elasticsearch.painless.lookup.PainlessLookup;
 
@@ -30,7 +29,6 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.lang.invoke.MutableCallSite;
 import java.lang.invoke.WrongMethodTypeException;
-import java.util.Map;
 
 /**
  * Painless invokedynamic bootstrap for the call site.

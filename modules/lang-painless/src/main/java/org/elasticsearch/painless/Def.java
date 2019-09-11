@@ -19,7 +19,6 @@
 
 package org.elasticsearch.painless;
 
-import org.elasticsearch.painless.Locals.LocalMethod;
 import org.elasticsearch.painless.builder.FunctionTable;
 import org.elasticsearch.painless.lookup.PainlessLookup;
 import org.elasticsearch.painless.lookup.PainlessLookupUtility;

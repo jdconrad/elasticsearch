@@ -34,9 +34,7 @@ import org.elasticsearch.painless.lookup.def;
 import org.objectweb.asm.Opcodes;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 /**
  * Lambda expression node.
@@ -63,10 +61,6 @@ import java.util.Set;
  */
 public final class ELambda extends AExpression implements ILambda {
 
-    // extracted variables required to determine captures
-    private final Set<String> extractedVariables;
-    // desugared synthetic method (lambda body)
-    private SFunction desugared;
     // captured variables
     private List<Variable> captures;
     // static parent, static lambda
@@ -76,18 +70,17 @@ public final class ELambda extends AExpression implements ILambda {
 
     public ELambda(Location location) {
         super(location);
-
-        this.extractedVariables = new HashSet<>();
     }
 
     @Override
     void analyze(SymbolTable table) {
+        LambdaScope lambdaScope = (LambdaScope)table.scopes().getNodeScope(this);
+        SDeclBlock parameters = (SDeclBlock)children.get(0);
+
         Class<?> returnType;
         List<Class<?>> paramTypes = new ArrayList<>();
         List<String> paramNames = new ArrayList<>();
         PainlessMethod interfaceMethod;
-
-        SDeclBlock parameters = (SDeclBlock)children.get(0);
 
         // inspect the target first, set interface method if we know it.
         if (expected == null) {
@@ -104,6 +97,8 @@ public final class ELambda extends AExpression implements ILambda {
                 } else {
                     paramTypes.add(((DTypeClass)parameter.children.get(0)).type);
                 }
+
+                lambdaScope.setVariableType(parameter.name, paramTypes.get(paramTypes.size() - 1));
             }
         } else {
             // we know the method statically, infer return type and any unknown/def types
@@ -124,7 +119,7 @@ public final class ELambda extends AExpression implements ILambda {
             }
             // replace any null types with the actual type
             for (int i = 0; i < parameters.children.size(); i++) {
-                SDeclaration parameter = (SDeclaration) parameters.children.get(i);
+                SDeclaration parameter = (SDeclaration)parameters.children.get(i);
                 paramNames.add(parameter.name);
 
                 if (parameter.children.get(0) == null) {
@@ -132,10 +127,11 @@ public final class ELambda extends AExpression implements ILambda {
                 } else {
                     paramTypes.add(((DTypeClass)parameter.children.get(0)).type);
                 }
+
+                lambdaScope.setVariableType(parameter.name, paramTypes.get(paramTypes.size() - 1));
             }
         }
         // any of those variables defined in our scope need to be captured
-        LambdaScope lambdaScope = (LambdaScope)table.scopes().getNodeScope(this);
         captures = lambdaScope.getCapturedVariables();
         // prepend capture list to lambda's arguments
         for (int index = 0; index < captures.size(); ++index) {
@@ -152,6 +148,7 @@ public final class ELambda extends AExpression implements ILambda {
                         for (int index = 0; index < paramTypes.size(); ++index) {
                                 builder.visitDeclaration(location, paramNames.get(index), true, false)
                                         .visitTypeClass(location, paramTypes.get(index)).endVisit()
+                                        .visitEmpty()
                                 .endVisit();
                         }
                 builder.endVisit()
@@ -169,8 +166,9 @@ public final class ELambda extends AExpression implements ILambda {
             functionScope.addVariable(name, true);
             functionScope.setVariableType(name, type);
         }
-
+        functionScope.setReturnType(returnType);
         table.functions().addFunction(function.name, true, returnType, paramTypes, paramNames);
+        function.analyze(table);
 
         // setup method reference to synthetic method
         if (expected == null) {
@@ -179,7 +177,7 @@ public final class ELambda extends AExpression implements ILambda {
             defPointer = "Sthis." + synthetic + "," + captures.size();
         } else {
             defPointer = null;
-            ref = FunctionRef.create(table.lookup(), table.functions(), location, expected, "this", desugared.name, captures.size());
+            ref = FunctionRef.create(table.lookup(), table.functions(), location, expected, "this", function.name, captures.size());
             actual = expected;
         }
     }

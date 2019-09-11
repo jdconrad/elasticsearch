@@ -114,7 +114,7 @@ public class ScopeTable {
 
         @Override
         public Variable setVariableType(String name, Class<?> type) {
-            Variable variable = getVariable(name);
+            Variable variable = variables.get(name);
 
             if (variable != null) {
                 variable.setType(type);
@@ -125,7 +125,7 @@ public class ScopeTable {
 
         @Override
         public Variable setVariableSlot(String name) {
-            Variable variable = getVariable(name);
+            Variable variable = variables.get(name);
 
             if (variable != null) {
                 variable.setSlot(nextSlot);
@@ -210,7 +210,7 @@ public class ScopeTable {
 
         @Override
         public Variable setVariableSlot(String name) {
-            Variable variable = getVariable(name);
+            /*Variable variable = getVariable(name);
 
             if (variable != null) {
                 if (nextSlot == -1) {
@@ -221,7 +221,8 @@ public class ScopeTable {
                 nextSlot += Type.getType(variable.type).getSize();
             }
 
-            return variable;
+            return variable;*/
+            return null;
         }
 
         @Override
@@ -231,7 +232,7 @@ public class ScopeTable {
             if (variable == null) {
                 variable = getParent().getVariable(name);
 
-                if (capturedVariables.contains(variable) == false) {
+                if (variable != null && capturedVariables.contains(variable) == false) {
                     capturedVariables.add(variable);
                 }
             }
@@ -240,6 +241,10 @@ public class ScopeTable {
         }
 
         protected int getNextSlot() {
+            if (nextSlot == -1) {
+                nextSlot = getParent().getNextSlot();
+            }
+
             return nextSlot;
         }
 
@@ -322,6 +327,10 @@ public class ScopeTable {
         }
 
         protected int getNextSlot() {
+            if (nextSlot == -1) {
+                nextSlot = getParent().getNextSlot();
+            }
+
             return nextSlot;
         }
     }

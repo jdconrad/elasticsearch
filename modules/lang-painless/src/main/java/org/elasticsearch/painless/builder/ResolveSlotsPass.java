@@ -21,15 +21,11 @@ package org.elasticsearch.painless.builder;
 
 import org.elasticsearch.painless.builder.ScopeTable.Scope;
 import org.elasticsearch.painless.node.ANode;
-import org.elasticsearch.painless.node.EUsed;
 import org.elasticsearch.painless.node.SDeclaration;
-import org.elasticsearch.painless.node.SFunction;
 
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 
 public class ResolveSlotsPass implements SemanticPass {
 

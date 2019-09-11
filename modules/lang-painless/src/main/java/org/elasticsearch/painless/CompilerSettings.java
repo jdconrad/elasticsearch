@@ -53,7 +53,7 @@ public final class CompilerSettings {
      * For now the number is set fairly high to accommodate users
      * doing large update queries.
      */
-    private int maxLoopCounter = 1000000;
+    private int maxLoopCounter = 0;
 
     /**
      * Whether to throw exception on ambiguity or other internal parsing issues. This option

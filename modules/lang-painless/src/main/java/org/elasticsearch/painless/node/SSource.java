@@ -50,7 +50,6 @@ import static org.elasticsearch.painless.WriterConstants.FUNCTION_TABLE_TYPE;
 import static org.elasticsearch.painless.WriterConstants.GET_NAME_METHOD;
 import static org.elasticsearch.painless.WriterConstants.GET_SOURCE_METHOD;
 import static org.elasticsearch.painless.WriterConstants.GET_STATEMENTS_METHOD;
-import static org.elasticsearch.painless.WriterConstants.MAP_TYPE;
 import static org.elasticsearch.painless.WriterConstants.STRING_TYPE;
 
 /**

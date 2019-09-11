@@ -57,7 +57,7 @@ public class FunctionTable {
             Class<?> javaReturnType = PainlessLookupUtility.typeToJavaType(returnType);
             Class<?>[] javaTypeParameters = typeParameters.stream().map(PainlessLookupUtility::typeToJavaType).toArray(Class<?>[]::new);
 
-            this.methodType = MethodType.methodType(javaReturnType, typeParameters);
+            this.methodType = MethodType.methodType(javaReturnType, javaTypeParameters);
             this.asmMethod = new org.objectweb.asm.commons.Method(name,
                     MethodType.methodType(javaReturnType, javaTypeParameters).toMethodDescriptorString());
         }
