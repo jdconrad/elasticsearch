@@ -34,14 +34,16 @@ import java.util.Objects;
 public final class SDeclaration extends AStatement {
 
     public final String name;
+    public final boolean readonly;
     public final boolean initialize;
 
     private Variable variable = null;
 
-    public SDeclaration(Location location, String name, boolean initialize) {
+    public SDeclaration(Location location, String name, boolean readonly, boolean initialize) {
         super(location);
 
         this.name = Objects.requireNonNull(name);
+        this.readonly = readonly;
         this.initialize = initialize;
     }
 
@@ -49,7 +51,7 @@ public final class SDeclaration extends AStatement {
     void analyze(SymbolTable table) {
         Class<?> type = ((DTypeClass)children.get(0)).type;
 
-        AExpression expression = (AExpression) children.get(1);
+        AExpression expression = (AExpression)children.get(1);
 
         if (expression != null) {
             expression.expected = type;
@@ -57,7 +59,7 @@ public final class SDeclaration extends AStatement {
             children.set(1, expression.cast(table));
         }
 
-        variable = table.scopes().getNodeScope(this).updateVariable(name, type);
+        variable = table.scopes().getNodeScope(this).setVariableType(name, type);
     }
 
     @Override

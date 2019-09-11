@@ -20,6 +20,7 @@
 package org.elasticsearch.painless;
 
 import org.elasticsearch.painless.Locals.LocalMethod;
+import org.elasticsearch.painless.builder.FunctionTable;
 import org.elasticsearch.painless.lookup.PainlessLookup;
 import org.elasticsearch.painless.lookup.PainlessLookupUtility;
 import org.elasticsearch.painless.lookup.PainlessMethod;
@@ -190,7 +191,7 @@ public final class Def {
      * @throws IllegalArgumentException if no matching whitelisted method was found.
      * @throws Throwable if a method reference cannot be converted to an functional interface
      */
-    static MethodHandle lookupMethod(PainlessLookup painlessLookup, Map<String, LocalMethod> localMethods,
+    static MethodHandle lookupMethod(PainlessLookup painlessLookup, FunctionTable table,
             MethodHandles.Lookup methodHandlesLookup, MethodType callSiteType, Class<?> receiverClass, String name, Object args[])
             throws Throwable {
 
@@ -255,7 +256,7 @@ public final class Def {
                      // the implementation is strongly typed, now that we know the interface type,
                      // we have everything.
                      filter = lookupReferenceInternal(painlessLookup,
-                                                      localMethods,
+                                                      table,
                                                       methodHandlesLookup,
                                                       interfaceType,
                                                       type,
@@ -271,7 +272,7 @@ public final class Def {
                      }
                      MethodType nestedType = MethodType.methodType(interfaceType, captures);
                      CallSite nested = DefBootstrap.bootstrap(painlessLookup,
-                                                              localMethods,
+                                                              table,
                                                               methodHandlesLookup,
                                                               call,
                                                               nestedType,
@@ -299,7 +300,7 @@ public final class Def {
       * This is just like LambdaMetaFactory, only with a dynamic type. The interface type is known,
       * so we simply need to lookup the matching implementation method based on receiver type.
       */
-    static MethodHandle lookupReference(PainlessLookup painlessLookup, Map<String, LocalMethod> localMethods,
+    static MethodHandle lookupReference(PainlessLookup painlessLookup, FunctionTable table,
             MethodHandles.Lookup methodHandlesLookup, String interfaceClass, Class<?> receiverClass, String name) throws Throwable {
         Class<?> interfaceType = painlessLookup.canonicalTypeNameToType(interfaceClass);
         if (interfaceType == null) {
@@ -316,15 +317,15 @@ public final class Def {
                     "dynamic method [" + typeToCanonicalTypeName(receiverClass) + ", " + name + "/" + arity + "] not found");
         }
 
-        return lookupReferenceInternal(painlessLookup, localMethods, methodHandlesLookup,
+        return lookupReferenceInternal(painlessLookup, table, methodHandlesLookup,
             interfaceType, PainlessLookupUtility.typeToCanonicalTypeName(implMethod.targetClass),
             implMethod.javaMethod.getName(), 1);
      }
 
      /** Returns a method handle to an implementation of clazz, given method reference signature. */
-    private static MethodHandle lookupReferenceInternal(PainlessLookup painlessLookup, Map<String, LocalMethod> localMethods,
+    private static MethodHandle lookupReferenceInternal(PainlessLookup painlessLookup, FunctionTable table,
             MethodHandles.Lookup methodHandlesLookup, Class<?> clazz, String type, String call, int captures) throws Throwable {
-        final FunctionRef ref = FunctionRef.create(painlessLookup, localMethods, null, clazz, type, call, captures);
+        final FunctionRef ref = FunctionRef.create(painlessLookup, table, null, clazz, type, call, captures);
         final CallSite callSite = LambdaBootstrap.lambdaBootstrap(
             methodHandlesLookup,
             ref.interfaceMethodName,

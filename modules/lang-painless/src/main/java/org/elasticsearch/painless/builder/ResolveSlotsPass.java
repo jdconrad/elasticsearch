@@ -19,8 +19,10 @@
 
 package org.elasticsearch.painless.builder;
 
+import org.elasticsearch.painless.builder.ScopeTable.Scope;
 import org.elasticsearch.painless.node.ANode;
 import org.elasticsearch.painless.node.EUsed;
+import org.elasticsearch.painless.node.SDeclaration;
 import org.elasticsearch.painless.node.SFunction;
 
 import java.util.Collections;
@@ -29,19 +31,19 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-public class ResolveUsedPass {
+public class ResolveSlotsPass implements SemanticPass {
 
     public interface Visitor {
-        void visit(ANode node, SymbolTable table, Map<String, Set<String>> used);
+        void visit(ANode node, SymbolTable table);
     }
-    
+
     protected final Map<Class<? extends ANode>, Visitor> enters;
 
-    public ResolveUsedPass() {
+    public ResolveSlotsPass() {
         this(Collections.emptyMap());
     }
 
-    public ResolveUsedPass(Map<Class<? extends ANode>, Visitor> enters) {
+    public ResolveSlotsPass(Map<Class<? extends ANode>, Visitor> enters) {
         Map<Class<? extends ANode>, Visitor> baseEnters = buildBaseEnters();
         baseEnters.putAll(enters);
         this.enters = Collections.unmodifiableMap(baseEnters);
@@ -50,42 +52,29 @@ public class ResolveUsedPass {
     protected Map<Class<? extends ANode>, Visitor> buildBaseEnters() {
         Map<Class<? extends ANode>, Visitor> baseEnters = new HashMap<>();
 
-        baseEnters.put(SFunction.class, (node, table, used) -> {
-            SFunction function = (SFunction)node;
-            ScopeTable.FunctionScope scope = (ScopeTable.FunctionScope)table.scopeTable.getNodeScope(node);
-
-            String key = function.getKey();
-            used.putIfAbsent(key, new HashSet<>());
-            used.get(key).addAll(scope.usedVariables);
-        });
-
-        baseEnters.put(EUsed.class, (node, table, used) -> {
-            EUsed usedNode = (EUsed)node;
-
-            ScopeTable.FunctionScope scope = (ScopeTable.FunctionScope)table.scopeTable.getNamedScope(usedNode.key);
-            usedNode.used = scope.getUsedVariables().contains(usedNode.name);
+        baseEnters.put(SDeclaration.class, (node, table) -> {
+            SDeclaration declaration = (SDeclaration)node;
+            Scope scope = table.scopes().getNodeScope(declaration);
+            scope.setVariableSlot(declaration.name);
         });
 
         return baseEnters;
     }
 
-    public Object pass(ANode root, SymbolTable table) {
-        Map<String, Set<String>> used = new HashMap<>();
-        visit(root, table, used);
-
-        return used;
+    public void pass(ANode root, SymbolTable table, Map<String, Object> data) {
+        visit(root, table);
     }
 
-    protected void visit(ANode node, SymbolTable table, Map<String, Set<String>> used) {
+    protected void visit(ANode node, SymbolTable table) {
         Visitor enter = enters.get(node.getClass());
 
         if (enter != null) {
-            enter.visit(node, table, used);
+            enter.visit(node, table);
         }
 
         for (ANode child : node.children) {
             if (child != null) {
-                visit(child, table, used);
+                visit(child, table);
             }
         }
     }

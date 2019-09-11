@@ -253,7 +253,7 @@ public class ScriptClassInfo {
                 .visitDeclBlock(location);
 
         for (MethodArgument argument : executeArguments) {
-            builder.visitDeclaration(location, argument.getName(), false)
+            builder.visitDeclaration(location, argument.getName(), true, false)
                     .visitTypeClass(location, argument.getClazz()).endVisit()
             .endVisit();
         }
@@ -269,7 +269,7 @@ public class ScriptClassInfo {
                 name = Character.toLowerCase(name.charAt(0)) + name.substring(1);
                 Class<?> type = getReturns.get(index);
 
-                builder.visitDeclaration(location, name, true)
+                builder.visitDeclaration(location, name, false, true)
                         .visitTypeClass(location, type).endVisit()
                         .visitDirectCallInvoke(location, method, false, false)
                                 .visitThis(location).endVisit()
@@ -296,7 +296,7 @@ public class ScriptClassInfo {
 
         builder.visitCatch(location)
                 .visitTypeClass(location, Throwable.class).endVisit()
-                .visitDeclaration(location, "#e", false)
+                .visitDeclaration(location, "#e", false, false)
                         .visitTypeClass(location, PainlessExplainError.class).endVisit()
                         .visitEmpty()
                 .endVisit()
@@ -319,7 +319,7 @@ public class ScriptClassInfo {
 
         builder.visitCatch(location)
                 .visitTypeClass(location, Throwable.class).endVisit()
-                .visitDeclaration(location, "#e", false)
+                .visitDeclaration(location, "#e", false, false)
                         .visitTypeClass(location, PainlessError.class).endVisit()
                         .visitEmpty()
                 .endVisit()
@@ -341,7 +341,7 @@ public class ScriptClassInfo {
 
         builder.visitCatch(location)
                 .visitTypeClass(location, Throwable.class).endVisit()
-                .visitDeclaration(location, "#e", false)
+                .visitDeclaration(location, "#e", false, false)
                         .visitTypeClass(location, BootstrapMethodError.class).endVisit()
                         .visitEmpty()
                 .endVisit()
@@ -363,7 +363,7 @@ public class ScriptClassInfo {
 
         builder.visitCatch(location)
                 .visitTypeClass(location, Throwable.class).endVisit()
-                .visitDeclaration(location, "#e", false)
+                .visitDeclaration(location, "#e", false, false)
                         .visitTypeClass(location, OutOfMemoryError.class).endVisit()
                         .visitEmpty()
                 .endVisit()
@@ -385,7 +385,7 @@ public class ScriptClassInfo {
 
         builder.visitCatch(location)
                 .visitTypeClass(location, Throwable.class).endVisit()
-                .visitDeclaration(location, "#e", false)
+                .visitDeclaration(location, "#e", false, false)
                         .visitTypeClass(location, StackOverflowError.class).endVisit()
                         .visitEmpty()
                 .endVisit()
@@ -407,7 +407,7 @@ public class ScriptClassInfo {
 
         builder.visitCatch(location)
                 .visitTypeClass(location, Throwable.class).endVisit()
-                .visitDeclaration(location, "#e", false)
+                .visitDeclaration(location, "#e", false, false)
                         .visitTypeClass(location, Exception.class).endVisit()
                         .visitEmpty()
                 .endVisit()

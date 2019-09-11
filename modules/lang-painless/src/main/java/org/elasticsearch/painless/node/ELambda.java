@@ -136,7 +136,7 @@ public final class ELambda extends AExpression implements ILambda {
         }
         // any of those variables defined in our scope need to be captured
         LambdaScope lambdaScope = (LambdaScope)table.scopes().getNodeScope(this);
-        captures = lambdaScope.captures();
+        captures = lambdaScope.getCapturedVariables();
         // prepend capture list to lambda's arguments
         for (int index = 0; index < captures.size(); ++index) {
             Variable var = captures.get(index);
@@ -150,7 +150,7 @@ public final class ELambda extends AExpression implements ILambda {
                 .visitTypeClass(location, returnType).endVisit()
                 .visitDeclBlock(location);
                         for (int index = 0; index < paramTypes.size(); ++index) {
-                                builder.visitDeclaration(location, paramNames.get(index), false)
+                                builder.visitDeclaration(location, paramNames.get(index), true, false)
                                         .visitTypeClass(location, paramTypes.get(index)).endVisit()
                                 .endVisit();
                         }
@@ -167,7 +167,7 @@ public final class ELambda extends AExpression implements ILambda {
             String name = paramNames.get(index);
             Class<?> type = paramTypes.get(index);
             functionScope.addVariable(name, true);
-            functionScope.updateVariable(name, type);
+            functionScope.setVariableType(name, type);
         }
 
         table.functions().addFunction(function.name, true, returnType, paramTypes, paramNames);

@@ -56,7 +56,7 @@ public final class ENewArrayFunctionRef extends AExpression implements ILambda {
         SFunction function = new SFunction(location, table.nextSyntheticName("newarray"), true, false, true, true);
         function.children.add(new DTypeClass(location, type));
         SDeclBlock parameters = new SDeclBlock(location);
-        SDeclaration parameter = new SDeclaration(location, "size", false);
+        SDeclaration parameter = new SDeclaration(location, "size", false, false);
         parameter.children.add(new DTypeClass(location, int.class));
         parameters.children.add(parameter);
         function.children.add(parameters);
@@ -73,7 +73,7 @@ public final class ENewArrayFunctionRef extends AExpression implements ILambda {
         children.add(function);
         ScopeTable.FunctionScope functionScope = table.scopes().newFunctionScope(function);
         functionScope.addVariable("size", true);
-        functionScope.updateVariable("size", int.class);
+        functionScope.setVariableType("size", int.class);
 
         if (expected == null) {
             ref = null;

@@ -88,7 +88,6 @@ public class ASTBuilder {
 
     protected ANode root = null;
     protected ANode current = null;
-    protected boolean right = true;
 
     protected final Map<String, ANode> saves = new HashMap<>();
 
@@ -122,18 +121,6 @@ public class ASTBuilder {
         return this;
     }
 
-    public ASTBuilder setLeftToRight() {
-        right = true;
-
-        return this;
-    }
-
-    public ASTBuilder setRightToLeft() {
-        right = false;
-
-        return this;
-    }
-
     protected ASTBuilder visitChild(ANode child) {
         if (current == null) {
             if (root != null) {
@@ -143,12 +130,7 @@ public class ASTBuilder {
             root = child;
         } else {
             child.parent = current;
-
-            if (right) {
-                current.children.add(child);
-            } else {
-                current.children.add(0, child);
-            }
+            current.children.add(child);
         }
 
         current = child;
@@ -230,8 +212,8 @@ public class ASTBuilder {
         return visitChild(new SDeclBlock(location));
     }
 
-    public ASTBuilder visitDeclaration(Location location, String name, boolean initialize) {
-        return visitChild(new SDeclaration(location, name, initialize));
+    public ASTBuilder visitDeclaration(Location location, String name, boolean readonly, boolean initialize) {
+        return visitChild(new SDeclaration(location, name, readonly, initialize));
     }
 
     public ASTBuilder visitReturn(Location location) {

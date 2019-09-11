@@ -19,11 +19,14 @@
 
 package org.elasticsearch.painless.builder;
 
+import org.elasticsearch.painless.builder.ScopeTable.FunctionScope;
+import org.elasticsearch.painless.builder.ScopeTable.Scope;
 import org.elasticsearch.painless.node.ANode;
 import org.elasticsearch.painless.node.DTypeClass;
 import org.elasticsearch.painless.node.DTypeString;
 import org.elasticsearch.painless.node.ELambda;
 import org.elasticsearch.painless.node.EVariable;
+import org.elasticsearch.painless.node.SBlock;
 import org.elasticsearch.painless.node.SCatch;
 import org.elasticsearch.painless.node.SDeclBlock;
 import org.elasticsearch.painless.node.SDeclaration;
@@ -73,23 +76,29 @@ public class ResolveSymbolsPass implements SemanticPass {
 
         baseEnters.put(SFunction.class, (node, table, data) -> {
             SFunction function = (SFunction)node;
-            ScopeTable.FunctionScope functionScope = table.scopeTable.newFunctionScope(function);
-            if (function.statik == false) {
-                functionScope.addVariable("#this", true);
-            }
+            table.scopeTable.newFunctionScope(function);
             // TODO: move this to a validation pass?
             if (function.children.get(3) == null) {
                 throw node.createError(new IllegalArgumentException("function [" + function.getKey() + "] cannot have an empty body"));
             }
-            ScopeTable.LocalScope localScope = table.scopeTable.newLocalScope(function.children.get(3));
+            table.scopeTable.newLocalScope(function.children.get(3));
             if (table.compilerSettings.getMaxLoopCounter() > 0) {
-                localScope.addVariable("#loop", false);
+                SBlock block = (SBlock)function.children.get(3);
+                block.children.add(0,
+                        new ASTBuilder()
+                                .visitDeclaration(block.location, "#loop", true, false)
+                                        .visitTypeClass(block.location, int.class).endVisit()
+                                        .visitEmpty()
+                                .endVisit()
+                        .endBuild()
+                );
+                block.children.get(0).parent = block;
             }
         });
 
         baseEnters.put(SDeclaration.class, (node, table, data) -> {
             SDeclaration declaration = (SDeclaration)node;
-            ScopeTable.Scope scope = table.scopeTable.getNodeScope(declaration);
+            Scope scope = table.scopeTable.getNodeScope(declaration);
             String name = declaration.name;
             if (scope.getVariable(name) != null) {
                 throw node.createError(new IllegalArgumentException("variable [" + name + "] is already defined in the scope"));
@@ -116,9 +125,17 @@ public class ResolveSymbolsPass implements SemanticPass {
             if (lambda.children.get(1) == null) {
                 throw node.createError(new IllegalArgumentException("lambda cannot have an empty body"));
             }
-            ScopeTable.LocalScope localScope = table.scopeTable.newLocalScope(lambda.children.get(1));
+            table.scopeTable.newLocalScope(lambda.children.get(1));
             if (table.compilerSettings.getMaxLoopCounter() > 0) {
-                localScope.addVariable("#loop", false);
+                SBlock block = (SBlock)lambda.children.get(1);
+                block.children.add(0,
+                        new ASTBuilder()
+                                .visitDeclaration(block.location, "#loop", true, false)
+                                        .visitTypeClass(block.location, int.class).endVisit()
+                                        .visitEmpty()
+                                .endVisit()
+                        .endBuild()
+                );
             }
         });
 
@@ -154,12 +171,13 @@ public class ResolveSymbolsPass implements SemanticPass {
             List<String> parameterNames = new ArrayList<>();
 
             for (ANode child : parameters.children) {
-                SDeclaration parameter = (SDeclaration) child;
+                SDeclaration parameter = (SDeclaration)child;
                 typeParameters.add(((DTypeClass)child.children.get(0)).type);
                 parameterNames.add(parameter.name);
             }
 
             table.functionTable.addFunction(function.name, function.internal, returnType, typeParameters, parameterNames);
+            ((FunctionScope)table.scopes().getNodeScope(function)).setReturnType(returnType);
         });
 
         return baseExits;

@@ -20,6 +20,7 @@
 package org.elasticsearch.painless;
 
 import org.elasticsearch.painless.api.Augmentation;
+import org.elasticsearch.painless.builder.FunctionTable;
 import org.elasticsearch.painless.lookup.PainlessLookup;
 import org.elasticsearch.script.JodaCompatibleZonedDateTime;
 import org.elasticsearch.script.ScriptException;
@@ -83,6 +84,7 @@ public final class WriterConstants {
     public static final Type BITSET_TYPE = Type.getType(BitSet.class);
 
     public static final Type DEFINITION_TYPE = Type.getType(PainlessLookup.class);
+    public static final Type FUNCTION_TABLE_TYPE = Type.getType(FunctionTable.class);
 
     public static final Type COLLECTIONS_TYPE = Type.getType(Collections.class);
     public static final Method EMPTY_MAP_METHOD = getAsmMethod(Map.class, "emptyMap");
@@ -125,7 +127,7 @@ public final class WriterConstants {
             DEF_BOOTSTRAP_METHOD.getDescriptor(), false);
     public static final Type DEF_BOOTSTRAP_DELEGATE_TYPE = Type.getType(DefBootstrap.class);
     public static final Method DEF_BOOTSTRAP_DELEGATE_METHOD = getAsmMethod(CallSite.class, "bootstrap", PainlessLookup.class,
-            Map.class, MethodHandles.Lookup.class, String.class, MethodType.class, int.class, int.class, Object[].class);
+            FunctionTable.class, MethodHandles.Lookup.class, String.class, MethodType.class, int.class, int.class, Object[].class);
 
     public static final Type DEF_UTIL_TYPE = Type.getType(Def.class);
 

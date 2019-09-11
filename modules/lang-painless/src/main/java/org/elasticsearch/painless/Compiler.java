@@ -21,6 +21,7 @@ package org.elasticsearch.painless;
 
 import org.elasticsearch.bootstrap.BootstrapInfo;
 import org.elasticsearch.painless.antlr.Walker;
+import org.elasticsearch.painless.builder.ResolveSlotsPass;
 import org.elasticsearch.painless.builder.ResolveSymbolsPass;
 import org.elasticsearch.painless.builder.ResolveUsedPass;
 import org.elasticsearch.painless.builder.SymbolTable;
@@ -212,7 +213,6 @@ final class Compiler {
     Constructor<?> compile(Loader loader, Set<String> extractedVariables, String name, String source, CompilerSettings settings) {
         ScriptClassInfo scriptClassInfo = new ScriptClassInfo(painlessLookup, scriptClass);
         SSource root = Walker.buildPainlessTree(scriptClassInfo, name, source, settings, painlessLookup, null);
-        root.storeSettings(settings);
         SymbolTable table =
                 new SymbolTable(settings, painlessLookup, scriptClassInfo.getBaseClass(), Collections.singletonList(PainlessScript.class));
         new ResolveSymbolsPass().pass(root, table, Collections.emptyMap());
@@ -223,8 +223,9 @@ final class Compiler {
         if (usedSet != null) {
             extractedVariables.addAll(usedSet);
         }
-        root.analyze(painlessLookup);
-        Map<String, Object> statics = root.write();
+        root.analyze(table);
+        new ResolveSlotsPass().pass(root, table, null);
+        Map<String, Object> statics = root.write(table);
 
         try {
             Class<? extends PainlessScript> clazz = loader.defineScript(CLASS_NAME, root.getBytes());
@@ -255,9 +256,9 @@ final class Compiler {
                 new SymbolTable(settings, painlessLookup, scriptClassInfo.getBaseClass(), Collections.singletonList(PainlessScript.class));
         new ResolveSymbolsPass().pass(root, table, Collections.emptyMap());
         new ResolveUsedPass().pass(root, table);
-        root.storeSettings(settings);
-        root.analyze(painlessLookup);
-        root.write();
+        root.analyze(table);
+        new ResolveSlotsPass().pass(root, table, null);
+        root.write(table);
 
         return root.getBytes();
     }

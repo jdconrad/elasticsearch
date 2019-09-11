@@ -46,6 +46,7 @@ import static org.elasticsearch.painless.WriterConstants.DEFINITION_TYPE;
 import static org.elasticsearch.painless.WriterConstants.DEF_BOOTSTRAP_DELEGATE_METHOD;
 import static org.elasticsearch.painless.WriterConstants.DEF_BOOTSTRAP_DELEGATE_TYPE;
 import static org.elasticsearch.painless.WriterConstants.DEF_BOOTSTRAP_METHOD;
+import static org.elasticsearch.painless.WriterConstants.FUNCTION_TABLE_TYPE;
 import static org.elasticsearch.painless.WriterConstants.GET_NAME_METHOD;
 import static org.elasticsearch.painless.WriterConstants.GET_SOURCE_METHOD;
 import static org.elasticsearch.painless.WriterConstants.GET_STATEMENTS_METHOD;
@@ -106,7 +107,7 @@ public final class SSource extends AStatement {
     }*/
 
     @Override
-    void analyze(SymbolTable table) {
+    public void analyze(SymbolTable table) {
         for (ANode child : children) {
             if (child instanceof SFunction) {
                 SFunction function = (SFunction)child;
@@ -152,7 +153,7 @@ public final class SSource extends AStatement {
                 globals.getStatements(), table.settings());
         bootstrapDef.visitCode();
         bootstrapDef.getStatic(CLASS_TYPE, "$DEFINITION", DEFINITION_TYPE);
-        bootstrapDef.getStatic(CLASS_TYPE, "$LOCALS", MAP_TYPE);
+        bootstrapDef.getStatic(CLASS_TYPE, "$LOCALS", FUNCTION_TABLE_TYPE);
         bootstrapDef.loadArgs();
         bootstrapDef.invokeStatic(DEF_BOOTSTRAP_DELEGATE_TYPE, DEF_BOOTSTRAP_DELEGATE_METHOD);
         bootstrapDef.returnValue();
@@ -165,7 +166,7 @@ public final class SSource extends AStatement {
 
         // Write the static variables used by the method to bootstrap def calls
         visitor.visitField(Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, "$DEFINITION", DEFINITION_TYPE.getDescriptor(), null, null).visitEnd();
-        visitor.visitField(Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, "$LOCALS", MAP_TYPE.getDescriptor(), null, null).visitEnd();
+        visitor.visitField(Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, "$LOCALS", FUNCTION_TABLE_TYPE.getDescriptor(), null, null).visitEnd();
 
         org.objectweb.asm.commons.Method init;
 

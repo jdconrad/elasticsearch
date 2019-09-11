@@ -66,7 +66,7 @@ final class SSubEachIterable extends AStatement {
         // We must store the iterator as a variable for securing a slot on the stack, and
         // also add the location offset to make the name unique in case of nested for each loops.
         scope.addVariable("#itr" + location.getOffset(), true);
-        iterator = scope.updateVariable("#itr" + location.getOffset(), Iterator.class);
+        iterator = scope.setVariableType("#itr" + location.getOffset(), Iterator.class);
 
         if (expression.actual == def.class) {
             method = null;

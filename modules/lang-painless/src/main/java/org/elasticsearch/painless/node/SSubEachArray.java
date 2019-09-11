@@ -57,9 +57,9 @@ final class SSubEachArray extends AStatement {
         // We must store the array and index as variables for securing slots on the stack, and
         // also add the location offset to make the names unique in case of nested for each loops.
         scope.addVariable("#array" + location.getOffset(), true);
-        array = scope.updateVariable("#array" + location.getOffset(), expression.actual);
+        array = scope.setVariableType("#array" + location.getOffset(), expression.actual);
         scope.addVariable("#index" + location.getOffset(), true);
-        index = scope.updateVariable("#index" + location.getOffset(), int.class);
+        index = scope.setVariableType("#index" + location.getOffset(), int.class);
         indexed = expression.actual.getComponentType();
         cast = AnalyzerCaster.getLegalCast(location, indexed, variable.getType(), true, true);
     }

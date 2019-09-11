@@ -22,6 +22,7 @@ package org.elasticsearch.painless.builder;
 import org.elasticsearch.painless.node.ANode;
 import org.elasticsearch.painless.node.ELambda;
 import org.elasticsearch.painless.node.SFunction;
+import org.objectweb.asm.Type;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -62,24 +63,36 @@ public class ScopeTable {
             return type;
         }
 
+        protected void setSlot(int slot) {
+            this.slot = slot;
+        }
+
         public int getSlot() {
             return slot;
         }
     }
 
-    public interface Scope {
+    public abstract class Scope {
 
-        Class<?> getReturnType();
+        public abstract Class<?> getReturnType();
 
-        Variable addVariable(String name, boolean readonly);
-        Variable updateVariable(String name, Class<?> type);
-        Variable getVariable(String name);
+        public abstract Variable addVariable(String name, boolean readonly);
+        public abstract Variable setVariableType(String name, Class<?> type);
+        public abstract Variable setVariableSlot(String name);
+        public abstract Variable getVariable(String name);
+
+        protected abstract int getNextSlot();
     }
 
-    public class FunctionScope implements Scope {
+    public class FunctionScope extends Scope {
 
         protected final Map<String, Variable> variables = new HashMap<>();
         protected final Set<String> usedVariables = new HashSet<>();
+        protected int nextSlot;
+
+        protected FunctionScope(boolean isStatic) {
+            nextSlot = isStatic ? 0 : 1;
+        }
 
         protected Class<?> returnType;
 
@@ -100,11 +113,23 @@ public class ScopeTable {
         }
 
         @Override
-        public Variable updateVariable(String name, Class<?> type) {
+        public Variable setVariableType(String name, Class<?> type) {
             Variable variable = getVariable(name);
 
             if (variable != null) {
                 variable.setType(type);
+            }
+
+            return variable;
+        }
+
+        @Override
+        public Variable setVariableSlot(String name) {
+            Variable variable = getVariable(name);
+
+            if (variable != null) {
+                variable.setSlot(nextSlot);
+                nextSlot += Type.getType(variable.type).getSize();
             }
 
             return variable;
@@ -121,17 +146,22 @@ public class ScopeTable {
             return variables.get(name);
         }
 
+        protected int getNextSlot() {
+            return nextSlot;
+        }
+
         public Set<String> getUsedVariables() {
             return Collections.unmodifiableSet(usedVariables);
         }
     }
 
-    public class LambdaScope implements Scope {
+    public class LambdaScope extends Scope {
 
         protected final ANode node;
 
         protected final Map<String, Variable> variables = new HashMap<>();
-        protected final List<Variable> captures = new ArrayList<>();
+        protected final List<Variable> capturedVariables = new ArrayList<>();
+        protected int nextSlot = -1;
 
         protected Class<?> returnType;
 
@@ -168,11 +198,27 @@ public class ScopeTable {
         }
 
         @Override
-        public Variable updateVariable(String name, Class<?> type) {
+        public Variable setVariableType(String name, Class<?> type) {
             Variable variable = getVariable(name);
 
             if (variable != null) {
                 variable.setType(type);
+            }
+
+            return variable;
+        }
+
+        @Override
+        public Variable setVariableSlot(String name) {
+            Variable variable = getVariable(name);
+
+            if (variable != null) {
+                if (nextSlot == -1) {
+                    nextSlot = getParent().getNextSlot();
+                }
+
+                variable.setSlot(nextSlot);
+                nextSlot += Type.getType(variable.type).getSize();
             }
 
             return variable;
@@ -185,23 +231,29 @@ public class ScopeTable {
             if (variable == null) {
                 variable = getParent().getVariable(name);
 
-                if (captures.contains(variable) == false) {
-                    captures.add(variable);
+                if (capturedVariables.contains(variable) == false) {
+                    capturedVariables.add(variable);
                 }
             }
 
             return variable;
         }
 
-        public List<Variable> captures() {
-            return Collections.unmodifiableList(captures);
+        protected int getNextSlot() {
+            return nextSlot;
+        }
+
+        public List<Variable> getCapturedVariables() {
+            return Collections.unmodifiableList(capturedVariables);
         }
     }
 
-    public class LocalScope implements Scope {
+    public class LocalScope extends Scope {
 
         protected final ANode node;
+
         protected final Map<String, Variable> variables = new HashMap<>();
+        protected int nextSlot = -1;
 
         public LocalScope(ANode node) {
             this.node = node;
@@ -232,11 +284,27 @@ public class ScopeTable {
         }
 
         @Override
-        public Variable updateVariable(String name, Class<?> type) {
+        public Variable setVariableType(String name, Class<?> type) {
             Variable variable = getVariable(name);
 
             if (variable != null) {
                 variable.setType(type);
+            }
+
+            return variable;
+        }
+
+        @Override
+        public Variable setVariableSlot(String name) {
+            Variable variable = getVariable(name);
+
+            if (variable != null) {
+                if (nextSlot == -1) {
+                    nextSlot = getParent().getNextSlot();
+                }
+
+                variable.setSlot(nextSlot);
+                nextSlot += Type.getType(variable.type).getSize();
             }
 
             return variable;
@@ -252,14 +320,17 @@ public class ScopeTable {
 
             return variable;
         }
+
+        protected int getNextSlot() {
+            return nextSlot;
+        }
     }
 
-    protected Map<String, FunctionScope> functionScopes = new HashMap<>();
     protected Map<ANode, Scope> nodeScopes = new HashMap<>();
+    protected Map<String, Scope> namedScopes = new HashMap<>();
 
     public FunctionScope newFunctionScope(SFunction node) {
-        FunctionScope scope = new FunctionScope();
-        functionScopes.put(node.getKey(), scope);
+        FunctionScope scope = new FunctionScope(node.statik);
         nodeScopes.put(node, scope);
         return scope;
     }
@@ -276,10 +347,6 @@ public class ScopeTable {
         return scope;
     }
 
-    public FunctionScope getFunctionScope(String key) {
-        return functionScopes.get(key);
-    }
-
     public Scope getNodeScope(ANode node) {
         Scope scope = nodeScopes.get(node);
 
@@ -288,5 +355,13 @@ public class ScopeTable {
         }
 
         return scope;
+    }
+
+    public void setNamedScope(String name, Scope scope) {
+        namedScopes.put(name, scope);
+    }
+
+    public Scope getNamedScope(String name) {
+        return namedScopes.get(name);
     }
 }

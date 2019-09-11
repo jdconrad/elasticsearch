@@ -230,7 +230,7 @@ public final class Walker extends PainlessParserBaseVisitor<Void> {
             DecltypeContext type = ctx.decltype(parameterIndex);
             TerminalNode name = ctx.ID(parameterIndex);
 
-            builder.visitDeclaration(location(ctx), name.getText(), false)
+            builder.visitDeclaration(location(ctx), name.getText(), false, false)
                     .visitTypeString(location(type), type.getText()).endVisit()
                     .endVisit();
         }
@@ -345,7 +345,7 @@ public final class Walker extends PainlessParserBaseVisitor<Void> {
         String name = ctx.ID().getText();
 
         builder.visitEach(location(ctx))
-                .visitDeclaration(location(ctx.ID()), name, false)
+                .visitDeclaration(location(ctx.ID()), name, false, false)
                         .visitTypeString(location(ctx.decltype()), type).endVisit().visitEmpty()
                 .endVisit();
 
@@ -362,7 +362,7 @@ public final class Walker extends PainlessParserBaseVisitor<Void> {
         String name = ctx.ID().getText();
 
         builder.visitEach(location(ctx))
-                .visitDeclaration(location(ctx.ID()), name, false)
+                .visitDeclaration(location(ctx.ID()), name, false, false)
                         .visitTypeString(location(ctx), "def").endVisit().visitEmpty()
                 .endVisit();
 
@@ -514,7 +514,7 @@ public final class Walker extends PainlessParserBaseVisitor<Void> {
         for (DeclvarContext declvar : ctx.declvar()) {
             String name = declvar.ID().getText();
 
-            builder.visitDeclaration(location(declvar), name, true)
+            builder.visitDeclaration(location(declvar), name, false, true)
                     .visitTypeString(location(ctx.decltype()), type).endVisit();
 
             if (declvar.expression() == null) {
@@ -548,7 +548,7 @@ public final class Walker extends PainlessParserBaseVisitor<Void> {
 
         builder.visitCatch(location(ctx))
                 .visitTypeString(location(ctx), "java.lang.Exception").endVisit()
-                .visitDeclaration(location(ctx.ID()), name, false)
+                .visitDeclaration(location(ctx.ID()), name, false, false)
                         .visitTypeString(location(ctx.TYPE()), type).endVisit().visitEmpty()
                 .endVisit();
 
@@ -1248,7 +1248,7 @@ public final class Walker extends PainlessParserBaseVisitor<Void> {
 
     @Override
     public Void visitLamtype(LamtypeContext ctx) {
-        builder.visitDeclaration(location(ctx.ID()), ctx.ID().getText(), false);
+        builder.visitDeclaration(location(ctx.ID()), ctx.ID().getText(), true, false);
 
         if (ctx.decltype() == null) {
             builder.visitEmpty();

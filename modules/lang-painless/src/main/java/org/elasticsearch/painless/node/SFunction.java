@@ -44,12 +44,7 @@ public final class SFunction extends AStatement {
     public final boolean synthetic;
 
     private CompilerSettings settings;
-
-    MethodType methodType;
-
     org.objectweb.asm.commons.Method method;
-
-    private Variable loop = null;
 
     public SFunction(Location location, String name,
             boolean internal, boolean auto, boolean statik, boolean synthetic) {
@@ -84,6 +79,8 @@ public final class SFunction extends AStatement {
 
     @Override
     void analyze(SymbolTable table) {
+        children.get(1).analyze(table);
+
         if (children.get(2) != null) {
             children.get(2).analyze(table);
         }
@@ -97,7 +94,9 @@ public final class SFunction extends AStatement {
             throw createError(new IllegalArgumentException("Not all paths provide a return value for method [" + name + "]."));
         }
 
-        loopCounter = table.scopes().getNodeScope(this).getVariable("#loop");
+        settings = table.settings();
+        method = table.functions().getFunction(this.name, this.children.get(1).children.size()).asmMethod;
+        loopCounter = table.scopes().getNodeScope(children.get(3)).getVariable("#loop");
     }
 
     /** Writes the function to given ClassVisitor. */
@@ -121,7 +120,7 @@ public final class SFunction extends AStatement {
             // if there is infinite loop protection, we do this once:
             // int #loop = settings.getMaxLoopCounter()
             function.push(settings.getMaxLoopCounter());
-            function.visitVarInsn(Opcodes.ISTORE, loop.getSlot());
+            function.visitVarInsn(Opcodes.ISTORE, loopCounter.getSlot());
         }
 
         if (children.get(2) != null) {
