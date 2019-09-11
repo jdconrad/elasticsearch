@@ -106,6 +106,6 @@ public final class ECapturingFunctionRef extends AExpression implements ILambda 
 
     @Override
     public String toString() {
-        return singleLineToString(variable, call);
+        return getClass().getSimpleName() + "[" + variable + ":" + call + "]";
     }
 }

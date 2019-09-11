@@ -74,6 +74,19 @@ final class PCallInvoke extends AExpression {
 
     @Override
     public String toString() {
-        throw new UnsupportedOperationException("unexpected node");
+        StringBuilder builder = new StringBuilder();
+        builder
+                .append(getClass().getSimpleName())
+                .append(" [")
+                .append(method.javaMethod.getName())
+                .append("]");
+
+        for (ANode child : children) {
+            builder.append(" (")
+                    .append(child)
+                    .append(")");
+        }
+
+        return builder.toString();
     }
 }

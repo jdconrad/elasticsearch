@@ -91,6 +91,19 @@ public final class PCall extends AExpression {
 
     @Override
     public String toString() {
-        return singleLineToStringWithOptionalArgs(children.subList(1, children.size()), children.get(0), name);
+        StringBuilder builder = new StringBuilder();
+        builder
+                .append(getClass().getSimpleName())
+                .append(" [")
+                .append(name)
+                .append("]");
+
+        for (ANode child : children) {
+            builder.append(" (")
+                    .append(child)
+                    .append(")");
+        }
+
+        return builder.toString();
     }
 }

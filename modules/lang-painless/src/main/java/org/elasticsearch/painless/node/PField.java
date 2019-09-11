@@ -156,9 +156,6 @@ public final class PField extends AExpression {
 
     @Override
     public String toString() {
-        if (nullSafe) {
-            return singleLineToString("nullSafe", children.get(0), value);
-        }
-        return singleLineToString(children.get(0), value);
+        return getClass().getSimpleName() + " [" + value + "]";
     }
 }

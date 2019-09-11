@@ -95,6 +95,6 @@ public class EElvis extends AExpression {
 
     @Override
     public String toString() {
-        return singleLineToString(children.get(0), children.get(1));
+        return getClass().getSimpleName() + " (" + children.get(0) + ") (" + children.get(1) + ")";
     }
 }

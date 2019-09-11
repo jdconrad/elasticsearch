@@ -120,6 +120,21 @@ public class EDirectCallInvoke extends AExpression {
 
     @Override
     public String toString() {
-        return null;
+        StringBuilder builder = new StringBuilder();
+        builder
+                .append(getClass().getSimpleName())
+                .append(" [")
+                .append(method.getName())
+                .append("] [")
+                .append(method.getDescriptor())
+                .append("]");
+
+        for (ANode child : children) {
+            builder.append(" (")
+                    .append(child)
+                    .append(")");
+        }
+
+        return builder.toString();
     }
 }

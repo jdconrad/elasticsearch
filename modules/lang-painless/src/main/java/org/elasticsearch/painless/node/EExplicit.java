@@ -23,6 +23,7 @@ import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.builder.SymbolTable;
+import org.elasticsearch.painless.lookup.PainlessLookupUtility;
 
 /**
  * Represents an explicit cast.
@@ -63,6 +64,19 @@ public final class EExplicit extends AExpression {
 
     @Override
     public String toString() {
-        return null;
+        return new StringBuilder()
+                .append(getClass().getSimpleName())
+                .append("[")
+                .append(PainlessLookupUtility.typeToCanonicalTypeName(actual))
+                .append("] [")
+                .append(PainlessLookupUtility.typeToCanonicalTypeName(expected))
+                .append("] [")
+                .append(explicit ? "explicit" : "implicit")
+                .append("] [")
+                .append(internal ? "internal" : "external")
+                .append("] (")
+                .append(children.get(0))
+                .append(")")
+                .toString();
     }
 }

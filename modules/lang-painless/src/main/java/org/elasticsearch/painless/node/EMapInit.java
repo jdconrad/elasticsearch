@@ -104,14 +104,16 @@ public final class EMapInit extends AExpression {
 
     @Override
     public String toString() {
-        List<ANode> keys = new ArrayList<>();
-        List<ANode> values = new ArrayList<>();
+        StringBuilder builder = new StringBuilder(getClass().getSimpleName());
 
         for (int index = 0; index < children.size(); ++index) {
-            keys.add(children.get(index++));
-            values.add(children.get(index));
+            builder.append(" (")
+                    .append(children.get(index))
+                    .append(" , ")
+                    .append(children.get(++index))
+                    .append(")");
         }
 
-        return singleLineToString(pairwiseToString(keys, values));
+        return builder.toString();
     }
 }

@@ -210,6 +210,6 @@ public final class EUnary extends AExpression {
 
     @Override
     public String toString() {
-        return singleLineToString(operation.symbol, children.get(0));
+        return getClass().getSimpleName() + "[" + operation.symbol + "] (" + children.get(0) + ")";
     }
 }

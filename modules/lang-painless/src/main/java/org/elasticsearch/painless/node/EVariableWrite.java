@@ -81,6 +81,6 @@ public final class EVariableWrite extends AExpression {
 
     @Override
     public String toString() {
-        return singleLineToString(name);
+        return getClass().getSimpleName() + " [" + name + "] (" + children.get(0) + ")";
     }
 }

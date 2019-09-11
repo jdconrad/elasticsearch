@@ -73,6 +73,6 @@ public final class EDecimal extends AExpression {
 
     @Override
     public String toString() {
-        return singleLineToString(value);
+        return getClass().getSimpleName() + "[" + value + "]";
     }
 }

@@ -80,6 +80,15 @@ public final class SBlock extends AStatement {
 
     @Override
     public String toString() {
-        return multilineToString(emptyList(), children);
+        StringBuilder builder = new StringBuilder(getClass().getSimpleName());
+        builder.append("\n");
+
+        for (ANode child : children) {
+            builder.append("(")
+                    .append(child)
+                    .append(")\n");
+        }
+
+        return builder.toString();
     }
 }

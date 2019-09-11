@@ -101,6 +101,7 @@ public final class SCatch extends AStatement {
 
     @Override
     public String toString() {
-        return null;
+        return getClass().getSimpleName() +
+                " (" + children.get(0) + ") (" + children.get(1) + ") (" + children.get(2) + ")";
     }
 }

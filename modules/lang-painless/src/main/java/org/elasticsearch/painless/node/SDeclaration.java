@@ -92,6 +92,9 @@ public final class SDeclaration extends AStatement {
 
     @Override
     public String toString() {
-        return null;
+        return getClass().getSimpleName() + " [" + name + "] " +
+                (readonly ? "[read] " : "[write] ") +
+                (initialize ? "[initialize] " : "[noinit] ") +
+                "(" + children.get(0) + ") (" + children.get(1) + ")";
     }
 }

@@ -43,6 +43,6 @@ public class EThis extends AExpression {
 
     @Override
     public String toString() {
-        return null;
+        return getClass().getSimpleName() + " [this]";
     }
 }

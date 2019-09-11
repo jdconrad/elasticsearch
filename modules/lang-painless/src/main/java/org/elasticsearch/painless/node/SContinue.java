@@ -55,6 +55,6 @@ public final class SContinue extends AStatement {
 
     @Override
     public String toString() {
-        return singleLineToString();
+        return getClass().getSimpleName() + " [continue]";
     }
 }

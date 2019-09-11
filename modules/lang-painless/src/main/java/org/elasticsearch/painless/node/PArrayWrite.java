@@ -95,6 +95,6 @@ final class PArrayWrite extends AExpression {
 
     @Override
     public String toString() {
-        throw new UnsupportedOperationException("unexpected node");
+        return getClass().getSimpleName() + " [" + type + "] (" + children.get(0) + ") (" + children.get(1) + ")";
     }
 }

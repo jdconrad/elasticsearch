@@ -84,6 +84,6 @@ public final class EInstanceof extends AExpression {
 
     @Override
     public String toString() {
-        return null;
+        return getClass().getSimpleName() + " (" + children.get(1) + ") (" + children.get(2) + ")";
     }
 }

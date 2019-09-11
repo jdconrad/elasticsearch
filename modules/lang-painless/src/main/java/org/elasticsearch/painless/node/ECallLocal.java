@@ -217,6 +217,19 @@ public final class ECallLocal extends AExpression {
 
     @Override
     public String toString() {
-        return singleLineToStringWithOptionalArgs(children, name);
+        StringBuilder builder = new StringBuilder();
+        builder
+                .append(getClass().getSimpleName())
+                .append(" [")
+                .append(name)
+                .append("]");
+
+        for (ANode child : children) {
+            builder.append(" (")
+                    .append(child)
+                    .append(")");
+        }
+
+        return builder.toString();
     }
 }

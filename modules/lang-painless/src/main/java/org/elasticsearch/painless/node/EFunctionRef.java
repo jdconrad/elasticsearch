@@ -81,6 +81,6 @@ public final class EFunctionRef extends AExpression implements ILambda {
 
     @Override
     public String toString() {
-        return singleLineToString(type, call);
+        return getClass().getSimpleName() + "[" + type + ":" + call + "]";
     }
 }

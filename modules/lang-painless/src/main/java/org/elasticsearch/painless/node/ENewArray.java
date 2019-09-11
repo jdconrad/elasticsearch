@@ -88,6 +88,14 @@ public final class ENewArray extends AExpression {
 
     @Override
     public String toString() {
-        return null;
+        StringBuilder builder = new StringBuilder(getClass().getSimpleName());
+
+        for (ANode child : children) {
+            builder.append(" (")
+                    .append(child)
+                    .append(")");
+        }
+
+        return builder.toString();
     }
 }

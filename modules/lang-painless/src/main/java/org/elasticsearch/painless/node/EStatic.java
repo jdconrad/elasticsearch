@@ -45,6 +45,6 @@ public final class EStatic extends AExpression {
 
     @Override
     public String toString() {
-        return null;
+        return getClass().getSimpleName() + "(" + children.get(0) + ")";
     }
 }

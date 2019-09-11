@@ -60,6 +60,6 @@ public class PPostfixBridge extends AExpression {
 
     @Override
     public String toString() {
-        return null;
+        return getClass().getSimpleName() + "(" + children.get(0) + ") (" + children.get(1) + ")";
     }
 }

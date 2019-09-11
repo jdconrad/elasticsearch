@@ -51,6 +51,6 @@ public final class EBoolean extends AExpression {
 
     @Override
     public String toString() {
-        return singleLineToString(constant);
+        return getClass().getSimpleName() + "[" + constant + "]";
     }
 }

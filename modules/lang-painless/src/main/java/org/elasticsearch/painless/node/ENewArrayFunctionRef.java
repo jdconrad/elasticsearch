@@ -112,6 +112,6 @@ public final class ENewArrayFunctionRef extends AExpression implements ILambda {
 
     @Override
     public String toString() {
-        return singleLineToString(type + "[]", "new");
+        return getClass().getSimpleName() + "[" + type + "[]:new" + "]";
     }
 }

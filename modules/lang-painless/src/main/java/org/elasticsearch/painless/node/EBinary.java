@@ -571,6 +571,7 @@ public final class EBinary extends AExpression {
 
     @Override
     public String toString() {
-        return singleLineToString(children.get(0), operation.symbol, children.get(1));
+        return getClass().getSimpleName() + "[" + operation.symbol + "]" +
+                " (" + children.get(0) + ") (" + children.get(1) + ")";
     }
 }

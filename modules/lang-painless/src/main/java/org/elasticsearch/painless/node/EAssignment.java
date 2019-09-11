@@ -128,21 +128,18 @@ public final class EAssignment extends AExpression {
 
     @Override
     public String toString() {
-        List<Object> subs = new ArrayList<>();
-        subs.add(children.get(0));
-        if (children.get(1) != null) {
-            // Make sure "=" is in the symbol so this is easy to read at a glance
-            subs.add(operation == null ? "=" : operation.symbol + "=");
-            subs.add(children.get(1));
-            return singleLineToString(subs);
-        }
-        subs.add(operation.symbol);
-        if (pre) {
-            subs.add("pre");
-        }
-        if (post) {
-            subs.add("post");
-        }
-        return singleLineToString(subs);
+        return new StringBuilder()
+                .append(getClass().getSimpleName())
+                .append(" [")
+                .append(this.operation == null ? "=" : this.operation.symbol)
+                .append(pre ? " pre" : "")
+                .append(post ? " post" : "")
+                .append("] (")
+                .append(children.get(0))
+                .append(")")
+                .append(children.size() > 1 ? " (" : "")
+                .append(children.size() > 1 ? children.get(1) : "")
+                .append(children.size() > 1 ? ")" : "")
+                .toString();
     }
 }

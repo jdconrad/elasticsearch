@@ -53,6 +53,6 @@ public final class EString extends AExpression {
 
     @Override
     public String toString() {
-        return singleLineToString("'" + constant.toString() + "'");
+        return getClass().getSimpleName() + "[" + constant + "]";
     }
 }

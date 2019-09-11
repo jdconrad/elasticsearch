@@ -31,7 +31,7 @@ public class EUsed extends AExpression {
 
     public boolean used;
 
-    public EUsed(Location location,  String key, String name) {
+    public EUsed(Location location, String key, String name) {
         super(location);
 
         this.key = key;
@@ -50,6 +50,6 @@ public class EUsed extends AExpression {
 
     @Override
     public String toString() {
-        return null;
+        return getClass().getSimpleName() + " [" + key + "] [" + name + "]";
     }
 }

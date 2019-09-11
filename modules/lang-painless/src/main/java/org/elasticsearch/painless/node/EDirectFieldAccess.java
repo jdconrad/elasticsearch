@@ -84,6 +84,6 @@ public class EDirectFieldAccess extends AExpression {
 
     @Override
     public String toString() {
-        return null;
+        return getClass().getSimpleName() + " [" + type + "] [" + name + "]";
     }
 }

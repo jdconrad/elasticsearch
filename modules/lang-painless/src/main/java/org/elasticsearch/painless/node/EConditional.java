@@ -92,6 +92,7 @@ public final class EConditional extends AExpression {
 
     @Override
     public String toString() {
-        return singleLineToString(children.get(0), children.get(1), children.get(2));
+        return getClass().getSimpleName() +
+                " (" + children.get(0) + ") (" + children.get(1) + ") (" + children.get(2) + ")";
     }
 }

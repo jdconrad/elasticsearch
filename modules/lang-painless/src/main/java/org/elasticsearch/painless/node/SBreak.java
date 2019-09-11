@@ -52,6 +52,6 @@ public final class SBreak extends AStatement {
 
     @Override
     public String toString() {
-        return singleLineToString();
+        return getClass().getSimpleName() + " [break]";
     }
 }

@@ -30,4 +30,9 @@ public class DTypeString extends AData {
 
         this.type = type;
     }
+
+    @Override
+    public String toString() {
+        return getClass().getSimpleName() + " [" + type + "]";
+    }
 }

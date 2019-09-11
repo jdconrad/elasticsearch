@@ -95,6 +95,14 @@ public final class EListInit extends AExpression {
 
     @Override
     public String toString() {
-        return singleLineToString(children);
+        StringBuilder builder = new StringBuilder(getClass().getSimpleName());
+
+        for (ANode child : children) {
+            builder.append(" (")
+                    .append(child)
+                    .append(")");
+        }
+
+        return builder.toString();
     }
 }

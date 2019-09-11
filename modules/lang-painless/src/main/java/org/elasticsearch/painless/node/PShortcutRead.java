@@ -71,6 +71,6 @@ final class PShortcutRead extends AExpression {
 
     @Override
     public String toString() {
-        throw new UnsupportedOperationException("unexpected node");
+        return getClass().getSimpleName() + " [" + type + "] [" + value + "]";
     }
 }

@@ -115,9 +115,6 @@ public final class ENumeric extends AExpression {
 
     @Override
     public String toString() {
-        if (radix != 10) {
-            return singleLineToString(value, radix);
-        }
-        return singleLineToString(value);
+        return getClass().getSimpleName() + "[" + value + "] [" + radix + "]";
     }
 }

@@ -56,6 +56,19 @@ final class ECast extends AExpression {
 
     @Override
     public String toString() {
-        return singleLineToString(PainlessLookupUtility.typeToCanonicalTypeName(cast.targetType), children.get(0));
+        return new StringBuilder()
+                .append(getClass().getSimpleName())
+                .append("[")
+                .append(PainlessLookupUtility.typeToCanonicalTypeName(actual))
+                .append("] [")
+                .append(PainlessLookupUtility.typeToCanonicalTypeName(expected))
+                .append("] [")
+                .append(explicit ? "explicit" : "implicit")
+                .append("] [")
+                .append(internal ? "internal" : "external")
+                .append("] (")
+                .append(children.get(0))
+                .append(")")
+                .toString();
     }
 }

@@ -72,6 +72,6 @@ public final class EVariable extends AExpression {
 
     @Override
     public String toString() {
-        return singleLineToString(name);
+        return getClass().getSimpleName() + " [" + name + "]";
     }
 }

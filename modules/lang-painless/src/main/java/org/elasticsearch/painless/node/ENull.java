@@ -62,6 +62,6 @@ public final class ENull extends AExpression {
 
     @Override
     public String toString() {
-        return singleLineToString();
+        return getClass().getSimpleName() + "[null]";
     }
 }

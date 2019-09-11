@@ -113,7 +113,12 @@ public final class ERegex extends AExpression {
 
     @Override
     public String toString() {
-        StringBuilder f = new StringBuilder();
+        StringBuilder f = new StringBuilder(getClass().getSimpleName());
+
+        f.append("[ /");
+        f.append(pattern);
+        f.append("/ ] [");
+
         if ((flags & Pattern.CANON_EQ) != 0)                f.append('c');
         if ((flags & Pattern.CASE_INSENSITIVE) != 0)        f.append('i');
         if ((flags & Pattern.LITERAL) != 0)                 f.append('l');
@@ -123,10 +128,8 @@ public final class ERegex extends AExpression {
         if ((flags & Pattern.UNICODE_CASE) != 0)            f.append('u');
         if ((flags & Pattern.COMMENTS) != 0)                f.append('x');
 
-        String p = "/" + pattern + "/";
-        if (f.length() == 0) {
-            return singleLineToString(p);
-        }
-        return singleLineToString(p, f);
+        f.append("]");
+
+        return f.toString();
     }
 }
