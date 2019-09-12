@@ -50,8 +50,9 @@ public final class SFunction extends AStatement {
     public final String name;
     private final List<String> paramTypeStrs;
     private final List<String> paramNameStrs;
-    private final List<AStatement> statements;
     public final boolean synthetic;
+
+    private final List<AStatement> statements = new ArrayList<>();
 
     private CompilerSettings settings;
 
@@ -65,7 +66,7 @@ public final class SFunction extends AStatement {
     private Variable loop = null;
 
     public SFunction(Location location, String rtnType, String name,
-                     List<String> paramTypes, List<String> paramNames, List<AStatement> statements,
+                     List<String> paramTypes, List<String> paramNames,
                      boolean synthetic) {
         super(location);
 
@@ -73,8 +74,15 @@ public final class SFunction extends AStatement {
         this.name = Objects.requireNonNull(name);
         this.paramTypeStrs = Collections.unmodifiableList(paramTypes);
         this.paramNameStrs = Collections.unmodifiableList(paramNames);
-        this.statements = Collections.unmodifiableList(statements);
         this.synthetic = synthetic;
+    }
+
+    public void addStatements(List<AStatement> statements) {
+        this.statements.addAll(statements);
+    }
+
+    public void addStatement(AStatement statement) {
+        statements.add(statement);
     }
 
     @Override

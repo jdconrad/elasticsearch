@@ -1,0 +1,6 @@
+Class : SSource
+    ScriptClassInfo : info, String : name, String : source, PrintStream : debug
+    0* : Function
+
+Function : SFunction
+    String : returnCanonicalTypeName, String : functionName, List<String> : canonicalTypeNameParameters; List<String> : parameterNames, boolean : synthetic

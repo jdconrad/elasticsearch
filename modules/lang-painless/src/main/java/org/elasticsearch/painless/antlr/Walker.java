@@ -233,28 +233,30 @@ public final class Walker extends PainlessParserBaseVisitor<ANode> {
 
     @Override
     public ANode visitSource(SourceContext ctx) {
+        SSource source = new SSource(location(ctx), scriptClassInfo, sourceName, sourceText, debugStream);
+
         List<SFunction> functions = new ArrayList<>();
 
         for (FunctionContext function : ctx.function()) {
-            functions.add((SFunction)visit(function));
+            source.addFunction(((SFunction)visit(function)));
         }
 
         List<AStatement> statements = new ArrayList<>();
 
         for (StatementContext statement : ctx.statement()) {
-            statements.add((AStatement)visit(statement));
+            source.addStatement((AStatement)visit(statement));
         }
 
-        return new SSource(scriptClassInfo, sourceName, sourceText, debugStream, location(ctx), functions, statements);
+        return source;
     }
 
     @Override
     public ANode visitFunction(FunctionContext ctx) {
         String rtnType = ctx.decltype().getText();
         String name = ctx.ID().getText();
+
         List<String> paramTypes = new ArrayList<>();
         List<String> paramNames = new ArrayList<>();
-        List<AStatement> statements = new ArrayList<>();
 
         for (DecltypeContext decltype : ctx.parameters().decltype()) {
             paramTypes.add(decltype.getText());
@@ -264,15 +266,17 @@ public final class Walker extends PainlessParserBaseVisitor<ANode> {
             paramNames.add(id.getText());
         }
 
+        SFunction function = new SFunction(location(ctx), rtnType, name, paramTypes, paramNames, false);
+
         for (StatementContext statement : ctx.block().statement()) {
-            statements.add((AStatement)visit(statement));
+            function.addStatement((AStatement)visit(statement));
         }
 
         if (ctx.block().dstatement() != null) {
-            statements.add((AStatement)visit(ctx.block().dstatement()));
+            function.addStatement((AStatement)visit(ctx.block().dstatement()));
         }
 
-        return new SFunction(location(ctx), rtnType, name, paramTypes, paramNames, statements, false);
+        return function;
     }
 
     @Override

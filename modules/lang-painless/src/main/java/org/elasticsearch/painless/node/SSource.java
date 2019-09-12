@@ -43,7 +43,6 @@ import java.lang.invoke.MethodType;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -83,9 +82,10 @@ public final class SSource extends AStatement {
     private final ScriptClassInfo scriptClassInfo;
     private final String name;
     private final Printer debugStream;
-    private final List<SFunction> functions;
     private final Globals globals;
-    private final List<AStatement> statements;
+
+    private final List<SFunction> functions = new ArrayList<>();
+    private final List<AStatement> statements = new ArrayList<>();
 
     private CompilerSettings settings;
 
@@ -94,18 +94,31 @@ public final class SSource extends AStatement {
     private final List<org.objectweb.asm.commons.Method> getMethods;
     private byte[] bytes;
 
-    public SSource(ScriptClassInfo scriptClassInfo, String name, String sourceText, Printer debugStream,
-            Location location, List<SFunction> functions, List<AStatement> statements) {
+    public SSource(Location location, ScriptClassInfo scriptClassInfo, String name, String sourceText, Printer debugStream) {
         super(location);
         this.scriptClassInfo = Objects.requireNonNull(scriptClassInfo);
         this.name = Objects.requireNonNull(name);
         this.debugStream = debugStream;
-        this.functions = Collections.unmodifiableList(functions);
-        this.statements = Collections.unmodifiableList(statements);
         this.globals = new Globals(new BitSet(sourceText.length()));
 
         this.extractedVariables = new HashSet<>();
         this.getMethods = new ArrayList<>();
+    }
+
+    public void addFunctions(List<SFunction> functions) {
+        this.functions.addAll(functions);
+    }
+
+    public void addFunction(SFunction function) {
+        functions.add(function);
+    }
+
+    public void addStatements(List<AStatement> statements) {
+        this.statements.addAll(statements);
+    }
+
+    public void addStatement(AStatement statement) {
+        statements.add(statement);
     }
 
     @Override

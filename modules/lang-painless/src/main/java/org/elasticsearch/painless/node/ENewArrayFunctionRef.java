@@ -63,7 +63,8 @@ public final class ENewArrayFunctionRef extends AExpression implements ILambda {
     void analyze(Locals locals) {
         SReturn code = new SReturn(location, new ENewArray(location, type, Arrays.asList(new EVariable(location, "size")), false));
         function = new SFunction(location, type, locals.getNextSyntheticName(),
-                Arrays.asList("int"), Arrays.asList("size"), Arrays.asList(code), true);
+                Arrays.asList("int"), Arrays.asList("size"), true);
+        function.addStatement(code);
         function.storeSettings(settings);
         function.generateSignature(locals.getPainlessLookup());
         function.extractVariables(null);
