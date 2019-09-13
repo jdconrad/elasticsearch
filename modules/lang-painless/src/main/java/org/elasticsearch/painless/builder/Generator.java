@@ -43,8 +43,14 @@ public final class Generator {
         public List<String> children = new ArrayList<>();
     }
 
+    protected static class ChildInfo {
+        List<String> types = new ArrayList<>();
+        List<String> names = new ArrayList<>();
+    }
+
     public static void main(String[] args) throws IOException {
-        Map<String, BuilderInfo> infos = new HashMap<>();
+        List<BuilderInfo> infoList = new ArrayList<>();
+        Map<String, BuilderInfo> infoMap = new HashMap<>();
 
         try (LineNumberReader reader = new LineNumberReader(
                 new InputStreamReader(Generator.class.getResourceAsStream("builders"), StandardCharsets.UTF_8))) {
@@ -67,7 +73,7 @@ public final class Generator {
 
                     state = 1;
                 } else if (state == 1) {
-                    if (line.equals("empty")) {
+                    if (line.equals("no arguments")) {
                         state = 2;
                         continue;
                     }
@@ -82,7 +88,8 @@ public final class Generator {
                     state = 2;
                 } else {
                     if (line.isEmpty()) {
-                        infos.put(info.className, info);
+                        infoList.add(info);
+                        infoMap.put(info.className, info);
                         info = null;
                         state = 0;
                     } else {
@@ -118,8 +125,8 @@ public final class Generator {
         builder.append("import org.elasticsearch.painless.*;\n");
         builder.append("import org.elasticsearch.painless.lookup.*;\n");
         builder.append("import org.elasticsearch.painless.node.*;\n");
+        builder.append("import org.objectweb.asm.util.*;\n");
         builder.append("\n");
-        builder.append("import java.io.*;\n");
         builder.append("import java.util.*;\n");
         builder.append("\n");
         builder.append("/** AUTO-GENERATED CODE; DO NOT MODIFY */\n");
@@ -127,6 +134,7 @@ public final class Generator {
         // begin outer class
         builder.append("public abstract class Builder {\n");
         // begin member variables
+        builder.append("\n");
         builder.append("    protected final PainlessLookup lookup;\n");
         builder.append("    protected final Location location;\n");
         // end member variables
@@ -138,13 +146,24 @@ public final class Generator {
         builder.append("    }\n");
         //end constructor
 
-        for (BuilderInfo info : infos.values()) {
+        for (BuilderInfo info : infoList) {
             // begin inner class
             builder.append("\n");
             builder.append("    public final static class ");
             builder.append(info.className);
             builder.append("Builder extends Builder {\n");
             builder.append("\n");
+
+            // begin builder interface
+            builder.append("        public interface Build {\n");
+            builder.append("            void build(");
+            builder.append(info.className);
+            builder.append("Builder ");
+            builder.append(info.className.toLowerCase(Locale.ROOT).charAt(0));
+            builder.append("b);\n");
+            builder.append("        }\n");
+            builder.append("\n");
+            // end builder interface
 
             // begin member variables
             for (int index = 0; index < info.names.size(); ++index) {
@@ -170,19 +189,22 @@ public final class Generator {
                 // begin parameterized constructor header
                 builder.append("        public ");
                 builder.append(info.className);
-                builder.append("Builder(PainlessLookup lookup, Location location, ");
+                builder.append("Builder(PainlessLookup lookup, Location location,\n");
                 for (int index = 0; index < info.names.size(); ++index) {
+                    builder.append("                ");
                     builder.append(info.types.get(index));
                     builder.append(" ");
                     builder.append(info.names.get(index));
 
-                    if (index + 1 < info.types.size()) {
-                        builder.append(", ");
+                    if (index + 1 < info.names.size()) {
+                        builder.append(",\n");
                     }
                 }
                 // end parameterized constructor header
                 builder.append(") {\n");
+                builder.append("\n");
                 builder.append("            super(lookup, location);\n");
+                builder.append("\n");
                 // begin parameterized constructor body
                 for (int index = 0; index < info.names.size(); ++index) {
                     builder.append("            this.");
@@ -219,8 +241,125 @@ public final class Generator {
             }
             // end parameter set methods
 
-            builder.append("    }\n");
+            // begin methods to add children
+            for (String string : info.children) {
+                builder.append("\n");
+
+                if (string.startsWith("0*")) {
+                    String[] split = string.split(":");
+                    BuilderInfo child = infoMap.get(split[1]);
+
+                    // begin add 0* list
+                    builder.append("        protected final List<");
+                    builder.append(child.className);
+                    builder.append("Builder> ");
+                    builder.append(child.className.toLowerCase(Locale.ROOT).charAt(0));
+                    builder.append(child.className.substring(1));
+                    builder.append("s = new ArrayList<>();\n");
+                    builder.append("\n");
+                    // end add 0* list
+
+                    /*public void addFunction(FunctionBuilder.Build function) {
+                        FunctionBuilder builder = new FunctionBuilder(this.lookup, this.location);
+                        function.build(builder);
+                        functions.add(builder);
+                    }*/
+
+                    // being add builder
+                    builder.append("        public ");
+                    builder.append(info.className);
+                    builder.append("Builder add");
+                    builder.append(child.className);
+                    builder.append("(");
+                    builder.append(child.className);
+                    builder.append("Builder.Build build) {\n");
+                    builder.append("            ");
+                    builder.append(child.className);
+                    builder.append("Builder builder = new ");
+                    builder.append(child.className);
+                    builder.append("Builder(this.lookup, this.location);\n");
+                    builder.append("            build.build(builder);\n");
+                    builder.append("            ");
+                    builder.append(child.className.toLowerCase(Locale.ROOT).charAt(0));
+                    builder.append(child.className.substring(1));
+                    builder.append("s.add(builder);\n");
+                    builder.append("            return this;\n");
+                    builder.append("        }\n");
+                    // end add builder
+
+                    // begin add parameterized builder
+                    builder.append("\n");
+                    builder.append("        public ");
+                    builder.append(info.className);
+                    builder.append("Builder add");
+                    builder.append(child.className);
+                    builder.append("(PainlessLookup lookup, Location location,\n");
+                    for (int index = 0; index < child.names.size(); ++index) {
+                        builder.append("                ");
+                        builder.append(child.types.get(index));
+                        builder.append(" ");
+                        builder.append(child.names.get(index));
+                        builder.append(",\n");
+                    }
+                    builder.append("            ");
+                    builder.append(child.className);
+                    builder.append("Builder.Build build) {\n");
+                    builder.append("\n");
+                    builder.append("            ");
+                    builder.append(child.className);
+                    builder.append("Builder builder = new ");
+                    builder.append(child.className);
+                    builder.append("Builder(this.lookup, this.location,\n");
+                    for (int index = 0; index < child.names.size(); ++index) {
+                        builder.append("                ");
+                        builder.append(child.names.get(index));
+
+                        if (index + 1 < child.names.size()) {
+                            builder.append(",\n");
+                        }
+                    }
+                    builder.append(");\n");
+                    builder.append("            build.build(builder);\n");
+                    builder.append("            ");
+                    builder.append(child.className.toLowerCase(Locale.ROOT).charAt(0));
+                    builder.append(child.className.substring(1));
+                    builder.append("s.add(builder);\n");
+                    builder.append("            return this;\n");
+                    builder.append("        }\n");
+                    // end add parameterized builder
+                }
+            }
+            // end methods to have children
+
+            // begin build method
+            builder.append("\n");
+            builder.append("        public ");
+            builder.append(info.nodeType);
+            builder.append(" build() {\n");
+            builder.append("            ");
+            builder.append(info.nodeType);
+            builder.append(" ");
+            builder.append(info.nodeType.toLowerCase(Locale.ROOT));
+            builder.append(" = new ");
+            builder.append(info.nodeType);
+            builder.append("(location, \n");
+            for (int index = 0; index < info.names.size(); ++index) {
+                builder.append("                ");
+                builder.append(info.names.get(index));
+                if (index + 1 < info.names.size()) {
+                    builder.append(",\n");
+                }
+            }
+
+            builder.append(");\n");
+            builder.append("            return ");
+            builder.append(info.nodeType.toLowerCase(Locale.ROOT));
+            builder.append(";\n");
+            builder.append("        }\n");
+            // end build method
+
             // end inner class
+            builder.append("    }\n");
         }
 
         // end outer class
