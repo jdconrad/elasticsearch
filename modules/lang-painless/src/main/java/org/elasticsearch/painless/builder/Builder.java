@@ -29,6 +29,7 @@ import org.objectweb.asm.util.Printer;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public abstract class Builder {
 
@@ -36,8 +37,29 @@ public abstract class Builder {
     protected final Location location;
 
     public Builder(PainlessLookup lookup, Location location) {
-        this.lookup = lookup;
-        this.location = location;
+        this.lookup = Objects.requireNonNull(lookup);
+        this.location = Objects.requireNonNull(location);
+    }
+
+    protected void requireNull(String name, Object object) {
+        if (object != null) {
+            throw location.createError(new IllegalArgumentException(
+                    getClass().getSimpleName() + " value [" + name + "] is already set to [" + object + "]"));
+        }
+    }
+
+    protected <T> T requireNonNull(String name, T t) {
+        if (t == null) {
+            throw location.createError(new NullPointerException(
+                    getClass().getSimpleName() + "value [" + name + "] cannot be set to null"));
+        }
+
+        return t;
+    }
+
+    protected <T> T requireNotSet(String name, T original, T target) {
+        requireNull(name, original);
+        return requireNonNull(name, target);
     }
 
     public final static class ClassBuilder extends Builder {
@@ -46,45 +68,44 @@ public abstract class Builder {
             void build(ClassBuilder cb);
         }
 
-        protected ScriptClassInfo info;
-        protected String name;
-        protected String source;
-        protected Printer debug;
+        protected ScriptClassInfo info = null;
+        protected String name = null;
+        protected String source = null;
+        protected Printer debug = null;
 
         protected final List<FunctionBuilder> functions = new ArrayList<>();
+        protected final List<StatementBuilder> statements = new ArrayList<>();
 
         public ClassBuilder(PainlessLookup lookup, Location location) {
             super(lookup, location);
         }
 
-        public ClassBuilder(PainlessLookup lookup, Location location,
-                ScriptClassInfo info,
-                String name,
-                String source,
-                Printer debug) {
-
-            super(lookup, location);
-
-            this.info = info;
-            this.name = name;
-            this.source = source;
-            this.debug = debug;
+        public ClassBuilder set(ScriptClassInfo info, String name, String source, Printer debug) {
+            this.info = requireNotSet("info", this.info, info);
+            this.name = requireNotSet("name", this.name, name);
+            this.source = requireNotSet("source", this.source, source);
+            this.debug = requireNotSet("debug", this.debug, debug);
+            return this;
         }
 
-        public void setInfo(ScriptClassInfo info) {
-            this.info = info;
+        public ClassBuilder setInfo(ScriptClassInfo info) {
+            this.info = requireNotSet("info", this.info, info);
+            return this;
         }
 
-        public void setName(String name) {
-            this.name = name;
+        public ClassBuilder setName(String name) {
+            this.name = requireNotSet("name", this.name, name);
+            return this;
         }
 
-        public void setSource(String source) {
-            this.source = source;
+        public ClassBuilder setSource(String source) {
+            this.source = requireNotSet("source", this.source, source);
+            return this;
         }
 
-        public void setDebug(Printer debug) {
-            this.debug = debug;
+        public ClassBuilder setDebug(Printer debug) {
+            this.debug = requireNotSet("debug", this.debug, debug);
+            return this;
         }
 
         public ClassBuilder addFunction(FunctionBuilder.Build build) {
@@ -94,32 +115,29 @@ public abstract class Builder {
             return this;
         }
 
-        public ClassBuilder addFunction(PainlessLookup lookup, Location location,
-                String returnCanonicalTypeName,
-                String functionName,
-                List<String> canonicalTypeNameParameters,
-                List<String> parameterNames,
-                boolean synthetic,
-            FunctionBuilder.Build build) {
-
-            FunctionBuilder builder = new FunctionBuilder(this.lookup, this.location,
-                returnCanonicalTypeName,
-                functionName,
-                canonicalTypeNameParameters,
-                parameterNames,
-                synthetic);
+        public ClassBuilder addStatement(StatementBuilder.Build build) {
+            StatementBuilder builder = new StatementBuilder(this.lookup, this.location);
             build.build(builder);
-            functions.add(builder);
+            statements.add(builder);
             return this;
         }
 
         public SSource build() {
-            SSource ssource = new SSource(location,
-                info,
-                name,
-                source,
-                debug);
-            return ssource;
+            requireNonNull("info", this.info);
+            requireNonNull("name", this.name);
+            requireNonNull("source", this.source);
+            requireNonNull("debug", this.debug);
+            SSource source = new SSource(this.location, this.info, this.name, this.source, this.debug);
+            for (FunctionBuilder builder : this.functions) {
+                source.addFunction(builder.build());
+            }
+            if (this.statements.isEmpty()) {
+                throw location.createError(new IllegalArgumentException("class requires at least 1 statement"));
+            }
+            for (StatementBuilder builder : this.statements) {
+                source.addStatement(builder.build());
+            }
+            return source;
         }
     }
 
@@ -129,60 +147,83 @@ public abstract class Builder {
             void build(FunctionBuilder fb);
         }
 
-        protected String returnCanonicalTypeName;
-        protected String functionName;
-        protected List<String> canonicalTypeNameParameters;
-        protected List<String> parameterNames;
-        protected boolean synthetic;
+        protected String returnType = null;
+        protected String functionName = null;
+        protected List<Pair<String, String>> parameters = null;
+        protected boolean parametersSet = false;
+        protected Boolean isSynthetic = null;
+
+        protected final List<StatementBuilder> statements = new ArrayList<>();
 
         public FunctionBuilder(PainlessLookup lookup, Location location) {
             super(lookup, location);
         }
 
-        public FunctionBuilder(PainlessLookup lookup, Location location,
-                String returnCanonicalTypeName,
-                String functionName,
-                List<String> canonicalTypeNameParameters,
-                List<String> parameterNames,
-                boolean synthetic) {
-
-            super(lookup, location);
-
-            this.returnCanonicalTypeName = returnCanonicalTypeName;
-            this.functionName = functionName;
-            this.canonicalTypeNameParameters = canonicalTypeNameParameters;
-            this.parameterNames = parameterNames;
-            this.synthetic = synthetic;
+        public FunctionBuilder set(String returnType, String functionName, List<Pair<String, String>> parameters, boolean isSynthetic) {
+            this.returnType = requireNotSet("returnType", this.returnType, returnType);
+            this.functionName = requireNotSet("functionName", this.functionName, functionName);
+            this.parameters = requireNotSet("parameters", this.parameters, parameters);
+            this.parametersSet = true;
+            this.isSynthetic = requireNotSet("isSynthetic", this.isSynthetic, isSynthetic);
+            return this;
         }
 
-        public void setReturnCanonicalTypeName(String returnCanonicalTypeName) {
-            this.returnCanonicalTypeName = returnCanonicalTypeName;
+        public FunctionBuilder setReturnType(String returnType) {
+            this.returnType = requireNotSet("returnType", this.returnType, returnType);
+            return this;
         }
 
-        public void setFunctionName(String functionName) {
-            this.functionName = functionName;
+        public FunctionBuilder setFunctionName(String functionName) {
+            this.functionName = requireNotSet("functionName", this.functionName, functionName);
+            return this;
         }
 
-        public void setCanonicalTypeNameParameters(List<String> canonicalTypeNameParameters) {
-            this.canonicalTypeNameParameters = canonicalTypeNameParameters;
+        public FunctionBuilder setParameters(List<Pair<String, String>> parameters) {
+            this.parameters = requireNotSet("parameters", this.parameters, parameters);
+            this.parametersSet = true;
+            return this;
         }
 
-        public void setParameterNames(List<String> parameterNames) {
-            this.parameterNames = parameterNames;
+        public FunctionBuilder addParameter(Pair<String, String> parameter) {
+            if (parametersSet) {
+                requireNull("parameters", parameters);
+            }
+            if (parameters == null) {
+                parameters = new ArrayList<>();
+            }
+            requireNonNull("parameter", parameter);
+            parameters.add(parameter);
+            return this;
         }
 
-        public void setSynthetic(boolean synthetic) {
-            this.synthetic = synthetic;
+        public FunctionBuilder setSynthetic(boolean isSynthetic) {
+            this.isSynthetic = requireNotSet("isSynthetic", this.isSynthetic, isSynthetic);
+            return this;
+        }
+
+        public FunctionBuilder addStatement(StatementBuilder.Build build) {
+            StatementBuilder builder = new StatementBuilder(this.lookup, this.location);
+            build.build(builder);
+            statements.add(builder);
+            return this;
         }
 
         public SFunction build() {
-            SFunction sfunction = new SFunction(location, 
-                returnCanonicalTypeName,
-                functionName,
-                canonicalTypeNameParameters,
-                parameterNames,
-                synthetic);
-            return sfunction;
+            List<String> parameterTypes = new ArrayList<>();
+            List<String> parameterNames = new ArrayList<>();
+            for (Pair<String, String> parameter : this.parameters) {
+                parameterTypes.add(parameter.first());
+                parameterNames.add(parameter.second());
+            }
+            SFunction function = new SFunction(
+                    this.location, this.returnType, this.functionName, parameterTypes, parameterNames, this.isSynthetic);
+            if (this.statements.isEmpty()) {
+                throw location.createError(new IllegalArgumentException("function requires at least 1 statement"));
+            }
+            for (StatementBuilder builder : this.statements) {
+                function.addStatement(builder.build());
+            }
+            return function;
         }
     }
 
@@ -192,12 +233,12 @@ public abstract class Builder {
             void build(StatementBuilder fb);
         }
 
-        Builder statement;
-
         public StatementBuilder(PainlessLookup lookup, Location location) {
             super(lookup, location);
         }
 
-
+        public AStatement build() {
+            return null;
+        }
     }
 }
