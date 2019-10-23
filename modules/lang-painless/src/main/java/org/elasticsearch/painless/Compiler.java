@@ -23,6 +23,7 @@ import org.elasticsearch.bootstrap.BootstrapInfo;
 import org.elasticsearch.painless.antlr.Walker;
 import org.elasticsearch.painless.lookup.PainlessLookup;
 import org.elasticsearch.painless.node.SClass;
+import org.elasticsearch.painless.semantic.ResolveTypesPass;
 import org.elasticsearch.painless.spi.Whitelist;
 import org.objectweb.asm.util.Printer;
 
@@ -210,6 +211,8 @@ final class Compiler {
     Constructor<?> compile(Loader loader, Set<String> extractedVariables, String name, String source, CompilerSettings settings) {
         ScriptClassInfo scriptClassInfo = new ScriptClassInfo(painlessLookup, scriptClass);
         SClass root = Walker.buildPainlessTree(scriptClassInfo, name, source, settings, painlessLookup, null);
+        ResolveTypesPass pass = new ResolveTypesPass(painlessLookup);
+        pass.pass(root);
         root.extractVariables(extractedVariables);
         root.storeSettings(settings);
         root.analyze(painlessLookup);
@@ -241,8 +244,9 @@ final class Compiler {
      */
     byte[] compile(String name, String source, CompilerSettings settings, Printer debugStream) {
         ScriptClassInfo scriptClassInfo = new ScriptClassInfo(painlessLookup, scriptClass);
-        SClass root = Walker.buildPainlessTree(scriptClassInfo, name, source, settings, painlessLookup,
-                debugStream);
+        SClass root = Walker.buildPainlessTree(scriptClassInfo, name, source, settings, painlessLookup, debugStream);
+        ResolveTypesPass pass = new ResolveTypesPass(painlessLookup);
+        pass.pass(root);
         root.extractVariables(new HashSet<>());
         root.storeSettings(settings);
         root.analyze(painlessLookup);

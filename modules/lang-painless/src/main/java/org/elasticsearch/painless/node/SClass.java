@@ -109,6 +109,10 @@ public final class SClass extends AStatement {
         this.getMethods = new ArrayList<>();
     }
 
+    public List<ANode> getChildren() {
+        return new ArrayList<>(functions);
+    }
+
     void addFunction(SFunction function) {
         functions.add(function);
     }
@@ -155,7 +159,12 @@ public final class SClass extends AStatement {
                 throw createError(new IllegalArgumentException("Illegal duplicate functions [" + key + "]."));
             }
 
-            table.getFunctionTable().addFunction(function.name, function.returnType, function.typeParameters, false);
+            List<Class<?>> typeParameters = new ArrayList<>();
+            for (DType type : function.paramTypes) {
+                typeParameters.add(type.getType());
+            }
+
+            table.getFunctionTable().addFunction(function.name, function.returnType, typeParameters, false);
         }
 
         Locals locals = Locals.newProgramScope();

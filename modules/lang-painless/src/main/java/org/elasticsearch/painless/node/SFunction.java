@@ -34,7 +34,6 @@ import org.objectweb.asm.Opcodes;
 
 import java.lang.invoke.MethodType;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -49,15 +48,15 @@ public final class SFunction extends AStatement {
 
     private final String rtnTypeStr;
     public final String name;
-    private final List<String> paramTypeStrs;
-    private final List<String> paramNameStrs;
     private final SBlock block;
     public final boolean synthetic;
+
+    final List<DType> paramTypes = new ArrayList<>();
+    private final List<String> paramNames = new ArrayList<>();
 
     private CompilerSettings settings;
 
     Class<?> returnType;
-    List<Class<?>> typeParameters;
     MethodType methodType;
 
     org.objectweb.asm.commons.Method method;
@@ -65,17 +64,27 @@ public final class SFunction extends AStatement {
 
     private Variable loop = null;
 
-    public SFunction(Location location, String rtnType, String name,
-                     List<String> paramTypes, List<String> paramNames, SBlock block,
-                     boolean synthetic) {
+    public SFunction(Location location, String rtnType, String name, SBlock block, boolean synthetic) {
         super(location);
 
         this.rtnTypeStr = Objects.requireNonNull(rtnType);
         this.name = Objects.requireNonNull(name);
-        this.paramTypeStrs = Collections.unmodifiableList(paramTypes);
-        this.paramNameStrs = Collections.unmodifiableList(paramNames);
         this.block = Objects.requireNonNull(block);
         this.synthetic = synthetic;
+    }
+
+    public void replace(ANode original, ANode target) {
+        int index = paramTypes.indexOf(original);
+
+        if (index != -1) {
+            paramTypes.set(index, (DType)target);
+        }
+    }
+
+    public void addParameter(DType type, String name) {
+        type.parent = this;
+        paramTypes.add(type);
+        paramNames.add(name);
     }
 
     @Override
@@ -100,27 +109,16 @@ public final class SFunction extends AStatement {
             throw createError(new IllegalArgumentException("Illegal return type [" + rtnTypeStr + "] for function [" + name + "]."));
         }
 
-        if (paramTypeStrs.size() != paramNameStrs.size()) {
+        if (paramTypes.size() != paramNames.size()) {
             throw createError(new IllegalStateException("Illegal tree structure."));
         }
 
-        Class<?>[] paramClasses = new Class<?>[this.paramTypeStrs.size()];
-        List<Class<?>> paramTypes = new ArrayList<>();
+        Class<?>[] paramClasses = new Class<?>[this.paramTypes.size()];
 
-        for (int param = 0; param < this.paramTypeStrs.size(); ++param) {
-            Class<?> paramType = painlessLookup.canonicalTypeNameToType(this.paramTypeStrs.get(param));
-
-            if (paramType == null) {
-                throw createError(new IllegalArgumentException(
-                    "Illegal parameter type [" + this.paramTypeStrs.get(param) + "] for function [" + name + "]."));
-            }
-
-            paramClasses[param] = PainlessLookupUtility.typeToJavaType(paramType);
-            paramTypes.add(paramType);
-            parameters.add(new Parameter(location, paramNameStrs.get(param), paramType));
+        for (int param = 0; param < this.paramTypes.size(); ++param) {
+            paramClasses[param] = PainlessLookupUtility.typeToJavaType(paramTypes.get(param).getType());
         }
 
-        typeParameters = paramTypes;
         methodType = MethodType.methodType(PainlessLookupUtility.typeToJavaType(returnType), paramClasses);
         method = new org.objectweb.asm.commons.Method(name, MethodType.methodType(
                 PainlessLookupUtility.typeToJavaType(returnType), paramClasses).toMethodDescriptorString());
@@ -184,8 +182,8 @@ public final class SFunction extends AStatement {
         List<Object> description = new ArrayList<>();
         description.add(rtnTypeStr);
         description.add(name);
-        if (false == (paramTypeStrs.isEmpty() && paramNameStrs.isEmpty())) {
-            description.add(joinWithName("Args", pairwiseToString(paramTypeStrs, paramNameStrs), emptyList()));
+        if (false == (paramTypes.isEmpty() && paramNames.isEmpty())) {
+            description.add(joinWithName("Args", pairwiseToString(paramTypes, paramNames), emptyList()));
         }
         return multilineToString(description, block.statements);
     }
