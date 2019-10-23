@@ -27,7 +27,6 @@ import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.RecognitionException;
 import org.antlr.v4.runtime.Recognizer;
 import org.antlr.v4.runtime.atn.PredictionMode;
-import org.antlr.v4.runtime.tree.TerminalNode;
 import org.elasticsearch.painless.CompilerSettings;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.Operation;
@@ -109,6 +108,7 @@ import org.elasticsearch.painless.lookup.PainlessLookup;
 import org.elasticsearch.painless.node.AExpression;
 import org.elasticsearch.painless.node.ANode;
 import org.elasticsearch.painless.node.AStatement;
+import org.elasticsearch.painless.node.DUnresolvedType;
 import org.elasticsearch.painless.node.EAssignment;
 import org.elasticsearch.painless.node.EBinary;
 import org.elasticsearch.painless.node.EBool;
@@ -252,17 +252,7 @@ public final class Walker extends PainlessParserBaseVisitor<ANode> {
     public ANode visitFunction(FunctionContext ctx) {
         String rtnType = ctx.decltype().getText();
         String name = ctx.ID().getText();
-        List<String> paramTypes = new ArrayList<>();
-        List<String> paramNames = new ArrayList<>();
         List<AStatement> statements = new ArrayList<>();
-
-        for (DecltypeContext decltype : ctx.parameters().decltype()) {
-            paramTypes.add(decltype.getText());
-        }
-
-        for (TerminalNode id : ctx.parameters().ID()) {
-            paramNames.add(id.getText());
-        }
 
         for (StatementContext statement : ctx.block().statement()) {
             statements.add((AStatement)visit(statement));
@@ -272,7 +262,16 @@ public final class Walker extends PainlessParserBaseVisitor<ANode> {
             statements.add((AStatement)visit(ctx.block().dstatement()));
         }
 
-        return new SFunction(location(ctx), rtnType, name, paramTypes, paramNames, new SBlock(location(ctx), statements), false);
+        SFunction function = new SFunction(location(ctx), rtnType, name, new SBlock(location(ctx), statements), false);
+
+        for (int paramIndex = 0; paramIndex < ctx.parameters().decltype().size(); ++paramIndex) {
+            String paramType = ctx.parameters().decltype(paramIndex).getText();
+            String paramName = ctx.parameters().ID(paramIndex).getText();
+
+            function.addParameter(new DUnresolvedType(location(ctx.parameters().decltype(paramIndex)), paramType), paramName);
+        }
+
+        return function;
     }
 
     @Override

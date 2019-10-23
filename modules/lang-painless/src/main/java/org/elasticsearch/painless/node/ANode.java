@@ -44,6 +44,24 @@ import static java.util.Collections.emptyList;
  */
 public abstract class ANode {
 
+    protected ANode parent;
+
+    public ANode getParent() {
+        return parent;
+    }
+
+    public List<ANode> getChildren() {
+        return Collections.emptyList();
+    }
+
+    public void replace(ANode original, ANode target) {
+        throw location.createError(new IllegalStateException("unexpected node"));
+    }
+
+    public Location getLocation() {
+        return location;
+    }
+
     /**
      * The identifier of the script and character offset used for debugging and errors.
      */
