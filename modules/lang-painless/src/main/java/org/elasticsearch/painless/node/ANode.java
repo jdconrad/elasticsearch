@@ -26,6 +26,7 @@ import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.ScriptRoot;
+import org.elasticsearch.painless.semantic.ASTVisitor;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -50,18 +51,6 @@ public abstract class ANode {
         return parent;
     }
 
-    public List<ANode> getChildren() {
-        return Collections.emptyList();
-    }
-
-    public void replace(ANode original, ANode target) {
-        throw location.createError(new IllegalStateException("unexpected node"));
-    }
-
-    public Location getLocation() {
-        return location;
-    }
-
     /**
      * The identifier of the script and character offset used for debugging and errors.
      */
@@ -72,6 +61,14 @@ public abstract class ANode {
      */
     ANode(Location location) {
         this.location = Objects.requireNonNull(location);
+    }
+
+    public Location getLocation() {
+        return location;
+    }
+
+    public void visit(ASTVisitor ASTVisitor) {
+        throw createError(new IllegalStateException("unexpected node"));
     }
 
     /**

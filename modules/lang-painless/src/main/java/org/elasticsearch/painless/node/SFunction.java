@@ -30,6 +30,7 @@ import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.ScriptRoot;
 import org.elasticsearch.painless.lookup.PainlessLookup;
 import org.elasticsearch.painless.lookup.PainlessLookupUtility;
+import org.elasticsearch.painless.semantic.ASTVisitor;
 import org.objectweb.asm.Opcodes;
 
 import java.lang.invoke.MethodType;
@@ -73,11 +74,14 @@ public final class SFunction extends AStatement {
         this.synthetic = synthetic;
     }
 
-    public void replace(ANode original, ANode target) {
-        int index = paramTypes.indexOf(original);
+    @Override
+    public void visit(ASTVisitor ASTVisitor) {
+        for (int paramIndex = 0; paramIndex < paramTypes.size(); ++paramIndex) {
+            DType replace = (DType)ASTVisitor.visit(paramTypes.get(paramIndex));
 
-        if (index != -1) {
-            paramTypes.set(index, (DType)target);
+            if (replace != null) {
+                paramTypes.set(paramIndex, replace);
+            }
         }
     }
 

@@ -27,16 +27,16 @@ import org.elasticsearch.painless.node.DUnresolvedType;
 import java.util.HashMap;
 import java.util.Map;
 
-public class ResolveTypesPass {
+public class ResolveTypesVisitor implements ASTVisitor {
 
     public interface Visitor {
-        void visit(ANode node, PainlessLookup lookup);
+        ANode visit(ANode node, PainlessLookup lookup);
     }
 
     protected final PainlessLookup lookup;
     protected final Map<Class<? extends ANode>, Visitor> visitors = new HashMap<>();
 
-    public ResolveTypesPass(PainlessLookup lookup) {
+    public ResolveTypesVisitor(PainlessLookup lookup) {
         this.lookup = lookup;
         buildVisitors();
     }
@@ -50,19 +50,12 @@ public class ResolveTypesPass {
                 throw new IllegalArgumentException("cannot resolve symbol [" + unresolvedType.getUnresolvedType() + "]");
             }
 
-            node.getParent().replace(unresolvedType, new DResolvedType(unresolvedType.getLocation(), type));
+            return new DResolvedType(unresolvedType.getLocation(), type);
         });
     }
 
-    public void pass(ANode node) {
+    public ANode visit(ANode node) {
         Visitor visitor = visitors.get(node.getClass());
-
-        if (visitor != null) {
-            visitor.visit(node, lookup);
-        }
-
-        for (ANode child : node.getChildren()) {
-            pass(child);
-        }
+        return visitor == null ? null : visitor.visit(node, lookup);
     }
 }

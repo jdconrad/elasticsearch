@@ -31,6 +31,7 @@ import org.elasticsearch.painless.ScriptClassInfo;
 import org.elasticsearch.painless.ScriptRoot;
 import org.elasticsearch.painless.WriterConstants;
 import org.elasticsearch.painless.lookup.PainlessLookup;
+import org.elasticsearch.painless.semantic.ASTVisitor;
 import org.elasticsearch.painless.symbol.FunctionTable;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.Label;
@@ -109,16 +110,17 @@ public final class SClass extends AStatement {
         this.getMethods = new ArrayList<>();
     }
 
-    public List<ANode> getChildren() {
-        return new ArrayList<>(functions);
-    }
-
     void addFunction(SFunction function) {
         functions.add(function);
     }
 
     void addField(SField field) {
         fields.add(field);
+    }
+
+    @Override
+    public void visit(ASTVisitor ASTVisitor) {
+
     }
 
     @Override
