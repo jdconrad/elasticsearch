@@ -31,6 +31,7 @@ import org.elasticsearch.painless.ScriptClassInfo;
 import org.elasticsearch.painless.ScriptRoot;
 import org.elasticsearch.painless.WriterConstants;
 import org.elasticsearch.painless.lookup.PainlessLookup;
+import org.elasticsearch.painless.semantic.ASTVisitor;
 import org.elasticsearch.painless.symbol.FunctionTable;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.Label;
@@ -118,6 +119,11 @@ public final class SClass extends AStatement {
     }
 
     @Override
+    public void visit(ASTVisitor ASTVisitor) {
+
+    }
+
+    @Override
     public void storeSettings(CompilerSettings settings) {
         for (SFunction function : functions) {
             function.storeSettings(settings);
@@ -155,7 +161,12 @@ public final class SClass extends AStatement {
                 throw createError(new IllegalArgumentException("Illegal duplicate functions [" + key + "]."));
             }
 
-            table.getFunctionTable().addFunction(function.name, function.returnType, function.typeParameters, false);
+            List<Class<?>> typeParameters = new ArrayList<>();
+            for (DType type : function.paramTypes) {
+                typeParameters.add(type.getType());
+            }
+
+            table.getFunctionTable().addFunction(function.name, function.returnType, typeParameters, false);
         }
 
         Locals locals = Locals.newProgramScope();

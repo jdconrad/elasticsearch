@@ -66,15 +66,14 @@ public final class ENewArrayFunctionRef extends AExpression implements ILambda {
     void analyze(ScriptRoot scriptRoot, Locals locals) {
         SReturn code = new SReturn(location, new ENewArray(location, type, Arrays.asList(new EVariable(location, "size")), false));
         function = new SFunction(
-                location, type, scriptRoot.getNextSyntheticName("newarray"),
-                Collections.singletonList("int"), Collections.singletonList("size"),
-                new SBlock(location, Collections.singletonList(code)), true);
+                location, type, scriptRoot.getNextSyntheticName("newarray"), new SBlock(location, Collections.singletonList(code)), true);
+        function.addParameter(new DResolvedType(location, int.class), "size");
         function.storeSettings(settings);
         function.generateSignature(scriptRoot.getPainlessLookup());
         function.extractVariables(null);
         function.analyze(scriptRoot, Locals.newLambdaScope(locals.getProgramScope(), function.name, function.returnType,
                 function.parameters, 0, settings.getMaxLoopCounter()));
-        scriptRoot.getFunctionTable().addFunction(function.name, function.returnType, function.typeParameters, true);
+        scriptRoot.getFunctionTable().addFunction(function.name, function.returnType, Collections.singletonList(int.class), true);
         scriptRoot.getClassNode().addFunction(function);
 
         if (expected == null) {

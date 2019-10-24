@@ -166,25 +166,35 @@ public final class ELambda extends AExpression implements ILambda {
             }
         }
         // prepend capture list to lambda's arguments
-        List<String> paramTypes = new ArrayList<>(captures.size() + actualParamTypeStrs.size());
+        List<String> paramTypesStrs = new ArrayList<>(captures.size() + actualParamTypeStrs.size());
         List<String> paramNames = new ArrayList<>(captures.size() + paramNameStrs.size());
         for (Variable var : captures) {
-            paramTypes.add(PainlessLookupUtility.typeToCanonicalTypeName(var.clazz));
+            paramTypesStrs.add(PainlessLookupUtility.typeToCanonicalTypeName(var.clazz));
             paramNames.add(var.name);
         }
-        paramTypes.addAll(actualParamTypeStrs);
+        paramTypesStrs.addAll(actualParamTypeStrs);
         paramNames.addAll(paramNameStrs);
 
         // desugar lambda body into a synthetic method
         String name = scriptRoot.getNextSyntheticName("lambda");
         desugared = new SFunction(
-                location, PainlessLookupUtility.typeToCanonicalTypeName(returnType), name, paramTypes, paramNames,
-                new SBlock(location, statements), true);
+                location, PainlessLookupUtility.typeToCanonicalTypeName(returnType), name, new SBlock(location, statements), true);
+        List<Class<?>> typeParameters = new ArrayList<>();
+        for (int paramIndex = 0; paramIndex < paramTypesStrs.size(); ++paramIndex) {
+            Class<?> type = scriptRoot.getPainlessLookup().canonicalTypeNameToType(paramTypesStrs.get(paramIndex));
+
+            if (type == null) {
+                throw new IllegalArgumentException("cannot resolve symbol [" + paramTypesStrs.get(paramIndex) + "]");
+            }
+
+            desugared.addParameter(new DResolvedType(location, type), paramNames.get(paramIndex));
+            typeParameters.add(type);
+        }
         desugared.storeSettings(settings);
         desugared.generateSignature(scriptRoot.getPainlessLookup());
         desugared.analyze(scriptRoot, Locals.newLambdaScope(locals.getProgramScope(), desugared.name, returnType,
                                                 desugared.parameters, captures.size(), settings.getMaxLoopCounter()));
-        scriptRoot.getFunctionTable().addFunction(desugared.name, desugared.returnType, desugared.typeParameters, true);
+        scriptRoot.getFunctionTable().addFunction(desugared.name, desugared.returnType, typeParameters, true);
         scriptRoot.getClassNode().addFunction(desugared);
 
         // setup method reference to synthetic method
