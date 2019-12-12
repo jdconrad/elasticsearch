@@ -22,6 +22,13 @@ package org.elasticsearch.painless;
 import org.elasticsearch.painless.lookup.PainlessLookup;
 import org.elasticsearch.painless.lookup.PainlessLookupUtility;
 import org.elasticsearch.painless.lookup.def;
+import org.elasticsearch.painless.node.AStatement;
+import org.elasticsearch.painless.node.DResolvedType;
+import org.elasticsearch.painless.node.SCatch;
+import org.elasticsearch.painless.node.SClass;
+import org.elasticsearch.painless.node.SDeclaration;
+import org.elasticsearch.painless.node.SFunction;
+import org.objectweb.asm.util.Printer;
 
 import java.lang.invoke.MethodType;
 import java.lang.reflect.Field;
@@ -215,5 +222,20 @@ public class ScriptClassInfo {
         } catch (IllegalArgumentException | IllegalAccessException e) {
             throw new IllegalArgumentException("Error trying to read [" + iface.getName() + "#ARGUMENTS]", e);
         }
+    }
+
+    public SClass generateClass(
+            String name,
+            String source,
+            Printer debug,
+            Location location,
+            List<SFunction> functions,
+            List<AStatement> statements) {
+
+        Location internal = new Location(name, -1);
+        SCatch bootstrapMethodError = new SCatch(internal, new DResolvedType(internal, BootstrapMethodError.class, false),
+                new SDeclaration(internal, new DResolvedType(internal, BootstrapMethodError.class, false), "e", null),);
+
+        return new SClass(this, name, source, debug, location, functions, statements);
     }
 }

@@ -123,6 +123,12 @@ public final class MethodWriter extends GeneratorAdapter {
      */
     public void writeStatementOffset(Location location) {
         int offset = location.getOffset();
+
+        // ignore statements generated internally
+        if (offset == -1) {
+            return;
+        }
+
         // ensure we don't have duplicate stuff going in here. can catch bugs
         // (e.g. nodes get assigned wrong offsets by antlr walker)
         assert statements.get(offset) == false;

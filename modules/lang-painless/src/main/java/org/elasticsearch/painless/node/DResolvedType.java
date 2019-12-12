@@ -52,7 +52,7 @@ public class DResolvedType extends DType {
     /**
      * If {@link #checkInLookup} is {@code true} checks if the type is in the
      * {@link PainlessLookup}, otherwise returns {@code this}.
-     * @throws IllegalArgumentException if both checking the type is in the {@link PainlessLookup}
+     * @throws IllegalArgumentException if checking the type is in the {@link PainlessLookup}
      * and the type cannot be resolved from the {@link PainlessLookup}
      * @return a {@link DResolvedType} where the resolved Painless type is retrievable
      */

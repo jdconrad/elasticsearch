@@ -251,7 +251,7 @@ public final class Walker extends PainlessParserBaseVisitor<ANode> {
             statements.add((AStatement)visit(statement));
         }
 
-        return new SClass(scriptClassInfo, sourceName, sourceText, debugStream, location(ctx), functions, statements);
+        return scriptClassInfo.generateClass(sourceName, sourceText, debugStream, location(ctx), functions, statements);
     }
 
     @Override
@@ -508,7 +508,7 @@ public final class Walker extends PainlessParserBaseVisitor<ANode> {
         String name = ctx.ID().getText();
         SBlock block = (SBlock)visit(ctx.block());
 
-        return new SCatch(location(ctx), new DResolvedType(location(ctx), Exception.class),
+        return new SCatch(location(ctx), new DResolvedType(location(ctx), Exception.class, false),
                 new SDeclaration(location(ctx.TYPE()), new DUnresolvedType(location(ctx.TYPE()), type), name, null), block);
     }
 
