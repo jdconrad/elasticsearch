@@ -30,7 +30,6 @@ import org.elasticsearch.painless.symbol.ScriptRoot;
 
 import java.lang.invoke.MethodType;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -45,8 +44,7 @@ public final class SFunction extends AStatement {
 
     private final String rtnTypeStr;
     public final String name;
-    private final List<String> paramTypeStrs;
-    private final List<String> paramNameStrs;
+    private final List<SDeclaration> declarations;
     private final SBlock block;
     public final boolean synthetic;
 
@@ -60,14 +58,13 @@ public final class SFunction extends AStatement {
     List<Parameter> parameters = new ArrayList<>();
 
     public SFunction(Location location, String rtnType, String name,
-                     List<String> paramTypes, List<String> paramNames, SBlock block,
+                     List<SDeclaration> declarations, SBlock block,
                      boolean synthetic) {
         super(location);
 
         this.rtnTypeStr = Objects.requireNonNull(rtnType);
         this.name = Objects.requireNonNull(name);
-        this.paramTypeStrs = Collections.unmodifiableList(paramTypes);
-        this.paramNameStrs = Collections.unmodifiableList(paramNames);
+        this.declarations = Objects.requireNonNull(declarations);
         this.block = Objects.requireNonNull(block);
         this.synthetic = synthetic;
     }
@@ -87,24 +84,17 @@ public final class SFunction extends AStatement {
             throw createError(new IllegalArgumentException("Illegal return type [" + rtnTypeStr + "] for function [" + name + "]."));
         }
 
-        if (paramTypeStrs.size() != paramNameStrs.size()) {
-            throw createError(new IllegalStateException("Illegal tree structure."));
-        }
-
-        Class<?>[] paramClasses = new Class<?>[this.paramTypeStrs.size()];
+        Class<?>[] paramClasses = new Class<?>[declarations.size()];
         List<Class<?>> paramTypes = new ArrayList<>();
 
-        for (int param = 0; param < this.paramTypeStrs.size(); ++param) {
-            Class<?> paramType = painlessLookup.canonicalTypeNameToType(this.paramTypeStrs.get(param));
-
-            if (paramType == null) {
-                throw createError(new IllegalArgumentException(
-                    "Illegal parameter type [" + this.paramTypeStrs.get(param) + "] for function [" + name + "]."));
-            }
-
+        for (int param = 0; param < declarations.size(); ++param) {
+            SDeclaration declaration = declarations.get(param);
+            DResolvedType resolvedType = declaration.type.resolveType(painlessLookup);
+            declaration.type = resolvedType;
+            Class<?> paramType = resolvedType.getType();
             paramClasses[param] = PainlessLookupUtility.typeToJavaType(paramType);
             paramTypes.add(paramType);
-            parameters.add(new Parameter(location, paramNameStrs.get(param), paramType));
+            parameters.add(new Parameter(location, declaration.name, paramType));
         }
 
         typeParameters = paramTypes;
@@ -159,8 +149,8 @@ public final class SFunction extends AStatement {
         List<Object> description = new ArrayList<>();
         description.add(rtnTypeStr);
         description.add(name);
-        if (false == (paramTypeStrs.isEmpty() && paramNameStrs.isEmpty())) {
-            description.add(joinWithName("Args", pairwiseToString(paramTypeStrs, paramNameStrs), emptyList()));
+        if (declarations.isEmpty() == false) {
+            description.add(joinWithName("Args", declarations, emptyList()));
         }
         return multilineToString(description, block.statements);
     }

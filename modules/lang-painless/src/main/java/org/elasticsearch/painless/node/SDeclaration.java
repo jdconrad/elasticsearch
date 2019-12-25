@@ -33,9 +33,9 @@ import java.util.Set;
  */
 public final class SDeclaration extends AStatement {
 
-    private final DType type;
-    private final String name;
-    private AExpression expression;
+    protected DType type;
+    protected final String name;
+    protected AExpression expression;
 
     Variable variable = null;
 

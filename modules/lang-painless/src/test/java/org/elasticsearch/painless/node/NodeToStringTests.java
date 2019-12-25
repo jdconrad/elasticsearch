@@ -141,7 +141,7 @@ public class NodeToStringTests extends ESTestCase {
               + "return a()");
         assertToString(
                 "(SClass\n"
-              + "  (SFunction def a (Args (Pair int i) (Pair int j))\n"
+              + "  (SFunction def a (Args (SDeclaration (DUnresolvedType [int]) i) (SDeclaration (DUnresolvedType [int]) j))\n"
               + "    (SReturn (EBoolean true)))\n"
               + "  (SReturn (ECallLocal a (Args (ENumeric 1) (ENumeric 2)))))",
                 "def a(int i, int j) {\n"
@@ -812,7 +812,7 @@ public class NodeToStringTests extends ESTestCase {
                 + "return true");
         assertToString(
                 "(SClass\n"
-              + "  (SFunction def a (Args (Pair int i) (Pair int j))\n"
+              + "  (SFunction def a (Args (SDeclaration (DUnresolvedType [int]) i) (SDeclaration (DUnresolvedType [int]) j))\n"
               + "    (SReturn (EBoolean true)))\n"
               + "  (SReturn (EBoolean true)))",
                 "def a(int i, int j) {\n"
@@ -821,7 +821,7 @@ public class NodeToStringTests extends ESTestCase {
               + "return true");
         assertToString(
                 "(SClass\n"
-              + "  (SFunction def a (Args (Pair int i) (Pair int j))\n"
+              + "  (SFunction def a (Args (SDeclaration (DUnresolvedType [int]) i) (SDeclaration (DUnresolvedType [int]) j))\n"
               + "    (SIf (EComp (EVariable i) < (EVariable j)) (SBlock (SReturn (EBoolean true))))\n"
               + "    (SDeclBlock (SDeclaration (DUnresolvedType [int]) k (EBinary (EVariable i) + (EVariable j))))\n"
               + "    (SReturn (EVariable k)))\n"

@@ -260,6 +260,7 @@ public final class Walker extends PainlessParserBaseVisitor<ANode> {
         String name = ctx.ID().getText();
         List<String> paramTypes = new ArrayList<>();
         List<String> paramNames = new ArrayList<>();
+        List<SDeclaration> declarations = new ArrayList<>();
         List<AStatement> statements = new ArrayList<>();
 
         for (DecltypeContext decltype : ctx.parameters().decltype()) {
@@ -270,6 +271,19 @@ public final class Walker extends PainlessParserBaseVisitor<ANode> {
             paramNames.add(id.getText());
         }
 
+        for (int index = 0; index < paramTypes.size(); ++ index) {
+            Location location = location(ctx.parameters().decltype().get(index));
+            declarations.add(new SDeclaration(
+                    location,
+                    new DUnresolvedType(
+                            location,
+                            paramTypes.get(index)
+                    ),
+                    paramNames.get(index),
+                    null
+            ));
+        }
+
         for (StatementContext statement : ctx.block().statement()) {
             statements.add((AStatement)visit(statement));
         }
@@ -278,7 +292,7 @@ public final class Walker extends PainlessParserBaseVisitor<ANode> {
             statements.add((AStatement)visit(ctx.block().dstatement()));
         }
 
-        return new SFunction(location(ctx), rtnType, name, paramTypes, paramNames, new SBlock(location(ctx), statements), false);
+        return new SFunction(location(ctx), rtnType, name, declarations, new SBlock(location(ctx), statements), false);
     }
 
     @Override

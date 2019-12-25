@@ -160,11 +160,24 @@ public final class ELambda extends AExpression implements ILambda {
         }
         paramTypes.addAll(actualParamTypeStrs);
         paramNames.addAll(paramNameStrs);
+        List<SDeclaration> declarations = new ArrayList<>();
+        for (int index = 0; index < paramTypes.size(); ++index) {
+            Location location = new Location(paramNames.get(index), this.location.getOffset() + index + 1);
+            declarations.add(new SDeclaration(
+                    location,
+                    new DUnresolvedType(
+                            location,
+                            paramTypes.get(index)
+                    ),
+                    paramNames.get(index),
+                    null
+            ));
+        }
 
         // desugar lambda body into a synthetic method
         String name = scriptRoot.getNextSyntheticName("lambda");
         desugared = new SFunction(
-                location, PainlessLookupUtility.typeToCanonicalTypeName(returnType), name, paramTypes, paramNames,
+                location, PainlessLookupUtility.typeToCanonicalTypeName(returnType), name, declarations,
                 new SBlock(location, statements), true);
         desugared.generateSignature(scriptRoot.getPainlessLookup());
         desugared.analyze(scriptRoot, Locals.newLambdaScope(locals.getProgramScope(), desugared.name, returnType,

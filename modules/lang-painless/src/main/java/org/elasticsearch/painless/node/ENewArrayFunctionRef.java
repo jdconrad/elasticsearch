@@ -58,7 +58,8 @@ public final class ENewArrayFunctionRef extends AExpression implements ILambda {
         SReturn code = new SReturn(location, new ENewArray(location, type, Arrays.asList(new EVariable(location, "size")), false));
         function = new SFunction(
                 location, type, scriptRoot.getNextSyntheticName("newarray"),
-                Collections.singletonList("int"), Collections.singletonList("size"),
+                Collections.singletonList(new SDeclaration(new Location(location.getSourceName(), location.getOffset() + 1),
+                        new DResolvedType(new Location(location.getSourceName(), location.getOffset() + 2), int.class), "size", null)),
                 new SBlock(location, Collections.singletonList(code)), true);
         function.generateSignature(scriptRoot.getPainlessLookup());
         function.extractVariables(null);
