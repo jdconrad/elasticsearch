@@ -179,9 +179,7 @@ public final class SClass extends AStatement {
                 .setDebugStream(debugStream)
                 .setName(name)
                 .setSourceText(sourceText)
-                .setMainMethod(mainMethod)
                 .setMethodEscape(methodEscape)
-                .addGetMethods(getMethods)
                 .addExtractedVariables(extractedVariables);
 
         for (SField field : fields) {

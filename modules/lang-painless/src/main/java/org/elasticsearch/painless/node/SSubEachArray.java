@@ -78,11 +78,13 @@ final class SSubEachArray extends AStatement {
                         .setType(indexed)
                 )
                 .setLocation(location)
-                .setVariable(variable)
+                .setVariableType(variable.clazz)
+                .setVariableName(variable.name)
                 .setCast(cast)
-                .setArray(array)
-                .setIndex(index)
-                .setLoopCounter(loopCounter)
+                .setArrayType(array.clazz)
+                .setArrayName(array.name)
+                .setIndexType(index.clazz)
+                .setIndexName(index.name)
                 .setContinuous(false);
     }
 

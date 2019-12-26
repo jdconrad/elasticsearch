@@ -68,7 +68,7 @@ public final class EVariable extends AStoreable {
                         .setType(actual)
                 )
                 .setLocation(location)
-                .setVariable(variable);
+                .setName(name);
     }
 
     @Override
