@@ -19,8 +19,9 @@
 
 package org.elasticsearch.painless.node;
 
-import org.elasticsearch.painless.Locals;
+import org.elasticsearch.painless.Scope;
 import org.elasticsearch.painless.Location;
+import org.elasticsearch.painless.ir.ClassNode;
 import org.elasticsearch.painless.ir.InstanceofNode;
 import org.elasticsearch.painless.ir.TypeNode;
 import org.elasticsearch.painless.lookup.PainlessLookupUtility;
@@ -54,7 +55,7 @@ public final class EInstanceof extends AExpression {
     }
 
     @Override
-    void analyze(ScriptRoot scriptRoot, Locals locals) {
+    void analyze(ScriptRoot scriptRoot, Scope scope) {
         // ensure the specified type is part of the definition
         Class<?> clazz = scriptRoot.getPainlessLookup().canonicalTypeNameToType(this.type);
 
@@ -67,9 +68,9 @@ public final class EInstanceof extends AExpression {
                 PainlessLookupUtility.typeToJavaType(clazz);
 
         // analyze and cast the expression
-        expression.analyze(scriptRoot, locals);
+        expression.analyze(scriptRoot, scope);
         expression.expected = expression.actual;
-        expression = expression.cast(scriptRoot, locals);
+        expression = expression.cast(scriptRoot, scope);
 
         // record if the expression returns a primitive
         primitiveExpression = expression.actual.isPrimitive();
@@ -81,13 +82,13 @@ public final class EInstanceof extends AExpression {
     }
 
     @Override
-    InstanceofNode write() {
+    InstanceofNode write(ClassNode classNode) {
         return new InstanceofNode()
                 .setTypeNode(new TypeNode()
                         .setLocation(location)
                         .setType(actual)
                 )
-                .setChildNode(expression.write())
+                .setChildNode(expression.write(classNode))
                 .setExpressionTypeNode(new TypeNode()
                         .setLocation(location)
                         .setType(expressionType)
