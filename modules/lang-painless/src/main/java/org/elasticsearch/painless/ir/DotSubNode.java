@@ -24,6 +24,7 @@ import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.lookup.PainlessField;
+import org.elasticsearch.painless.symbol.ScopeTable;
 import org.objectweb.asm.Type;
 
 public class DotSubNode extends ExpressionNode {
@@ -62,7 +63,7 @@ public class DotSubNode extends ExpressionNode {
     }
 
     @Override
-    protected void write(ClassWriter classWriter, MethodWriter methodWriter, Globals globals) {
+    protected void write(ClassWriter classWriter, MethodWriter methodWriter, Globals globals, ScopeTable scopeTable) {
         methodWriter.writeDebugInfo(location);
 
         if (java.lang.reflect.Modifier.isStatic(field.javaField.getModifiers())) {
@@ -80,12 +81,12 @@ public class DotSubNode extends ExpressionNode {
     }
 
     @Override
-    protected void setup(ClassWriter classWriter, MethodWriter methodWriter,Globals globals) {
+    protected void setup(ClassWriter classWriter, MethodWriter methodWriter, Globals globals, ScopeTable scopeTable) {
         // Do nothing.
     }
 
     @Override
-    protected void load(ClassWriter classWriter, MethodWriter methodWriter,Globals globals) {
+    protected void load(ClassWriter classWriter, MethodWriter methodWriter, Globals globals, ScopeTable scopeTable) {
         methodWriter.writeDebugInfo(location);
 
         if (java.lang.reflect.Modifier.isStatic(field.javaField.getModifiers())) {
@@ -98,7 +99,7 @@ public class DotSubNode extends ExpressionNode {
     }
 
     @Override
-    protected void store(ClassWriter classWriter, MethodWriter methodWriter,Globals globals) {
+    protected void store(ClassWriter classWriter, MethodWriter methodWriter, Globals globals, ScopeTable scopeTable) {
         methodWriter.writeDebugInfo(location);
 
         if (java.lang.reflect.Modifier.isStatic(field.javaField.getModifiers())) {
