@@ -19,8 +19,9 @@
 
 package org.elasticsearch.painless.node;
 
-import org.elasticsearch.painless.Locals;
+import org.elasticsearch.painless.Scope;
 import org.elasticsearch.painless.Location;
+import org.elasticsearch.painless.ir.ClassNode;
 import org.elasticsearch.painless.ir.MapSubShortcutNode;
 import org.elasticsearch.painless.ir.TypeNode;
 import org.elasticsearch.painless.lookup.PainlessLookupUtility;
@@ -54,7 +55,7 @@ final class PSubMapShortcut extends AStoreable {
     }
 
     @Override
-    void analyze(ScriptRoot scriptRoot, Locals locals) {
+    void analyze(ScriptRoot scriptRoot, Scope scope) {
         String canonicalClassName = PainlessLookupUtility.typeToCanonicalTypeName(targetClass);
 
         getter = scriptRoot.getPainlessLookup().lookupPainlessMethod(targetClass, false, "get", 1);
@@ -75,8 +76,8 @@ final class PSubMapShortcut extends AStoreable {
 
         if ((read || write) && (!read || getter != null) && (!write || setter != null)) {
             index.expected = setter != null ? setter.typeParameters.get(0) : getter.typeParameters.get(0);
-            index.analyze(scriptRoot, locals);
-            index = index.cast(scriptRoot, locals);
+            index.analyze(scriptRoot, scope);
+            index = index.cast(scriptRoot, scope);
 
             actual = setter != null ? setter.typeParameters.get(1) : getter.returnType;
         } else {
@@ -85,13 +86,13 @@ final class PSubMapShortcut extends AStoreable {
     }
 
     @Override
-    MapSubShortcutNode write() {
+    MapSubShortcutNode write(ClassNode classNode) {
         return new MapSubShortcutNode()
                 .setTypeNode(new TypeNode()
                         .setLocation(location)
                         .setType(actual)
                 )
-                .setChildNode(index.write())
+                .setChildNode(index.write(classNode))
                 .setLocation(location)
                 .setGetter(getter)
                 .setSetter(setter);

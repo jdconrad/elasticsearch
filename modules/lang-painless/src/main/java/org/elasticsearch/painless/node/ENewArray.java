@@ -19,8 +19,9 @@
 
 package org.elasticsearch.painless.node;
 
-import org.elasticsearch.painless.Locals;
+import org.elasticsearch.painless.Scope;
 import org.elasticsearch.painless.Location;
+import org.elasticsearch.painless.ir.ClassNode;
 import org.elasticsearch.painless.ir.NewArrayNode;
 import org.elasticsearch.painless.ir.TypeNode;
 import org.elasticsearch.painless.symbol.ScriptRoot;
@@ -54,7 +55,7 @@ public final class ENewArray extends AExpression {
     }
 
     @Override
-    void analyze(ScriptRoot scriptRoot, Locals locals) {
+    void analyze(ScriptRoot scriptRoot, Scope scope) {
         if (!read) {
              throw createError(new IllegalArgumentException("A newly created array must be read from."));
         }
@@ -70,15 +71,15 @@ public final class ENewArray extends AExpression {
 
             expression.expected = initialize ? clazz.getComponentType() : int.class;
             expression.internal = true;
-            expression.analyze(scriptRoot, locals);
-            arguments.set(argument, expression.cast(scriptRoot, locals));
+            expression.analyze(scriptRoot, scope);
+            arguments.set(argument, expression.cast(scriptRoot, scope));
         }
 
         actual = clazz;
     }
 
     @Override
-    NewArrayNode write() {
+    NewArrayNode write(ClassNode classNode) {
         NewArrayNode newArrayNode = new NewArrayNode()
                 .setTypeNode(new TypeNode()
                         .setLocation(location)
@@ -88,7 +89,7 @@ public final class ENewArray extends AExpression {
                 .setInitialize(initialize);
 
         for (AExpression argument : arguments) {
-            newArrayNode.addArgumentNode(argument.write());
+            newArrayNode.addArgumentNode(argument.write(classNode));
         }
 
         return newArrayNode;

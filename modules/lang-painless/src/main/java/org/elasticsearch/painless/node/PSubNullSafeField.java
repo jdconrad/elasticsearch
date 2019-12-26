@@ -19,8 +19,9 @@
 
 package org.elasticsearch.painless.node;
 
-import org.elasticsearch.painless.Locals;
+import org.elasticsearch.painless.Scope;
 import org.elasticsearch.painless.Location;
+import org.elasticsearch.painless.ir.ClassNode;
 import org.elasticsearch.painless.ir.NullSafeSubNode;
 import org.elasticsearch.painless.ir.TypeNode;
 import org.elasticsearch.painless.symbol.ScriptRoot;
@@ -44,12 +45,12 @@ public class PSubNullSafeField extends AStoreable {
     }
 
     @Override
-    void analyze(ScriptRoot scriptRoot, Locals locals) {
+    void analyze(ScriptRoot scriptRoot, Scope scope) {
         if (write) {
             throw createError(new IllegalArgumentException("Can't write to null safe reference"));
         }
         guarded.read = read;
-        guarded.analyze(scriptRoot, locals);
+        guarded.analyze(scriptRoot, scope);
         actual = guarded.actual;
         if (actual.isPrimitive()) {
             throw new IllegalArgumentException("Result of null safe operator must be nullable");
@@ -67,13 +68,13 @@ public class PSubNullSafeField extends AStoreable {
     }
 
     @Override
-    NullSafeSubNode write() {
+    NullSafeSubNode write(ClassNode classNode) {
         return new NullSafeSubNode()
                 .setTypeNode(new TypeNode()
                         .setLocation(location)
                         .setType(actual)
                 )
-                .setChildNode(guarded.write())
+                .setChildNode(guarded.write(classNode))
                 .setLocation(location);
     }
 
