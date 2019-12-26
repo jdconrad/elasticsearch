@@ -20,12 +20,12 @@
 package org.elasticsearch.painless.node;
 
 import org.elasticsearch.painless.AnalyzerCaster;
-import org.elasticsearch.painless.Locals;
-import org.elasticsearch.painless.Locals.Variable;
+import org.elasticsearch.painless.Scope;
+import org.elasticsearch.painless.Scope.Variable;
 import org.elasticsearch.painless.Location;
+import org.elasticsearch.painless.ir.ClassNode;
 import org.elasticsearch.painless.ir.ForEachSubIterableNode;
 import org.elasticsearch.painless.lookup.PainlessCast;
-import org.elasticsearch.painless.lookup.PainlessLookupUtility;
 import org.elasticsearch.painless.lookup.PainlessMethod;
 import org.elasticsearch.painless.lookup.def;
 import org.elasticsearch.painless.symbol.ScriptRoot;
@@ -63,10 +63,10 @@ final class SSubEachIterable extends AStatement {
     }
 
     @Override
-    void analyze(ScriptRoot scriptRoot, Locals locals) {
+    void analyze(ScriptRoot scriptRoot, Scope scope) {
         // We must store the iterator as a variable for securing a slot on the stack, and
         // also add the location offset to make the name unique in case of nested for each loops.
-        iterator = locals.addVariable(location, Iterator.class, "#itr" + location.getOffset(), true);
+        iterator = scope.defineVariable(location, Iterator.class, "#itr" + location.getOffset(), true);
 
         if (expression.actual == def.class) {
             method = null;
@@ -79,26 +79,26 @@ final class SSubEachIterable extends AStatement {
             }
         }
 
-        cast = AnalyzerCaster.getLegalCast(location, def.class, variable.clazz, true, true);
+        cast = AnalyzerCaster.getLegalCast(location, def.class, variable.getType(), true, true);
     }
 
     @Override
-    ForEachSubIterableNode write() {
+    ForEachSubIterableNode write(ClassNode classNode) {
         return new ForEachSubIterableNode()
-                .setConditionNode(expression.write())
-                .setBlockNode(block.write())
+                .setConditionNode(expression.write(classNode))
+                .setBlockNode(block.write(classNode))
                 .setLocation(location)
-                .setVariableType(variable.clazz)
-                .setVariableName(variable.name)
+                .setVariableType(variable.getType())
+                .setVariableName(variable.getName())
                 .setCast(cast)
-                .setIteratorType(iterator.clazz)
-                .setIteratorName(iterator.name)
+                .setIteratorType(iterator.getType())
+                .setIteratorName(iterator.getName())
                 .setMethod(method)
                 .setContinuous(false);
     }
 
     @Override
     public String toString() {
-        return singleLineToString(PainlessLookupUtility.typeToCanonicalTypeName(variable.clazz), variable.name, expression, block);
+        return singleLineToString(variable.getCanonicalTypeName(), variable.getName(), expression, block);
     }
 }

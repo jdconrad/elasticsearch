@@ -19,8 +19,9 @@
 
 package org.elasticsearch.painless.node;
 
-import org.elasticsearch.painless.Locals;
+import org.elasticsearch.painless.Scope;
 import org.elasticsearch.painless.Location;
+import org.elasticsearch.painless.ir.ClassNode;
 import org.elasticsearch.painless.ir.DotSubNode;
 import org.elasticsearch.painless.ir.TypeNode;
 import org.elasticsearch.painless.lookup.PainlessField;
@@ -50,7 +51,7 @@ final class PSubField extends AStoreable {
     }
 
     @Override
-    void analyze(ScriptRoot scriptRoot, Locals locals) {
+    void analyze(ScriptRoot scriptRoot, Scope scope) {
          if (write && Modifier.isFinal(field.javaField.getModifiers())) {
              throw createError(new IllegalArgumentException("Cannot write to read-only field [" + field.javaField.getName() + "] " +
                      "for type [" + PainlessLookupUtility.typeToCanonicalTypeName(field.javaField.getDeclaringClass()) + "]."));
@@ -60,7 +61,7 @@ final class PSubField extends AStoreable {
     }
 
     @Override
-    DotSubNode write() {
+    DotSubNode write(ClassNode classNode) {
         return new DotSubNode()
                 .setTypeNode(new TypeNode()
                         .setLocation(location)
