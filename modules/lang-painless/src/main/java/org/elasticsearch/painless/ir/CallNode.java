@@ -23,6 +23,7 @@ import org.elasticsearch.painless.ClassWriter;
 import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.symbol.ScopeTable;
 
 public class CallNode extends PrefixNode {
 
@@ -61,8 +62,8 @@ public class CallNode extends PrefixNode {
     }
 
     @Override
-    protected void write(ClassWriter classWriter, MethodWriter methodWriter, Globals globals) {
-        prefixNode.write(classWriter, methodWriter, globals);
-        childNode.write(classWriter, methodWriter, globals);
+    protected void write(ClassWriter classWriter, MethodWriter methodWriter, Globals globals, ScopeTable scopeTable) {
+        prefixNode.write(classWriter, methodWriter, globals, scopeTable);
+        childNode.write(classWriter, methodWriter, globals, scopeTable);
     }
 }

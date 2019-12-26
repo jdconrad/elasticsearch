@@ -23,6 +23,7 @@ import org.elasticsearch.painless.ClassWriter;
 import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.symbol.ScopeTable;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -91,9 +92,9 @@ public final class DeclarationBlockNode extends StatementNode {
     }
 
     @Override
-    protected void write(ClassWriter classWriter, MethodWriter methodWriter, Globals globals) {
+    protected void write(ClassWriter classWriter, MethodWriter methodWriter, Globals globals, ScopeTable scopeTable) {
         for (DeclarationNode declarationNode : declarationNodes) {
-            declarationNode.write(classWriter, methodWriter, globals);
+            declarationNode.write(classWriter, methodWriter, globals, scopeTable);
         }
     }
 }

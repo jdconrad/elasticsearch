@@ -187,14 +187,19 @@ public final class ELambda extends AExpression implements ILambda {
 
     @Override
     LambdaNode write() {
-        return new LambdaNode()
+        LambdaNode lambdaNode = new LambdaNode()
                 .setTypeNode(new TypeNode()
                         .setLocation(location)
                         .setType(actual)
                 )
                 .setLocation(location)
-                .setFuncRef(ref)
-                .addCaptures(captures);
+                .setFuncRef(ref);
+
+        for (Variable capture : captures) {
+            lambdaNode.addCapture(capture.name);
+        }
+
+        return lambdaNode;
     }
 
     @Override

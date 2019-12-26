@@ -23,6 +23,7 @@ import org.elasticsearch.painless.ClassWriter;
 import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.symbol.ScopeTable;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.Opcodes;
 
@@ -57,9 +58,9 @@ public class BraceSubNode extends UnaryNode {
     }
 
     @Override
-    protected void write(ClassWriter classWriter, MethodWriter methodWriter, Globals globals) {
-        setup(classWriter, methodWriter, globals);
-        load(classWriter, methodWriter, globals);
+    protected void write(ClassWriter classWriter, MethodWriter methodWriter, Globals globals, ScopeTable scopeTable) {
+        setup(classWriter, methodWriter, globals, scopeTable);
+        load(classWriter, methodWriter, globals, scopeTable);
     }
 
     @Override
@@ -68,8 +69,8 @@ public class BraceSubNode extends UnaryNode {
     }
 
     @Override
-    protected void setup(ClassWriter classWriter, MethodWriter methodWriter, Globals globals) {
-        childNode.write(classWriter, methodWriter, globals);
+    protected void setup(ClassWriter classWriter, MethodWriter methodWriter, Globals globals, ScopeTable scopeTable) {
+        childNode.write(classWriter, methodWriter, globals, scopeTable);
 
         Label noFlip = new Label();
         methodWriter.dup();
@@ -82,13 +83,13 @@ public class BraceSubNode extends UnaryNode {
     }
 
     @Override
-    protected void load(ClassWriter classWriter, MethodWriter methodWriter, Globals globals) {
+    protected void load(ClassWriter classWriter, MethodWriter methodWriter, Globals globals, ScopeTable scopeTable) {
         methodWriter.writeDebugInfo(location);
         methodWriter.arrayLoad(MethodWriter.getType(getType()));
     }
 
     @Override
-    protected void store(ClassWriter classWriter, MethodWriter methodWriter, Globals globals) {
+    protected void store(ClassWriter classWriter, MethodWriter methodWriter, Globals globals, ScopeTable scopeTable) {
         methodWriter.writeDebugInfo(location);
         methodWriter.arrayStore(MethodWriter.getType(getType()));
     }

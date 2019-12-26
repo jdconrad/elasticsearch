@@ -26,6 +26,7 @@ import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.Operation;
 import org.elasticsearch.painless.lookup.def;
+import org.elasticsearch.painless.symbol.ScopeTable;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.Type;
 
@@ -99,13 +100,13 @@ public class ComparisonNode extends BinaryNode {
     }
 
     @Override
-    protected void write(ClassWriter classWriter, MethodWriter methodWriter, Globals globals) {
+    protected void write(ClassWriter classWriter, MethodWriter methodWriter, Globals globals, ScopeTable scopeTable) {
         methodWriter.writeDebugInfo(location);
 
-        leftNode.write(classWriter, methodWriter, globals);
+        leftNode.write(classWriter, methodWriter, globals, scopeTable);
 
         if (rightNode instanceof NullNode == false) {
-            rightNode.write(classWriter, methodWriter, globals);
+            rightNode.write(classWriter, methodWriter, globals, scopeTable);
         }
 
         Label jump = new Label();
