@@ -23,9 +23,10 @@ import org.elasticsearch.painless.CompilerSettings;
 import org.elasticsearch.painless.ScriptClassInfo;
 import org.elasticsearch.painless.lookup.PainlessLookup;
 import org.elasticsearch.painless.node.SClass;
-import org.elasticsearch.painless.symbol.FunctionTable;
 
+import java.util.Collections;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * Stores information for use across the entirety of compilation.
@@ -40,7 +41,9 @@ public class ScriptRoot {
 
     protected final FunctionTable functionTable = new FunctionTable();
     protected int syntheticCounter = 0;
+
     protected boolean deterministic = true;
+    protected Set<String> usedVariables = Collections.emptySet();
 
     public ScriptRoot(PainlessLookup painlessLookup, CompilerSettings compilerSettings, ScriptClassInfo scriptClassInfo, SClass classRoot) {
         this.painlessLookup = Objects.requireNonNull(painlessLookup);
@@ -82,5 +85,13 @@ public class ScriptRoot {
 
     public boolean isDeterministic() {
         return deterministic;
+    }
+
+    public void setUsedVariables(Set<String> usedVariables) {
+        this.usedVariables = usedVariables;
+    }
+
+    public Set<String> getUsedVariables() {
+        return usedVariables;
     }
 }
