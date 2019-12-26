@@ -19,9 +19,10 @@
 
 package org.elasticsearch.painless.node;
 
-import org.elasticsearch.painless.Locals;
+import org.elasticsearch.painless.Scope;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.ir.CastNode;
+import org.elasticsearch.painless.ir.ClassNode;
 import org.elasticsearch.painless.ir.TypeNode;
 import org.elasticsearch.painless.lookup.PainlessCast;
 import org.elasticsearch.painless.lookup.PainlessLookupUtility;
@@ -51,18 +52,18 @@ final class ECast extends AExpression {
     }
 
     @Override
-    void analyze(ScriptRoot scriptRoot, Locals locals) {
+    void analyze(ScriptRoot scriptRoot, Scope scope) {
         throw createError(new IllegalStateException("Illegal tree structure."));
     }
 
     @Override
-    CastNode write() {
+    CastNode write(ClassNode classNode) {
         return new CastNode()
                 .setTypeNode(new TypeNode()
                         .setLocation(location)
                         .setType(actual)
                 )
-                .setChildNode(child.write())
+                .setChildNode(child.write(classNode))
                 .setLocation(location)
                 .setCast(cast);
     }

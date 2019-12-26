@@ -19,8 +19,9 @@
 
 package org.elasticsearch.painless.node;
 
-import org.elasticsearch.painless.Locals;
+import org.elasticsearch.painless.Scope;
 import org.elasticsearch.painless.Location;
+import org.elasticsearch.painless.ir.ClassNode;
 import org.elasticsearch.painless.ir.ThrowNode;
 import org.elasticsearch.painless.symbol.ScriptRoot;
 
@@ -46,10 +47,10 @@ public final class SThrow extends AStatement {
     }
 
     @Override
-    void analyze(ScriptRoot scriptRoot, Locals locals) {
+    void analyze(ScriptRoot scriptRoot, Scope scope) {
         expression.expected = Exception.class;
-        expression.analyze(scriptRoot, locals);
-        expression = expression.cast(scriptRoot, locals);
+        expression.analyze(scriptRoot, scope);
+        expression = expression.cast(scriptRoot, scope);
 
         methodEscape = true;
         loopEscape = true;
@@ -58,9 +59,9 @@ public final class SThrow extends AStatement {
     }
 
     @Override
-    ThrowNode write() {
+    ThrowNode write(ClassNode classNode) {
         return new ThrowNode()
-                .setExpressionNode(expression.write())
+                .setExpressionNode(expression.write(classNode))
                 .setLocation(location);
     }
 
