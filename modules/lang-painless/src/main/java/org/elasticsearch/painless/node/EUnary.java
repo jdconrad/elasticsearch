@@ -20,9 +20,9 @@
 package org.elasticsearch.painless.node;
 
 import org.elasticsearch.painless.AnalyzerCaster;
-import org.elasticsearch.painless.Scope;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.Operation;
+import org.elasticsearch.painless.Scope;
 import org.elasticsearch.painless.ir.ClassNode;
 import org.elasticsearch.painless.ir.TypeNode;
 import org.elasticsearch.painless.ir.UnaryMathNode;
@@ -32,7 +32,6 @@ import org.elasticsearch.painless.lookup.def;
 import org.elasticsearch.painless.symbol.ScriptRoot;
 
 import java.util.Objects;
-import java.util.Set;
 
 /**
  * Represents a unary math expression.
@@ -50,11 +49,6 @@ public final class EUnary extends AExpression {
 
         this.operation = Objects.requireNonNull(operation);
         this.child = Objects.requireNonNull(child);
-    }
-
-    @Override
-    void extractVariables(Set<String> variables) {
-        child.extractVariables(variables);
     }
 
     @Override
