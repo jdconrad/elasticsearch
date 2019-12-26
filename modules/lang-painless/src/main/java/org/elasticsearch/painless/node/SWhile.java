@@ -103,7 +103,6 @@ public final class SWhile extends AStatement {
                 .setConditionNode(condition.write())
                 .setBlockNode(block == null ? null : block.write())
                 .setLocation(location)
-                .setLoopCounter(loopCounter)
                 .setContinuous(continuous);
     }
 
