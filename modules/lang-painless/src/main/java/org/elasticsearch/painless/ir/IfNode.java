@@ -23,6 +23,7 @@ import org.elasticsearch.painless.ClassWriter;
 import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.symbol.ScopeTable;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.Opcodes;
 
@@ -57,17 +58,17 @@ public class IfNode extends ConditionNode {
     }
 
     @Override
-    protected void write(ClassWriter classWriter, MethodWriter methodWriter, Globals globals) {
+    protected void write(ClassWriter classWriter, MethodWriter methodWriter, Globals globals, ScopeTable scopeTable) {
         methodWriter.writeStatementOffset(location);
 
         Label fals = new Label();
 
-        conditionNode.write(classWriter, methodWriter, globals);
+        conditionNode.write(classWriter, methodWriter, globals, scopeTable);
         methodWriter.ifZCmp(Opcodes.IFEQ, fals);
 
         blockNode.continueLabel = continueLabel;
         blockNode.breakLabel = breakLabel;
-        blockNode.write(classWriter, methodWriter, globals);
+        blockNode.write(classWriter, methodWriter, globals, scopeTable.newScope());
 
         methodWriter.mark(fals);
     }

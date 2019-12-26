@@ -88,11 +88,12 @@ final class SSubEachIterable extends AStatement {
                 .setConditionNode(expression.write())
                 .setBlockNode(block.write())
                 .setLocation(location)
-                .setVariable(variable)
+                .setVariableType(variable.clazz)
+                .setVariableName(variable.name)
                 .setCast(cast)
-                .setIterator(iterator)
+                .setIteratorType(iterator.clazz)
+                .setIteratorName(iterator.name)
                 .setMethod(method)
-                .setLoopCounter(loopCounter)
                 .setContinuous(false);
     }
 
