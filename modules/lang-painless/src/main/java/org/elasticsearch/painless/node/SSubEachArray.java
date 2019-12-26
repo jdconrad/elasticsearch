@@ -20,13 +20,13 @@
 package org.elasticsearch.painless.node;
 
 import org.elasticsearch.painless.AnalyzerCaster;
-import org.elasticsearch.painless.Locals;
-import org.elasticsearch.painless.Locals.Variable;
+import org.elasticsearch.painless.Scope;
+import org.elasticsearch.painless.Scope.Variable;
 import org.elasticsearch.painless.Location;
+import org.elasticsearch.painless.ir.ClassNode;
 import org.elasticsearch.painless.ir.ForEachSubArrayNode;
 import org.elasticsearch.painless.ir.TypeNode;
 import org.elasticsearch.painless.lookup.PainlessCast;
-import org.elasticsearch.painless.lookup.PainlessLookupUtility;
 import org.elasticsearch.painless.symbol.ScriptRoot;
 
 import java.util.Objects;
@@ -59,37 +59,37 @@ final class SSubEachArray extends AStatement {
     }
 
     @Override
-    void analyze(ScriptRoot scriptRoot, Locals locals) {
+    void analyze(ScriptRoot scriptRoot, Scope scope) {
         // We must store the array and index as variables for securing slots on the stack, and
         // also add the location offset to make the names unique in case of nested for each loops.
-        array = locals.addVariable(location, expression.actual, "#array" + location.getOffset(), true);
-        index = locals.addVariable(location, int.class, "#index" + location.getOffset(), true);
+        array = scope.defineVariable(location, expression.actual, "#array" + location.getOffset(), true);
+        index = scope.defineVariable(location, int.class, "#index" + location.getOffset(), true);
         indexed = expression.actual.getComponentType();
-        cast = AnalyzerCaster.getLegalCast(location, indexed, variable.clazz, true, true);
+        cast = AnalyzerCaster.getLegalCast(location, indexed, variable.getType(), true, true);
     }
 
     @Override
-    ForEachSubArrayNode write() {
+    ForEachSubArrayNode write(ClassNode classNode) {
         return new ForEachSubArrayNode()
-                .setConditionNode(expression.write())
-                .setBlockNode(block.write())
+                .setConditionNode(expression.write(classNode))
+                .setBlockNode(block.write(classNode))
                 .setIndexedTypeNode(new TypeNode()
                         .setLocation(location)
                         .setType(indexed)
                 )
                 .setLocation(location)
-                .setVariableType(variable.clazz)
-                .setVariableName(variable.name)
+                .setVariableType(variable.getType())
+                .setVariableName(variable.getName())
                 .setCast(cast)
-                .setArrayType(array.clazz)
-                .setArrayName(array.name)
-                .setIndexType(index.clazz)
-                .setIndexName(index.name)
+                .setArrayType(array.getType())
+                .setArrayName(array.getName())
+                .setIndexType(index.getType())
+                .setIndexName(index.getName())
                 .setContinuous(false);
     }
 
     @Override
     public String toString() {
-        return singleLineToString(PainlessLookupUtility.typeToCanonicalTypeName(variable.clazz), variable.name, expression, block);
+        return singleLineToString(variable.getCanonicalTypeName(), variable.getName(), expression, block);
     }
 }

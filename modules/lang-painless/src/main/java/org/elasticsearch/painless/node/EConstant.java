@@ -19,8 +19,9 @@
 
 package org.elasticsearch.painless.node;
 
-import org.elasticsearch.painless.Locals;
+import org.elasticsearch.painless.Scope;
 import org.elasticsearch.painless.Location;
+import org.elasticsearch.painless.ir.ClassNode;
 import org.elasticsearch.painless.ir.ConstantNode;
 import org.elasticsearch.painless.ir.TypeNode;
 import org.elasticsearch.painless.symbol.ScriptRoot;
@@ -45,7 +46,7 @@ final class EConstant extends AExpression {
     }
 
     @Override
-    void analyze(ScriptRoot scriptRoot, Locals locals) {
+    void analyze(ScriptRoot scriptRoot, Scope scope) {
         if (constant instanceof String) {
             actual = String.class;
         } else if (constant instanceof Double) {
@@ -70,7 +71,7 @@ final class EConstant extends AExpression {
     }
 
     @Override
-    ConstantNode write() {
+    ConstantNode write(ClassNode classNode) {
         return new ConstantNode()
                 .setTypeNode(new TypeNode()
                         .setLocation(location)
