@@ -20,9 +20,9 @@
 package org.elasticsearch.painless.node;
 
 import org.elasticsearch.painless.Constant;
-import org.elasticsearch.painless.Scope;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.Scope;
 import org.elasticsearch.painless.WriterConstants;
 import org.elasticsearch.painless.ir.ClassNode;
 import org.elasticsearch.painless.ir.RegexNode;
@@ -30,7 +30,6 @@ import org.elasticsearch.painless.ir.TypeNode;
 import org.elasticsearch.painless.symbol.ScriptRoot;
 
 import java.lang.reflect.Modifier;
-import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
@@ -55,11 +54,6 @@ public final class ERegex extends AExpression {
         }
 
         this.flags = flags;
-    }
-
-    @Override
-    void extractVariables(Set<String> variables) {
-        // Do nothing.
     }
 
     @Override

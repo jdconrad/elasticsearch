@@ -20,14 +20,12 @@
 package org.elasticsearch.painless.node;
 
 import org.elasticsearch.painless.AnalyzerCaster;
-import org.elasticsearch.painless.Scope;
 import org.elasticsearch.painless.Location;
+import org.elasticsearch.painless.Scope;
 import org.elasticsearch.painless.ir.ClassNode;
 import org.elasticsearch.painless.ir.ElvisNode;
 import org.elasticsearch.painless.ir.TypeNode;
 import org.elasticsearch.painless.symbol.ScriptRoot;
-
-import java.util.Set;
 
 import static java.util.Objects.requireNonNull;
 
@@ -44,12 +42,6 @@ public class EElvis extends AExpression {
 
         this.lhs = requireNonNull(lhs);
         this.rhs = requireNonNull(rhs);
-    }
-
-    @Override
-    void extractVariables(Set<String> variables) {
-        lhs.extractVariables(variables);
-        rhs.extractVariables(variables);
     }
 
     @Override
