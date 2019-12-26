@@ -19,8 +19,9 @@
 
 package org.elasticsearch.painless.node;
 
-import org.elasticsearch.painless.Locals;
+import org.elasticsearch.painless.Scope;
 import org.elasticsearch.painless.Location;
+import org.elasticsearch.painless.ir.ClassNode;
 import org.elasticsearch.painless.ir.MapInitializationNode;
 import org.elasticsearch.painless.ir.TypeNode;
 import org.elasticsearch.painless.lookup.PainlessConstructor;
@@ -63,7 +64,7 @@ public final class EMapInit extends AExpression {
     }
 
     @Override
-    void analyze(ScriptRoot scriptRoot, Locals locals) {
+    void analyze(ScriptRoot scriptRoot, Scope scope) {
         if (!read) {
             throw createError(new IllegalArgumentException("Must read from map initializerNode."));
         }
@@ -92,8 +93,8 @@ public final class EMapInit extends AExpression {
 
             expression.expected = def.class;
             expression.internal = true;
-            expression.analyze(scriptRoot, locals);
-            keys.set(index, expression.cast(scriptRoot, locals));
+            expression.analyze(scriptRoot, scope);
+            keys.set(index, expression.cast(scriptRoot, scope));
         }
 
         for (int index = 0; index < values.size(); ++index) {
@@ -101,13 +102,13 @@ public final class EMapInit extends AExpression {
 
             expression.expected = def.class;
             expression.internal = true;
-            expression.analyze(scriptRoot, locals);
-            values.set(index, expression.cast(scriptRoot, locals));
+            expression.analyze(scriptRoot, scope);
+            values.set(index, expression.cast(scriptRoot, scope));
         }
     }
 
     @Override
-    MapInitializationNode write() {
+    MapInitializationNode write(ClassNode classNode) {
         MapInitializationNode mapInitializationNode = new MapInitializationNode()
                 .setTypeNode(new TypeNode()
                         .setLocation(location)
@@ -118,7 +119,7 @@ public final class EMapInit extends AExpression {
                 .setMethod(method);
 
         for (int index = 0; index < keys.size(); ++index) {
-            mapInitializationNode.addArgumentNode(keys.get(index).write(), values.get(index).write());
+            mapInitializationNode.addArgumentNode(keys.get(index).write(classNode), values.get(index).write(classNode));
         }
 
         return mapInitializationNode;
