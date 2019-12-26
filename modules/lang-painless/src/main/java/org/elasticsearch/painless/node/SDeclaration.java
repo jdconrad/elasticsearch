@@ -23,6 +23,7 @@ import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Locals.Variable;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.ir.DeclarationNode;
+import org.elasticsearch.painless.ir.TypeNode;
 import org.elasticsearch.painless.symbol.ScriptRoot;
 
 import java.util.Objects;
@@ -74,7 +75,11 @@ public final class SDeclaration extends AStatement {
         return new DeclarationNode()
                 .setExpressionNode(expression == null ? null : expression.write())
                 .setLocation(location)
-                .setVariable(variable);
+                .setDeclarationTypeNode(new TypeNode()
+                        .setLocation(location)
+                        .setType(variable.clazz)
+                )
+                .setName(name);
     }
 
     @Override

@@ -21,9 +21,10 @@ package org.elasticsearch.painless.ir;
 
 import org.elasticsearch.painless.ClassWriter;
 import org.elasticsearch.painless.Globals;
-import org.elasticsearch.painless.Locals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.symbol.ScopeTable;
+import org.elasticsearch.painless.symbol.ScopeTable.Variable;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.Opcodes;
 
@@ -52,12 +53,6 @@ public class DoWhileLoopNode extends LoopNode {
     }
 
     @Override
-    public DoWhileLoopNode setLoopCounter(Locals.Variable loopCounter) {
-        super.setLoopCounter(loopCounter);
-        return this;
-    }
-
-    @Override
     public DoWhileLoopNode setLocation(Location location) {
         super.setLocation(location);
         return this;
@@ -70,8 +65,10 @@ public class DoWhileLoopNode extends LoopNode {
     }
 
     @Override
-    protected void write(ClassWriter classWriter, MethodWriter methodWriter, Globals globals) {
+    protected void write(ClassWriter classWriter, MethodWriter methodWriter, Globals globals, ScopeTable scopeTable) {
         methodWriter.writeStatementOffset(location);
+
+        scopeTable = scopeTable.newScope();
 
         Label start = new Label();
         Label begin = new Label();
@@ -81,17 +78,19 @@ public class DoWhileLoopNode extends LoopNode {
 
         blockNode.continueLabel = begin;
         blockNode.breakLabel = end;
-        blockNode.write(classWriter, methodWriter, globals);
+        blockNode.write(classWriter, methodWriter, globals, scopeTable);
 
         methodWriter.mark(begin);
 
         if (!isContinuous) {
-            conditionNode.write(classWriter, methodWriter, globals);
+            conditionNode.write(classWriter, methodWriter, globals, scopeTable);
             methodWriter.ifZCmp(Opcodes.IFEQ, end);
         }
 
-        if (loopCounter != null) {
-            methodWriter.writeLoopCounter(loopCounter.getSlot(), Math.max(1, blockNode.getStatementCount()), location);
+        Variable loop = scopeTable.getVariable("#loop");
+
+        if (loop != null) {
+            methodWriter.writeLoopCounter(loop.getSlot(), Math.max(1, blockNode.getStatementCount()), location);
         }
 
         methodWriter.goTo(start);
