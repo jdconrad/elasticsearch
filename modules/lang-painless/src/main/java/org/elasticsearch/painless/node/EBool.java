@@ -19,10 +19,11 @@
 
 package org.elasticsearch.painless.node;
 
-import org.elasticsearch.painless.Locals;
+import org.elasticsearch.painless.Scope;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.Operation;
 import org.elasticsearch.painless.ir.BooleanNode;
+import org.elasticsearch.painless.ir.ClassNode;
 import org.elasticsearch.painless.ir.TypeNode;
 import org.elasticsearch.painless.symbol.ScriptRoot;
 
@@ -53,14 +54,14 @@ public final class EBool extends AExpression {
     }
 
     @Override
-    void analyze(ScriptRoot scriptRoot, Locals locals) {
+    void analyze(ScriptRoot scriptRoot, Scope scope) {
         left.expected = boolean.class;
-        left.analyze(scriptRoot, locals);
-        left = left.cast(scriptRoot, locals);
+        left.analyze(scriptRoot, scope);
+        left = left.cast(scriptRoot, scope);
 
         right.expected = boolean.class;
-        right.analyze(scriptRoot, locals);
-        right = right.cast(scriptRoot, locals);
+        right.analyze(scriptRoot, scope);
+        right = right.cast(scriptRoot, scope);
 
         if (left.constant != null && right.constant != null) {
             if (operation == Operation.AND) {
@@ -76,14 +77,14 @@ public final class EBool extends AExpression {
     }
 
     @Override
-    BooleanNode write() {
+    BooleanNode write(ClassNode classNode) {
         return new BooleanNode()
                 .setTypeNode(new TypeNode()
                         .setLocation(location)
                         .setType(actual)
                 )
-                .setLeftNode(left.write())
-                .setRightNode(right.write())
+                .setLeftNode(left.write(classNode))
+                .setRightNode(right.write(classNode))
                 .setLocation(location)
                 .setOperation(operation);
     }

@@ -19,8 +19,9 @@
 
 package org.elasticsearch.painless.node;
 
-import org.elasticsearch.painless.Locals;
+import org.elasticsearch.painless.Scope;
 import org.elasticsearch.painless.Location;
+import org.elasticsearch.painless.ir.ClassNode;
 import org.elasticsearch.painless.ir.DotSubShortcutNode;
 import org.elasticsearch.painless.ir.TypeNode;
 import org.elasticsearch.painless.lookup.PainlessMethod;
@@ -53,7 +54,7 @@ final class PSubShortcut extends AStoreable {
     }
 
     @Override
-    void analyze(ScriptRoot scriptRoot, Locals locals) {
+    void analyze(ScriptRoot scriptRoot, Scope scope) {
         if (getter != null && (getter.returnType == void.class || !getter.typeParameters.isEmpty())) {
             throw createError(new IllegalArgumentException(
                 "Illegal get shortcut on field [" + value + "] for type [" + type + "]."));
@@ -76,7 +77,7 @@ final class PSubShortcut extends AStoreable {
     }
 
     @Override
-    DotSubShortcutNode write() {
+    DotSubShortcutNode write(ClassNode classNode) {
         return new DotSubShortcutNode()
                 .setTypeNode(new TypeNode()
                         .setLocation(location)
