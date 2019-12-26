@@ -19,14 +19,12 @@
 
 package org.elasticsearch.painless.node;
 
-import org.elasticsearch.painless.Scope;
 import org.elasticsearch.painless.Location;
+import org.elasticsearch.painless.Scope;
 import org.elasticsearch.painless.ir.ClassNode;
 import org.elasticsearch.painless.ir.NullSafeSubNode;
 import org.elasticsearch.painless.ir.TypeNode;
 import org.elasticsearch.painless.symbol.ScriptRoot;
-
-import java.util.Set;
 
 import static java.util.Objects.requireNonNull;
 
@@ -42,11 +40,6 @@ public class PSubNullSafeCallInvoke extends AExpression {
     public PSubNullSafeCallInvoke(Location location, AExpression guarded) {
         super(location);
         this.guarded = requireNonNull(guarded);
-    }
-
-    @Override
-    void extractVariables(Set<String> variables) {
-        throw createError(new IllegalStateException("illegal tree structure"));
     }
 
     @Override

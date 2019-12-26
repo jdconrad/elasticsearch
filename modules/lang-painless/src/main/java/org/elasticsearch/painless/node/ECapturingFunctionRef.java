@@ -20,9 +20,9 @@
 package org.elasticsearch.painless.node;
 
 import org.elasticsearch.painless.FunctionRef;
+import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.Scope;
 import org.elasticsearch.painless.Scope.Variable;
-import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.ir.CapturingFuncRefNode;
 import org.elasticsearch.painless.ir.ClassNode;
 import org.elasticsearch.painless.ir.TypeNode;
@@ -32,7 +32,6 @@ import org.elasticsearch.painless.symbol.ScriptRoot;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 
 /**
  * Represents a capturing function reference.  For member functions that require a this reference, ie not static.
@@ -50,11 +49,6 @@ public final class ECapturingFunctionRef extends AExpression implements ILambda 
 
         this.variable = Objects.requireNonNull(variable);
         this.call = Objects.requireNonNull(call);
-    }
-
-    @Override
-    void extractVariables(Set<String> variables) {
-        variables.add(variable);
     }
 
     @Override
