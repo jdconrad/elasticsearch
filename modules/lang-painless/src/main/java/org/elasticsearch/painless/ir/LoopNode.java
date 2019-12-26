@@ -19,7 +19,6 @@
 
 package org.elasticsearch.painless.ir;
 
-import org.elasticsearch.painless.Locals.Variable;
 import org.elasticsearch.painless.Location;
 
 public abstract class LoopNode extends ConditionNode {
@@ -41,7 +40,6 @@ public abstract class LoopNode extends ConditionNode {
     /* ---- end tree structure, begin node data ---- */
 
     protected boolean isContinuous;
-    protected Variable loopCounter;
 
     public LoopNode setContinuous(boolean isContinuous) {
         this.isContinuous = isContinuous;
@@ -50,15 +48,6 @@ public abstract class LoopNode extends ConditionNode {
 
     public boolean isContinuous() {
         return isContinuous;
-    }
-
-    public LoopNode setLoopCounter(Variable loopCounter) {
-        this.loopCounter = loopCounter;
-        return this;
-    }
-
-    public Variable getLoopCounter() {
-        return loopCounter;
     }
 
     @Override

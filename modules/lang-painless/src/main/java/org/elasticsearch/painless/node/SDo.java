@@ -99,7 +99,6 @@ public final class SDo extends AStatement {
                 .setConditionNode(condition.write())
                 .setBlockNode(block.write())
                 .setLocation(location)
-                .setLoopCounter(loopCounter)
                 .setContinuous(continuous);
     }
 

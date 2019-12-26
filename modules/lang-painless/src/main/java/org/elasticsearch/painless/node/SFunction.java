@@ -148,9 +148,9 @@ public final class SFunction extends AStatement {
                 .setName(name)
                 .setReturnType(returnType)
                 .addTypeParameters(typeParameters)
+                .addParameterNames(paramNameStrs)
                 .setSynthetic(synthetic)
                 .setMethodEscape(methodEscape)
-                .setLoopCounter(loopCounter)
                 .setMaxLoopCounter(maxLoopCounter);
     }
 

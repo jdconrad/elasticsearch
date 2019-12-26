@@ -21,16 +21,35 @@ package org.elasticsearch.painless.ir;
 
 import org.elasticsearch.painless.ClassWriter;
 import org.elasticsearch.painless.Globals;
-import org.elasticsearch.painless.Locals.Variable;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.symbol.ScopeTable;
+import org.elasticsearch.painless.symbol.ScopeTable.Variable;
 import org.objectweb.asm.Opcodes;
 
 public class DeclarationNode extends StatementNode {
 
     /* ---- begin tree structure ---- */
 
+    protected TypeNode declarationTypeNode;
     protected ExpressionNode expressionNode;
+
+    public DeclarationNode setDeclarationTypeNode(TypeNode declarationTypeNode) {
+        this.declarationTypeNode = declarationTypeNode;
+        return this;
+    }
+
+    public TypeNode getDeclarationTypeNode() {
+        return declarationTypeNode;
+    }
+
+    public Class<?> getDeclarationType() {
+        return declarationTypeNode.getType();
+    }
+
+    public String getDeclarationCanonicalTypeName() {
+        return declarationTypeNode.getCanonicalTypeName();
+    }
 
     public DeclarationNode setExpressionNode(ExpressionNode childNode) {
         this.expressionNode = childNode;
@@ -43,15 +62,15 @@ public class DeclarationNode extends StatementNode {
 
     /* ---- end tree structure, begin node data ---- */
 
-    protected Variable variable;
+    protected String name;
 
-    public DeclarationNode setVariable(Variable variable) {
-        this.variable = variable;
+    public DeclarationNode setName(String name) {
+        this.name = name;
         return this;
     }
 
-    public Variable getVariable() {
-        return variable;
+    public String getName() {
+        return name;
     }
 
     @Override
@@ -67,11 +86,13 @@ public class DeclarationNode extends StatementNode {
     }
 
     @Override
-    protected void write(ClassWriter classWriter, MethodWriter methodWriter, Globals globals) {
+    protected void write(ClassWriter classWriter, MethodWriter methodWriter, Globals globals, ScopeTable scopeTable) {
         methodWriter.writeStatementOffset(location);
 
+        Variable variable = scopeTable.defineVariable(getDeclarationType(), name);
+
         if (expressionNode == null) {
-            Class<?> sort = variable.clazz;
+            Class<?> sort = variable.getType();
 
             if (sort == void.class || sort == boolean.class || sort == byte.class ||
                 sort == short.class || sort == char.class || sort == int.class) {
@@ -86,9 +107,9 @@ public class DeclarationNode extends StatementNode {
                 methodWriter.visitInsn(Opcodes.ACONST_NULL);
             }
         } else {
-            expressionNode.write(classWriter, methodWriter, globals);
+            expressionNode.write(classWriter, methodWriter, globals, scopeTable);
         }
 
-        methodWriter.visitVarInsn(MethodWriter.getType(variable.clazz).getOpcode(Opcodes.ISTORE), variable.getSlot());
+        methodWriter.visitVarInsn(variable.getAsmType().getOpcode(Opcodes.ISTORE), variable.getSlot());
     }
 }

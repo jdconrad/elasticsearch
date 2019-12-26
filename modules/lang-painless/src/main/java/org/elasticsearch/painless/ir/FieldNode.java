@@ -23,6 +23,7 @@ import org.elasticsearch.painless.ClassWriter;
 import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.symbol.ScopeTable;
 import org.objectweb.asm.Type;
 
 public class FieldNode extends IRNode {
@@ -94,7 +95,7 @@ public class FieldNode extends IRNode {
     }
 
     @Override
-    protected void write(ClassWriter classWriter, MethodWriter methodWriter, Globals globals) {
+    protected void write(ClassWriter classWriter, MethodWriter methodWriter, Globals globals, ScopeTable scopeTable) {
         classWriter.getClassVisitor().visitField(
                 ClassWriter.buildAccess(modifiers, true), name, Type.getType(getType()).getDescriptor(), null, null).visitEnd();
     }

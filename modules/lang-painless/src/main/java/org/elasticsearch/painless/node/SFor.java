@@ -158,7 +158,6 @@ public final class SFor extends AStatement {
                 .setAfterthoughtNode(afterthought == null ? null : afterthought.write())
                 .setBlockNode(block == null ? null : block.write())
                 .setLocation(location)
-                .setLoopCounter(loopCounter)
                 .setContinuous(continuous);
     }
 

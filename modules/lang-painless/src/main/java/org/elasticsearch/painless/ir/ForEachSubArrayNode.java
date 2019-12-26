@@ -21,10 +21,11 @@ package org.elasticsearch.painless.ir;
 
 import org.elasticsearch.painless.ClassWriter;
 import org.elasticsearch.painless.Globals;
-import org.elasticsearch.painless.Locals.Variable;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.lookup.PainlessCast;
+import org.elasticsearch.painless.symbol.ScopeTable;
+import org.elasticsearch.painless.symbol.ScopeTable.Variable;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.Opcodes;
 
@@ -65,18 +66,30 @@ public class ForEachSubArrayNode extends LoopNode {
 
     /* ---- begin node data ---- */
 
-    protected Variable variable;
+    protected Class<?> variableType;
+    protected String variableName;
     protected PainlessCast cast;
-    protected Variable array;
-    protected Variable index;
+    protected Class<?> arrayType;
+    protected String arrayName;
+    protected Class<?> indexType;
+    protected String indexName;
 
-    public ForEachSubArrayNode setVariable(Variable variable) {
-        this.variable = variable;
+    public ForEachSubArrayNode setVariableType(Class<?> variableType) {
+        this.variableType = variableType;
         return this;
     }
 
-    public Variable getVariable() {
-        return this.variable;
+    public Class<?> getVariableType() {
+        return variableType;
+    }
+    
+    public ForEachSubArrayNode setVariableName(String variableName) {
+        this.variableName = variableName;
+        return this;
+    }
+
+    public String getVariableName() {
+        return variableName;
     }
 
     public ForEachSubArrayNode setCast(PainlessCast cast) {
@@ -88,33 +101,45 @@ public class ForEachSubArrayNode extends LoopNode {
         return cast;
     }
 
-    public ForEachSubArrayNode setArray(Variable array) {
-        this.array = array;
+    public ForEachSubArrayNode setArrayType(Class<?> arrayType) {
+        this.arrayType = arrayType;
         return this;
     }
 
-    public Variable getArray() {
-        return this.array;
+    public Class<?> getArrayType() {
+        return arrayType;
     }
 
-    public ForEachSubArrayNode setIndex(Variable index) {
-        this.index = index;
+    public ForEachSubArrayNode setArrayName(String arrayName) {
+        this.arrayName = arrayName;
         return this;
     }
 
-    public Variable getIndex() {
-        return this.index;
+    public String getArrayName() {
+        return arrayName;
     }
 
+    public ForEachSubArrayNode setIndexType(Class<?> indexType) {
+        this.indexType = indexType;
+        return this;
+    }
+
+    public Class<?> getIndexType() {
+        return indexType;
+    }
+
+    public ForEachSubArrayNode setIndexName(String indexName) {
+        this.indexName = indexName;
+        return this;
+    }
+
+    public String getIndexName() {
+        return indexName;
+    }
+    
     @Override
     public ForEachSubArrayNode setContinuous(boolean isContinuous) {
         super.setContinuous(isContinuous);
-        return this;
-    }
-
-    @Override
-    public ForEachSubArrayNode setLoopCounter(Variable loopCounter) {
-        super.setLoopCounter(loopCounter);
         return this;
     }
 
@@ -131,13 +156,17 @@ public class ForEachSubArrayNode extends LoopNode {
     }
 
     @Override
-    protected void write(ClassWriter classWriter, MethodWriter methodWriter, Globals globals) {
+    protected void write(ClassWriter classWriter, MethodWriter methodWriter, Globals globals, ScopeTable scopeTable) {
         methodWriter.writeStatementOffset(location);
 
-        conditionNode.write(classWriter, methodWriter, globals);
-        methodWriter.visitVarInsn(MethodWriter.getType(array.clazz).getOpcode(Opcodes.ISTORE), array.getSlot());
+        Variable variable = scopeTable.defineVariable(variableType, variableName);
+        Variable array = scopeTable.defineVariable(arrayType, arrayName);
+        Variable index = scopeTable.defineVariable(indexType, indexName);
+
+        conditionNode.write(classWriter, methodWriter, globals, scopeTable);
+        methodWriter.visitVarInsn(array.getAsmType().getOpcode(Opcodes.ISTORE), array.getSlot());
         methodWriter.push(-1);
-        methodWriter.visitVarInsn(MethodWriter.getType(index.clazz).getOpcode(Opcodes.ISTORE), index.getSlot());
+        methodWriter.visitVarInsn(index.getAsmType().getOpcode(Opcodes.ISTORE), index.getSlot());
 
         Label begin = new Label();
         Label end = new Label();
@@ -145,24 +174,26 @@ public class ForEachSubArrayNode extends LoopNode {
         methodWriter.mark(begin);
 
         methodWriter.visitIincInsn(index.getSlot(), 1);
-        methodWriter.visitVarInsn(MethodWriter.getType(index.clazz).getOpcode(Opcodes.ILOAD), index.getSlot());
-        methodWriter.visitVarInsn(MethodWriter.getType(array.clazz).getOpcode(Opcodes.ILOAD), array.getSlot());
+        methodWriter.visitVarInsn(index.getAsmType().getOpcode(Opcodes.ILOAD), index.getSlot());
+        methodWriter.visitVarInsn(array.getAsmType().getOpcode(Opcodes.ILOAD), array.getSlot());
         methodWriter.arrayLength();
         methodWriter.ifICmp(MethodWriter.GE, end);
 
-        methodWriter.visitVarInsn(MethodWriter.getType(array.clazz).getOpcode(Opcodes.ILOAD), array.getSlot());
-        methodWriter.visitVarInsn(MethodWriter.getType(index.clazz).getOpcode(Opcodes.ILOAD), index.getSlot());
+        methodWriter.visitVarInsn(array.getAsmType().getOpcode(Opcodes.ILOAD), array.getSlot());
+        methodWriter.visitVarInsn(index.getAsmType().getOpcode(Opcodes.ILOAD), index.getSlot());
         methodWriter.arrayLoad(MethodWriter.getType(getIndexedType()));
         methodWriter.writeCast(cast);
-        methodWriter.visitVarInsn(MethodWriter.getType(variable.clazz).getOpcode(Opcodes.ISTORE), variable.getSlot());
+        methodWriter.visitVarInsn(variable.getAsmType().getOpcode(Opcodes.ISTORE), variable.getSlot());
 
-        if (loopCounter != null) {
-            methodWriter.writeLoopCounter(loopCounter.getSlot(), blockNode.getStatementCount(), location);
+        Variable loop = scopeTable.getVariable("#loop");
+
+        if (loop != null) {
+            methodWriter.writeLoopCounter(loop.getSlot(), blockNode.getStatementCount(), location);
         }
 
         blockNode.continueLabel = begin;
         blockNode.breakLabel = end;
-        blockNode.write(classWriter, methodWriter, globals);
+        blockNode.write(classWriter, methodWriter, globals, scopeTable);
 
         methodWriter.goTo(begin);
         methodWriter.mark(end);
