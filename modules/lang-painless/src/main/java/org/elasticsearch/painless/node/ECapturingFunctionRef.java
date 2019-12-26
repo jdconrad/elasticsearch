@@ -88,7 +88,7 @@ public final class ECapturingFunctionRef extends AExpression implements ILambda 
                         .setType(actual)
                 )
                 .setLocation(location)
-                .setCaptured(captured)
+                .setCapturedName(captured.name)
                 .setName(call)
                 .setPointer(defPointer)
                 .setFuncRef(ref);
