@@ -19,8 +19,8 @@
 
 package org.elasticsearch.painless.node;
 
-import org.elasticsearch.painless.Scope;
 import org.elasticsearch.painless.Location;
+import org.elasticsearch.painless.Scope;
 import org.elasticsearch.painless.ir.CallSubDefNode;
 import org.elasticsearch.painless.ir.ClassNode;
 import org.elasticsearch.painless.ir.TypeNode;
@@ -31,7 +31,6 @@ import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 
 /**
  * Represents a method call made on a def type. (Internal only.)
@@ -50,11 +49,6 @@ final class PSubDefCall extends AExpression {
 
         this.name = Objects.requireNonNull(name);
         this.arguments = Objects.requireNonNull(arguments);
-    }
-
-    @Override
-    void extractVariables(Set<String> variables) {
-        throw createError(new IllegalStateException("Illegal tree structure."));
     }
 
     @Override

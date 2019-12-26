@@ -19,8 +19,8 @@
 
 package org.elasticsearch.painless.node;
 
-import org.elasticsearch.painless.Scope;
 import org.elasticsearch.painless.Location;
+import org.elasticsearch.painless.Scope;
 import org.elasticsearch.painless.ir.ClassNode;
 import org.elasticsearch.painless.ir.InstanceofNode;
 import org.elasticsearch.painless.ir.TypeNode;
@@ -28,7 +28,6 @@ import org.elasticsearch.painless.lookup.PainlessLookupUtility;
 import org.elasticsearch.painless.symbol.ScriptRoot;
 
 import java.util.Objects;
-import java.util.Set;
 
 /**
  * Represents {@code instanceof} operator.
@@ -47,11 +46,6 @@ public final class EInstanceof extends AExpression {
         super(location);
         this.expression = Objects.requireNonNull(expression);
         this.type = Objects.requireNonNull(type);
-    }
-
-    @Override
-    void extractVariables(Set<String> variables) {
-        expression.extractVariables(variables);
     }
 
     @Override
