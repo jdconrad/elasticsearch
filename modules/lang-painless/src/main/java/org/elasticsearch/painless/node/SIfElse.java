@@ -19,8 +19,9 @@
 
 package org.elasticsearch.painless.node;
 
-import org.elasticsearch.painless.Locals;
+import org.elasticsearch.painless.Scope;
 import org.elasticsearch.painless.Location;
+import org.elasticsearch.painless.ir.ClassNode;
 import org.elasticsearch.painless.ir.IfElseNode;
 import org.elasticsearch.painless.symbol.ScriptRoot;
 
@@ -61,10 +62,10 @@ public final class SIfElse extends AStatement {
     }
 
     @Override
-    void analyze(ScriptRoot scriptRoot, Locals locals) {
+    void analyze(ScriptRoot scriptRoot, Scope scope) {
         condition.expected = boolean.class;
-        condition.analyze(scriptRoot, locals);
-        condition = condition.cast(scriptRoot, locals);
+        condition.analyze(scriptRoot, scope);
+        condition = condition.cast(scriptRoot, scope);
 
         if (condition.constant != null) {
             throw createError(new IllegalArgumentException("Extraneous if statement."));
@@ -78,7 +79,7 @@ public final class SIfElse extends AStatement {
         ifblock.inLoop = inLoop;
         ifblock.lastLoop = lastLoop;
 
-        ifblock.analyze(scriptRoot, Locals.newLocalScope(locals));
+        ifblock.analyze(scriptRoot, scope.newLocalScope());
 
         anyContinue = ifblock.anyContinue;
         anyBreak = ifblock.anyBreak;
@@ -92,7 +93,7 @@ public final class SIfElse extends AStatement {
         elseblock.inLoop = inLoop;
         elseblock.lastLoop = lastLoop;
 
-        elseblock.analyze(scriptRoot, Locals.newLocalScope(locals));
+        elseblock.analyze(scriptRoot, scope.newLocalScope());
 
         methodEscape = ifblock.methodEscape && elseblock.methodEscape;
         loopEscape = ifblock.loopEscape && elseblock.loopEscape;
@@ -103,11 +104,11 @@ public final class SIfElse extends AStatement {
     }
 
     @Override
-    IfElseNode write() {
+    IfElseNode write(ClassNode classNode) {
         return new IfElseNode()
-                .setConditionNode(condition.write())
-                .setBlockNode(ifblock.write())
-                .setElseBlockNode(elseblock.write())
+                .setConditionNode(condition.write(classNode))
+                .setBlockNode(ifblock.write(classNode))
+                .setElseBlockNode(elseblock.write(classNode))
                 .setLocation(location);
     }
 

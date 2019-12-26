@@ -19,9 +19,10 @@
 
 package org.elasticsearch.painless.node;
 
-import org.elasticsearch.painless.Locals;
+import org.elasticsearch.painless.Scope;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.ir.BraceNode;
+import org.elasticsearch.painless.ir.ClassNode;
 import org.elasticsearch.painless.ir.TypeNode;
 import org.elasticsearch.painless.lookup.PainlessLookupUtility;
 import org.elasticsearch.painless.lookup.def;
@@ -54,10 +55,10 @@ public final class PBrace extends AStoreable {
     }
 
     @Override
-    void analyze(ScriptRoot scriptRoot, Locals locals) {
-        prefix.analyze(scriptRoot, locals);
+    void analyze(ScriptRoot scriptRoot, Scope scope) {
+        prefix.analyze(scriptRoot, scope);
         prefix.expected = prefix.actual;
-        prefix = prefix.cast(scriptRoot, locals);
+        prefix = prefix.cast(scriptRoot, scope);
 
         if (prefix.actual.isArray()) {
             sub = new PSubBrace(location, prefix.actual, index);
@@ -76,19 +77,19 @@ public final class PBrace extends AStoreable {
         sub.read = read;
         sub.expected = expected;
         sub.explicit = explicit;
-        sub.analyze(scriptRoot, locals);
+        sub.analyze(scriptRoot, scope);
         actual = sub.actual;
     }
 
     @Override
-    BraceNode write() {
+    BraceNode write(ClassNode classNode) {
         return new BraceNode()
                 .setTypeNode(new TypeNode()
                         .setLocation(location)
                         .setType(actual)
                 )
-                .setChildNode(sub.write())
-                .setPrefixNode(prefix.write())
+                .setChildNode(sub.write(classNode))
+                .setPrefixNode(prefix.write(classNode))
                 .setLocation(location);
     }
 
