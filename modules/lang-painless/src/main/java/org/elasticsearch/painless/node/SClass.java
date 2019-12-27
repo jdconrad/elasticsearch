@@ -21,11 +21,7 @@ package org.elasticsearch.painless.node;
 
 import org.elasticsearch.painless.CompilerSettings;
 import org.elasticsearch.painless.Location;
-import org.elasticsearch.painless.Scope;
-import org.elasticsearch.painless.Scope.FunctionScope;
-import org.elasticsearch.painless.Scope.LocalScope;
 import org.elasticsearch.painless.ScriptClassInfo;
-import org.elasticsearch.painless.ScriptClassInfo.MethodArgument;
 import org.elasticsearch.painless.ir.ClassNode;
 import org.elasticsearch.painless.ir.StatementNode;
 import org.elasticsearch.painless.lookup.PainlessLookup;
@@ -34,7 +30,6 @@ import org.elasticsearch.painless.symbol.ScriptRoot;
 import org.objectweb.asm.util.Printer;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -50,9 +45,6 @@ public final class SClass extends ANode {
     private final Printer debugStream;
     private final List<SFunction> functions = new ArrayList<>();
     private final List<SField> fields = new ArrayList<>();
-    private final List<AStatement> statements;
-
-    private CompilerSettings settings;
 
     private ScriptRoot scriptRoot;
     private final String sourceText;
@@ -61,13 +53,12 @@ public final class SClass extends ANode {
     private boolean allEscape;
 
     public SClass(ScriptClassInfo scriptClassInfo, String name, String sourceText, Printer debugStream,
-            Location location, List<SFunction> functions, List<AStatement> statements) {
+            Location location, List<SFunction> functions) {
         super(location);
         this.scriptClassInfo = Objects.requireNonNull(scriptClassInfo);
         this.name = Objects.requireNonNull(name);
         this.debugStream = debugStream;
         this.functions.addAll(Objects.requireNonNull(functions));
-        this.statements = Collections.unmodifiableList(statements);
         this.sourceText = Objects.requireNonNull(sourceText);
     }
 
@@ -80,7 +71,6 @@ public final class SClass extends ANode {
     }
 
     public ScriptRoot analyze(PainlessLookup painlessLookup, CompilerSettings settings) {
-        this.settings = settings;
         scriptRoot = new ScriptRoot(painlessLookup, settings, scriptClassInfo, this);
 
         for (SFunction function : functions) {
@@ -92,7 +82,7 @@ public final class SClass extends ANode {
                 throw createError(new IllegalArgumentException("Illegal duplicate functions [" + key + "]."));
             }
 
-            scriptRoot.getFunctionTable().addFunction(function.name, function.returnType, function.typeParameters, false);
+            scriptRoot.getFunctionTable().addFunction(function.name, function.returnType, function.typeParameters, true, false);
         }
 
         // copy protection is required because synthetic functions are
@@ -103,7 +93,7 @@ public final class SClass extends ANode {
             function.analyze(scriptRoot);
         }
 
-        if (statements == null || statements.isEmpty()) {
+        /*if (statements == null || statements.isEmpty()) {
             throw createError(new IllegalArgumentException("Cannot generate an empty script."));
         }
 
@@ -141,7 +131,7 @@ public final class SClass extends ANode {
             allEscape = statement.allEscape;
         }
 
-        scriptRoot.setUsedVariables(functionScope.getReadFrom());
+        scriptRoot.setUsedVariables(functionScope.getReadFrom());*/
 
         return scriptRoot;
     }
@@ -169,20 +159,13 @@ public final class SClass extends ANode {
             classNode.addFunctionNode(function.write(classNode));
         }
 
-        for (AStatement statement : statements) {
-            classNode.addStatementNode(statement.write(classNode));
-        }
-
         return classNode;
     }
 
-
-
     @Override
     public String toString() {
-        List<Object> subs = new ArrayList<>(functions.size() + statements.size());
+        List<Object> subs = new ArrayList<>(functions.size());
         subs.addAll(functions);
-        subs.addAll(statements);
         return multilineToString(emptyList(), subs);
     }
 }

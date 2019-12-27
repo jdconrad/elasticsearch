@@ -19,10 +19,10 @@
 
 package org.elasticsearch.painless.lookup;
 
-/** Marker class for def type to be used during type analysis. */
+/** Marker class for def type used during type analysis. */
 public final class def {
 
     private def() {
-
+        // do nothing
     }
 }

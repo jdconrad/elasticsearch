@@ -187,7 +187,7 @@ public final class ELambda extends AExpression implements ILambda {
 
         // desugar lambda body into a synthetic method
         name = scriptRoot.getNextSyntheticName("lambda");
-        scriptRoot.getFunctionTable().addFunction(name, returnType, this.typeParameters, true);
+        scriptRoot.getFunctionTable().addFunction(name, returnType, this.typeParameters, true, true);
 
         // setup method reference to synthetic method
         if (expected == null) {
@@ -211,6 +211,8 @@ public final class ELambda extends AExpression implements ILambda {
                 .setReturnType(returnType)
                 .addTypeParameters(typeParameters)
                 .addParameterNames(parameterNames)
+                .setAutoReturn(false)
+                .setStatic(true)
                 .setSynthetic(true)
                 .setMethodEscape(methodEscape)
                 .setMaxLoopCounter(maxLoopCounter)

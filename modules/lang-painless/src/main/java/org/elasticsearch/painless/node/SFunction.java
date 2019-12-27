@@ -46,6 +46,8 @@ public final class SFunction extends ANode {
     private final List<String> paramTypeStrs;
     private final List<String> paramNameStrs;
     private final SBlock block;
+    public final boolean doAutoReturn;
+    public final boolean isStatic;
     public final boolean synthetic;
 
     private int maxLoopCounter;
@@ -58,9 +60,8 @@ public final class SFunction extends ANode {
 
     private boolean methodEscape;
 
-    public SFunction(Location location, String rtnType, String name,
-            List<String> paramTypes, List<String> paramNames,
-            SBlock block, boolean synthetic) {
+    public SFunction(Location location, String rtnType, String name, List<String> paramTypes, List<String> paramNames, SBlock block,
+            boolean doAutoReturn, boolean isStatic, boolean synthetic) {
         super(location);
 
         this.rtnTypeStr = Objects.requireNonNull(rtnType);
@@ -68,6 +69,8 @@ public final class SFunction extends ANode {
         this.paramTypeStrs = Collections.unmodifiableList(paramTypes);
         this.paramNameStrs = Collections.unmodifiableList(paramNames);
         this.block = Objects.requireNonNull(block);
+        this.doAutoReturn = doAutoReturn;
+        this.isStatic = isStatic;
         this.synthetic = synthetic;
     }
 
@@ -106,6 +109,10 @@ public final class SFunction extends ANode {
     void analyze(ScriptRoot scriptRoot) {
         FunctionScope functionScope = newFunctionScope(returnType);
 
+        if (isStatic == false) {
+            functionScope.defineVariable(location, Object.class, "#this", true);
+        }
+
         for (int index = 0; index < typeParameters.size(); ++index) {
             Class<?> typeParameter = typeParameters.get(index);
             String parameterName = paramNameStrs.get(index);
@@ -125,6 +132,11 @@ public final class SFunction extends ANode {
         if (!methodEscape && returnType != void.class) {
             throw createError(new IllegalArgumentException("Not all paths provide a return value for method [" + name + "]."));
         }
+
+        // TODO: make ScriptRoot a listener
+        if ("execute".equals(name)) {
+            scriptRoot.setUsedVariables(functionScope.getReadFrom());
+        }
     }
 
     @Override
@@ -136,6 +148,8 @@ public final class SFunction extends ANode {
                 .setReturnType(returnType)
                 .addTypeParameters(typeParameters)
                 .addParameterNames(paramNameStrs)
+                .setAutoReturn(doAutoReturn)
+                .setStatic(isStatic)
                 .setSynthetic(synthetic)
                 .setMethodEscape(methodEscape)
                 .setMaxLoopCounter(maxLoopCounter);
