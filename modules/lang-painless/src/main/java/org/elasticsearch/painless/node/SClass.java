@@ -21,11 +21,7 @@ package org.elasticsearch.painless.node;
 
 import org.elasticsearch.painless.CompilerSettings;
 import org.elasticsearch.painless.Location;
-import org.elasticsearch.painless.Scope;
-import org.elasticsearch.painless.Scope.FunctionScope;
-import org.elasticsearch.painless.Scope.LocalScope;
 import org.elasticsearch.painless.ScriptClassInfo;
-import org.elasticsearch.painless.ScriptClassInfo.MethodArgument;
 import org.elasticsearch.painless.ir.ClassNode;
 import org.elasticsearch.painless.ir.StatementNode;
 import org.elasticsearch.painless.lookup.PainlessLookup;
@@ -104,7 +100,7 @@ public final class SClass extends ANode {
             function.analyze(scriptRoot);
         }
 
-        if (statements == null || statements.isEmpty()) {
+        /*if (statements == null || statements.isEmpty()) {
             throw createError(new IllegalArgumentException("Cannot generate an empty script."));
         }
 
@@ -142,7 +138,7 @@ public final class SClass extends ANode {
             allEscape = statement.allEscape;
         }
 
-        scriptRoot.setUsedVariables(functionScope.getReadFrom());
+        scriptRoot.setUsedVariables(functionScope.getReadFrom());*/
 
         return scriptRoot;
     }
@@ -170,9 +166,9 @@ public final class SClass extends ANode {
             classNode.addFunctionNode(function.write(classNode));
         }
 
-        for (AStatement statement : statements) {
+        /*for (AStatement statement : statements) {
             classNode.addStatementNode(statement.write(classNode));
-        }
+        }*/
 
         return classNode;
     }
