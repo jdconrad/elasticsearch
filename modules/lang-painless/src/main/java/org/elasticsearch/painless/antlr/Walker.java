@@ -274,7 +274,7 @@ public final class Walker extends PainlessParserBaseVisitor<ANode> {
                 location(ctx), statements), true, false, false, true);
         functions.add(execute);
 
-        return new SClass(scriptClassInfo, sourceName, sourceText, debugStream, location(ctx), functions, statements);
+        return new SClass(scriptClassInfo, sourceName, sourceText, debugStream, location(ctx), functions);
     }
 
     @Override
