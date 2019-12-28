@@ -127,7 +127,7 @@ public final class SFunction extends ANode {
         }
 
         block.lastSource = true;
-        block.analyze(scriptRoot, functionScope);
+        block.analyze(scriptRoot, functionScope.newLocalScope());
         methodEscape = block.methodEscape;
 
         if (methodEscape == false && doAutoReturn == false && returnType != void.class) {
