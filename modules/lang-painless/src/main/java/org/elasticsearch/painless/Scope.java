@@ -65,9 +65,9 @@ public abstract class Scope {
     public static class FunctionScope extends Scope {
 
         protected final Class<?> returnType;
-        protected final Set<String> areReadFrom = new HashSet<>();
 
         public FunctionScope(Class<?> returnType) {
+            super(new HashSet<>());
             this.returnType = Objects.requireNonNull(returnType);
         }
 
@@ -101,10 +101,6 @@ public abstract class Scope {
         public String getReturnCanonicalTypeName() {
             return PainlessLookupUtility.typeToCanonicalTypeName(returnType);
         }
-
-        public Set<String> getReadFrom() {
-            return Collections.unmodifiableSet(areReadFrom);
-        }
     }
 
     public static class LambdaScope extends Scope {
@@ -114,6 +110,7 @@ public abstract class Scope {
         protected final Set<Variable> captures = new HashSet<>();
 
         protected LambdaScope(Scope parent, Class<?> returnType) {
+            super(parent.areReadFrom);
             this.parent = parent;
             this.returnType = returnType;
         }
@@ -138,6 +135,8 @@ public abstract class Scope {
                 variable = parent.getVariable(location, name);
                 variable = new Variable(variable.getType(), variable.getName(), true);
                 captures.add(variable);
+            } else {
+                areReadFrom.add(name);
             }
 
             return variable;
@@ -163,6 +162,7 @@ public abstract class Scope {
         protected final Scope parent;
 
         protected LocalScope(Scope parent) {
+            super(parent.areReadFrom);
             this.parent = parent;
         }
 
@@ -184,6 +184,8 @@ public abstract class Scope {
 
             if (variable == null) {
                 variable = parent.getVariable(location, name);
+            } else {
+                areReadFrom.add(name);
             }
 
             return variable;
@@ -205,9 +207,10 @@ public abstract class Scope {
     }
 
     protected final Map<String, Variable> variables = new HashMap<>();
+    protected final Set<String> areReadFrom;
 
-    protected Scope() {
-        // do nothing
+    protected Scope(Set<String> areReadFrom) {
+        this.areReadFrom = areReadFrom;
     }
 
     public LambdaScope newLambdaScope(Class<?> returnType) {
@@ -234,4 +237,8 @@ public abstract class Scope {
 
     public abstract boolean isVariableDefined(String name);
     public abstract Variable getVariable(Location location, String name);
+
+    public Set<String> getReadFrom() {
+        return Collections.unmodifiableSet(areReadFrom);
+    }
 }
