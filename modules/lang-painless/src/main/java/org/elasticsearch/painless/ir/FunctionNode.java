@@ -23,7 +23,6 @@ import org.elasticsearch.painless.ClassWriter;
 import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
-import org.elasticsearch.painless.symbol.FunctionTable.LocalFunction;
 import org.elasticsearch.painless.symbol.ScopeTable;
 import org.elasticsearch.painless.symbol.ScopeTable.Variable;
 import org.elasticsearch.painless.symbol.ScriptRoot;
@@ -33,7 +32,6 @@ import org.objectweb.asm.Type;
 import org.objectweb.asm.commons.Method;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 import static org.elasticsearch.painless.WriterConstants.BASE_INTERFACE_TYPE;
@@ -284,50 +282,6 @@ public class FunctionNode extends IRNode {
 
         if ("execute".equals(name)) {
             methodWriter.mark(startTry);
-
-            int statementIndex = 0;
-
-            while (statementIndex < blockNode.getStatementsNodes().size()) {
-                StatementNode statementNode = blockNode.getStatementNode(statementIndex);
-
-                if (statementNode instanceof DeclarationNode) {
-                    DeclarationNode declarationNode = (DeclarationNode) statementNode;
-                    boolean isRemoved = false;
-
-                    for (int getIndex = 0; getIndex < scriptRoot.getScriptClassInfo().getGetMethods().size(); ++getIndex) {
-                        Class<?> returnType = scriptRoot.getScriptClassInfo().getGetReturns().get(getIndex);
-                        Method getMethod = scriptRoot.getScriptClassInfo().getGetMethods().get(getIndex);
-                        String name = getMethod.getName().substring(3);
-                        name = Character.toLowerCase(name.charAt(0)) + name.substring(1);
-
-                        if (name.equals(declarationNode.getName())) {
-                            if (scriptRoot.getUsedVariables().contains(name)) {
-                                declarationNode.setExpressionNode(new UnboundCallNode()
-                                        .setTypeNode(new TypeNode()
-                                                .setLocation(declarationNode.getLocation())
-                                                .setType(declarationNode.getDeclarationType())
-                                        )
-                                        .setLocation(declarationNode.getLocation())
-                                        .setLocalFunction(new LocalFunction(
-                                                getMethod.getName(), returnType, Collections.emptyList(), true, false
-                                        ))
-                                );
-                            } else {
-                                blockNode.removeStatementNode(statementIndex);
-                                isRemoved = true;
-                            }
-
-                            break;
-                        }
-                    }
-
-                    if (isRemoved == false) {
-                        ++statementIndex;
-                    }
-                } else {
-                    ++statementIndex;
-                }
-            }
         }
         // TODO: end
 
@@ -341,7 +295,7 @@ public class FunctionNode extends IRNode {
             methodWriter.visitVarInsn(Opcodes.ISTORE, loop.getSlot());
         }
 
-        blockNode.write(classWriter, methodWriter, globals, scopeTable);
+        blockNode.write(classWriter, methodWriter, globals, scopeTable.newScope());
 
         if (doesMethodEscape == false) {
             if (returnType == void.class) {
