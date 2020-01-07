@@ -166,7 +166,6 @@ public final class SFunction extends ANode {
                             )
                             .setLocation(location);
 
-
                     if (returnType == boolean.class) {
                         constantNode.setConstant(false);
                     } else if (returnType == byte.class
