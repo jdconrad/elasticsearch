@@ -71,8 +71,6 @@ public class FunctionNode extends IRNode {
     List<String> parameterNames = new ArrayList<>();
     protected boolean isStatic;
     protected boolean isSynthetic;
-    protected boolean doAutoReturn;
-    protected boolean doesMethodEscape;
     protected int maxLoopCounter;
 
     public FunctionNode setScriptRoot(ScriptRoot scriptRoot) {
@@ -204,24 +202,6 @@ public class FunctionNode extends IRNode {
         return isSynthetic;
     }
 
-    public FunctionNode setAutoReturn(boolean doAutoReturn) {
-        this.doAutoReturn = doAutoReturn;
-        return this;
-    }
-
-    public boolean doAutoReturn() {
-        return doAutoReturn;
-    }
-
-    public FunctionNode setMethodEscape(boolean doesMethodEscape) {
-        this.doesMethodEscape = doesMethodEscape;
-        return this;
-    }
-
-    public boolean doesMethodEscape() {
-        return doesMethodEscape;
-    }
-
     public FunctionNode setMaxLoopCounter(int maxLoopCounter) {
         this.maxLoopCounter = maxLoopCounter;
         return this;
@@ -295,31 +275,6 @@ public class FunctionNode extends IRNode {
         }
 
         blockNode.write(classWriter, methodWriter, globals, scopeTable.newScope());
-
-        if (doesMethodEscape == false) {
-            if (returnType == void.class) {
-                methodWriter.returnValue();
-            } else if (doAutoReturn) {
-                if (returnType == boolean.class) {
-                    methodWriter.push(false);
-                } else if (returnType == byte.class || returnType == char.class || returnType == short.class || returnType == int.class) {
-                    methodWriter.push(0);
-                } else if (returnType == long.class) {
-                    methodWriter.push(0L);
-                } else if (returnType == float.class) {
-                    methodWriter.push(0f);
-                } else if (returnType == double.class) {
-                    methodWriter.push(0d);
-                } else {
-                    methodWriter.visitInsn(Opcodes.ACONST_NULL);
-                }
-
-                methodWriter.returnValue();
-            } else {
-                throw getLocation().createError(new IllegalStateException("not all paths provide a return value " +
-                        "for function [" + name + "] with [" + typeParameters.size() + "] parameters"));
-            }
-        }
 
         // TODO: do not specialize for execute
         if ("execute".equals(name)) {
