@@ -167,9 +167,7 @@ public final class ELambda extends AExpression implements ILambda {
         block.analyze(scriptRoot, lambdaScope);
         captures = new ArrayList<>(lambdaScope.getCaptures());
 
-        methodEscape = block.methodEscape;
-
-        if (methodEscape == false) {
+        if (block.methodEscape == false) {
             throw createError(new IllegalArgumentException("not all paths return a value for lambda"));
         }
 
@@ -213,8 +211,6 @@ public final class ELambda extends AExpression implements ILambda {
                 .addParameterNames(parameterNames)
                 .setStatic(true)
                 .setSynthetic(true)
-                .setAutoReturn(false)
-                .setMethodEscape(methodEscape)
                 .setMaxLoopCounter(maxLoopCounter)
         );
 
