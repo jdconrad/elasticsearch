@@ -35,13 +35,15 @@ public final class SDeclaration extends AStatement {
 
     protected DType type;
     protected final String name;
+    protected final boolean requiresDefault;
     private AExpression expression;
 
-    public SDeclaration(Location location, DType type, String name, AExpression expression) {
+    public SDeclaration(Location location, DType type, String name, boolean requiresDefault, AExpression expression) {
         super(location);
 
         this.type = Objects.requireNonNull(type);
         this.name = Objects.requireNonNull(name);
+        this.requiresDefault = requiresDefault;
         this.expression = expression;
     }
 
@@ -68,7 +70,8 @@ public final class SDeclaration extends AStatement {
                         .setLocation(location)
                         .setType(((DResolvedType)type).getType())
                 )
-                .setName(name);
+                .setName(name)
+                .setRequiresDefault(requiresDefault);
     }
 
     @Override
