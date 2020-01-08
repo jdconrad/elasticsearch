@@ -32,7 +32,6 @@ public class SField extends ANode {
     private final int modifiers;
     private final String name;
     private final Class<?> type;
-    private final Object instance;
 
     /**
      * Standard constructor.
@@ -40,23 +39,17 @@ public class SField extends ANode {
      * @param modifiers java modifiers for the field
      * @param name name of the field
      * @param type type of the field
-     * @param instance initial value for the field
      */
-    public SField(Location location, int modifiers, String name, Class<?> type, Object instance) {
+    public SField(Location location, int modifiers, String name, Class<?> type) {
         super(location);
 
         this.modifiers = modifiers;
         this.name = name;
         this.type = type;
-        this.instance = instance;
     }
 
     public String getName() {
         return name;
-    }
-
-    public Object getInstance() {
-        return instance;
     }
 
     @Override
@@ -68,8 +61,7 @@ public class SField extends ANode {
                 )
                 .setLocation(location)
                 .setModifiers(modifiers)
-                .setName(name)
-                .setInstance(instance);
+                .setName(name);
     }
 
     @Override
