@@ -208,7 +208,6 @@ public final class SFunction extends ANode {
         return new FunctionNode()
                 .setBlockNode(blockNode)
                 .setLocation(location)
-                .setScriptRoot(scriptRoot)
                 .setName(name)
                 .setReturnType(returnType)
                 .addTypeParameters(typeParameters)
