@@ -212,7 +212,8 @@ final class Compiler {
         ScriptRoot scriptRoot = new ScriptRoot(painlessLookup, settings, scriptClassInfo, root);
         root.analyze(scriptRoot);
         ClassNode classNode = root.writeClass();
-        DecorateExecutePass.pass(scriptRoot, classNode);
+        DefBootstrapInjectionPhase.phase(classNode);
+        ScriptInjectionPhase.phase(scriptRoot, classNode);
         byte[] bytes = classNode.write();
 
         try {
@@ -241,7 +242,8 @@ final class Compiler {
         ScriptRoot scriptRoot = new ScriptRoot(painlessLookup, settings, scriptClassInfo, root);
         root.analyze(scriptRoot);
         ClassNode classNode = root.writeClass();
-        DecorateExecutePass.pass(scriptRoot, classNode);
+        DefBootstrapInjectionPhase.phase(classNode);
+        ScriptInjectionPhase.phase(scriptRoot, classNode);
 
         return classNode.write();
     }
