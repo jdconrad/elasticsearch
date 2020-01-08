@@ -25,12 +25,12 @@ import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.symbol.ScopeTable;
 import org.elasticsearch.painless.symbol.ScopeTable.Variable;
-import org.elasticsearch.painless.symbol.ScriptRoot;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
 import org.objectweb.asm.commons.Method;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class FunctionNode extends IRNode {
@@ -50,23 +50,14 @@ public class FunctionNode extends IRNode {
 
     /* ---- end tree structure, begin node data ---- */
 
-    protected ScriptRoot scriptRoot;
     protected String name;
     Class<?> returnType;
     List<Class<?>> typeParameters = new ArrayList<>();
     List<String> parameterNames = new ArrayList<>();
     protected boolean isStatic;
+    protected boolean hasVarArgs;
     protected boolean isSynthetic;
     protected int maxLoopCounter;
-
-    public FunctionNode setScriptRoot(ScriptRoot scriptRoot) {
-        this.scriptRoot = scriptRoot;
-        return this;
-    }
-
-    public ScriptRoot getScriptRoot() {
-        return scriptRoot;
-    }
 
     public FunctionNode setName(String name) {
         this.name = name;
@@ -88,6 +79,11 @@ public class FunctionNode extends IRNode {
 
     public FunctionNode addTypeParameter(Class<?> typeParameter) {
         typeParameters.add(typeParameter);
+        return this;
+    }
+
+    public FunctionNode addTypeParameters(Class<?>... typeParameters) {
+        this.typeParameters.addAll(Arrays.asList(typeParameters));
         return this;
     }
 
@@ -130,6 +126,11 @@ public class FunctionNode extends IRNode {
 
     public FunctionNode addParameterName(String parameterName) {
         parameterNames.add(parameterName);
+        return this;
+    }
+
+    public FunctionNode addParameterNames(String... parameterNames) {
+        this.parameterNames.addAll(Arrays.asList(parameterNames));
         return this;
     }
 
@@ -179,6 +180,15 @@ public class FunctionNode extends IRNode {
         return isStatic;
     }
 
+    public FunctionNode setVarArgs(boolean hasVarArgs) {
+        this.hasVarArgs = hasVarArgs;
+        return this;
+    }
+
+    public boolean hasVarArgs() {
+        return hasVarArgs;
+    }
+
     public FunctionNode setSynthetic(boolean isSythetic) {
         this.isSynthetic = isSythetic;
         return this;
@@ -217,6 +227,10 @@ public class FunctionNode extends IRNode {
             access |= Opcodes.ACC_STATIC;
         } else {
             scopeTable.defineVariable(Object.class, "#this");
+        }
+
+        if (hasVarArgs) {
+            access |= Opcodes.ACC_VARARGS;
         }
 
         if (isSynthetic) {

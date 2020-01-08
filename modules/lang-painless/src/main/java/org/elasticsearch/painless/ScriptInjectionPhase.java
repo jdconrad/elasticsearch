@@ -25,6 +25,7 @@ import org.elasticsearch.painless.ir.CallSubNode;
 import org.elasticsearch.painless.ir.CatchNode;
 import org.elasticsearch.painless.ir.ClassNode;
 import org.elasticsearch.painless.ir.DeclarationNode;
+import org.elasticsearch.painless.ir.FieldNode;
 import org.elasticsearch.painless.ir.FunctionNode;
 import org.elasticsearch.painless.ir.StatementNode;
 import org.elasticsearch.painless.ir.StaticNode;
@@ -39,15 +40,63 @@ import org.elasticsearch.painless.lookup.PainlessMethod;
 import org.elasticsearch.painless.symbol.FunctionTable.LocalFunction;
 import org.elasticsearch.painless.symbol.ScriptRoot;
 import org.elasticsearch.script.ScriptException;
+import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.commons.Method;
 
 import java.util.Arrays;
+import java.util.BitSet;
 import java.util.Collections;
 import java.util.Map;
 
-public class DecorateExecutePass {
+public class ScriptInjectionPhase {
 
-    public static void pass(ScriptRoot scriptRoot, ClassNode classNode) {
+    public static void phase(ScriptRoot scriptRoot, ClassNode classNode) {
+        injectStaticFields(classNode);
+        injectGetsDeclarations(scriptRoot, classNode);
+        injectSandboxExceptions(classNode);
+    }
+
+    // TODO: gather static constants here for ScriptRoot?
+    // adds static fields required by PainlessScript for exception handling and def bootstrapping
+    protected static void injectStaticFields(ClassNode classNode) {
+        Location location = new Location("$internal$ScriptInjectionPhase$injectStaticFields", 0);
+        int modifiers = Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC;
+
+        classNode.addFieldNode(new FieldNode()
+                .setTypeNode(new TypeNode()
+                        .setLocation(location)
+                        .setType(String.class)
+                )
+                .setLocation(location)
+                .setModifiers(modifiers)
+                .setName("$NAME")
+        );
+
+        classNode.addFieldNode(new FieldNode()
+                .setTypeNode(new TypeNode()
+                        .setLocation(location)
+                        .setType(String.class)
+                )
+                .setLocation(location)
+                .setModifiers(modifiers)
+                .setName("$SOURCE")
+        );
+
+        classNode.addFieldNode(new FieldNode()
+                .setTypeNode(new TypeNode()
+                        .setLocation(location)
+                        .setType(BitSet.class)
+                )
+                .setLocation(location)
+                .setModifiers(modifiers)
+                .setName("$STATEMENTS")
+        );
+    }
+
+    // - injects the initial value for declarations based on gets methods
+    // - removes unused gets methods declarations
+    protected static void injectGetsDeclarations(ScriptRoot scriptRoot, ClassNode classNode) {
+        Location location = new Location("$internal$ScriptInjectionPhase$injectGetsDeclarations", 0);
         FunctionNode executeFunctionNode = null;
 
         for (FunctionNode functionNode : classNode.getFunctionsNodes()) {
@@ -78,10 +127,10 @@ public class DecorateExecutePass {
                         if (scriptRoot.getUsedVariables().contains(name)) {
                             declarationNode.setExpressionNode(new UnboundCallNode()
                                     .setTypeNode(new TypeNode()
-                                            .setLocation(declarationNode.getLocation())
+                                            .setLocation(location)
                                             .setType(declarationNode.getDeclarationType())
                                     )
-                                    .setLocation(declarationNode.getLocation())
+                                    .setLocation(location)
                                     .setLocalFunction(new LocalFunction(
                                             getMethod.getName(), returnType, Collections.emptyList(), true, false
                                     ))
@@ -102,62 +151,77 @@ public class DecorateExecutePass {
                 ++statementIndex;
             }
         }
+    }
 
-        // } catch (PainlessExplainError e) {
-        //   throw this.convertToScriptException(e, e.getHeaders($DEFINITION))
-        // }
+    // injects exceptions to sandbox the user-defined code
+    // the following exceptions sandbox the entirety of the script:
+    // PainlessExplainError, PainlessError, BootstrapMethodError, OutOfMemoryError, StackOverflowError, and Exception
+    // these are caught and rethrown as a ScriptException to prevent node crashes
+    protected static void injectSandboxExceptions(ClassNode classNode) {
+        Location location = new Location("$internal$ScriptInjectionPhase$injectSandboxExceptions", 0);
+        FunctionNode executeFunctionNode = null;
+
+            for (FunctionNode functionNode : classNode.getFunctionsNodes()) {
+            if ("execute".equals(functionNode.getName())) {
+                executeFunctionNode = functionNode;
+                break;
+            }
+        }
+
+        BlockNode blockNode = executeFunctionNode.getBlockNode();
+
         try {
             TryNode tryNode = new TryNode()
                     .setBlockNode(blockNode)
                     .addCatchNode(new CatchNode()
                             .setDeclarationNode(new DeclarationNode()
                                     .setDeclarationTypeNode(new TypeNode()
-                                            .setLocation(blockNode.getLocation())
+                                            .setLocation(location)
                                             .setType(PainlessExplainError.class)
                                     )
                                     .setName("painlessExplainError")
                                     .setRequiresDefault(false)
-                                    .setLocation(blockNode.getLocation())
+                                    .setLocation(location)
                             )
                             .setBlockNode(new BlockNode()
                                     .addStatementNode(new ThrowNode()
                                             .setExpressionNode(new UnboundCallNode()
                                                     .setTypeNode(new TypeNode()
-                                                            .setLocation(blockNode.getLocation())
+                                                            .setLocation(location)
                                                             .setType(ScriptException.class)
                                                     )
                                                     .addArgumentNode(new VariableNode()
                                                             .setTypeNode(new TypeNode()
-                                                                    .setLocation(blockNode.getLocation())
+                                                                    .setLocation(location)
                                                                     .setType(ScriptException.class)
                                                             )
-                                                            .setLocation(blockNode.getLocation())
+                                                            .setLocation(location)
                                                             .setName("painlessExplainError")
                                                     )
                                                     .addArgumentNode(new CallNode()
                                                             .setTypeNode(new TypeNode()
-                                                                    .setLocation(blockNode.getLocation())
+                                                                    .setLocation(location)
                                                                     .setType(Map.class)
                                                             )
                                                             .setPrefixNode(new VariableNode()
                                                                     .setTypeNode(new TypeNode()
-                                                                            .setLocation(blockNode.getLocation())
+                                                                            .setLocation(location)
                                                                             .setType(PainlessExplainError.class)
                                                                     )
-                                                                    .setLocation(blockNode.getLocation())
+                                                                    .setLocation(location)
                                                                     .setName("painlessExplainError")
                                                             )
                                                             .setChildNode(new CallSubNode()
                                                                     .setTypeNode(new TypeNode()
-                                                                            .setLocation(blockNode.getLocation())
+                                                                            .setLocation(location)
                                                                             .setType(Map.class)
                                                                     )
                                                                     .addArgumentNode(new UnboundFieldNode()
                                                                             .setTypeNode(new TypeNode()
-                                                                                    .setLocation(blockNode.getLocation())
+                                                                                    .setLocation(location)
                                                                                     .setType(PainlessLookup.class)
                                                                             )
-                                                                            .setLocation(blockNode.getLocation())
+                                                                            .setLocation(location)
                                                                             .setName("$DEFINITION")
                                                                             .setStatic(true)
                                                                     )
@@ -174,9 +238,9 @@ public class DecorateExecutePass {
                                                                                     null
                                                                             )
                                                                     )
-                                                                    .setLocation(blockNode.getLocation())
+                                                                    .setLocation(location)
                                                             )
-                                                            .setLocation(blockNode.getLocation())
+                                                            .setLocation(location)
                                                     )
                                                     .setLocalFunction(new LocalFunction(
                                                                     "convertToScriptException",
@@ -186,17 +250,17 @@ public class DecorateExecutePass {
                                                                     false
                                                             )
                                                     )
-                                                    .setLocation(blockNode.getLocation())
+                                                    .setLocation(location)
                                             )
-                                            .setLocation(blockNode.getLocation())
+                                            .setLocation(location)
                                     )
-                                    .setLocation(blockNode.getLocation())
+                                    .setLocation(location)
                                     .setAllEscape(true)
                                     .setStatementCount(1)
                             )
-                            .setLocation(blockNode.getLocation())
+                            .setLocation(location)
                     )
-                    .setLocation(blockNode.getLocation());
+                    .setLocation(location);
 
             for (Class<?> throwable : new Class<?>[] {
                     PainlessError.class, BootstrapMethodError.class, OutOfMemoryError.class, StackOverflowError.class, Exception.class}) {
@@ -207,43 +271,43 @@ public class DecorateExecutePass {
                 tryNode.addCatchNode(new CatchNode()
                         .setDeclarationNode(new DeclarationNode()
                                 .setDeclarationTypeNode(new TypeNode()
-                                        .setLocation(blockNode.getLocation())
+                                        .setLocation(location)
                                         .setType(throwable)
                                 )
                                 .setName(name)
                                 .setRequiresDefault(false)
-                                .setLocation(blockNode.getLocation())
+                                .setLocation(location)
                         )
                         .setBlockNode(new BlockNode()
                                 .addStatementNode(new ThrowNode()
                                         .setExpressionNode(new UnboundCallNode()
                                                 .setTypeNode(new TypeNode()
-                                                        .setLocation(blockNode.getLocation())
+                                                        .setLocation(location)
                                                         .setType(ScriptException.class)
                                                 )
                                                 .addArgumentNode(new VariableNode()
                                                         .setTypeNode(new TypeNode()
-                                                                .setLocation(blockNode.getLocation())
+                                                                .setLocation(location)
                                                                 .setType(ScriptException.class)
                                                         )
-                                                        .setLocation(blockNode.getLocation())
+                                                        .setLocation(location)
                                                         .setName(name)
                                                 )
                                                 .addArgumentNode(new CallNode()
                                                         .setTypeNode(new TypeNode()
-                                                                .setLocation(blockNode.getLocation())
+                                                                .setLocation(location)
                                                                 .setType(Map.class)
                                                         )
                                                         .setPrefixNode(new StaticNode()
                                                                 .setTypeNode(new TypeNode()
-                                                                        .setLocation(blockNode.getLocation())
+                                                                        .setLocation(location)
                                                                         .setType(Collections.class)
                                                                 )
-                                                                .setLocation(blockNode.getLocation())
+                                                                .setLocation(location)
                                                         )
                                                         .setChildNode(new CallSubNode()
                                                                 .setTypeNode(new TypeNode()
-                                                                        .setLocation(blockNode.getLocation())
+                                                                        .setLocation(location)
                                                                         .setType(Map.class)
                                                                 )
                                                                 .setBox(Collections.class)
@@ -257,9 +321,9 @@ public class DecorateExecutePass {
                                                                                 null
                                                                         )
                                                                 )
-                                                                .setLocation(blockNode.getLocation())
+                                                                .setLocation(location)
                                                         )
-                                                        .setLocation(blockNode.getLocation())
+                                                        .setLocation(location)
                                                 )
                                                 .setLocalFunction(new LocalFunction(
                                                                 "convertToScriptException",
@@ -269,21 +333,21 @@ public class DecorateExecutePass {
                                                                 false
                                                         )
                                                 )
-                                                .setLocation(blockNode.getLocation())
+                                                .setLocation(location)
                                         )
-                                        .setLocation(blockNode.getLocation())
+                                        .setLocation(location)
                                 )
-                                .setLocation(blockNode.getLocation())
+                                .setLocation(location)
                                 .setAllEscape(true)
                                 .setStatementCount(1)
                         )
-                        .setLocation(blockNode.getLocation())
+                        .setLocation(location)
                 );
             }
 
             blockNode = new BlockNode()
                     .addStatementNode(tryNode)
-                    .setLocation(blockNode.getLocation())
+                    .setLocation(location)
                     .setAllEscape(blockNode.doAllEscape())
                     .setStatementCount(blockNode.getStatementCount());
 
@@ -291,47 +355,9 @@ public class DecorateExecutePass {
         } catch (Exception exception) {
             throw new RuntimeException(exception);
         }
-
-    /*
-            if ("execute".equals(name)) {
-            methodWriter.mark(endTry);
-            methodWriter.goTo(endCatch);
-            // This looks like:
-            // } catch (PainlessExplainError e) {
-            //   throw this.convertToScriptException(e, e.getHeaders($DEFINITION))
-            // }
-            methodWriter.visitTryCatchBlock(startTry, endTry, startExplainCatch, PAINLESS_EXPLAIN_ERROR_TYPE.getInternalName());
-            methodWriter.mark(startExplainCatch);
-            methodWriter.loadThis();
-            methodWriter.swap();
-            methodWriter.dup();
-            methodWriter.getStatic(CLASS_TYPE, "$DEFINITION", DEFINITION_TYPE);
-            methodWriter.invokeVirtual(PAINLESS_EXPLAIN_ERROR_TYPE, PAINLESS_EXPLAIN_ERROR_GET_HEADERS_METHOD);
-            methodWriter.invokeInterface(BASE_INTERFACE_TYPE, CONVERT_TO_SCRIPT_EXCEPTION_METHOD);
-            methodWriter.throwException();
-            // This looks like:
-            // } catch (PainlessError | BootstrapMethodError | OutOfMemoryError | StackOverflowError | Exception e) {
-            //   throw this.convertToScriptException(e, e.getHeaders())
-            // }
-            // We *think* it is ok to catch OutOfMemoryError and StackOverflowError because Painless is stateless
-            methodWriter.visitTryCatchBlock(startTry, endTry, startOtherCatch, PAINLESS_ERROR_TYPE.getInternalName());
-            methodWriter.visitTryCatchBlock(startTry, endTry, startOtherCatch, BOOTSTRAP_METHOD_ERROR_TYPE.getInternalName());
-            methodWriter.visitTryCatchBlock(startTry, endTry, startOtherCatch, OUT_OF_MEMORY_ERROR_TYPE.getInternalName());
-            methodWriter.visitTryCatchBlock(startTry, endTry, startOtherCatch, STACK_OVERFLOW_ERROR_TYPE.getInternalName());
-            methodWriter.visitTryCatchBlock(startTry, endTry, startOtherCatch, EXCEPTION_TYPE.getInternalName());
-            methodWriter.mark(startOtherCatch);
-            methodWriter.loadThis();
-            methodWriter.swap();
-            methodWriter.invokeStatic(COLLECTIONS_TYPE, EMPTY_MAP_METHOD);
-            methodWriter.invokeInterface(BASE_INTERFACE_TYPE, CONVERT_TO_SCRIPT_EXCEPTION_METHOD);
-            methodWriter.throwException();
-            methodWriter.mark(endCatch);
-        }
-        // TODO: end
-     */
     }
 
-    protected DecorateExecutePass() {
+    protected ScriptInjectionPhase() {
         // do nothing
     }
 }
