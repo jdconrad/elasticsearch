@@ -21,7 +21,6 @@ package org.elasticsearch.painless.ir;
 
 import org.elasticsearch.painless.ClassWriter;
 import org.elasticsearch.painless.DefBootstrap;
-import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.symbol.ScopeTable;
@@ -58,9 +57,9 @@ public class BraceSubDefNode extends UnaryNode {
     }
 
     @Override
-    protected void write(ClassWriter classWriter, MethodWriter methodWriter, Globals globals, ScopeTable scopeTable) {
-        setup(classWriter, methodWriter, globals, scopeTable);
-        load(classWriter, methodWriter, globals, scopeTable);
+    protected void write(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
+        setup(classWriter, methodWriter, scopeTable);
+        load(classWriter, methodWriter, scopeTable);
     }
 
     @Override
@@ -69,16 +68,16 @@ public class BraceSubDefNode extends UnaryNode {
     }
 
     @Override
-    protected void setup(ClassWriter classWriter, MethodWriter methodWriter, Globals globals, ScopeTable scopeTable) {
+    protected void setup(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
         methodWriter.dup();
-        childNode.write(classWriter, methodWriter, globals, scopeTable);
+        childNode.write(classWriter, methodWriter, scopeTable);
         Type methodType = Type.getMethodType(
                 MethodWriter.getType(childNode.getType()), Type.getType(Object.class), MethodWriter.getType(childNode.getType()));
         methodWriter.invokeDefCall("normalizeIndex", methodType, DefBootstrap.INDEX_NORMALIZE);
     }
 
     @Override
-    protected void load(ClassWriter classWriter, MethodWriter methodWriter, Globals globals, ScopeTable scopeTable) {
+    protected void load(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
         methodWriter.writeDebugInfo(location);
 
         Type methodType =
@@ -87,7 +86,7 @@ public class BraceSubDefNode extends UnaryNode {
     }
 
     @Override
-    protected void store(ClassWriter classWriter, MethodWriter methodWriter, Globals globals, ScopeTable scopeTable) {
+    protected void store(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
         methodWriter.writeDebugInfo(location);
 
         Type methodType = Type.getMethodType(Type.getType(void.class), Type.getType(Object.class),

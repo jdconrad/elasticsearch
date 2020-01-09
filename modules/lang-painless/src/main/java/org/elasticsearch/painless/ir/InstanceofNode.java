@@ -20,7 +20,6 @@
 package org.elasticsearch.painless.ir;
 
 import org.elasticsearch.painless.ClassWriter;
-import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.symbol.ScopeTable;
@@ -89,8 +88,8 @@ public class InstanceofNode extends UnaryNode {
     }
 
     @Override
-    protected void write(ClassWriter classWriter, MethodWriter methodWriter, Globals globals, ScopeTable scopeTable) {
-        childNode.write(classWriter, methodWriter, globals, scopeTable);
+    protected void write(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
+        childNode.write(classWriter, methodWriter, scopeTable);
 
         // primitive types
         if (isPrimitiveResult) {

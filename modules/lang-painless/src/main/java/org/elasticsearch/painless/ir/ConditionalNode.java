@@ -20,7 +20,6 @@
 package org.elasticsearch.painless.ir;
 
 import org.elasticsearch.painless.ClassWriter;
-import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.symbol.ScopeTable;
@@ -75,19 +74,19 @@ public class ConditionalNode extends BinaryNode {
     }
 
     @Override
-    protected void write(ClassWriter classWriter, MethodWriter methodWriter, Globals globals, ScopeTable scopeTable) {
+    protected void write(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
         methodWriter.writeDebugInfo(location);
 
         Label fals = new Label();
         Label end = new Label();
 
-        conditionNode.write(classWriter, methodWriter, globals, scopeTable);
+        conditionNode.write(classWriter, methodWriter, scopeTable);
         methodWriter.ifZCmp(Opcodes.IFEQ, fals);
 
-        leftNode.write(classWriter, methodWriter, globals, scopeTable);
+        leftNode.write(classWriter, methodWriter, scopeTable);
         methodWriter.goTo(end);
         methodWriter.mark(fals);
-        rightNode.write(classWriter, methodWriter, globals, scopeTable);
+        rightNode.write(classWriter, methodWriter, scopeTable);
         methodWriter.mark(end);
     }
 }
