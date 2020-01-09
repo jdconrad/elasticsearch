@@ -72,6 +72,7 @@ public class DefBootstrapInjectionPhase {
         );
     }
 
+    // adds the bootstrap method required for dynamic binding for def type resolution
     protected static void injectDefBootstrapMethod(ClassNode classNode) {
         Location location = new Location("$internal$DefBootstrapInjectionPhase$injectDefBootstrapMethod", 0);
 
