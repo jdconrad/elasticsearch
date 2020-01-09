@@ -20,7 +20,6 @@
 package org.elasticsearch.painless.ir;
 
 import org.elasticsearch.painless.ClassWriter;
-import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.lookup.PainlessClassBinding;
@@ -158,7 +157,7 @@ public class UnboundCallNode extends ArgumentsNode {
     }
 
     @Override
-    public void write(ClassWriter classWriter, MethodWriter methodWriter, Globals globals, ScopeTable scopeTable) {
+    public void write(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
         methodWriter.writeDebugInfo(location);
 
         if (localFunction != null) {
@@ -167,7 +166,7 @@ public class UnboundCallNode extends ArgumentsNode {
             }
 
             for (ExpressionNode argumentNode : argumentNodes) {
-                argumentNode.write(classWriter, methodWriter, globals, scopeTable);
+                argumentNode.write(classWriter, methodWriter, scopeTable);
             }
 
             if (localFunction.isStatic()) {
@@ -177,7 +176,7 @@ public class UnboundCallNode extends ArgumentsNode {
             }
         } else if (importedMethod != null) {
             for (ExpressionNode argumentNode : argumentNodes) {
-                argumentNode.write(classWriter, methodWriter, globals, scopeTable);
+                argumentNode.write(classWriter, methodWriter, scopeTable);
             }
 
             methodWriter.invokeStatic(Type.getType(importedMethod.targetClass),
@@ -200,7 +199,7 @@ public class UnboundCallNode extends ArgumentsNode {
             }
 
             for (int argument = 0; argument < javaConstructorParameterCount; ++argument) {
-                argumentNodes.get(argument).write(classWriter, methodWriter, globals, scopeTable);
+                argumentNodes.get(argument).write(classWriter, methodWriter, scopeTable);
             }
 
             methodWriter.invokeConstructor(type, Method.getMethod(classBinding.javaConstructor));
@@ -211,7 +210,7 @@ public class UnboundCallNode extends ArgumentsNode {
             methodWriter.getField(CLASS_TYPE, bindingName, type);
 
             for (int argument = 0; argument < classBinding.javaMethod.getParameterCount(); ++argument) {
-                argumentNodes.get(argument + javaConstructorParameterCount).write(classWriter, methodWriter, globals, scopeTable);
+                argumentNodes.get(argument + javaConstructorParameterCount).write(classWriter, methodWriter, scopeTable);
             }
 
             methodWriter.invokeVirtual(type, Method.getMethod(classBinding.javaMethod));
@@ -222,7 +221,7 @@ public class UnboundCallNode extends ArgumentsNode {
             methodWriter.getStatic(CLASS_TYPE, bindingName, type);
 
             for (int argument = 0; argument < instanceBinding.javaMethod.getParameterCount(); ++argument) {
-                argumentNodes.get(argument).write(classWriter, methodWriter, globals, scopeTable);
+                argumentNodes.get(argument).write(classWriter, methodWriter, scopeTable);
             }
 
             methodWriter.invokeVirtual(type, Method.getMethod(instanceBinding.javaMethod));
