@@ -211,6 +211,7 @@ public final class ELambda extends AExpression implements ILambda {
                 .addParameterNames(parameterNames)
                 .setStatic(true)
                 .setSynthetic(true)
+                .setVarArgs(false)
                 .setMaxLoopCounter(maxLoopCounter)
         );
 
