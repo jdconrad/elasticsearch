@@ -20,7 +20,6 @@
 package org.elasticsearch.painless.ir;
 
 import org.elasticsearch.painless.ClassWriter;
-import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.WriterConstants;
@@ -81,9 +80,9 @@ public class ListSubShortcutNode extends UnaryNode {
     }
 
     @Override
-    protected void write(ClassWriter classWriter, MethodWriter methodWriter, Globals globals, ScopeTable scopeTable) {
-        setup(classWriter, methodWriter, globals, scopeTable);
-        load(classWriter, methodWriter, globals, scopeTable);
+    protected void write(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
+        setup(classWriter, methodWriter, scopeTable);
+        load(classWriter, methodWriter, scopeTable);
     }
 
     @Override
@@ -92,8 +91,8 @@ public class ListSubShortcutNode extends UnaryNode {
     }
 
     @Override
-    protected void setup(ClassWriter classWriter, MethodWriter methodWriter, Globals globals, ScopeTable scopeTable) {
-        childNode.write(classWriter, methodWriter, globals, scopeTable);
+    protected void setup(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
+        childNode.write(classWriter, methodWriter, scopeTable);
 
         Label noFlip = new Label();
         methodWriter.dup();
@@ -106,7 +105,7 @@ public class ListSubShortcutNode extends UnaryNode {
     }
 
     @Override
-    protected void load(ClassWriter classWriter, MethodWriter methodWriter, Globals globals, ScopeTable scopeTable) {
+    protected void load(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
         methodWriter.writeDebugInfo(location);
         methodWriter.invokeMethodCall(getter);
 
@@ -116,7 +115,7 @@ public class ListSubShortcutNode extends UnaryNode {
     }
 
     @Override
-    protected void store(ClassWriter classWriter, MethodWriter methodWriter, Globals globals, ScopeTable scopeTable) {
+    protected void store(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
         methodWriter.writeDebugInfo(location);
         methodWriter.invokeMethodCall(setter);
         methodWriter.writePop(MethodWriter.getType(setter.returnType).getSize());

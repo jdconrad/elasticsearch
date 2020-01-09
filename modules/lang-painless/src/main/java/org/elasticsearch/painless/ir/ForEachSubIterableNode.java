@@ -21,7 +21,6 @@ package org.elasticsearch.painless.ir;
 
 import org.elasticsearch.painless.ClassWriter;
 import org.elasticsearch.painless.DefBootstrap;
-import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.lookup.PainlessCast;
@@ -138,13 +137,13 @@ public class ForEachSubIterableNode extends LoopNode {
     }
 
     @Override
-    protected void write(ClassWriter classWriter, MethodWriter methodWriter, Globals globals, ScopeTable scopeTable) {
+    protected void write(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
         methodWriter.writeStatementOffset(location);
 
         Variable variable = scopeTable.defineVariable(variableType, variableName);
         Variable iterator = scopeTable.defineVariable(iteratorType, iteratorName);
 
-        conditionNode.write(classWriter, methodWriter, globals, scopeTable);
+        conditionNode.write(classWriter, methodWriter, scopeTable);
 
         if (method == null) {
             org.objectweb.asm.Type methodType = org.objectweb.asm.Type
@@ -178,7 +177,7 @@ public class ForEachSubIterableNode extends LoopNode {
 
         blockNode.continueLabel = begin;
         blockNode.breakLabel = end;
-        blockNode.write(classWriter, methodWriter, globals, scopeTable);
+        blockNode.write(classWriter, methodWriter, scopeTable);
 
         methodWriter.goTo(begin);
         methodWriter.mark(end);
