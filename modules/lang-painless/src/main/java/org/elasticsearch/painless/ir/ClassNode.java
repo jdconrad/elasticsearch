@@ -251,6 +251,9 @@ public class ClassNode extends IRNode {
         constructor.endMethod();
 
         if (clinitNode.getBlockNode().getStatementsNodes().isEmpty() == false) {
+            clinitNode.getBlockNode().addStatementNode(new ReturnNode()
+                    .setLocation(new Location("internal$clinit$return", 0))
+            );
             clinitNode.write(classWriter, null, globals, new ScopeTable());
         }
 
