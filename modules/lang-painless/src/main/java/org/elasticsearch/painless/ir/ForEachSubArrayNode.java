@@ -20,7 +20,6 @@
 package org.elasticsearch.painless.ir;
 
 import org.elasticsearch.painless.ClassWriter;
-import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.lookup.PainlessCast;
@@ -156,14 +155,14 @@ public class ForEachSubArrayNode extends LoopNode {
     }
 
     @Override
-    protected void write(ClassWriter classWriter, MethodWriter methodWriter, Globals globals, ScopeTable scopeTable) {
+    protected void write(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
         methodWriter.writeStatementOffset(location);
 
         Variable variable = scopeTable.defineVariable(variableType, variableName);
         Variable array = scopeTable.defineVariable(arrayType, arrayName);
         Variable index = scopeTable.defineVariable(indexType, indexName);
 
-        conditionNode.write(classWriter, methodWriter, globals, scopeTable);
+        conditionNode.write(classWriter, methodWriter, scopeTable);
         methodWriter.visitVarInsn(array.getAsmType().getOpcode(Opcodes.ISTORE), array.getSlot());
         methodWriter.push(-1);
         methodWriter.visitVarInsn(index.getAsmType().getOpcode(Opcodes.ISTORE), index.getSlot());
@@ -193,7 +192,7 @@ public class ForEachSubArrayNode extends LoopNode {
 
         blockNode.continueLabel = begin;
         blockNode.breakLabel = end;
-        blockNode.write(classWriter, methodWriter, globals, scopeTable);
+        blockNode.write(classWriter, methodWriter, scopeTable);
 
         methodWriter.goTo(begin);
         methodWriter.mark(end);
