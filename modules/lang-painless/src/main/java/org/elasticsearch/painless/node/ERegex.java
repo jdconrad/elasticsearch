@@ -20,9 +20,7 @@
 package org.elasticsearch.painless.node;
 
 import org.elasticsearch.painless.Location;
-import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.Scope;
-import org.elasticsearch.painless.WriterConstants;
 import org.elasticsearch.painless.ir.BlockNode;
 import org.elasticsearch.painless.ir.CallNode;
 import org.elasticsearch.painless.ir.CallSubNode;
@@ -161,7 +159,8 @@ public final class ERegex extends AExpression {
                             .setStatic(true)
                     )
                     .setLocation(location)
-                    .setMethodEscape(true)
+                    .setNoop(true)
+                    .setMethodEscape(false)
             );
         } catch (Exception exception) {
             throw createError(new IllegalStateException("could not generate regex constant [" + pattern + "/" + flags +"] in clinit"));
