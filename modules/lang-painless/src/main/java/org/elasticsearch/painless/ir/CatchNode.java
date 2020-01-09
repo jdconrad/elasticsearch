@@ -20,7 +20,6 @@
 package org.elasticsearch.painless.ir;
 
 import org.elasticsearch.painless.ClassWriter;
-import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.symbol.ScopeTable;
@@ -72,10 +71,10 @@ public class CatchNode extends StatementNode {
     Label exception = null;
 
     @Override
-    protected void write(ClassWriter classWriter, MethodWriter methodWriter, Globals globals, ScopeTable scopeTable) {
+    protected void write(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
         methodWriter.writeStatementOffset(location);
 
-        declarationNode.write(classWriter, methodWriter, globals, scopeTable);
+        declarationNode.write(classWriter, methodWriter, scopeTable);
         Variable variable = scopeTable.getVariable(declarationNode.getName());
 
         Label jump = new Label();
@@ -86,7 +85,7 @@ public class CatchNode extends StatementNode {
         if (blockNode != null) {
             blockNode.continueLabel = continueLabel;
             blockNode.breakLabel = breakLabel;
-            blockNode.write(classWriter, methodWriter, globals, scopeTable);
+            blockNode.write(classWriter, methodWriter, scopeTable);
         }
 
         methodWriter.visitTryCatchBlock(begin, end, jump, variable.getAsmType().getInternalName());
