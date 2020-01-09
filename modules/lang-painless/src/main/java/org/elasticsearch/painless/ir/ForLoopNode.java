@@ -20,7 +20,6 @@
 package org.elasticsearch.painless.ir;
 
 import org.elasticsearch.painless.ClassWriter;
-import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.symbol.ScopeTable;
@@ -86,7 +85,7 @@ public class ForLoopNode extends LoopNode {
     }
 
     @Override
-    protected void write(ClassWriter classWriter, MethodWriter methodWriter, Globals globals, ScopeTable scopeTable) {
+    protected void write(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
         methodWriter.writeStatementOffset(location);
 
         scopeTable = scopeTable.newScope();
@@ -96,17 +95,17 @@ public class ForLoopNode extends LoopNode {
         Label end = new Label();
 
         if (initializerNode instanceof DeclarationBlockNode) {
-            initializerNode.write(classWriter, methodWriter, globals, scopeTable);
+            initializerNode.write(classWriter, methodWriter, scopeTable);
         } else if (initializerNode instanceof ExpressionNode) {
             ExpressionNode initializer = (ExpressionNode)this.initializerNode;
-            initializer.write(classWriter, methodWriter, globals, scopeTable);
+            initializer.write(classWriter, methodWriter, scopeTable);
             methodWriter.writePop(MethodWriter.getType(initializer.getType()).getSize());
         }
 
         methodWriter.mark(start);
 
         if (conditionNode != null && isContinuous == false) {
-            conditionNode.write(classWriter, methodWriter, globals, scopeTable);
+            conditionNode.write(classWriter, methodWriter, scopeTable);
             methodWriter.ifZCmp(Opcodes.IFEQ, end);
         }
 
@@ -129,7 +128,7 @@ public class ForLoopNode extends LoopNode {
 
             blockNode.continueLabel = begin;
             blockNode.breakLabel = end;
-            blockNode.write(classWriter, methodWriter, globals, scopeTable);
+            blockNode.write(classWriter, methodWriter, scopeTable);
         } else {
             Variable loop = scopeTable.getVariable("#loop");
 
@@ -140,7 +139,7 @@ public class ForLoopNode extends LoopNode {
 
         if (afterthoughtNode != null) {
             methodWriter.mark(begin);
-            afterthoughtNode.write(classWriter, methodWriter, globals, scopeTable);
+            afterthoughtNode.write(classWriter, methodWriter, scopeTable);
             methodWriter.writePop(MethodWriter.getType(afterthoughtNode.getType()).getSize());
         }
 

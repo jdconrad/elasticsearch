@@ -20,7 +20,6 @@
 package org.elasticsearch.painless.ir;
 
 import org.elasticsearch.painless.ClassWriter;
-import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.symbol.ScopeTable;
@@ -63,7 +62,7 @@ public class VariableNode extends ExpressionNode {
     }
 
     @Override
-    protected void write(ClassWriter classWriter, MethodWriter methodWriter, Globals globals, ScopeTable scopeTable) {
+    protected void write(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
         Variable variable = scopeTable.getVariable(name);
         methodWriter.visitVarInsn(variable.getAsmType().getOpcode(Opcodes.ILOAD), variable.getSlot());
     }
@@ -74,18 +73,18 @@ public class VariableNode extends ExpressionNode {
     }
 
     @Override
-    protected void setup(ClassWriter classWriter, MethodWriter methodWriter, Globals globals, ScopeTable scopeTable) {
+    protected void setup(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
         // do nothing
     }
 
     @Override
-    protected void load(ClassWriter classWriter, MethodWriter methodWriter, Globals globals, ScopeTable scopeTable) {
+    protected void load(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
         Variable variable = scopeTable.getVariable(name);
         methodWriter.visitVarInsn(variable.getAsmType().getOpcode(Opcodes.ILOAD), variable.getSlot());
     }
 
     @Override
-    protected void store(ClassWriter classWriter, MethodWriter methodWriter, Globals globals, ScopeTable scopeTable) {
+    protected void store(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
         Variable variable = scopeTable.getVariable(name);
         methodWriter.visitVarInsn(variable.getAsmType().getOpcode(Opcodes.ISTORE), variable.getSlot());
     }

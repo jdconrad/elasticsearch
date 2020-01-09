@@ -20,7 +20,6 @@
 package org.elasticsearch.painless.ir;
 
 import org.elasticsearch.painless.ClassWriter;
-import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.symbol.ScopeTable;
@@ -62,9 +61,9 @@ public class DotNode extends PrefixNode {
     }
 
     @Override
-    protected void write(ClassWriter classWriter, MethodWriter methodWriter, Globals globals, ScopeTable scopeTable) {
-        prefixNode.write(classWriter, methodWriter, globals, scopeTable);
-        childNode.write(classWriter, methodWriter, globals, scopeTable);
+    protected void write(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
+        prefixNode.write(classWriter, methodWriter, scopeTable);
+        childNode.write(classWriter, methodWriter, scopeTable);
     }
 
     @Override
@@ -73,18 +72,18 @@ public class DotNode extends PrefixNode {
     }
 
     @Override
-    protected void setup(ClassWriter classWriter, MethodWriter methodWriter, Globals globals, ScopeTable scopeTable) {
-        prefixNode.write(classWriter, methodWriter, globals, scopeTable);
-        childNode.setup(classWriter, methodWriter, globals, scopeTable);
+    protected void setup(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
+        prefixNode.write(classWriter, methodWriter, scopeTable);
+        childNode.setup(classWriter, methodWriter, scopeTable);
     }
 
     @Override
-    protected void load(ClassWriter classWriter, MethodWriter methodWriter, Globals globals, ScopeTable scopeTable) {
-        childNode.load(classWriter, methodWriter, globals, scopeTable);
+    protected void load(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
+        childNode.load(classWriter, methodWriter, scopeTable);
     }
 
     @Override
-    protected void store(ClassWriter classWriter, MethodWriter methodWriter, Globals globals, ScopeTable scopeTable) {
-        childNode.store(classWriter, methodWriter, globals, scopeTable);
+    protected void store(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
+        childNode.store(classWriter, methodWriter, scopeTable);
     }
 }

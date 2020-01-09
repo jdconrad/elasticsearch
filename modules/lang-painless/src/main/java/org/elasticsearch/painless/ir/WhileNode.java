@@ -20,7 +20,6 @@
 package org.elasticsearch.painless.ir;
 
 import org.elasticsearch.painless.ClassWriter;
-import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.symbol.ScopeTable;
@@ -65,7 +64,7 @@ public class WhileNode extends LoopNode {
     }
 
     @Override
-    protected void write(ClassWriter classWriter, MethodWriter methodWriter, Globals globals, ScopeTable scopeTable) {
+    protected void write(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
         methodWriter.writeStatementOffset(location);
 
         scopeTable = scopeTable.newScope();
@@ -76,7 +75,7 @@ public class WhileNode extends LoopNode {
         methodWriter.mark(begin);
 
         if (isContinuous == false) {
-            conditionNode.write(classWriter, methodWriter, globals, scopeTable);
+            conditionNode.write(classWriter, methodWriter, scopeTable);
             methodWriter.ifZCmp(Opcodes.IFEQ, end);
         }
 
@@ -90,7 +89,7 @@ public class WhileNode extends LoopNode {
 
             blockNode.continueLabel = begin;
             blockNode.breakLabel = end;
-            blockNode.write(classWriter, methodWriter, globals, scopeTable);
+            blockNode.write(classWriter, methodWriter, scopeTable);
         } else {
             Variable loop = scopeTable.getVariable("#loop");
 
