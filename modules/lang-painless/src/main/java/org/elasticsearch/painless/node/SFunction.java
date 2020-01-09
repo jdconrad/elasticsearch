@@ -214,6 +214,7 @@ public final class SFunction extends ANode {
                 .addParameterNames(paramNameStrs)
                 .setStatic(isStatic)
                 .setSynthetic(synthetic)
+                .setVarArgs(false)
                 .setMaxLoopCounter(maxLoopCounter);
     }
 
