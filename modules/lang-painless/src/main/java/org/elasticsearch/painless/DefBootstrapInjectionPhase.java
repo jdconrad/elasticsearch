@@ -26,7 +26,7 @@ import org.elasticsearch.painless.ir.FunctionNode;
 import org.elasticsearch.painless.ir.ReturnNode;
 import org.elasticsearch.painless.ir.StaticNode;
 import org.elasticsearch.painless.ir.TypeNode;
-import org.elasticsearch.painless.ir.UnboundFieldNode;
+import org.elasticsearch.painless.ir.UnboundFieldLoadNode;
 import org.elasticsearch.painless.ir.VariableNode;
 import org.elasticsearch.painless.lookup.PainlessLookup;
 import org.elasticsearch.painless.lookup.PainlessMethod;
@@ -93,7 +93,7 @@ public class DefBootstrapInjectionPhase {
                                                             .setLocation(location)
                                                             .setType(CallSite.class)
                                                     )
-                                                    .addArgumentNode(new UnboundFieldNode()
+                                                    .addArgumentNode(new UnboundFieldLoadNode()
                                                             .setTypeNode(new TypeNode()
                                                                     .setLocation(location)
                                                                     .setType(PainlessLookup.class)
@@ -102,7 +102,7 @@ public class DefBootstrapInjectionPhase {
                                                             .setName("$DEFINITION")
                                                             .setStatic(true)
                                                     )
-                                                    .addArgumentNode(new UnboundFieldNode()
+                                                    .addArgumentNode(new UnboundFieldLoadNode()
                                                             .setTypeNode(new TypeNode()
                                                                     .setLocation(location)
                                                                     .setType(FunctionTable.class)
