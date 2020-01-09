@@ -42,7 +42,18 @@ public class StatementExpressionNode extends StatementNode {
 
     /* ---- end tree structure, begin node data ---- */
 
+    // TODO: is noop correct here or should this have a type independent of the expression?
+    protected boolean doNoop;
     protected boolean methodEscape;
+
+    public StatementExpressionNode setNoop(boolean doNoop) {
+        this.doNoop = doNoop;
+        return this;
+    }
+
+    public boolean doNoop() {
+        return doNoop;
+    }
 
     public StatementExpressionNode setMethodEscape(boolean methodEscape) {
         this.methodEscape = methodEscape;
@@ -70,10 +81,12 @@ public class StatementExpressionNode extends StatementNode {
         methodWriter.writeStatementOffset(location);
         expressionNode.write(classWriter, methodWriter, globals, scopeTable);
 
-        if (methodEscape) {
-            methodWriter.returnValue();
-        } else {
-            methodWriter.writePop(MethodWriter.getType(expressionNode.getType()).getSize());
+        if (doNoop == false) {
+            if (methodEscape) {
+                methodWriter.returnValue();
+            } else {
+                methodWriter.writePop(MethodWriter.getType(expressionNode.getType()).getSize());
+            }
         }
     }
 }
