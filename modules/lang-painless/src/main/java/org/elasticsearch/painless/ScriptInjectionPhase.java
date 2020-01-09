@@ -24,6 +24,7 @@ import org.elasticsearch.painless.ir.CallNode;
 import org.elasticsearch.painless.ir.CallSubNode;
 import org.elasticsearch.painless.ir.CatchNode;
 import org.elasticsearch.painless.ir.ClassNode;
+import org.elasticsearch.painless.ir.ConstantNode;
 import org.elasticsearch.painless.ir.DeclarationNode;
 import org.elasticsearch.painless.ir.FieldNode;
 import org.elasticsearch.painless.ir.FunctionNode;
@@ -53,6 +54,7 @@ public class ScriptInjectionPhase {
 
     public static void phase(ScriptRoot scriptRoot, ClassNode classNode) {
         injectStaticFieldsAndGetters(classNode);
+        injectNeedsMethods(scriptRoot, classNode);
         injectGetsDeclarations(scriptRoot, classNode);
         injectSandboxExceptions(classNode);
     }
@@ -173,6 +175,43 @@ public class ScriptInjectionPhase {
                 .setSynthetic(true)
                 .setMaxLoopCounter(0)
         );
+    }
+
+    // injects needs methods as defined by ScriptClassInfo
+    protected static void injectNeedsMethods(ScriptRoot scriptRoot, ClassNode classNode) {
+        Location location = new Location("$internal$ScriptInjectionPhase$injectNeedsMethods", 0);
+
+        for (org.objectweb.asm.commons.Method needsMethod : scriptRoot.getScriptClassInfo().getNeedsMethods()) {
+            String name = needsMethod.getName();
+            name = name.substring(5);
+            name = Character.toLowerCase(name.charAt(0)) + name.substring(1);
+
+            classNode.addFunctionNode(new FunctionNode()
+                    .setBlockNode(new BlockNode()
+                            .addStatementNode(new ReturnNode()
+                                    .setExpressionNode(new ConstantNode()
+                                            .setTypeNode(new TypeNode()
+                                                    .setLocation(location)
+                                                    .setType(boolean.class)
+                                            )
+                                            .setLocation(location)
+                                            .setConstant(scriptRoot.getUsedVariables().contains(name))
+                                    )
+                                    .setLocation(location)
+                            )
+                            .setLocation(location)
+                            .setAllEscape(true)
+                            .setStatementCount(1)
+                    )
+                    .setLocation(location)
+                    .setName(needsMethod.getName())
+                    .setReturnType(boolean.class)
+                    .setStatic(false)
+                    .setVarArgs(false)
+                    .setSynthetic(true)
+                    .setMaxLoopCounter(0)
+            );
+        }
     }
 
     // - injects the initial value for declarations based on gets methods
