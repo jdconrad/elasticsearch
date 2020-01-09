@@ -20,7 +20,6 @@
 package org.elasticsearch.painless.ir;
 
 import org.elasticsearch.painless.ClassWriter;
-import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.lookup.PainlessMethod;
@@ -110,7 +109,7 @@ public class CallSubNode extends ArgumentsNode {
     }
 
     @Override
-    protected void write(ClassWriter classWriter, MethodWriter methodWriter, Globals globals, ScopeTable scopeTable) {
+    protected void write(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
         methodWriter.writeDebugInfo(location);
 
         if (box.isPrimitive()) {
@@ -118,7 +117,7 @@ public class CallSubNode extends ArgumentsNode {
         }
 
         for (ExpressionNode argumentNode : argumentNodes) {
-            argumentNode.write(classWriter, methodWriter, globals, scopeTable);
+            argumentNode.write(classWriter, methodWriter, scopeTable);
         }
 
         methodWriter.invokeMethodCall(method);

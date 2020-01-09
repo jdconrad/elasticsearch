@@ -20,7 +20,6 @@
 package org.elasticsearch.painless.ir;
 
 import org.elasticsearch.painless.ClassWriter;
-import org.elasticsearch.painless.Globals;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.symbol.ScopeTable;
@@ -78,12 +77,12 @@ public class UnboundFieldStoreNode extends UnaryNode {
     }
 
     @Override
-    public void write(ClassWriter classWriter, MethodWriter methodWriter, Globals globals, ScopeTable scopeTable) {
+    public void write(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
         if (isStatic == false) {
             methodWriter.loadThis();
         }
 
-        childNode.write(classWriter, methodWriter, globals, scopeTable);
+        childNode.write(classWriter, methodWriter, scopeTable);
 
         methodWriter.writeDebugInfo(location);
 
