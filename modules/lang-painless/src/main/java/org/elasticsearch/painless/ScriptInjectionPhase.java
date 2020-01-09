@@ -27,6 +27,7 @@ import org.elasticsearch.painless.ir.ClassNode;
 import org.elasticsearch.painless.ir.DeclarationNode;
 import org.elasticsearch.painless.ir.FieldNode;
 import org.elasticsearch.painless.ir.FunctionNode;
+import org.elasticsearch.painless.ir.ReturnNode;
 import org.elasticsearch.painless.ir.StatementNode;
 import org.elasticsearch.painless.ir.StaticNode;
 import org.elasticsearch.painless.ir.ThrowNode;
@@ -51,14 +52,14 @@ import java.util.Map;
 public class ScriptInjectionPhase {
 
     public static void phase(ScriptRoot scriptRoot, ClassNode classNode) {
-        injectStaticFields(classNode);
+        injectStaticFieldsAndGetters(classNode);
         injectGetsDeclarations(scriptRoot, classNode);
         injectSandboxExceptions(classNode);
     }
 
     // TODO: gather static constants here for ScriptRoot?
-    // adds static fields required by PainlessScript for exception handling and def bootstrapping
-    protected static void injectStaticFields(ClassNode classNode) {
+    // adds static fields and getters required by PainlessScript for exception handling
+    protected static void injectStaticFieldsAndGetters(ClassNode classNode) {
         Location location = new Location("$internal$ScriptInjectionPhase$injectStaticFields", 0);
         int modifiers = Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC;
 
@@ -90,6 +91,87 @@ public class ScriptInjectionPhase {
                 .setLocation(location)
                 .setModifiers(modifiers)
                 .setName("$STATEMENTS")
+        );
+
+        classNode.addFunctionNode(new FunctionNode()
+                .setBlockNode(new BlockNode()
+                        .addStatementNode(new ReturnNode()
+                                .setExpressionNode(new UnboundFieldNode()
+                                        .setTypeNode(new TypeNode()
+                                                .setLocation(location)
+                                                .setType(String.class)
+                                        )
+                                        .setLocation(location)
+                                        .setName("$NAME")
+                                        .setStatic(true)
+                                )
+                                .setLocation(location)
+                        )
+                        .setLocation(location)
+                        .setAllEscape(true)
+                        .setStatementCount(1)
+                )
+                .setLocation(location)
+                .setName("getName")
+                .setReturnType(String.class)
+                .setStatic(false)
+                .setVarArgs(false)
+                .setSynthetic(true)
+                .setMaxLoopCounter(0)
+        );
+
+        classNode.addFunctionNode(new FunctionNode()
+                .setBlockNode(new BlockNode()
+                        .addStatementNode(new ReturnNode()
+                                .setExpressionNode(new UnboundFieldNode()
+                                        .setTypeNode(new TypeNode()
+                                                .setLocation(location)
+                                                .setType(String.class)
+                                        )
+                                        .setLocation(location)
+                                        .setName("$SOURCE")
+                                        .setStatic(true)
+                                )
+                                .setLocation(location)
+                        )
+                        .setLocation(location)
+                        .setAllEscape(true)
+                        .setStatementCount(1)
+                )
+                .setLocation(location)
+                .setName("getSource")
+                .setReturnType(String.class)
+                .setStatic(false)
+                .setVarArgs(false)
+                .setSynthetic(true)
+                .setMaxLoopCounter(0)
+        );
+
+        classNode.addFunctionNode(new FunctionNode()
+                .setBlockNode(new BlockNode()
+                        .addStatementNode(new ReturnNode()
+                                .setExpressionNode(new UnboundFieldNode()
+                                        .setTypeNode(new TypeNode()
+                                                .setLocation(location)
+                                                .setType(BitSet.class)
+                                        )
+                                        .setLocation(location)
+                                        .setName("$STATEMENTS")
+                                        .setStatic(true)
+                                )
+                                .setLocation(location)
+                        )
+                        .setLocation(location)
+                        .setAllEscape(true)
+                        .setStatementCount(1)
+                )
+                .setLocation(location)
+                .setName("getStatements")
+                .setReturnType(BitSet.class)
+                .setStatic(false)
+                .setVarArgs(false)
+                .setSynthetic(true)
+                .setMaxLoopCounter(0)
         );
     }
 
