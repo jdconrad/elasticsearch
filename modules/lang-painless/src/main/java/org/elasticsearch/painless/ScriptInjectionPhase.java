@@ -35,7 +35,7 @@ import org.elasticsearch.painless.ir.ThrowNode;
 import org.elasticsearch.painless.ir.TryNode;
 import org.elasticsearch.painless.ir.TypeNode;
 import org.elasticsearch.painless.ir.UnboundCallNode;
-import org.elasticsearch.painless.ir.UnboundFieldNode;
+import org.elasticsearch.painless.ir.UnboundFieldLoadNode;
 import org.elasticsearch.painless.ir.VariableNode;
 import org.elasticsearch.painless.lookup.PainlessLookup;
 import org.elasticsearch.painless.lookup.PainlessMethod;
@@ -98,7 +98,7 @@ public class ScriptInjectionPhase {
         classNode.addFunctionNode(new FunctionNode()
                 .setBlockNode(new BlockNode()
                         .addStatementNode(new ReturnNode()
-                                .setExpressionNode(new UnboundFieldNode()
+                                .setExpressionNode(new UnboundFieldLoadNode()
                                         .setTypeNode(new TypeNode()
                                                 .setLocation(location)
                                                 .setType(String.class)
@@ -125,7 +125,7 @@ public class ScriptInjectionPhase {
         classNode.addFunctionNode(new FunctionNode()
                 .setBlockNode(new BlockNode()
                         .addStatementNode(new ReturnNode()
-                                .setExpressionNode(new UnboundFieldNode()
+                                .setExpressionNode(new UnboundFieldLoadNode()
                                         .setTypeNode(new TypeNode()
                                                 .setLocation(location)
                                                 .setType(String.class)
@@ -152,7 +152,7 @@ public class ScriptInjectionPhase {
         classNode.addFunctionNode(new FunctionNode()
                 .setBlockNode(new BlockNode()
                         .addStatementNode(new ReturnNode()
-                                .setExpressionNode(new UnboundFieldNode()
+                                .setExpressionNode(new UnboundFieldLoadNode()
                                         .setTypeNode(new TypeNode()
                                                 .setLocation(location)
                                                 .setType(BitSet.class)
@@ -337,7 +337,7 @@ public class ScriptInjectionPhase {
                                                                             .setLocation(location)
                                                                             .setType(Map.class)
                                                                     )
-                                                                    .addArgumentNode(new UnboundFieldNode()
+                                                                    .addArgumentNode(new UnboundFieldLoadNode()
                                                                             .setTypeNode(new TypeNode()
                                                                                     .setLocation(location)
                                                                                     .setType(PainlessLookup.class)

@@ -27,12 +27,17 @@ import org.elasticsearch.painless.symbol.ScopeTable;
 
 import static org.elasticsearch.painless.WriterConstants.CLASS_TYPE;
 
-public class UnboundFieldNode extends ExpressionNode {
+public class UnboundFieldStoreNode extends UnaryNode {
 
     /* ---- begin tree structure ---- */
 
+    public UnboundFieldStoreNode setChildNode(ExpressionNode childNode) {
+        super.setChildNode(childNode);
+        return this;
+    }
+
     @Override
-    public UnboundFieldNode setTypeNode(TypeNode typeNode) {
+    public UnboundFieldStoreNode setTypeNode(TypeNode typeNode) {
         super.setTypeNode(typeNode);
         return this;
     }
@@ -42,7 +47,7 @@ public class UnboundFieldNode extends ExpressionNode {
     protected String name;
     protected boolean isStatic;
 
-    public UnboundFieldNode setName(String name) {
+    public UnboundFieldStoreNode setName(String name) {
         this.name = name;
         return this;
     }
@@ -51,7 +56,7 @@ public class UnboundFieldNode extends ExpressionNode {
         return name;
     }
 
-    public UnboundFieldNode setStatic(boolean isStatic) {
+    public UnboundFieldStoreNode setStatic(boolean isStatic) {
         this.isStatic = isStatic;
         return this;
     }
@@ -59,28 +64,33 @@ public class UnboundFieldNode extends ExpressionNode {
     public boolean isStatic() {
         return isStatic;
     }
-    
+
     @Override
-    public UnboundFieldNode setLocation(Location location) {
+    public UnboundFieldStoreNode setLocation(Location location) {
         super.setLocation(location);
         return this;
     }
 
     /* ---- end node data ---- */
 
-    public UnboundFieldNode() {
+    public UnboundFieldStoreNode() {
         // do nothing
     }
 
     @Override
     public void write(ClassWriter classWriter, MethodWriter methodWriter, Globals globals, ScopeTable scopeTable) {
+        if (isStatic == false) {
+            methodWriter.loadThis();
+        }
+
+        childNode.write(classWriter, methodWriter, globals, scopeTable);
+
         methodWriter.writeDebugInfo(location);
 
         if (isStatic) {
-            methodWriter.getStatic(CLASS_TYPE, name, MethodWriter.getType(getType()));
+            methodWriter.putStatic(CLASS_TYPE, name, MethodWriter.getType(getType()));
         } else {
-            methodWriter.loadThis();
-            methodWriter.getField(CLASS_TYPE, name, MethodWriter.getType(getType()));
+            methodWriter.putField(CLASS_TYPE, name, MethodWriter.getType(getType()));
         }
     }
 }

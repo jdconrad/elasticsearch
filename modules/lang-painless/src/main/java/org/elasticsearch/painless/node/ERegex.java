@@ -19,17 +19,26 @@
 
 package org.elasticsearch.painless.node;
 
-import org.elasticsearch.painless.Constant;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.Scope;
 import org.elasticsearch.painless.WriterConstants;
+import org.elasticsearch.painless.ir.BlockNode;
+import org.elasticsearch.painless.ir.CallNode;
+import org.elasticsearch.painless.ir.CallSubNode;
 import org.elasticsearch.painless.ir.ClassNode;
-import org.elasticsearch.painless.ir.RegexNode;
+import org.elasticsearch.painless.ir.ConstantNode;
+import org.elasticsearch.painless.ir.FieldNode;
+import org.elasticsearch.painless.ir.StatementExpressionNode;
+import org.elasticsearch.painless.ir.StaticNode;
 import org.elasticsearch.painless.ir.TypeNode;
+import org.elasticsearch.painless.ir.UnboundFieldLoadNode;
+import org.elasticsearch.painless.ir.UnboundFieldStoreNode;
+import org.elasticsearch.painless.lookup.PainlessMethod;
 import org.elasticsearch.painless.symbol.ScriptRoot;
 
 import java.lang.reflect.Modifier;
+import java.util.Arrays;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
@@ -40,7 +49,7 @@ public final class ERegex extends AExpression {
 
     private final String pattern;
     private final int flags;
-    private Constant constant;
+    private String name;
 
     public ERegex(Location location, String pattern, String flagsString) {
         super(location);
@@ -75,30 +84,97 @@ public final class ERegex extends AExpression {
                     new IllegalArgumentException("Error compiling regex: " + e.getDescription()));
         }
 
-        String name = scriptRoot.getNextSyntheticName("regex");
-        scriptRoot.getClassNode().addField(
-                new SField(location, Modifier.FINAL | Modifier.STATIC | Modifier.PRIVATE, name, Pattern.class));
-        constant = new Constant(location, MethodWriter.getType(Pattern.class), name, this::initializeConstant);
+        name = scriptRoot.getNextSyntheticName("regex");
         actual = Pattern.class;
     }
 
     @Override
-    RegexNode write(ClassNode classNode) {
-        return new RegexNode()
+    UnboundFieldLoadNode write(ClassNode classNode) {
+        classNode.addFieldNode(new FieldNode()
                 .setTypeNode(new TypeNode()
                         .setLocation(location)
-                        .setType(actual)
+                        .setType(Pattern.class)
                 )
                 .setLocation(location)
-                .setFlags(flags)
-                .setPattern(pattern)
-                .setConstant(constant);
-    }
+                .setModifiers(Modifier.FINAL | Modifier.STATIC | Modifier.PRIVATE)
+                .setName(name)
+        );
 
-    private void initializeConstant(MethodWriter writer) {
-        writer.push(pattern);
-        writer.push(flags);
-        writer.invokeStatic(org.objectweb.asm.Type.getType(Pattern.class), WriterConstants.PATTERN_COMPILE);
+        try {
+            BlockNode blockNode = classNode.getClinitNode().getBlockNode();
+            blockNode.addStatementNode(new StatementExpressionNode()
+                    .setExpressionNode(new UnboundFieldStoreNode()
+                            .setChildNode(new CallNode()
+                                    .setTypeNode(new TypeNode()
+                                            .setLocation(location)
+                                            .setType(Pattern.class)
+                                    )
+                                    .setPrefixNode(new StaticNode()
+                                            .setTypeNode(new TypeNode()
+                                                    .setLocation(location)
+                                                    .setType(Pattern.class)
+                                            )
+                                            .setLocation(location)
+                                    )
+                                    .setChildNode(new CallSubNode()
+                                            .setTypeNode(new TypeNode()
+                                                    .setLocation(location)
+                                                    .setType(Pattern.class)
+                                            )
+                                            .addArgumentNode(new ConstantNode()
+                                                    .setTypeNode(new TypeNode()
+                                                            .setLocation(location)
+                                                            .setType(String.class)
+                                                    )
+                                                    .setLocation(location)
+                                                    .setConstant(pattern)
+                                            )
+                                            .addArgumentNode(new ConstantNode()
+                                                    .setTypeNode(new TypeNode()
+                                                            .setLocation(location)
+                                                            .setType(int.class)
+                                                    )
+                                                    .setLocation(location)
+                                                    .setConstant(flags)
+                                            )
+                                            .setLocation(location)
+                                            .setMethod(new PainlessMethod(
+                                                            Pattern.class.getMethod("compile", String.class, int.class),
+                                                            Pattern.class,
+                                                            Pattern.class,
+                                                            Arrays.asList(String.class, int.class),
+                                                            null,
+                                                            null,
+                                                            null
+                                                    )
+                                            )
+                                            .setBox(Pattern.class)
+                                    )
+                                    .setLocation(location)
+                            )
+                            .setTypeNode(new TypeNode()
+                                    .setLocation(location)
+                                    .setType(Pattern.class)
+                            )
+                            .setLocation(location)
+                            .setName(name)
+                            .setStatic(true)
+                    )
+                    .setLocation(location)
+                    .setMethodEscape(true)
+            );
+        } catch (Exception exception) {
+            throw createError(new IllegalStateException("could not generate regex constant [" + pattern + "/" + flags +"] in clinit"));
+        }
+
+        return new UnboundFieldLoadNode()
+                .setTypeNode(new TypeNode()
+                        .setLocation(location)
+                        .setType(Pattern.class)
+                )
+                .setLocation(location)
+                .setName(name)
+                .setStatic(true);
     }
 
     private int flagForChar(char c) {
