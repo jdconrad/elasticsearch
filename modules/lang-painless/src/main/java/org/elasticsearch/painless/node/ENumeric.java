@@ -22,7 +22,9 @@ package org.elasticsearch.painless.node;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.Scope;
 import org.elasticsearch.painless.ir.ClassNode;
+import org.elasticsearch.painless.ir.ConstantNode;
 import org.elasticsearch.painless.ir.ExpressionNode;
+import org.elasticsearch.painless.ir.TypeNode;
 import org.elasticsearch.painless.symbol.ScriptRoot;
 
 import java.util.Objects;
@@ -34,6 +36,8 @@ public final class ENumeric extends AExpression {
 
     private final String value;
     private int radix;
+
+    protected Object constant;
 
     public ENumeric(Location location, String value, int radix) {
         super(location);
@@ -111,7 +115,13 @@ public final class ENumeric extends AExpression {
 
     @Override
     ExpressionNode write(ClassNode classNode) {
-        throw createError(new IllegalStateException("Illegal tree structure."));
+        return new ConstantNode()
+                .setTypeNode(new TypeNode()
+                        .setLocation(location)
+                        .setType(actual)
+                )
+                .setLocation(location)
+                .setConstant(constant);
     }
 
     @Override
