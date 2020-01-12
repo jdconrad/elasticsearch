@@ -59,7 +59,7 @@ public class EElvis extends AExpression {
         lhs.analyze(scriptRoot, scope);
         rhs.analyze(scriptRoot, scope);
 
-        if (lhs.isNull) {
+        if (lhs instanceof ENull) {
             throw createError(new IllegalArgumentException("Extraneous elvis operator. LHS is null."));
         }
         if (lhs instanceof EBoolean
@@ -72,7 +72,7 @@ public class EElvis extends AExpression {
         if (lhs.actual.isPrimitive()) {
             throw createError(new IllegalArgumentException("Extraneous elvis operator. LHS is a primitive."));
         }
-        if (rhs.isNull) {
+        if (rhs instanceof ENull) {
             throw createError(new IllegalArgumentException("Extraneous elvis operator. RHS is null."));
         }
 
