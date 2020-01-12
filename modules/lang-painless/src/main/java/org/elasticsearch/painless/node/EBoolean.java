@@ -22,13 +22,17 @@ package org.elasticsearch.painless.node;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.Scope;
 import org.elasticsearch.painless.ir.ClassNode;
+import org.elasticsearch.painless.ir.ConstantNode;
 import org.elasticsearch.painless.ir.ExpressionNode;
+import org.elasticsearch.painless.ir.TypeNode;
 import org.elasticsearch.painless.symbol.ScriptRoot;
 
 /**
  * Represents a boolean constant.
  */
 public final class EBoolean extends AExpression {
+
+    protected boolean constant;
 
     public EBoolean(Location location, boolean constant) {
         super(location);
@@ -47,7 +51,13 @@ public final class EBoolean extends AExpression {
 
     @Override
     ExpressionNode write(ClassNode classNode) {
-        throw createError(new IllegalStateException("Illegal tree structure."));
+        return new ConstantNode()
+                .setTypeNode(new TypeNode()
+                        .setLocation(location)
+                        .setType(boolean.class)
+                )
+                .setLocation(location)
+                .setConstant(constant);
     }
 
     @Override
