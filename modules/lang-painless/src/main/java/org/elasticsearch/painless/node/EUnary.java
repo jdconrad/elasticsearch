@@ -71,7 +71,7 @@ public final class EUnary extends AExpression {
     void analyzeNot(ScriptRoot scriptRoot, Scope variables) {
         child.expected = boolean.class;
         child.analyze(scriptRoot, variables);
-        child = child.cast(scriptRoot, variables);
+        child.cast();
 
         actual = boolean.class;
     }
@@ -87,7 +87,7 @@ public final class EUnary extends AExpression {
         }
 
         child.expected = promote;
-        child = child.cast(scriptRoot, variables);
+        child.cast();
 
         if (promote == def.class && expected != null) {
             actual = expected;
@@ -107,7 +107,7 @@ public final class EUnary extends AExpression {
         }
 
         child.expected = promote;
-        child = child.cast(scriptRoot, variables);
+        child.cast();
 
         if (promote == def.class && expected != null) {
             actual = expected;
@@ -127,7 +127,7 @@ public final class EUnary extends AExpression {
         }
 
         child.expected = promote;
-        child = child.cast(scriptRoot, variables);
+        child.cast();
 
         if (promote == def.class && expected != null) {
             actual = expected;
@@ -143,7 +143,7 @@ public final class EUnary extends AExpression {
                         .setLocation(location)
                         .setType(actual)
                 )
-                .setChildNode(child.write(classNode))
+                .setChildNode(child.cast(child.write(classNode)))
                 .setUnaryTypeNode(new TypeNode()
                         .setLocation(location)
                         .setType(promote)

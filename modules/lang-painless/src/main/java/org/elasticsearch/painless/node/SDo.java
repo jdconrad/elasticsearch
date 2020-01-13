@@ -62,7 +62,7 @@ public final class SDo extends AStatement {
 
         condition.expected = boolean.class;
         condition.analyze(scriptRoot, scope);
-        condition = condition.cast(scriptRoot, scope);
+        condition.cast();
 
         if (condition instanceof EBoolean) {
             continuous = ((EBoolean)condition).constant;
@@ -83,7 +83,7 @@ public final class SDo extends AStatement {
     @Override
     DoWhileLoopNode write(ClassNode classNode) {
         return new DoWhileLoopNode()
-                .setConditionNode(condition.write(classNode))
+                .setConditionNode(condition.cast(condition.write(classNode)))
                 .setBlockNode(block.write(classNode))
                 .setLocation(location)
                 .setContinuous(continuous);

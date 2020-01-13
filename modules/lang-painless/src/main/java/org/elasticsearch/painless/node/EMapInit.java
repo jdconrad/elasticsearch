@@ -82,7 +82,7 @@ public final class EMapInit extends AExpression {
             expression.expected = def.class;
             expression.internal = true;
             expression.analyze(scriptRoot, scope);
-            keys.set(index, expression.cast(scriptRoot, scope));
+            expression.cast();
         }
 
         for (int index = 0; index < values.size(); ++index) {
@@ -91,7 +91,7 @@ public final class EMapInit extends AExpression {
             expression.expected = def.class;
             expression.internal = true;
             expression.analyze(scriptRoot, scope);
-            values.set(index, expression.cast(scriptRoot, scope));
+            expression.cast();
         }
     }
 
@@ -107,7 +107,9 @@ public final class EMapInit extends AExpression {
                 .setMethod(method);
 
         for (int index = 0; index < keys.size(); ++index) {
-            mapInitializationNode.addArgumentNode(keys.get(index).write(classNode), values.get(index).write(classNode));
+            mapInitializationNode.addArgumentNode(
+                    keys.get(index).cast(keys.get(index).write(classNode)),
+                    values.get(index).cast(values.get(index).write(classNode)));
         }
 
         return mapInitializationNode;

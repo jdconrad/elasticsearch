@@ -83,7 +83,7 @@ public final class ENewObj extends AExpression {
             expression.expected = types[argument];
             expression.internal = true;
             expression.analyze(scriptRoot, scope);
-            arguments.set(argument, expression.cast(scriptRoot, scope));
+            expression.cast();
         }
 
         statement = true;
@@ -101,7 +101,7 @@ public final class ENewObj extends AExpression {
                 .setConstructor(constructor);
 
         for (AExpression argument : arguments) {
-            newObjectNode.addArgumentNode(argument.write(classNode));
+            newObjectNode.addArgumentNode(argument.cast(argument.write(classNode)));
         }
 
         return newObjectNode;

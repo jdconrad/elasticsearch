@@ -47,7 +47,7 @@ final class PSubBrace extends AStoreable {
     void analyze(ScriptRoot scriptRoot, Scope scope) {
         index.expected = int.class;
         index.analyze(scriptRoot, scope);
-        index = index.cast(scriptRoot, scope);
+        index.cast();
 
         actual = clazz.getComponentType();
     }
@@ -58,7 +58,7 @@ final class PSubBrace extends AStoreable {
                         .setLocation(location)
                         .setType(actual)
                 )
-                .setChildNode(index.write(classNode))
+                .setChildNode(index.cast(index.write(classNode)))
                 .setLocation(location);
     }
 

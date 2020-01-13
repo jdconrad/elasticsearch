@@ -51,7 +51,7 @@ public final class EConditional extends AExpression {
     void analyze(ScriptRoot scriptRoot, Scope scope) {
         condition.expected = boolean.class;
         condition.analyze(scriptRoot, scope);
-        condition = condition.cast(scriptRoot, scope);
+        condition.cast();
 
         left.expected = expected;
         left.explicit = explicit;
@@ -78,8 +78,8 @@ public final class EConditional extends AExpression {
             actual = promote;
         }
 
-        left = left.cast(scriptRoot, scope);
-        right = right.cast(scriptRoot, scope);
+        left.cast();
+        right.cast();
     }
 
     @Override
@@ -89,9 +89,9 @@ public final class EConditional extends AExpression {
                         .setLocation(location)
                         .setType(actual)
                 )
-                .setLeftNode(left.write(classNode))
-                .setRightNode(right.write(classNode))
-                .setConditionNode(condition.write(classNode))
+                .setLeftNode(left.cast(left.write(classNode)))
+                .setRightNode(right.cast(right.write(classNode)))
+                .setConditionNode(condition.cast(condition.write(classNode)))
                 .setLocation(location);
     }
 

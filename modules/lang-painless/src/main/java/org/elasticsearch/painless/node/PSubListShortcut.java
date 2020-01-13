@@ -72,7 +72,7 @@ final class PSubListShortcut extends AStoreable {
         if ((read || write) && (!read || getter != null) && (!write || setter != null)) {
             index.expected = int.class;
             index.analyze(scriptRoot, scope);
-            index = index.cast(scriptRoot, scope);
+            index.cast();
 
             actual = setter != null ? setter.typeParameters.get(1) : getter.returnType;
         } else {
@@ -87,7 +87,7 @@ final class PSubListShortcut extends AStoreable {
                         .setLocation(location)
                         .setType(actual)
                 )
-                .setChildNode(index.write(classNode))
+                .setChildNode(index.cast(index.write(classNode)))
                 .setLocation(location)
                 .setGetter(getter)
                 .setSetter(setter);

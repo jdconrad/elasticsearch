@@ -22,8 +22,10 @@ package org.elasticsearch.painless.node;
 import org.elasticsearch.painless.AnalyzerCaster;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.Scope;
+import org.elasticsearch.painless.ir.CastNode;
 import org.elasticsearch.painless.ir.ClassNode;
 import org.elasticsearch.painless.ir.ExpressionNode;
+import org.elasticsearch.painless.ir.TypeNode;
 import org.elasticsearch.painless.lookup.PainlessCast;
 import org.elasticsearch.painless.symbol.ScriptRoot;
 
@@ -83,6 +85,8 @@ public abstract class AExpression extends ANode {
      */
     boolean internal = false;
 
+    PainlessCast cast = null;
+
     /**
      * Standard constructor with location used for error tracking.
      */
@@ -111,22 +115,22 @@ public abstract class AExpression extends ANode {
      */
     abstract ExpressionNode write(ClassNode classNode);
 
-    /**
-     * Inserts {@link ECast} nodes into the tree for implicit casts.  Also replaces
-     * nodes with the constant variable set to a non-null value with {@link EConstant}.
-     * @return The new child node for the parent node calling this method.
-     */
-    AExpression cast(ScriptRoot scriptRoot, Scope scope) {
-        PainlessCast cast = AnalyzerCaster.getLegalCast(location, actual, expected, explicit, internal);
+    void cast() {
+        cast = AnalyzerCaster.getLegalCast(location, actual, expected, explicit, internal);
+    }
 
+    ExpressionNode cast(ExpressionNode expressionNode) {
         if (cast == null) {
-            return this;
-        } else {
-            ECast ecast = new ECast(location, this, cast);
-            ecast.statement = statement;
-            ecast.actual = expected;
-
-            return ecast;
+            return expressionNode;
         }
+
+        return new CastNode()
+                .setTypeNode(new TypeNode()
+                        .setLocation(location)
+                        .setType(expected)
+                )
+                .setChildNode(expressionNode)
+                .setLocation(location)
+                .setCast(cast);
     }
 }

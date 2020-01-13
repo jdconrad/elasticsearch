@@ -57,7 +57,7 @@ public final class PField extends AStoreable {
     void analyze(ScriptRoot scriptRoot, Scope scope) {
         prefix.analyze(scriptRoot, scope);
         prefix.expected = prefix.actual;
-        prefix = prefix.cast(scriptRoot, scope);
+        prefix.cast();
 
         if (prefix.actual.isArray()) {
             sub = new PSubArrayLength(location, PainlessLookupUtility.typeToCanonicalTypeName(prefix.actual), value);
@@ -125,7 +125,7 @@ public final class PField extends AStoreable {
                         .setType(actual)
                 )
                 .setChildNode(sub.write(classNode))
-                .setPrefixNode(prefix.write(classNode))
+                .setPrefixNode(prefix.cast(prefix.write(classNode)))
                 .setLocation(location);
     }
 
