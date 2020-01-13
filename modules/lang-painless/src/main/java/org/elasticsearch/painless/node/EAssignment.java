@@ -189,7 +189,7 @@ public final class EAssignment extends AExpression {
             rhs.expected = promote;
         }
 
-        rhs = rhs.cast(scriptRoot, scope);
+        rhs.cast();
 
         there = AnalyzerCaster.getLegalCast(location, lhs.actual, promote, false, false);
         back = AnalyzerCaster.getLegalCast(location, promote, lhs.actual, true, false);
@@ -217,7 +217,7 @@ public final class EAssignment extends AExpression {
             rhs.analyze(scriptRoot, scope);
         }
 
-        rhs = rhs.cast(scriptRoot, scope);
+        rhs.cast();
 
         this.statement = true;
         this.actual = read ? lhs.actual : void.class;
@@ -237,7 +237,7 @@ public final class EAssignment extends AExpression {
                         .setType(actual)
                 )
                 .setLeftNode(lhs.write(classNode))
-                .setRightNode(rhs.write(classNode))
+                .setRightNode(rhs.cast(rhs.write(classNode)))
                 .setCompoundTypeNode(new TypeNode()
                         .setLocation(location)
                         .setType(promote)

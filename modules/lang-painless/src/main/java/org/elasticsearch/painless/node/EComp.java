@@ -98,8 +98,8 @@ public final class EComp extends AExpression {
             throw createError(new IllegalArgumentException("Extraneous comparison of null constants."));
         }
 
-        left = left.cast(scriptRoot, variables);
-        right = right.cast(scriptRoot, variables);
+        left.cast();
+        right.cast();
 
         actual = boolean.class;
     }
@@ -123,8 +123,8 @@ public final class EComp extends AExpression {
             throw createError(new IllegalArgumentException("Extraneous comparison of null constants."));
         }
 
-        left = left.cast(scriptRoot, variables);
-        right = right.cast(scriptRoot, variables);
+        left.cast();
+        right.cast();
 
         actual = boolean.class;
     }
@@ -153,8 +153,8 @@ public final class EComp extends AExpression {
             throw createError(new IllegalArgumentException("Extraneous comparison of null constants."));
         }
 
-        left = left.cast(scriptRoot, variables);
-        right = right.cast(scriptRoot, variables);
+        left.cast();
+        right.cast();
 
         actual = boolean.class;
     }
@@ -178,8 +178,8 @@ public final class EComp extends AExpression {
             throw createError(new IllegalArgumentException("Extraneous comparison of null constants."));
         }
 
-        left = left.cast(scriptRoot, variables);
-        right = right.cast(scriptRoot, variables);
+        left.cast();
+        right.cast();
 
         actual = boolean.class;
     }
@@ -204,8 +204,8 @@ public final class EComp extends AExpression {
             right.expected = promotedType;
         }
 
-        left = left.cast(scriptRoot, variables);
-        right = right.cast(scriptRoot, variables);
+        left.cast();
+        right.cast();
 
         actual = boolean.class;
     }
@@ -230,8 +230,8 @@ public final class EComp extends AExpression {
             right.expected = promotedType;
         }
 
-        left = left.cast(scriptRoot, variables);
-        right = right.cast(scriptRoot, variables);
+        left.cast();
+        right.cast();
 
         actual = boolean.class;
     }
@@ -256,8 +256,8 @@ public final class EComp extends AExpression {
             right.expected = promotedType;
         }
 
-        left = left.cast(scriptRoot, variables);
-        right = right.cast(scriptRoot, variables);
+        left.cast();
+        right.cast();
 
         actual = boolean.class;
     }
@@ -282,8 +282,8 @@ public final class EComp extends AExpression {
             right.expected = promotedType;
         }
 
-        left = left.cast(scriptRoot, variables);
-        right = right.cast(scriptRoot, variables);
+        left.cast();
+        right.cast();
 
         actual = boolean.class;
     }
@@ -295,8 +295,8 @@ public final class EComp extends AExpression {
                         .setLocation(location)
                         .setType(actual)
                 )
-                .setLeftNode(left.write(classNode))
-                .setRightNode(right.write(classNode))
+                .setLeftNode(left.cast(left.write(classNode)))
+                .setRightNode(right.cast(right.write(classNode)))
                 .setComparisonTypeNode(new TypeNode()
                         .setLocation(location)
                         .setType(promotedType)

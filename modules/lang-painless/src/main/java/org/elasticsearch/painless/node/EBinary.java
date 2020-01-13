@@ -115,8 +115,8 @@ public final class EBinary extends AExpression {
             right.expected = promote;
         }
 
-        left = left.cast(scriptRoot, variables);
-        right = right.cast(scriptRoot, variables);
+        left.cast();
+        right.cast();
     }
 
     private void analyzeDiv(ScriptRoot scriptRoot, Scope variables) {
@@ -145,8 +145,8 @@ public final class EBinary extends AExpression {
             right.expected = promote;
         }
 
-        left = left.cast(scriptRoot, variables);
-        right = right.cast(scriptRoot, variables);
+        left.cast();
+        right.cast();
     }
 
     private void analyzeRem(ScriptRoot scriptRoot, Scope variables) {
@@ -175,8 +175,8 @@ public final class EBinary extends AExpression {
             right.expected = promote;
         }
 
-        left = left.cast(scriptRoot, variables);
-        right = right.cast(scriptRoot, variables);
+        left.cast();
+        right.cast();
     }
 
     private void analyzeAdd(ScriptRoot scriptRoot, Scope variables) {
@@ -217,8 +217,8 @@ public final class EBinary extends AExpression {
             right.expected = promote;
         }
 
-        left = left.cast(scriptRoot, variables);
-        right = right.cast(scriptRoot, variables);
+        left.cast();
+        right.cast();
     }
 
     private void analyzeSub(ScriptRoot scriptRoot, Scope variables) {
@@ -247,8 +247,8 @@ public final class EBinary extends AExpression {
             right.expected = promote;
         }
 
-        left = left.cast(scriptRoot, variables);
-        right = right.cast(scriptRoot, variables);
+        left.cast();
+        right.cast();
     }
 
     private void analyzeRegexOp(ScriptRoot scriptRoot, Scope variables) {
@@ -258,8 +258,8 @@ public final class EBinary extends AExpression {
         left.expected = String.class;
         right.expected = Pattern.class;
 
-        left = left.cast(scriptRoot, variables);
-        right = right.cast(scriptRoot, variables);
+        left.cast();
+        right.cast();
 
         promote = boolean.class;
         actual = boolean.class;
@@ -299,8 +299,8 @@ public final class EBinary extends AExpression {
             }
         }
 
-        left = left.cast(scriptRoot, variables);
-        right = right.cast(scriptRoot, variables);
+        left.cast();
+        right.cast();
     }
 
     private void analyzeRSH(ScriptRoot scriptRoot, Scope variables) {
@@ -337,8 +337,8 @@ public final class EBinary extends AExpression {
             }
         }
 
-        left = left.cast(scriptRoot, variables);
-        right = right.cast(scriptRoot, variables);
+        left.cast();
+        right.cast();
     }
 
     private void analyzeUSH(ScriptRoot scriptRoot, Scope variables) {
@@ -375,8 +375,8 @@ public final class EBinary extends AExpression {
             }
         }
 
-        left = left.cast(scriptRoot, variables);
-        right = right.cast(scriptRoot, variables);
+        left.cast();
+        right.cast();
     }
 
     private void analyzeBWAnd(ScriptRoot scriptRoot, Scope variables) {
@@ -405,8 +405,8 @@ public final class EBinary extends AExpression {
             right.expected = promote;
         }
 
-        left = left.cast(scriptRoot, variables);
-        right = right.cast(scriptRoot, variables);
+        left.cast();
+        right.cast();
     }
 
     private void analyzeXor(ScriptRoot scriptRoot, Scope variables) {
@@ -434,8 +434,8 @@ public final class EBinary extends AExpression {
             right.expected = promote;
         }
 
-        left = left.cast(scriptRoot, variables);
-        right = right.cast(scriptRoot, variables);
+        left.cast();
+        right.cast();
     }
 
     private void analyzeBWOr(ScriptRoot scriptRoot, Scope variables) {
@@ -463,8 +463,8 @@ public final class EBinary extends AExpression {
             right.expected = promote;
         }
 
-        left = left.cast(scriptRoot, variables);
-        right = right.cast(scriptRoot, variables);
+        left.cast();
+        right.cast();
     }
 
     @Override
@@ -474,8 +474,8 @@ public final class EBinary extends AExpression {
                         .setLocation(location)
                         .setType(actual)
                 )
-                .setLeftNode(left.write(classNode))
-                .setRightNode(right.write(classNode))
+                .setLeftNode(left.cast(left.write(classNode)))
+                .setRightNode(right.cast(right.write(classNode)))
                 .setShiftTypeNode(new TypeNode()
                         .setLocation(location)
                         .setType(shiftDistance)

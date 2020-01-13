@@ -71,7 +71,7 @@ final class PSubMapShortcut extends AStoreable {
         if ((read || write) && (!read || getter != null) && (!write || setter != null)) {
             index.expected = setter != null ? setter.typeParameters.get(0) : getter.typeParameters.get(0);
             index.analyze(scriptRoot, scope);
-            index = index.cast(scriptRoot, scope);
+            index.cast();
 
             actual = setter != null ? setter.typeParameters.get(1) : getter.returnType;
         } else {
@@ -86,7 +86,7 @@ final class PSubMapShortcut extends AStoreable {
                         .setLocation(location)
                         .setType(actual)
                 )
-                .setChildNode(index.write(classNode))
+                .setChildNode(index.cast(index.write(classNode)))
                 .setLocation(location)
                 .setGetter(getter)
                 .setSetter(setter);

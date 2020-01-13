@@ -56,7 +56,7 @@ public final class SExpression extends AStatement {
 
         expression.expected = rtn ? rtnType : expression.actual;
         expression.internal = rtn;
-        expression = expression.cast(scriptRoot, scope);
+        expression.cast();
 
         methodEscape = rtn;
         loopEscape = rtn;
@@ -67,7 +67,7 @@ public final class SExpression extends AStatement {
     @Override
     StatementExpressionNode write(ClassNode classNode) {
         return new StatementExpressionNode()
-                .setExpressionNode(expression.write(classNode))
+                .setExpressionNode(expression.cast(expression.write(classNode)))
                 .setLocation(location)
                 .setNoop(false)
                 .setMethodEscape(methodEscape);
