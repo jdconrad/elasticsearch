@@ -56,12 +56,17 @@ public final class EBinary extends AExpression {
     }
 
     @Override
-    void analyze(ScriptRoot scriptRoot, Scope scope) {
-        originallyExplicit = explicit;
+    Output analyze(ScriptRoot scriptRoot, Scope scope, Input input) {
+        this.input = input;
+        output = new Output();
 
-        if (operation == Operation.MUL) {
-            analyzeMul(scriptRoot, scope);
-        } else if (operation == Operation.DIV) {
+        originallyExplicit = input.explicit;
+
+        Output leftOutput = left.analyze(scriptRoot, scope, new Input());
+        Output rightOutput = right.analyze(scriptRoot, scope, new Input());
+
+        /*
+         if (operation == Operation.DIV) {
             analyzeDiv(scriptRoot, scope);
         } else if (operation == Operation.REM) {
             analyzeRem(scriptRoot, scope);
@@ -88,35 +93,41 @@ public final class EBinary extends AExpression {
         } else {
             throw createError(new IllegalStateException("Illegal tree structure."));
         }
-    }
+         */
 
-    private void analyzeMul(ScriptRoot scriptRoot, Scope variables) {
-        left.analyze(scriptRoot, variables);
-        right.analyze(scriptRoot, variables);
+        if (operation == Operation.MUL) {
+            promote = AnalyzerCaster.promoteNumeric(leftOutput.actual, rightOutput.actual, true);
 
-        promote = AnalyzerCaster.promoteNumeric(left.actual, right.actual, true);
-
-        if (promote == null) {
-            throw createError(new ClassCastException("Cannot apply multiply [*] to types " +
-                    "[" + PainlessLookupUtility.typeToCanonicalTypeName(left.actual) + "] and " +
-                    "[" + PainlessLookupUtility.typeToCanonicalTypeName(right.actual) + "]."));
+            if (promote == null) {
+                throw createError(new ClassCastException("Cannot apply multiply [*] to types " +
+                        "[" + PainlessLookupUtility.typeToCanonicalTypeName(leftOutput.actual) + "] and " +
+                        "[" + PainlessLookupUtility.typeToCanonicalTypeName(rightOutput.actual) + "]."));
+            }
+        } else if (operation == Operation.DIV) {
+            if (promote == null) {
+                throw createError(new ClassCastException("Cannot apply divide [/] to types " +
+                        "[" + PainlessLookupUtility.typeToCanonicalTypeName(left.actual) + "] and " +
+                        "[" + PainlessLookupUtility.typeToCanonicalTypeName(right.actual) + "]."));
+            }
         }
 
-        actual = promote;
+        output.actual = promote;
 
         if (promote == def.class) {
-            left.expected = left.actual;
-            right.expected = right.actual;
-            if (expected != null) {
-                actual = expected;
+            left.input.expected = leftOutput.actual;
+            right.input.expected = rightOutput.actual;
+            if (input.expected != null) {
+                output.actual = input.expected;
             }
         } else {
-            left.expected = promote;
-            right.expected = promote;
+            left.input.expected = promote;
+            right.input.expected = promote;
         }
 
         left.cast();
         right.cast();
+
+        return output;
     }
 
     private void analyzeDiv(ScriptRoot scriptRoot, Scope variables) {
@@ -125,11 +136,7 @@ public final class EBinary extends AExpression {
 
         promote = AnalyzerCaster.promoteNumeric(left.actual, right.actual, true);
 
-        if (promote == null) {
-            throw createError(new ClassCastException("Cannot apply divide [/] to types " +
-                    "[" + PainlessLookupUtility.typeToCanonicalTypeName(left.actual) + "] and " +
-                    "[" + PainlessLookupUtility.typeToCanonicalTypeName(right.actual) + "]."));
-        }
+
 
         actual = promote;
 
@@ -472,7 +479,7 @@ public final class EBinary extends AExpression {
         return new BinaryMathNode()
                 .setTypeNode(new TypeNode()
                         .setLocation(location)
-                        .setType(actual)
+                        .setType(output.actual)
                 )
                 .setLeftNode(left.cast(left.write(classNode)))
                 .setRightNode(right.cast(right.write(classNode)))
