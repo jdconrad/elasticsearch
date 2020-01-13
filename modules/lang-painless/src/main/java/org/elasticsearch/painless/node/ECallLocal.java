@@ -145,7 +145,7 @@ public final class ECallLocal extends AExpression {
             expression.expected = typeParameters.get(argument + classBindingOffset);
             expression.internal = true;
             expression.analyze(scriptRoot, scope);
-            arguments.set(argument, expression.cast(scriptRoot, scope));
+            expression.cast();
         }
 
         statement = true;
@@ -167,7 +167,7 @@ public final class ECallLocal extends AExpression {
                 .setInstanceBinding(instanceBinding);
 
         for (AExpression argument : arguments) {
-            unboundCallNode.addArgumentNode(argument.write(classNode));
+            unboundCallNode.addArgumentNode(argument.cast(argument.write(classNode)));
         }
 
         return unboundCallNode;

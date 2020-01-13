@@ -84,8 +84,8 @@ public class EElvis extends AExpression {
             actual = promote;
         }
 
-        lhs = lhs.cast(scriptRoot, scope);
-        rhs = rhs.cast(scriptRoot, scope);
+        lhs.cast();
+        rhs.cast();
     }
 
     @Override
@@ -95,8 +95,8 @@ public class EElvis extends AExpression {
                         .setLocation(location)
                         .setType(actual)
                 )
-                .setLeftNode(lhs.write(classNode))
-                .setRightNode(rhs.write(classNode))
+                .setLeftNode(lhs.cast(lhs.write(classNode)))
+                .setRightNode(rhs.cast(rhs.write(classNode)))
                 .setLocation(location);
     }
 

@@ -67,7 +67,7 @@ final class PSubDefCall extends AExpression {
             }
 
             expression.expected = expression.actual;
-            arguments.set(argument, expression.cast(scriptRoot, scope));
+            expression.cast();
             parameterTypes.add(expression.actual);
 
             if (expression instanceof ILambda) {
@@ -99,7 +99,7 @@ final class PSubDefCall extends AExpression {
                 .addTypeParameters(parameterTypes);
 
         for (AExpression argument : arguments) {
-            callSubDefNode.addArgumentNode(argument.write(classNode));
+            callSubDefNode.addArgumentNode(argument.cast(argument.write(classNode)));
         }
 
         return callSubDefNode;

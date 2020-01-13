@@ -50,11 +50,11 @@ public final class EBool extends AExpression {
     void analyze(ScriptRoot scriptRoot, Scope scope) {
         left.expected = boolean.class;
         left.analyze(scriptRoot, scope);
-        left = left.cast(scriptRoot, scope);
+        left.cast();
 
         right.expected = boolean.class;
         right.analyze(scriptRoot, scope);
-        right = right.cast(scriptRoot, scope);
+        right.cast();
 
         actual = boolean.class;
     }
@@ -66,8 +66,8 @@ public final class EBool extends AExpression {
                         .setLocation(location)
                         .setType(actual)
                 )
-                .setLeftNode(left.write(classNode))
-                .setRightNode(right.write(classNode))
+                .setLeftNode(left.cast(left.write(classNode)))
+                .setRightNode(right.cast(right.write(classNode)))
                 .setLocation(location)
                 .setOperation(operation);
     }

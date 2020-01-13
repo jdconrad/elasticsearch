@@ -51,7 +51,7 @@ public final class PBrace extends AStoreable {
     void analyze(ScriptRoot scriptRoot, Scope scope) {
         prefix.analyze(scriptRoot, scope);
         prefix.expected = prefix.actual;
-        prefix = prefix.cast(scriptRoot, scope);
+        prefix.cast();
 
         if (prefix.actual.isArray()) {
             sub = new PSubBrace(location, prefix.actual, index);
@@ -82,7 +82,7 @@ public final class PBrace extends AStoreable {
                         .setType(actual)
                 )
                 .setChildNode(sub.write(classNode))
-                .setPrefixNode(prefix.write(classNode))
+                .setPrefixNode(prefix.cast(prefix.write(classNode)))
                 .setLocation(location);
     }
 
