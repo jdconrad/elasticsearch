@@ -64,7 +64,7 @@ public final class ENewArray extends AExpression {
             expression.expected = initialize ? clazz.getComponentType() : int.class;
             expression.internal = true;
             expression.analyze(scriptRoot, scope);
-            arguments.set(argument, expression.cast(scriptRoot, scope));
+            expression.cast();
         }
 
         actual = clazz;
@@ -81,7 +81,7 @@ public final class ENewArray extends AExpression {
                 .setInitialize(initialize);
 
         for (AExpression argument : arguments) {
-            newArrayNode.addArgumentNode(argument.write(classNode));
+            newArrayNode.addArgumentNode(argument.cast(argument.write(classNode)));
         }
 
         return newArrayNode;

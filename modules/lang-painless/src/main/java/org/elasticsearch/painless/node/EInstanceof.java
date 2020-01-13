@@ -64,7 +64,7 @@ public final class EInstanceof extends AExpression {
         // analyze and cast the expression
         expression.analyze(scriptRoot, scope);
         expression.expected = expression.actual;
-        expression = expression.cast(scriptRoot, scope);
+        expression.cast();
 
         // record if the expression returns a primitive
         primitiveExpression = expression.actual.isPrimitive();
@@ -82,7 +82,7 @@ public final class EInstanceof extends AExpression {
                         .setLocation(location)
                         .setType(actual)
                 )
-                .setChildNode(expression.write(classNode))
+                .setChildNode(expression.cast(expression.write(classNode)))
                 .setExpressionTypeNode(new TypeNode()
                         .setLocation(location)
                         .setType(expressionType)
