@@ -41,12 +41,17 @@ public final class EBoolean extends AExpression {
     }
 
     @Override
-    void analyze(ScriptRoot scriptRoot, Scope scope) {
-        if (!read) {
+    Output analyze(ScriptRoot scriptRoot, Scope scope, Input input) {
+        this.input = input;
+        output = new Output();
+
+        if (input.read == false) {
             throw createError(new IllegalArgumentException("Must read from constant [" + constant + "]."));
         }
 
-        actual = boolean.class;
+        output.actual = boolean.class;
+
+        return output;
     }
 
     @Override
@@ -54,7 +59,7 @@ public final class EBoolean extends AExpression {
         return new ConstantNode()
                 .setTypeNode(new TypeNode()
                         .setLocation(location)
-                        .setType(boolean.class)
+                        .setType(output.actual)
                 )
                 .setLocation(location)
                 .setConstant(constant);
