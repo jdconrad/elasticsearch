@@ -45,19 +45,24 @@ public class EElvis extends AExpression {
     }
 
     @Override
-    void analyze(ScriptRoot scriptRoot, Scope scope) {
-        if (expected != null && expected.isPrimitive()) {
+    Output analyze(ScriptRoot scriptRoot, Scope scope, Input input) {
+        this.input = input;
+        output = new Output();
+
+        if (input.expected != null && input.expected.isPrimitive()) {
             throw createError(new IllegalArgumentException("Elvis operator cannot return primitives"));
         }
-        lhs.expected = expected;
-        lhs.explicit = explicit;
-        lhs.internal = internal;
-        rhs.expected = expected;
-        rhs.explicit = explicit;
-        rhs.internal = internal;
-        actual = expected;
-        lhs.analyze(scriptRoot, scope);
-        rhs.analyze(scriptRoot, scope);
+        Input leftInput = new Input();
+        leftInput.expected = input.expected;
+        leftInput.explicit = input.explicit;
+        leftInput.internal = input.internal;
+        Input rightInput = new Input();
+        rightInput.expected = input.expected;
+        rightInput.explicit = input.explicit;
+        rightInput.internal = input.internal;
+        output.actual = input.expected;
+        Output leftOutput = lhs.analyze(scriptRoot, scope, leftInput);
+        Output rightOutput = rhs.analyze(scriptRoot, scope, rightInput);
 
         if (lhs instanceof ENull) {
             throw createError(new IllegalArgumentException("Extraneous elvis operator. LHS is null."));
@@ -69,23 +74,25 @@ public class EElvis extends AExpression {
                 || lhs instanceof EConstant) {
             throw createError(new IllegalArgumentException("Extraneous elvis operator. LHS is a constant."));
         }
-        if (lhs.actual.isPrimitive()) {
+        if (leftOutput.actual.isPrimitive()) {
             throw createError(new IllegalArgumentException("Extraneous elvis operator. LHS is a primitive."));
         }
         if (rhs instanceof ENull) {
             throw createError(new IllegalArgumentException("Extraneous elvis operator. RHS is null."));
         }
 
-        if (expected == null) {
-            Class<?> promote = AnalyzerCaster.promoteConditional(lhs.actual, rhs.actual);
+        if (input.expected == null) {
+            Class<?> promote = AnalyzerCaster.promoteConditional(leftOutput.actual, rightOutput.actual);
 
-            lhs.expected = promote;
-            rhs.expected = promote;
-            actual = promote;
+            lhs.input.expected = promote;
+            rhs.input.expected = promote;
+            output.actual = promote;
         }
 
         lhs.cast();
         rhs.cast();
+
+        return output;
     }
 
     @Override
@@ -93,7 +100,7 @@ public class EElvis extends AExpression {
         return new ElvisNode()
                 .setTypeNode(new TypeNode()
                         .setLocation(location)
-                        .setType(actual)
+                        .setType(output.actual)
                 )
                 .setLeftNode(lhs.cast(lhs.write(classNode)))
                 .setRightNode(rhs.cast(rhs.write(classNode)))

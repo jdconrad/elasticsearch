@@ -52,23 +52,27 @@ final class PSubDefCall extends AExpression {
     }
 
     @Override
-    void analyze(ScriptRoot scriptRoot, Scope scope) {
+    Output analyze(ScriptRoot scriptRoot, Scope scope, Input input) {
+        this.input = input;
+        output = new Output();
+
         parameterTypes.add(Object.class);
         int totalCaptures = 0;
 
         for (int argument = 0; argument < arguments.size(); ++argument) {
             AExpression expression = arguments.get(argument);
 
-            expression.internal = true;
-            expression.analyze(scriptRoot, scope);
+            Input expressionInput = new Input();
+            expressionInput.internal = true;
+            Output expressionOutput = expression.analyze(scriptRoot, scope, expressionInput);
 
-            if (expression.actual == void.class) {
+            if (expressionOutput.actual == void.class) {
                 throw createError(new IllegalArgumentException("Argument(s) cannot be of [void] type when calling method [" + name + "]."));
             }
 
-            expression.expected = expression.actual;
+            expression.input.expected = expressionOutput.actual;
             expression.cast();
-            parameterTypes.add(expression.actual);
+            parameterTypes.add(expressionOutput.actual);
 
             if (expression instanceof ILambda) {
                 ILambda lambda = (ILambda) expression;
@@ -82,7 +86,9 @@ final class PSubDefCall extends AExpression {
         }
 
         // TODO: remove ZonedDateTime exception when JodaCompatibleDateTime is removed
-        actual = expected == null || expected == ZonedDateTime.class || explicit ? def.class : expected;
+        output.actual = input.expected == null || input.expected == ZonedDateTime.class || input.explicit ? def.class : input.expected;
+
+        return output;
     }
 
     @Override
@@ -90,7 +96,7 @@ final class PSubDefCall extends AExpression {
         CallSubDefNode callSubDefNode = new CallSubDefNode()
                 .setTypeNode(new TypeNode()
                         .setLocation(location)
-                        .setType(actual)
+                        .setType(output.actual)
                 )
                 .setLocation(location)
                 .setName(name)

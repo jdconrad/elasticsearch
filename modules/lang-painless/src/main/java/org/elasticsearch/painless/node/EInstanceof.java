@@ -49,7 +49,10 @@ public final class EInstanceof extends AExpression {
     }
 
     @Override
-    void analyze(ScriptRoot scriptRoot, Scope scope) {
+    Output analyze(ScriptRoot scriptRoot, Scope scope, Input input) {
+        this.input = input;
+        output = new Output();
+
         // ensure the specified type is part of the definition
         Class<?> clazz = scriptRoot.getPainlessLookup().canonicalTypeNameToType(this.type);
 
@@ -62,17 +65,19 @@ public final class EInstanceof extends AExpression {
                 PainlessLookupUtility.typeToJavaType(clazz);
 
         // analyze and cast the expression
-        expression.analyze(scriptRoot, scope);
-        expression.expected = expression.actual;
+        Output expressionOutput = expression.analyze(scriptRoot, scope, new Input());
+        expression.input.expected = expressionOutput.actual;
         expression.cast();
 
         // record if the expression returns a primitive
-        primitiveExpression = expression.actual.isPrimitive();
+        primitiveExpression = expressionOutput.actual.isPrimitive();
         // map to wrapped type for primitive types
-        expressionType = expression.actual.isPrimitive() ?
-            PainlessLookupUtility.typeToBoxedType(expression.actual) : PainlessLookupUtility.typeToJavaType(clazz);
+        expressionType = expressionOutput.actual.isPrimitive() ?
+            PainlessLookupUtility.typeToBoxedType(expressionOutput.actual) : PainlessLookupUtility.typeToJavaType(clazz);
 
-        actual = boolean.class;
+        output.actual = boolean.class;
+
+        return output;
     }
 
     @Override
@@ -80,7 +85,7 @@ public final class EInstanceof extends AExpression {
         return new InstanceofNode()
                 .setTypeNode(new TypeNode()
                         .setLocation(location)
-                        .setType(actual)
+                        .setType(output.actual)
                 )
                 .setChildNode(expression.cast(expression.write(classNode)))
                 .setExpressionTypeNode(new TypeNode()

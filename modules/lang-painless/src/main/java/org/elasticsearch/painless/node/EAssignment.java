@@ -164,7 +164,9 @@ public final class EAssignment extends AExpression {
                 if (rhs instanceof EBinary && ((EBinary)rhs).operation == Operation.ADD && rightOutput.actual == String.class) {
                     ((EBinary)rhs).cat = true;
                 }
-            } else if (shift) {
+            }
+
+            if (shift) {
                 if (promote == def.class) {
                     // shifts are promoted independently, but for the def type, we need object.
                     rhs.input.expected = promote;
@@ -197,7 +199,7 @@ public final class EAssignment extends AExpression {
 
                 rhs.input.expected = rightOutput.actual;
                 lhs.updateActual(rightOutput.actual);
-                // Otherwise, we must adapt the rhs type to the lhs type with a cast.
+            // Otherwise, we must adapt the rhs type to the lhs type with a cast.
             } else {
                 Input rightInput = new Input();
                 rightInput.expected = leftOutput.actual;
