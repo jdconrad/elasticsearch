@@ -52,9 +52,12 @@ public final class ECapturingFunctionRef extends AExpression implements ILambda 
     }
 
     @Override
-    void analyze(ScriptRoot scriptRoot, Scope scope) {
+    Output analyze(ScriptRoot scriptRoot, Scope scope, Input input) {
+        this.input = input;
+        output = new Output();
+
         captured = scope.getVariable(location, variable);
-        if (expected == null) {
+        if (input.expected == null) {
             if (captured.getType() == def.class) {
                 // dynamic implementation
                 defPointer = "D" + variable + "." + call + ",1";
@@ -62,16 +65,18 @@ public final class ECapturingFunctionRef extends AExpression implements ILambda 
                 // typed implementation
                 defPointer = "S" + captured.getCanonicalTypeName() + "." + call + ",1";
             }
-            actual = String.class;
+            output.actual = String.class;
         } else {
             defPointer = null;
             // static case
             if (captured.getType() != def.class) {
                 ref = FunctionRef.create(scriptRoot.getPainlessLookup(), scriptRoot.getFunctionTable(), location,
-                        expected, captured.getCanonicalTypeName(), call, 1);
+                        input.expected, captured.getCanonicalTypeName(), call, 1);
             }
-            actual = expected;
+            output.actual = input.expected;
         }
+
+        return output;
     }
 
     @Override
@@ -79,7 +84,7 @@ public final class ECapturingFunctionRef extends AExpression implements ILambda 
         return new CapturingFuncRefNode()
                 .setTypeNode(new TypeNode()
                         .setLocation(location)
-                        .setType(actual)
+                        .setType(output.actual)
                 )
                 .setLocation(location)
                 .setCapturedName(captured.getName())
