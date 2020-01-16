@@ -49,7 +49,10 @@ final class PSubMapShortcut extends AStoreable {
     }
 
     @Override
-    void analyze(ScriptRoot scriptRoot, Scope scope) {
+    Output analyze(ScriptRoot scriptRoot, Scope scope, AStoreable.Input input) {
+        this.input = input;
+        output = new Output();
+
         String canonicalClassName = PainlessLookupUtility.typeToCanonicalTypeName(targetClass);
 
         getter = scriptRoot.getPainlessLookup().lookupPainlessMethod(targetClass, false, "get", 1);
@@ -68,15 +71,18 @@ final class PSubMapShortcut extends AStoreable {
             throw createError(new IllegalArgumentException("Shortcut argument types must match."));
         }
 
-        if ((read || write) && (!read || getter != null) && (!write || setter != null)) {
-            index.expected = setter != null ? setter.typeParameters.get(0) : getter.typeParameters.get(0);
-            index.analyze(scriptRoot, scope);
+        if ((input.read || input.write) && (input.read == false || getter != null) && (input.write == false || setter != null)) {
+            Input indexInput = new Input();
+            indexInput.expected = setter != null ? setter.typeParameters.get(0) : getter.typeParameters.get(0);
+            index.analyze(scriptRoot, scope, indexInput);
             index.cast();
 
-            actual = setter != null ? setter.typeParameters.get(1) : getter.returnType;
+            output.actual = setter != null ? setter.typeParameters.get(1) : getter.returnType;
         } else {
             throw createError(new IllegalArgumentException("Illegal map shortcut for type [" + canonicalClassName + "]."));
         }
+
+        return output;
     }
 
     @Override
@@ -84,7 +90,7 @@ final class PSubMapShortcut extends AStoreable {
         return new MapSubShortcutNode()
                 .setTypeNode(new TypeNode()
                         .setLocation(location)
-                        .setType(actual)
+                        .setType(output.actual)
                 )
                 .setChildNode(index.cast(index.write(classNode)))
                 .setLocation(location)

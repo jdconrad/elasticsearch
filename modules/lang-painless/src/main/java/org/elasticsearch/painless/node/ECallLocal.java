@@ -59,7 +59,10 @@ public final class ECallLocal extends AExpression {
     }
 
     @Override
-    void analyze(ScriptRoot scriptRoot, Scope scope) {
+    Output analyze(ScriptRoot scriptRoot, Scope scope, Input input) {
+        this.input = input;
+        output = new Output();
+
         localFunction = scriptRoot.getFunctionTable().getFunction(name, arguments.size());
 
         // user cannot call internal functions, reset to null if an internal function is found
@@ -113,21 +116,21 @@ public final class ECallLocal extends AExpression {
 
         if (localFunction != null) {
             typeParameters = new ArrayList<>(localFunction.getTypeParameters());
-            actual = localFunction.getReturnType();
+            output.actual = localFunction.getReturnType();
         } else if (importedMethod != null) {
             scriptRoot.markNonDeterministic(importedMethod.annotations.containsKey(NonDeterministicAnnotation.class));
             typeParameters = new ArrayList<>(importedMethod.typeParameters);
-            actual = importedMethod.returnType;
+            output.actual = importedMethod.returnType;
         } else if (classBinding != null) {
             scriptRoot.markNonDeterministic(classBinding.annotations.containsKey(NonDeterministicAnnotation.class));
             typeParameters = new ArrayList<>(classBinding.typeParameters);
-            actual = classBinding.returnType;
+            output.actual = classBinding.returnType;
             bindingName = scriptRoot.getNextSyntheticName("class_binding");
             scriptRoot.getClassNode().addField(new SField(location,
                     Modifier.PRIVATE, bindingName, classBinding.javaConstructor.getDeclaringClass()));
         } else if (instanceBinding != null) {
             typeParameters = new ArrayList<>(instanceBinding.typeParameters);
-            actual = instanceBinding.returnType;
+            output.actual = instanceBinding.returnType;
             bindingName = scriptRoot.getNextSyntheticName("instance_binding");
             scriptRoot.getClassNode().addField(new SField(location, Modifier.STATIC | Modifier.PUBLIC,
                     bindingName, instanceBinding.targetInstance.getClass()));
@@ -142,13 +145,16 @@ public final class ECallLocal extends AExpression {
         for (int argument = 0; argument < arguments.size(); ++argument) {
             AExpression expression = arguments.get(argument);
 
-            expression.expected = typeParameters.get(argument + classBindingOffset);
-            expression.internal = true;
-            expression.analyze(scriptRoot, scope);
+            Input expressionInput = new Input();
+            expressionInput.expected = typeParameters.get(argument + classBindingOffset);
+            expressionInput.internal = true;
+            expression.analyze(scriptRoot, scope, expressionInput);
             expression.cast();
         }
 
-        statement = true;
+        output.statement = true;
+
+        return output;
     }
 
     @Override
@@ -156,7 +162,7 @@ public final class ECallLocal extends AExpression {
         UnboundCallNode unboundCallNode = new UnboundCallNode()
                 .setTypeNode(new TypeNode()
                         .setLocation(location)
-                        .setType(actual)
+                        .setType(output.actual)
                 )
                 .setLocation(location)
                 .setLocalFunction(localFunction)
