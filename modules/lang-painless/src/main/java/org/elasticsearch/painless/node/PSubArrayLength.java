@@ -44,16 +44,21 @@ final class PSubArrayLength extends AStoreable {
     }
 
     @Override
-    void analyze(ScriptRoot scriptRoot, Scope scope) {
+    Output analyze(ScriptRoot scriptRoot, Scope scope, AStoreable.Input input) {
+        this.input = input;
+        output = new Output();
+
         if ("length".equals(value)) {
-            if (write) {
+            if (input.write) {
                 throw createError(new IllegalArgumentException("Cannot write to read-only field [length] for an array."));
             }
 
-            actual = int.class;
+            output.actual = int.class;
         } else {
             throw createError(new IllegalArgumentException("Field [" + value + "] does not exist for type [" + type + "]."));
         }
+
+        return output;
     }
 
     @Override
@@ -61,7 +66,7 @@ final class PSubArrayLength extends AStoreable {
         return new DotSubArrayLengthNode()
                 .setTypeNode(new TypeNode()
                         .setLocation(location)
-                        .setType(actual)
+                        .setType(output.actual)
                 )
                 .setLocation(location);
     }

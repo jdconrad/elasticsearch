@@ -42,12 +42,17 @@ public final class EStatic extends AExpression {
     }
 
     @Override
-    void analyze(ScriptRoot scriptRoot, Scope scope) {
-        actual = scriptRoot.getPainlessLookup().canonicalTypeNameToType(type);
+    Output analyze(ScriptRoot scriptRoot, Scope scope, Input input) {
+        this.input = input;
+        output = new Output();
 
-        if (actual == null) {
+        output.actual = scriptRoot.getPainlessLookup().canonicalTypeNameToType(type);
+
+        if (output.actual == null) {
             throw createError(new IllegalArgumentException("Not a type [" + type + "]."));
         }
+
+        return output;
     }
 
     @Override
@@ -55,7 +60,7 @@ public final class EStatic extends AExpression {
         return new StaticNode()
                 .setTypeNode(new TypeNode()
                         .setLocation(location)
-                        .setType(actual)
+                        .setType(output.actual)
                 )
                 .setLocation(location);
     }
