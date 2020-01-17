@@ -32,9 +32,9 @@ import java.util.Objects;
 /**
  * Represents a variable load/store.
  */
-public final class EVariable extends AStoreable {
+public class EVariable extends AStoreable {
 
-    private final String name;
+    protected final String name;
 
     public EVariable(Location location, String name) {
         super(location);
@@ -43,7 +43,7 @@ public final class EVariable extends AStoreable {
     }
 
     @Override
-    Output analyze(ScriptRoot scriptRoot, Scope scope, AExpression.Input input) {
+    Output analyze(ClassNode classNode, ScriptRoot scriptRoot, Scope scope, AExpression.Input input) {
         AStoreable.Input storeableInput = new AStoreable.Input();
         storeableInput.read = input.read;
         storeableInput.expected = input.expected;
@@ -55,8 +55,7 @@ public final class EVariable extends AStoreable {
 
     @Override
     Output analyze(ScriptRoot scriptRoot, Scope scope, AStoreable.Input input) {
-        this.input = input;
-        output = new Output();
+        Output output = new Output();
 
         Variable variable = scope.getVariable(location, name);
 
@@ -66,18 +65,15 @@ public final class EVariable extends AStoreable {
 
         output.actual = variable.getType();
 
-        return output;
-    }
-
-    @Override
-    VariableNode write(ClassNode classNode) {
-        return new VariableNode()
+        output.expressionNode = new VariableNode()
                 .setTypeNode(new TypeNode()
                         .setLocation(location)
                         .setType(output.actual)
                 )
                 .setLocation(location)
                 .setName(name);
+
+        return output;
     }
 
     @Override

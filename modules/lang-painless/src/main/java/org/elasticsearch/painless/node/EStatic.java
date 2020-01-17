@@ -31,9 +31,9 @@ import java.util.Objects;
 /**
  * Represents a static type target.
  */
-public final class EStatic extends AExpression {
+public class EStatic extends AExpression {
 
-    private final String type;
+    protected final String type;
 
     public EStatic(Location location, String type) {
         super(location);
@@ -42,9 +42,8 @@ public final class EStatic extends AExpression {
     }
 
     @Override
-    Output analyze(ScriptRoot scriptRoot, Scope scope, Input input) {
-        this.input = input;
-        output = new Output();
+    Output analyze(ClassNode classNode, ScriptRoot scriptRoot, Scope scope, Input input) {
+        Output output = new Output();
 
         output.actual = scriptRoot.getPainlessLookup().canonicalTypeNameToType(type);
 
@@ -52,17 +51,14 @@ public final class EStatic extends AExpression {
             throw createError(new IllegalArgumentException("Not a type [" + type + "]."));
         }
 
-        return output;
-    }
-
-    @Override
-    StaticNode write(ClassNode classNode) {
-        return new StaticNode()
+        output.expressionNode = new StaticNode()
                 .setTypeNode(new TypeNode()
                         .setLocation(location)
                         .setType(output.actual)
                 )
                 .setLocation(location);
+
+        return output;
     }
 
     @Override

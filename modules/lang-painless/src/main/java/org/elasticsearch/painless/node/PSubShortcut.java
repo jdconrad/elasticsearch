@@ -30,12 +30,12 @@ import org.elasticsearch.painless.symbol.ScriptRoot;
 /**
  * Represents a field load/store shortcut.  (Internal only.)
  */
-final class PSubShortcut extends AStoreable {
+public class PSubShortcut extends AStoreable {
 
-    private final String value;
-    private final String type;
-    private final PainlessMethod getter;
-    private final PainlessMethod setter;
+    protected final String value;
+    protected final String type;
+    protected final PainlessMethod getter;
+    protected final PainlessMethod setter;
 
     PSubShortcut(Location location, String value, String type, PainlessMethod getter, PainlessMethod setter) {
         super(location);
@@ -47,9 +47,8 @@ final class PSubShortcut extends AStoreable {
     }
 
     @Override
-    Output analyze(ScriptRoot scriptRoot, Scope scope, AStoreable.Input input) {
-        this.input = input;
-        output = new Output();
+    Output analyze(ClassNode classNode, ScriptRoot scriptRoot, Scope scope, AStoreable.Input input) {
+        Output output = new Output();
 
         if (getter != null && (getter.returnType == void.class || !getter.typeParameters.isEmpty())) {
             throw createError(new IllegalArgumentException(
@@ -71,12 +70,7 @@ final class PSubShortcut extends AStoreable {
             throw createError(new IllegalArgumentException("Illegal shortcut on field [" + value + "] for type [" + type + "]."));
         }
 
-        return output;
-    }
-
-    @Override
-    DotSubShortcutNode write(ClassNode classNode) {
-        return new DotSubShortcutNode()
+        output.expressionNode = new DotSubShortcutNode()
                 .setTypeNode(new TypeNode()
                         .setLocation(location)
                         .setType(output.actual)
@@ -84,16 +78,13 @@ final class PSubShortcut extends AStoreable {
                 .setLocation(location)
                 .setGetter(getter)
                 .setSetter(setter);
+
+        return output;
     }
 
     @Override
     boolean isDefOptimized() {
         return false;
-    }
-
-    @Override
-    void updateActual(Class<?> actual) {
-        throw new IllegalArgumentException("Illegal tree structure.");
     }
 
     @Override

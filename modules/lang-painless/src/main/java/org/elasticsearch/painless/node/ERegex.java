@@ -43,11 +43,10 @@ import java.util.regex.PatternSyntaxException;
 /**
  * Represents a regex constant. All regexes are constants.
  */
-public final class ERegex extends AExpression {
+public class ERegex extends AExpression {
 
-    private final String pattern;
-    private final int flags;
-    private String name;
+    protected final String pattern;
+    protected final int flags;
 
     public ERegex(Location location, String pattern, String flagsString) {
         super(location);
@@ -64,10 +63,8 @@ public final class ERegex extends AExpression {
     }
 
     @Override
-    Output analyze(ScriptRoot scriptRoot, Scope scope, Input input) {
-        this.input = input;
-        output = new Output();
-
+    Output analyze(ClassNode classNode, ScriptRoot scriptRoot, Scope scope, Input input) {
+        Output output = new Output();
 
         if (scriptRoot.getCompilerSettings().areRegexesEnabled() == false) {
             throw createError(new IllegalStateException("Regexes are disabled. Set [script.painless.regex.enabled] to [true] "
@@ -86,14 +83,9 @@ public final class ERegex extends AExpression {
                     new IllegalArgumentException("Error compiling regex: " + e.getDescription()));
         }
 
-        name = scriptRoot.getNextSyntheticName("regex");
+        String name = scriptRoot.getNextSyntheticName("regex");
         output.actual = Pattern.class;
 
-        return output;
-    }
-
-    @Override
-    UnboundFieldLoadNode write(ClassNode classNode) {
         classNode.addFieldNode(new FieldNode()
                 .setTypeNode(new TypeNode()
                         .setLocation(location)
@@ -172,7 +164,7 @@ public final class ERegex extends AExpression {
             throw createError(new IllegalStateException("could not generate regex constant [" + pattern + "/" + flags +"] in clinit"));
         }
 
-        return new UnboundFieldLoadNode()
+        output.expressionNode = new UnboundFieldLoadNode()
                 .setTypeNode(new TypeNode()
                         .setLocation(location)
                         .setType(Pattern.class)
@@ -180,6 +172,8 @@ public final class ERegex extends AExpression {
                 .setLocation(location)
                 .setName(name)
                 .setStatic(true);
+
+        return output;
     }
 
     private int flagForChar(char c) {

@@ -32,7 +32,7 @@ import java.util.Objects;
 /**
  * Represents a string constant.
  */
-public final class EString extends AExpression {
+public class EString extends AExpression {
 
     protected String constant;
 
@@ -43,9 +43,8 @@ public final class EString extends AExpression {
     }
 
     @Override
-    Output analyze(ScriptRoot scriptRoot, Scope scope, Input input) {
-        this.input = input;
-        output = new Output();
+    Output analyze(ClassNode classNode, ScriptRoot scriptRoot, Scope scope, Input input) {
+        Output output = new Output();
 
         if (input.read == false) {
             throw createError(new IllegalArgumentException("Must read from constant [" + constant + "]."));
@@ -53,20 +52,16 @@ public final class EString extends AExpression {
 
         output.actual = String.class;
 
-        return output;
-    }
-
-    @Override
-    ExpressionNode write(ClassNode classNode) {
-        return new ConstantNode()
+        output.expressionNode = new ConstantNode()
                 .setTypeNode(new TypeNode()
                         .setLocation(location)
                         .setType(String.class)
                 )
                 .setLocation(location)
                 .setConstant(constant);
-    }
 
+        return output;
+    }
     @Override
     public String toString() {
         return singleLineToString("'" + constant.toString() + "'");

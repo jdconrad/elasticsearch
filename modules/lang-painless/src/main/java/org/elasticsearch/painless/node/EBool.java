@@ -32,11 +32,11 @@ import java.util.Objects;
 /**
  * Represents a boolean expression.
  */
-public final class EBool extends AExpression {
+public class EBool extends AExpression {
 
-    private final Operation operation;
-    private AExpression left;
-    private AExpression right;
+    protected final Operation operation;
+    protected final AExpression left;
+    protected final AExpression right;
 
     public EBool(Location location, Operation operation, AExpression left, AExpression right) {
         super(location);
@@ -47,36 +47,32 @@ public final class EBool extends AExpression {
     }
 
     @Override
-    Output analyze(ScriptRoot scriptRoot, Scope scope, Input input) {
-        this.input = input;
-        output = new Output();
+    Output analyze(ClassNode classNode, ScriptRoot scriptRoot, Scope scope, Input input) {
+        Output output = new Output();
 
         Input leftInput = new Input();
         leftInput.expected = boolean.class;
-        left.analyze(scriptRoot, scope, leftInput);
-        left.cast();
+        Output leftOutput = left.analyze(classNode, scriptRoot, scope, leftInput);
+        left.cast(leftInput, leftOutput);
 
         Input rightInput = new Input();
         rightInput.expected = boolean.class;
-        right.analyze(scriptRoot, scope, rightInput);
-        right.cast();
+        Output rightOutput = right.analyze(classNode, scriptRoot, scope, rightInput);
+        right.cast(rightInput, rightOutput);
 
         output.actual = boolean.class;
 
-        return output;
-    }
-
-    @Override
-    BooleanNode write(ClassNode classNode) {
-        return new BooleanNode()
+        output.expressionNode = new BooleanNode()
                 .setTypeNode(new TypeNode()
                         .setLocation(location)
                         .setType(output.actual)
                 )
-                .setLeftNode(left.cast(left.write(classNode)))
-                .setRightNode(right.cast(right.write(classNode)))
+                .setLeftNode(left.cast(leftOutput))
+                .setRightNode(right.cast(rightOutput))
                 .setLocation(location)
                 .setOperation(operation);
+
+        return output;
     }
 
     @Override

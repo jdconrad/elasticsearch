@@ -33,13 +33,10 @@ import java.util.Objects;
 /**
  * Represents a map load/store shortcut. (Internal only.)
  */
-final class PSubMapShortcut extends AStoreable {
+public class PSubMapShortcut extends AStoreable {
 
-    private final Class<?> targetClass;
-    private AExpression index;
-
-    private PainlessMethod getter;
-    private PainlessMethod setter;
+    protected final Class<?> targetClass;
+    protected final AExpression index;
 
     PSubMapShortcut(Location location, Class<?> targetClass, AExpression index) {
         super(location);
@@ -49,14 +46,13 @@ final class PSubMapShortcut extends AStoreable {
     }
 
     @Override
-    Output analyze(ScriptRoot scriptRoot, Scope scope, AStoreable.Input input) {
-        this.input = input;
-        output = new Output();
+    Output analyze(ClassNode classNode, ScriptRoot scriptRoot, Scope scope, AStoreable.Input input) {
+        Output output = new Output();
 
         String canonicalClassName = PainlessLookupUtility.typeToCanonicalTypeName(targetClass);
 
-        getter = scriptRoot.getPainlessLookup().lookupPainlessMethod(targetClass, false, "get", 1);
-        setter = scriptRoot.getPainlessLookup().lookupPainlessMethod(targetClass, false, "put", 2);
+        PainlessMethod getter = scriptRoot.getPainlessLookup().lookupPainlessMethod(targetClass, false, "get", 1);
+        PainlessMethod setter = scriptRoot.getPainlessLookup().lookupPainlessMethod(targetClass, false, "put", 2);
 
         if (getter != null && (getter.returnType == void.class || getter.typeParameters.size() != 1)) {
             throw createError(new IllegalArgumentException("Illegal map get shortcut for type [" + canonicalClassName + "]."));
@@ -71,41 +67,35 @@ final class PSubMapShortcut extends AStoreable {
             throw createError(new IllegalArgumentException("Shortcut argument types must match."));
         }
 
+        Output indexOutput;
+
         if ((input.read || input.write) && (input.read == false || getter != null) && (input.write == false || setter != null)) {
             Input indexInput = new Input();
             indexInput.expected = setter != null ? setter.typeParameters.get(0) : getter.typeParameters.get(0);
-            index.analyze(scriptRoot, scope, indexInput);
-            index.cast();
+            indexOutput = index.analyze(classNode, scriptRoot, scope, indexInput);
+            index.cast(indexInput, indexOutput);
 
             output.actual = setter != null ? setter.typeParameters.get(1) : getter.returnType;
         } else {
             throw createError(new IllegalArgumentException("Illegal map shortcut for type [" + canonicalClassName + "]."));
         }
 
-        return output;
-    }
-
-    @Override
-    MapSubShortcutNode write(ClassNode classNode) {
-        return new MapSubShortcutNode()
+        output.expressionNode = new MapSubShortcutNode()
                 .setTypeNode(new TypeNode()
                         .setLocation(location)
                         .setType(output.actual)
                 )
-                .setChildNode(index.cast(index.write(classNode)))
+                .setChildNode(index.cast(indexOutput))
                 .setLocation(location)
                 .setGetter(getter)
                 .setSetter(setter);
+
+        return output;
     }
 
     @Override
     boolean isDefOptimized() {
         return false;
-    }
-
-    @Override
-    void updateActual(Class<?> actual) {
-        throw new IllegalArgumentException("Illegal tree structure.");
     }
 
     @Override
