@@ -40,7 +40,6 @@ public class SClass extends ANode {
     protected final String sourceText;
     protected final Printer debugStream;
     protected final List<SFunction> functions = new ArrayList<>();
-    protected final List<SField> fields = new ArrayList<>();
 
     public SClass(ScriptClassInfo scriptClassInfo, String name, String sourceText, Printer debugStream,
             Location location, List<SFunction> functions) {
@@ -50,10 +49,6 @@ public class SClass extends ANode {
         this.sourceText = Objects.requireNonNull(sourceText);
         this.debugStream = debugStream;
         this.functions.addAll(Objects.requireNonNull(functions));
-    }
-
-    void addField(SField field) {
-        fields.add(field);
     }
 
     public ClassNode analyze(ScriptRoot scriptRoot) {
@@ -84,10 +79,6 @@ public class SClass extends ANode {
 
         for (SFunction function : functions) {
             classNode.addFunctionNode(function.write(classNode, scriptRoot));
-        }
-
-        for (SField field : fields) {
-            classNode.addFieldNode(field.write(classNode));
         }
 
         return classNode;
