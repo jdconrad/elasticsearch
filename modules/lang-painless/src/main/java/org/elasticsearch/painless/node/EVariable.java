@@ -50,11 +50,11 @@ public class EVariable extends AStoreable {
         storeableInput.explicit = input.explicit;
         storeableInput.internal = input.internal;
 
-        return analyze(scriptRoot, scope, storeableInput);
+        return analyze(classNode, scriptRoot, scope, storeableInput);
     }
 
     @Override
-    Output analyze(ScriptRoot scriptRoot, Scope scope, AStoreable.Input input) {
+    Output analyze(ClassNode classNode, ScriptRoot scriptRoot, Scope scope, AStoreable.Input input) {
         Output output = new Output();
 
         Variable variable = scope.getVariable(location, name);
@@ -79,11 +79,6 @@ public class EVariable extends AStoreable {
     @Override
     boolean isDefOptimized() {
         return false;
-    }
-
-    @Override
-    void updateActual(Class<?> actual) {
-        throw new IllegalArgumentException("Illegal tree structure.");
     }
 
     @Override

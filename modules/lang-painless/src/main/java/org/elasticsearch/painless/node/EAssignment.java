@@ -79,7 +79,7 @@ public class EAssignment extends AExpression {
 
             leftInput.read = input.read;
             leftInput.write = true;
-            leftOutput = lhs.analyze(scriptRoot, scope, leftInput);
+            leftOutput = lhs.analyze(classNode, scriptRoot, scope, leftInput);
         } else {
             throw new IllegalArgumentException("Left-hand side cannot be assigned a value.");
         }
