@@ -31,12 +31,12 @@ import java.util.Objects;
 /**
  * Represents a single variable declaration.
  */
-public final class SDeclaration extends AStatement {
+public class SDeclaration extends AStatement {
 
-    protected DType type;
+    protected final DType type;
     protected final String name;
     protected final boolean requiresDefault;
-    private AExpression expression;
+    protected final AExpression expression;
 
     public SDeclaration(Location location, DType type, String name, boolean requiresDefault, AExpression expression) {
         super(location);
@@ -48,29 +48,24 @@ public final class SDeclaration extends AStatement {
     }
 
     @Override
-    Output analyze(ScriptRoot scriptRoot, Scope scope, Input input) {
-        this.input = input;
-        output = new Output();
+    Output analyze(ClassNode classNode, ScriptRoot scriptRoot, Scope scope, Input input) {
+        Output output = new Output();
 
         DResolvedType resolvedType = type.resolveType(scriptRoot.getPainlessLookup());
-        type = resolvedType;
+
+        AExpression.Output expressionOutput = null;
 
         if (expression != null) {
             AExpression.Input expressionInput = new AExpression.Input();
             expressionInput.expected = resolvedType.getType();
-            expression.analyze(, scriptRoot, scope, expressionInput);
-            expression.cast();
+            expressionOutput = expression.analyze(classNode, scriptRoot, scope, expressionInput);
+            expression.cast(expressionInput, expressionOutput);
         }
 
         scope.defineVariable(location, resolvedType.getType(), name, false);
 
-        return output;
-    }
-
-    @Override
-    DeclarationNode write(ClassNode classNode) {
-        return new DeclarationNode()
-                .setExpressionNode(expression == null ? null : expression.cast(expression.write(classNode)))
+        output.statementNode = new DeclarationNode()
+                .setExpressionNode(expression == null ? null : expression.cast(expressionOutput))
                 .setLocation(location)
                 .setDeclarationTypeNode(new TypeNode()
                         .setLocation(location)
@@ -78,6 +73,8 @@ public final class SDeclaration extends AStatement {
                 )
                 .setName(name)
                 .setRequiresDefault(requiresDefault);
+
+        return output;
     }
 
     @Override

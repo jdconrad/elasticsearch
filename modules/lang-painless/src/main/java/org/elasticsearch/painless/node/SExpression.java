@@ -30,9 +30,9 @@ import java.util.Objects;
 /**
  * Represents the top-level node for an expression as a statement.
  */
-public final class SExpression extends AStatement {
+public class SExpression extends AStatement {
 
-    private AExpression expression;
+    protected final AExpression expression;
 
     public SExpression(Location location, AExpression expression) {
         super(location);
@@ -41,16 +41,15 @@ public final class SExpression extends AStatement {
     }
 
     @Override
-    Output analyze(ScriptRoot scriptRoot, Scope scope, Input input) {
-        this.input = input;
-        output = new Output();
+    Output analyze(ClassNode classNode, ScriptRoot scriptRoot, Scope scope, Input input) {
+        Output output = new Output();
 
         Class<?> rtnType = scope.getReturnType();
         boolean isVoid = rtnType == void.class;
 
         AExpression.Input expressionInput = new AExpression.Input();
         expressionInput.read = input.lastSource && !isVoid;
-        AExpression.Output expressionOutput = expression.analyze(, scriptRoot, scope, expressionInput);
+        AExpression.Output expressionOutput = expression.analyze(classNode, scriptRoot, scope, expressionInput);
 
         if (input.lastSource == false && expressionOutput.statement == false) {
             throw createError(new IllegalArgumentException("Not a statement."));
@@ -58,25 +57,22 @@ public final class SExpression extends AStatement {
 
         boolean rtn = input.lastSource && isVoid == false && expressionOutput.actual != void.class;
 
-        expression.input.expected = rtn ? rtnType : expressionOutput.actual;
-        expression.input.internal = rtn;
-        expression.cast();
+        expressionInput.expected = rtn ? rtnType : expressionOutput.actual;
+        expressionInput.internal = rtn;
+        expression.cast(expressionInput, expressionOutput);
 
         output.methodEscape = rtn;
         output.loopEscape = rtn;
         output.allEscape = rtn;
         output.statementCount = 1;
 
-        return output;
-    }
-
-    @Override
-    StatementExpressionNode write(ClassNode classNode) {
-        return new StatementExpressionNode()
-                .setExpressionNode(expression.cast(expression.write(classNode)))
+        output.statementNode = new StatementExpressionNode()
+                .setExpressionNode(expression.cast(expressionOutput))
                 .setLocation(location)
                 .setNoop(false)
                 .setMethodEscape(output.methodEscape);
+
+        return output;
     }
 
     @Override

@@ -24,6 +24,7 @@ import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.Scope;
 import org.elasticsearch.painless.Scope.LambdaScope;
 import org.elasticsearch.painless.Scope.Variable;
+import org.elasticsearch.painless.ir.BlockNode;
 import org.elasticsearch.painless.ir.ClassNode;
 import org.elasticsearch.painless.ir.FunctionNode;
 import org.elasticsearch.painless.ir.LambdaNode;
@@ -164,7 +165,7 @@ public class ELambda extends AExpression implements ILambda {
         }
         AStatement.Input blockInput = new AStatement.Input();
         blockInput.lastSource = true;
-        AStatement.Output blockOutput = block.analyze(scriptRoot, lambdaScope, blockInput);
+        AStatement.Output blockOutput = block.analyze(classNode, scriptRoot, lambdaScope, blockInput);
 
         if (blockOutput.methodEscape == false) {
             throw createError(new IllegalArgumentException("not all paths return a value for lambda"));
@@ -200,7 +201,7 @@ public class ELambda extends AExpression implements ILambda {
         }
 
         classNode.addFunctionNode(new FunctionNode()
-                .setBlockNode(block.write(classNode))
+                .setBlockNode((BlockNode)blockOutput.statementNode)
                 .setLocation(location)
                 .setName(name)
                 .setReturnType(returnType)

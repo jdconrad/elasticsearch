@@ -29,9 +29,9 @@ import org.elasticsearch.painless.ir.TypeNode;
  */
 public class SField extends ANode {
 
-    private final int modifiers;
-    private final String name;
-    private final Class<?> type;
+    protected final int modifiers;
+    protected final String name;
+    protected final Class<?> type;
 
     /**
      * Standard constructor.
@@ -52,7 +52,7 @@ public class SField extends ANode {
         return name;
     }
 
-    @Override
+    // TODO: what do we do here as far as analysis goes?
     public FieldNode write(ClassNode classNode) {
         return new FieldNode()
                 .setTypeNode(new TypeNode()
