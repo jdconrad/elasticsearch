@@ -47,28 +47,23 @@ import static org.elasticsearch.painless.Scope.newFunctionScope;
 /**
  * Represents a user-defined function.
  */
-public final class SFunction extends ANode {
+public class SFunction extends ANode {
 
-    private final String rtnTypeStr;
-    public final String name;
-    private final List<String> paramTypeStrs;
-    private final List<String> paramNameStrs;
-    private final SBlock block;
-    public final boolean isInternal;
-    public final boolean isStatic;
-    public final boolean synthetic;
-    public final boolean doAutoReturn;
+    protected final String rtnTypeStr;
+    protected final String name;
+    protected final List<String> paramTypeStrs;
+    protected final List<String> paramNameStrs;
+    protected final SBlock block;
+    protected final boolean isInternal;
+    protected final boolean isStatic;
+    protected final boolean synthetic;
+    protected final boolean doAutoReturn;
 
-    private int maxLoopCounter;
+    protected Class<?> returnType;
+    protected List<Class<?>> typeParameters;
+    protected MethodType methodType;
 
-    Class<?> returnType;
-    List<Class<?>> typeParameters;
-    MethodType methodType;
-
-    org.objectweb.asm.commons.Method method;
-
-    private ScriptRoot scriptRoot;
-    private boolean methodEscape;
+    protected org.objectweb.asm.commons.Method method;
 
     public SFunction(Location location, String rtnType, String name,
             List<String> paramTypes, List<String> paramNames,
@@ -86,6 +81,7 @@ public final class SFunction extends ANode {
         this.doAutoReturn = doAutoReturn;
     }
 
+    // TODO: do this in class on add to remove need for mutable state
     void generateSignature(PainlessLookup painlessLookup) {
         returnType = painlessLookup.canonicalTypeNameToType(rtnTypeStr);
 
@@ -118,8 +114,8 @@ public final class SFunction extends ANode {
                 PainlessLookupUtility.typeToJavaType(returnType), paramClasses).toMethodDescriptorString());
     }
 
-    void analyze(ScriptRoot scriptRoot) {
-        this.scriptRoot = scriptRoot;
+    // TODO: decouple from ir
+    FunctionNode write(ClassNode classNode, ScriptRoot scriptRoot) {
         FunctionScope functionScope = newFunctionScope(returnType);
 
         for (int index = 0; index < typeParameters.size(); ++index) {
@@ -128,7 +124,7 @@ public final class SFunction extends ANode {
             functionScope.defineVariable(location, typeParameter, parameterName, false);
         }
 
-        maxLoopCounter = scriptRoot.getCompilerSettings().getMaxLoopCounter();
+        int maxLoopCounter = scriptRoot.getCompilerSettings().getMaxLoopCounter();
 
         if (block.statements.isEmpty()) {
             throw createError(new IllegalArgumentException("Cannot generate an empty function [" + name + "]."));
@@ -136,8 +132,8 @@ public final class SFunction extends ANode {
 
         Input blockInput = new Input();
         blockInput.lastSource = true;
-        Output blockOutput = block.analyze(scriptRoot, functionScope.newLocalScope(), blockInput);
-        methodEscape = blockOutput.methodEscape;
+        Output blockOutput = block.analyze(classNode, scriptRoot, functionScope.newLocalScope(), blockInput);
+        boolean methodEscape = blockOutput.methodEscape;
 
         if (methodEscape == false && doAutoReturn == false && returnType != void.class) {
             throw createError(new IllegalArgumentException("not all paths provide a return value " +
@@ -149,11 +145,8 @@ public final class SFunction extends ANode {
             scriptRoot.setUsedVariables(functionScope.getReadFrom());
         }
         // TODO: end
-    }
 
-    @Override
-    public FunctionNode write(ClassNode classNode) {
-        BlockNode blockNode = block.write(classNode);
+        BlockNode blockNode = (BlockNode)blockOutput.statementNode;
 
         if (methodEscape == false) {
             ExpressionNode expressionNode;
