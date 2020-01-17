@@ -30,7 +30,8 @@ import org.elasticsearch.painless.symbol.ScriptRoot;
  * Implements a field who's value is null if the prefix is null rather than throwing an NPE.
  */
 public class PSubNullSafeField extends AStoreable {
-    private AStoreable guarded;
+
+    protected final AStoreable guarded;
 
     public PSubNullSafeField(Location location, AStoreable guarded) {
         super(location);
@@ -38,20 +39,29 @@ public class PSubNullSafeField extends AStoreable {
     }
 
     @Override
-    Output analyze(ScriptRoot scriptRoot, Scope scope, AStoreable.Input input) {
-        this.input = input;
-        output = new Output();
+    Output analyze(ClassNode classNode, ScriptRoot scriptRoot, Scope scope, AStoreable.Input input) {
+        Output output = new Output();
 
         if (input.write) {
             throw createError(new IllegalArgumentException("Can't write to null safe reference"));
         }
+
         Input guardedInput = new Input();
         guardedInput.read = input.read;
-        Output guardedOutput = guarded.analyze(scriptRoot, scope, guardedInput);
+        Output guardedOutput = guarded.analyze(classNode, scriptRoot, scope, guardedInput);
         output.actual = guardedOutput.actual;
+
         if (output.actual.isPrimitive()) {
             throw new IllegalArgumentException("Result of null safe operator must be nullable");
         }
+
+        output.expressionNode = new NullSafeSubNode()
+                .setTypeNode(new TypeNode()
+                        .setLocation(location)
+                        .setType(output.actual)
+                )
+                .setChildNode(guardedOutput.expressionNode)
+                .setLocation(location);
 
         return output;
     }
@@ -59,22 +69,6 @@ public class PSubNullSafeField extends AStoreable {
     @Override
     boolean isDefOptimized() {
         return guarded.isDefOptimized();
-    }
-
-    @Override
-    void updateActual(Class<?> actual) {
-        guarded.updateActual(actual);
-    }
-
-    @Override
-    NullSafeSubNode write(ClassNode classNode) {
-        return new NullSafeSubNode()
-                .setTypeNode(new TypeNode()
-                        .setLocation(location)
-                        .setType(output.actual)
-                )
-                .setChildNode(guarded.write(classNode))
-                .setLocation(location);
     }
 
     @Override

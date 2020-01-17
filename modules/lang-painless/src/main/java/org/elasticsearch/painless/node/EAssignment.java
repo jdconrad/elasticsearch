@@ -25,6 +25,7 @@ import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.Operation;
 import org.elasticsearch.painless.Scope;
 import org.elasticsearch.painless.ir.AssignmentNode;
+import org.elasticsearch.painless.ir.BinaryMathNode;
 import org.elasticsearch.painless.ir.ClassNode;
 import org.elasticsearch.painless.ir.TypeNode;
 import org.elasticsearch.painless.lookup.PainlessCast;
@@ -38,19 +39,13 @@ import java.util.Objects;
 /**
  * Represents an assignment with the lhs and rhs as child nodes.
  */
-public final class EAssignment extends AExpression {
+public class EAssignment extends AExpression {
 
-    private AExpression lhs;
-    private AExpression rhs;
-    private final boolean pre;
-    private final boolean post;
-    private Operation operation;
-
-    private boolean cat = false;
-    private Class<?> promote = null;
-    private Class<?> shiftDistance; // for shifts, the RHS is promoted independently
-    private PainlessCast there = null;
-    private PainlessCast back = null;
+    protected final AExpression lhs;
+    protected final AExpression rhs;
+    protected final boolean pre;
+    protected final boolean post;
+    protected final Operation operation;
 
     public EAssignment(Location location, AExpression lhs, AExpression rhs, boolean pre, boolean post, Operation operation) {
         super(location);
@@ -63,11 +58,19 @@ public final class EAssignment extends AExpression {
     }
 
     @Override
-    Output analyze(ScriptRoot scriptRoot, Scope scope, Input input) {
-        this.input = input;
-        output = new Output();
+    Output analyze(ClassNode classNode, ScriptRoot scriptRoot, Scope scope, Input input) {
+        AExpression rhs = this.rhs;
+        boolean cat = false;
+        Class<?> promote = null;
+        Class<?> shiftDistance = null;
+        PainlessCast there = null;
+        PainlessCast back = null;
+
+        Output output = new Output();
 
         Output leftOutput;
+
+        Input rightInput = new Input();
         Output rightOutput;
 
         if (lhs instanceof AStoreable) {
@@ -98,8 +101,6 @@ public final class EAssignment extends AExpression {
                 } else {
                     rhs = new EConstant(location, 1);
                 }
-
-                operation = Operation.ADD;
             } else if (operation == Operation.DECR) {
                 if (leftOutput.actual == double.class) {
                     rhs = new EConstant(location, 1D);
@@ -110,15 +111,13 @@ public final class EAssignment extends AExpression {
                 } else {
                     rhs = new EConstant(location, 1);
                 }
-
-                operation = Operation.SUB;
             } else {
                 throw createError(new IllegalStateException("Illegal tree structure."));
             }
         }
 
         if (operation != null) {
-            rightOutput = rhs.analyze(scriptRoot, scope, new Input());
+            rightOutput = rhs.analyze(classNode, scriptRoot, scope, new Input());
             boolean shift = false;
 
             if (operation == Operation.MUL) {
@@ -127,9 +126,9 @@ public final class EAssignment extends AExpression {
                 promote = AnalyzerCaster.promoteNumeric(leftOutput.actual, rightOutput.actual, true);
             } else if (operation == Operation.REM) {
                 promote = AnalyzerCaster.promoteNumeric(leftOutput.actual, rightOutput.actual, true);
-            } else if (operation == Operation.ADD) {
+            } else if (operation == Operation.ADD || operation == Operation.INCR) {
                 promote = AnalyzerCaster.promoteAdd(leftOutput.actual, rightOutput.actual);
-            } else if (operation == Operation.SUB) {
+            } else if (operation == Operation.SUB || operation == Operation.DECR) {
                 promote = AnalyzerCaster.promoteNumeric(leftOutput.actual, rightOutput.actual, true);
             } else if (operation == Operation.LSH) {
                 promote = AnalyzerCaster.promoteNumeric(leftOutput.actual, false);
@@ -162,25 +161,25 @@ public final class EAssignment extends AExpression {
 
             if (cat) {
                 if (rhs instanceof EBinary && ((EBinary)rhs).operation == Operation.ADD && rightOutput.actual == String.class) {
-                    ((EBinary)rhs).cat = true;
+                    ((BinaryMathNode)rightOutput.expressionNode).setCat(true);
                 }
             }
 
             if (shift) {
                 if (promote == def.class) {
                     // shifts are promoted independently, but for the def type, we need object.
-                    rhs.input.expected = promote;
+                    input.expected = promote;
                 } else if (shiftDistance == long.class) {
-                    rhs.input.expected = int.class;
-                    rhs.input.explicit = true;
+                    input.expected = int.class;
+                    input.explicit = true;
                 } else {
-                    rhs.input.expected = shiftDistance;
+                    input.expected = shiftDistance;
                 }
             } else {
-                rhs.input.expected = promote;
+                input.expected = promote;
             }
 
-            rhs.cast();
+            rhs.cast(rightInput, rightOutput);
 
             there = AnalyzerCaster.getLegalCast(location, leftOutput.actual, promote, false, false);
             back = AnalyzerCaster.getLegalCast(location, promote, leftOutput.actual, true, false);
@@ -191,22 +190,22 @@ public final class EAssignment extends AExpression {
 
             // If the lhs node is a def optimized node we update the actual type to remove the need for a cast.
             if (lhs.isDefOptimized()) {
-                rightOutput = rhs.analyze(scriptRoot, scope, new Input());
+                rightOutput = rhs.analyze(classNode, scriptRoot, scope, new Input());
 
                 if (rightOutput.actual == void.class) {
                     throw createError(new IllegalArgumentException("Right-hand side cannot be a [void] type for assignment."));
                 }
 
-                rhs.input.expected = rightOutput.actual;
-                lhs.updateActual(rightOutput.actual);
+                rightInput.expected = rightOutput.actual;
+                leftOutput.actual = rightOutput.actual;
+                leftOutput.expressionNode.getTypeNode().setType(rightOutput.actual);
             // Otherwise, we must adapt the rhs type to the lhs type with a cast.
             } else {
-                Input rightInput = new Input();
                 rightInput.expected = leftOutput.actual;
-                rhs.analyze(scriptRoot, scope, rightInput);
+                rightOutput = rhs.analyze(classNode, scriptRoot, scope, rightInput);
             }
 
-            rhs.cast();
+            rhs.cast(rightInput, rightOutput);
         } else {
             throw new IllegalStateException("Illegal tree structure.");
         }
@@ -214,24 +213,13 @@ public final class EAssignment extends AExpression {
         output.statement = true;
         output.actual = input.read ? leftOutput.actual : void.class;
 
-        return output;
-    }
-
-    /**
-     * Handles writing byte code for variable/method chains for all given possibilities
-     * including String concatenation, compound assignment, regular assignment, and simple
-     * reads.  Includes proper duplication for chained assignments and assignments that are
-     * also read from.
-     */
-    @Override
-    AssignmentNode write(ClassNode classNode) {
-        return new AssignmentNode()
+        output.expressionNode = new AssignmentNode()
                 .setTypeNode(new TypeNode()
                         .setLocation(location)
                         .setType(output.actual)
                 )
-                .setLeftNode(lhs.write(classNode))
-                .setRightNode(rhs.cast(rhs.write(classNode)))
+                .setLeftNode(leftOutput.expressionNode)
+                .setRightNode(rhs.cast(rightOutput))
                 .setCompoundTypeNode(new TypeNode()
                         .setLocation(location)
                         .setType(promote)
@@ -244,6 +232,8 @@ public final class EAssignment extends AExpression {
                 .setCat(cat)
                 .setThere(there)
                 .setBack(back);
+
+        return output;
     }
 
     @Override

@@ -23,14 +23,13 @@ import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.Scope;
 import org.elasticsearch.painless.ir.ClassNode;
 import org.elasticsearch.painless.ir.ConstantNode;
-import org.elasticsearch.painless.ir.ExpressionNode;
 import org.elasticsearch.painless.ir.TypeNode;
 import org.elasticsearch.painless.symbol.ScriptRoot;
 
 /**
  * Represents a boolean constant.
  */
-public final class EBoolean extends AExpression {
+public class EBoolean extends AExpression {
 
     protected boolean constant;
 
@@ -41,9 +40,8 @@ public final class EBoolean extends AExpression {
     }
 
     @Override
-    Output analyze(ScriptRoot scriptRoot, Scope scope, Input input) {
-        this.input = input;
-        output = new Output();
+    Output analyze(ClassNode classNode, ScriptRoot scriptRoot, Scope scope, Input input) {
+        Output output = new Output();
 
         if (input.read == false) {
             throw createError(new IllegalArgumentException("Must read from constant [" + constant + "]."));
@@ -51,18 +49,15 @@ public final class EBoolean extends AExpression {
 
         output.actual = boolean.class;
 
-        return output;
-    }
-
-    @Override
-    ExpressionNode write(ClassNode classNode) {
-        return new ConstantNode()
+        output.expressionNode = new ConstantNode()
                 .setTypeNode(new TypeNode()
                         .setLocation(location)
                         .setType(output.actual)
                 )
                 .setLocation(location)
                 .setConstant(constant);
+
+        return output;
     }
 
     @Override

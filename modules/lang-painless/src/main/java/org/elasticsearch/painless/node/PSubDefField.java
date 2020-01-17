@@ -33,9 +33,9 @@ import java.util.Objects;
 /**
  * Represents a field load/store or shortcut on a def type.  (Internal only.)
  */
-final class PSubDefField extends AStoreable {
+public class PSubDefField extends AStoreable {
 
-    private final String value;
+    protected final String value;
 
     PSubDefField(Location location, String value) {
         super(location);
@@ -44,35 +44,26 @@ final class PSubDefField extends AStoreable {
     }
 
     @Override
-    Output analyze(ScriptRoot scriptRoot, Scope scope, AStoreable.Input input) {
-        this.input = input;
-        output = new Output();
+    Output analyze(ClassNode classNode, ScriptRoot scriptRoot, Scope scope, AStoreable.Input input) {
+        Output output = new Output();
 
         // TODO: remove ZonedDateTime exception when JodaCompatibleDateTime is removed
         output.actual = input.expected == null || input.expected == ZonedDateTime.class || input.explicit ? def.class : input.expected;
 
-        return output;
-    }
-
-    @Override
-    DotSubDefNode write(ClassNode classNode) {
-        return new DotSubDefNode()
+        output.expressionNode = new DotSubDefNode()
                 .setTypeNode(new TypeNode()
                         .setLocation(location)
                         .setType(output.actual)
                 )
                 .setLocation(location)
                 .setValue(value);
+
+        return output;
     }
 
     @Override
     boolean isDefOptimized() {
         return true;
-    }
-
-    @Override
-    void updateActual(Class<?> actual) {
-        this.output.actual = actual;
     }
 
     @Override
