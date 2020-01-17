@@ -205,7 +205,7 @@ public class ELambda extends AExpression implements ILambda {
                 .setLocation(location)
                 .setName(name)
                 .setReturnType(returnType)
-                .addTypeParameters(typeParameters)
+                .addTypeParameters(typeParametersWithCaptures)
                 .addParameterNames(parameterNames)
                 .setStatic(true)
                 .setSynthetic(true)
