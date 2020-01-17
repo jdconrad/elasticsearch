@@ -34,11 +34,12 @@ import java.util.Objects;
 /**
  * Represents a function reference.
  */
-public final class EFunctionRef extends AExpression implements ILambda {
-    private final String type;
-    private final String call;
+public class EFunctionRef extends AExpression implements ILambda {
 
-    private FunctionRef ref;
+    protected final String type;
+    protected final String call;
+
+    // TODO: make local
     private String defPointer;
 
     public EFunctionRef(Location location, String type, String call) {
@@ -49,9 +50,10 @@ public final class EFunctionRef extends AExpression implements ILambda {
     }
 
     @Override
-    Output analyze(ScriptRoot scriptRoot, Scope scope, Input input) {
-        this.input = input;
-        output = new Output();
+    Output analyze(ClassNode classNode, ScriptRoot scriptRoot, Scope scope, Input input) {
+        FunctionRef ref;
+
+        Output output = new Output();
 
         if (input.expected == null) {
             ref = null;
@@ -64,18 +66,15 @@ public final class EFunctionRef extends AExpression implements ILambda {
             output.actual = input.expected;
         }
 
-        return output;
-    }
-
-    @Override
-    FuncRefNode write(ClassNode classNode) {
-        return new FuncRefNode()
+        output.expressionNode =  new FuncRefNode()
                 .setTypeNode(new TypeNode()
                         .setLocation(location)
                         .setType(output.actual)
                 )
                 .setLocation(location)
                 .setFuncRef(ref);
+
+        return output;
     }
 
     @Override

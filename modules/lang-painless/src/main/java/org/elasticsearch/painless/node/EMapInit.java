@@ -29,32 +29,32 @@ import org.elasticsearch.painless.lookup.PainlessMethod;
 import org.elasticsearch.painless.lookup.def;
 import org.elasticsearch.painless.symbol.ScriptRoot;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Objects;
 
 import static org.elasticsearch.painless.lookup.PainlessLookupUtility.typeToCanonicalTypeName;
 
 /**
  * Represents a map initialization shortcut.
  */
-public final class EMapInit extends AExpression {
-    private final List<AExpression> keys;
-    private final List<AExpression> values;
+public class EMapInit extends AExpression {
 
-    private PainlessConstructor constructor = null;
-    private PainlessMethod method = null;
+    protected final List<AExpression> keys;
+    protected final List<AExpression> values;
 
     public EMapInit(Location location, List<AExpression> keys, List<AExpression> values) {
         super(location);
 
-        this.keys = keys;
-        this.values = values;
+        this.keys = Collections.unmodifiableList(Objects.requireNonNull(keys));
+        this.values = Collections.unmodifiableList(Objects.requireNonNull(values));
     }
 
     @Override
-    Output analyze(ScriptRoot scriptRoot, Scope scope, Input input) {
-        this.input = input;
-        output = new Output();
+    Output analyze(ClassNode classNode, ScriptRoot scriptRoot, Scope scope, Input input) {
+        Output output = new Output();
 
         if (input.read == false) {
             throw createError(new IllegalArgumentException("Must read from map initializerNode."));
@@ -62,14 +62,14 @@ public final class EMapInit extends AExpression {
 
         output.actual = HashMap.class;
 
-        constructor = scriptRoot.getPainlessLookup().lookupPainlessConstructor(output.actual, 0);
+        PainlessConstructor constructor = scriptRoot.getPainlessLookup().lookupPainlessConstructor(output.actual, 0);
 
         if (constructor == null) {
             throw createError(new IllegalArgumentException(
                     "constructor [" + typeToCanonicalTypeName(output.actual) + ", <init>/0] not found"));
         }
 
-        method = scriptRoot.getPainlessLookup().lookupPainlessMethod(output.actual, false, "put", 2);
+        PainlessMethod method = scriptRoot.getPainlessLookup().lookupPainlessMethod(output.actual, false, "put", 2);
 
         if (method == null) {
             throw createError(new IllegalArgumentException("method [" + typeToCanonicalTypeName(output.actual) + ", put/2] not found"));
@@ -79,15 +79,20 @@ public final class EMapInit extends AExpression {
             throw createError(new IllegalStateException("Illegal tree structure."));
         }
 
+        List<Output> keyOutputs = new ArrayList<>(keys.size());
+
         for (int index = 0; index < keys.size(); ++index) {
             AExpression expression = keys.get(index);
 
             Input expressionInput = new Input();
             expressionInput.expected = def.class;
             expressionInput.internal = true;
-            expression.analyze(scriptRoot, scope, expressionInput);
-            expression.cast();
+            Output expressionOutput = expression.analyze(classNode, scriptRoot, scope, expressionInput);
+            expression.cast(expressionInput, expressionOutput);
+            keyOutputs.add(expressionOutput);
         }
+
+        List<Output> valueOutputs = new ArrayList<>(values.size());
 
         for (int index = 0; index < values.size(); ++index) {
             AExpression expression = values.get(index);
@@ -95,15 +100,11 @@ public final class EMapInit extends AExpression {
             Input expressionInput = new Input();
             expressionInput.expected = def.class;
             expressionInput.internal = true;
-            expression.analyze(scriptRoot, scope, expressionInput);
-            expression.cast();
+            Output expressionOutput = expression.analyze(classNode, scriptRoot, scope, expressionInput);
+            expression.cast(expressionInput, expressionOutput);
+            valueOutputs.add(expressionOutput);
         }
 
-        return output;
-    }
-
-    @Override
-    MapInitializationNode write(ClassNode classNode) {
         MapInitializationNode mapInitializationNode = new MapInitializationNode()
                 .setTypeNode(new TypeNode()
                         .setLocation(location)
@@ -115,11 +116,13 @@ public final class EMapInit extends AExpression {
 
         for (int index = 0; index < keys.size(); ++index) {
             mapInitializationNode.addArgumentNode(
-                    keys.get(index).cast(keys.get(index).write(classNode)),
-                    values.get(index).cast(values.get(index).write(classNode)));
+                    keys.get(index).cast(keyOutputs.get(index)),
+                    values.get(index).cast(valueOutputs.get(index)));
         }
 
-        return mapInitializationNode;
+        output.expressionNode = mapInitializationNode;
+
+        return output;
     }
 
     @Override

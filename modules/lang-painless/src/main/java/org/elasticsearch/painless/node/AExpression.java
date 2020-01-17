@@ -80,6 +80,18 @@ public abstract class AExpression extends ANode {
          * called on this node to get the type of the node after the cast.</b>
          */
         Class<?> actual = null;
+
+        /**
+         * The {@link PainlessCast} to convert this expression's actual type
+         * to the parent expression's expected type. {@code null} if no cast
+         * is required.
+         */
+        PainlessCast painlessCast = null;
+
+        /**
+         * The {@link ExpressionNode}(s) generated from this expression.
+         */
+        ExpressionNode expressionNode = null;
     }
 
     /**
@@ -90,11 +102,6 @@ public abstract class AExpression extends ANode {
      * analyzed.
      */
     AExpression prefix;
-
-    // TODO: remove placeholders once analysis and write are combined into build
-    Input input = null;
-    Output output = null;
-    PainlessCast cast = null;
 
     /**
      * Standard constructor with location used for error tracking.
@@ -117,31 +124,26 @@ public abstract class AExpression extends ANode {
     /**
      * Checks for errors and collects data for the writing phase.
      */
-    Output analyze(ScriptRoot scriptRoot, Scope scope, Input input) {
+    Output analyze(ClassNode classNode, ScriptRoot scriptRoot, Scope scope, Input input) {
         throw new UnsupportedOperationException();
     }
 
-    /**
-     * Writes ASM based on the data collected during the analysis phase.
-     */
-    abstract ExpressionNode write(ClassNode classNode);
-
-    void cast() {
-        cast = AnalyzerCaster.getLegalCast(location, output.actual, input.expected, input.explicit, input.internal);
+    void cast(Input input, Output output) {
+        output.painlessCast = AnalyzerCaster.getLegalCast(location, output.actual, input.expected, input.explicit, input.internal);
     }
 
-    ExpressionNode cast(ExpressionNode expressionNode) {
-        if (cast == null) {
-            return expressionNode;
+    ExpressionNode cast(Output output) {
+        if (output.painlessCast == null) {
+            return output.expressionNode;
         }
 
         return new CastNode()
                 .setTypeNode(new TypeNode()
                         .setLocation(location)
-                        .setType(cast.targetType)
+                        .setType(output.painlessCast.targetType)
                 )
-                .setChildNode(expressionNode)
+                .setChildNode(output.expressionNode)
                 .setLocation(location)
-                .setCast(cast);
+                .setCast(output.painlessCast);
     }
 }

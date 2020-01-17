@@ -34,13 +34,10 @@ import java.util.Objects;
  * <p>
  * Unlike java's, this works for primitive types too.
  */
-public final class EInstanceof extends AExpression {
-    private AExpression expression;
-    private final String type;
+public class EInstanceof extends AExpression {
 
-    private Class<?> resolvedType;
-    private Class<?> expressionType;
-    private boolean primitiveExpression;
+    protected final AExpression expression;
+    protected final String type;
 
     public EInstanceof(Location location, AExpression expression, String type) {
         super(location);
@@ -49,9 +46,12 @@ public final class EInstanceof extends AExpression {
     }
 
     @Override
-    Output analyze(ScriptRoot scriptRoot, Scope scope, Input input) {
-        this.input = input;
-        output = new Output();
+    Output analyze(ClassNode classNode, ScriptRoot scriptRoot, Scope scope, Input input) {
+        Class<?> resolvedType;
+        Class<?> expressionType;
+        boolean primitiveExpression;
+
+        Output output = new Output();
 
         // ensure the specified type is part of the definition
         Class<?> clazz = scriptRoot.getPainlessLookup().canonicalTypeNameToType(this.type);
@@ -65,9 +65,10 @@ public final class EInstanceof extends AExpression {
                 PainlessLookupUtility.typeToJavaType(clazz);
 
         // analyze and cast the expression
-        Output expressionOutput = expression.analyze(scriptRoot, scope, new Input());
-        expression.input.expected = expressionOutput.actual;
-        expression.cast();
+        Input expressionInput = new Input();
+        Output expressionOutput = expression.analyze(classNode, scriptRoot, scope, expressionInput);
+        expressionInput.expected = expressionOutput.actual;
+        expression.cast(expressionInput, expressionOutput);
 
         // record if the expression returns a primitive
         primitiveExpression = expressionOutput.actual.isPrimitive();
@@ -77,17 +78,12 @@ public final class EInstanceof extends AExpression {
 
         output.actual = boolean.class;
 
-        return output;
-    }
-
-    @Override
-    InstanceofNode write(ClassNode classNode) {
-        return new InstanceofNode()
+        output.expressionNode = new InstanceofNode()
                 .setTypeNode(new TypeNode()
                         .setLocation(location)
                         .setType(output.actual)
                 )
-                .setChildNode(expression.cast(expression.write(classNode)))
+                .setChildNode(expression.cast(expressionOutput))
                 .setExpressionTypeNode(new TypeNode()
                         .setLocation(location)
                         .setType(expressionType)
@@ -98,6 +94,8 @@ public final class EInstanceof extends AExpression {
                 )
                 .setLocation(location)
                 .setPrimitiveResult(primitiveExpression);
+
+        return output;
     }
 
     @Override

@@ -32,10 +32,11 @@ import static java.util.Objects.requireNonNull;
  * Implements a call who's value is null if the prefix is null rather than throwing an NPE.
  */
 public class PSubNullSafeCallInvoke extends AExpression {
+
     /**
-     * The expression gaurded by the null check. Required at construction time and replaced at analysis time.
+     * The expression guarded by the null check. Required at construction time and replaced at analysis time.
      */
-    private AExpression guarded;
+    protected final AExpression guarded;
 
     public PSubNullSafeCallInvoke(Location location, AExpression guarded) {
         super(location);
@@ -43,28 +44,24 @@ public class PSubNullSafeCallInvoke extends AExpression {
     }
 
     @Override
-    Output analyze(ScriptRoot scriptRoot, Scope scope, Input input) {
-        this.input = input;
-        output = new Output();
+    Output analyze(ClassNode classNode, ScriptRoot scriptRoot, Scope scope, Input input) {
+        Output output = new Output();
 
-        Output guardedOutput = guarded.analyze(scriptRoot, scope, new Input());
+        Output guardedOutput = guarded.analyze(classNode, scriptRoot, scope, new Input());
         output.actual = guardedOutput.actual;
         if (output.actual.isPrimitive()) {
             throw new IllegalArgumentException("Result of null safe operator must be nullable");
         }
 
-        return output;
-    }
-
-    @Override
-    NullSafeSubNode write(ClassNode classNode) {
-        return new NullSafeSubNode()
+        output.expressionNode = new NullSafeSubNode()
                 .setTypeNode(new TypeNode()
                         .setLocation(location)
                         .setType(output.actual)
                 )
-                .setChildNode(guarded.write(classNode))
+                .setChildNode(guardedOutput.expressionNode)
                 .setLocation(location);
+
+        return output;
     }
 
     @Override

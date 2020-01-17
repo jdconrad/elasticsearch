@@ -30,29 +30,28 @@ import org.elasticsearch.painless.lookup.def;
 import org.elasticsearch.painless.symbol.ScriptRoot;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 import static org.elasticsearch.painless.lookup.PainlessLookupUtility.typeToCanonicalTypeName;
 
 /**
  * Represents a list initialization shortcut.
  */
-public final class EListInit extends AExpression {
-    private final List<AExpression> values;
+public class EListInit extends AExpression {
 
-    private PainlessConstructor constructor = null;
-    private PainlessMethod method = null;
+    protected final List<AExpression> values;
 
     public EListInit(Location location, List<AExpression> values) {
         super(location);
 
-        this.values = values;
+        this.values = Collections.unmodifiableList(Objects.requireNonNull(values));
     }
 
     @Override
-    Output analyze(ScriptRoot scriptRoot, Scope scope, Input input) {
-        this.input = input;
-        output = new Output();
+    Output analyze(ClassNode classNode, ScriptRoot scriptRoot, Scope scope, Input input) {
+        Output output = new Output();
 
         if (input.read == false) {
             throw createError(new IllegalArgumentException("Must read from list initializerNode."));
@@ -60,18 +59,20 @@ public final class EListInit extends AExpression {
 
         output.actual = ArrayList.class;
 
-        constructor = scriptRoot.getPainlessLookup().lookupPainlessConstructor(output.actual, 0);
+        PainlessConstructor constructor = scriptRoot.getPainlessLookup().lookupPainlessConstructor(output.actual, 0);
 
         if (constructor == null) {
             throw createError(new IllegalArgumentException(
                     "constructor [" + typeToCanonicalTypeName(output.actual) + ", <init>/0] not found"));
         }
 
-        method = scriptRoot.getPainlessLookup().lookupPainlessMethod(output.actual, false, "add", 1);
+        PainlessMethod method = scriptRoot.getPainlessLookup().lookupPainlessMethod(output.actual, false, "add", 1);
 
         if (method == null) {
             throw createError(new IllegalArgumentException("method [" + typeToCanonicalTypeName(output.actual) + ", add/1] not found"));
         }
+
+        List<Output> valueOutputs = new ArrayList<>(values.size());
 
         for (int index = 0; index < values.size(); ++index) {
             AExpression expression = values.get(index);
@@ -79,15 +80,11 @@ public final class EListInit extends AExpression {
             Input expressionInput = new Input();
             expressionInput.expected = def.class;
             expressionInput.internal = true;
-            expression.analyze(scriptRoot, scope, expressionInput);
-            expression.cast();
+            Output expressionOutput = expression.analyze(classNode, scriptRoot, scope, expressionInput);
+            expression.cast(expressionInput, expressionOutput);
+            valueOutputs.add(expressionOutput);
         }
 
-        return output;
-    }
-
-    @Override
-    ListInitializationNode write(ClassNode classNode) {
         ListInitializationNode listInitializationNode = new ListInitializationNode()
                 .setTypeNode(new TypeNode()
                         .setLocation(location)
@@ -97,11 +94,13 @@ public final class EListInit extends AExpression {
                 .setConstructor(constructor)
                 .setMethod(method);
 
-        for (AExpression value : values) {
-            listInitializationNode.addArgumentNode(value.cast(value.write(classNode)));
+        for (int value = 0; value < values.size(); ++value) {
+            listInitializationNode.addArgumentNode(values.get(value).cast(valueOutputs.get(value)));
         }
 
-        return listInitializationNode;
+        output.expressionNode = listInitializationNode;
+
+        return output;
     }
 
     @Override

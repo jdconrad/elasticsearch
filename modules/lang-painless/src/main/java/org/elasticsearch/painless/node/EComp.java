@@ -35,13 +35,11 @@ import java.util.Objects;
 /**
  * Represents a comparison expression.
  */
-public final class EComp extends AExpression {
+public class EComp extends AExpression {
 
-    private final Operation operation;
-    private AExpression left;
-    private AExpression right;
-
-    private Class<?> promotedType;
+    protected final Operation operation;
+    protected final AExpression left;
+    protected final AExpression right;
 
     public EComp(Location location, Operation operation, AExpression left, AExpression right) {
         super(location);
@@ -52,12 +50,16 @@ public final class EComp extends AExpression {
     }
 
     @Override
-    Output analyze(ScriptRoot scriptRoot, Scope scope, Input input) {
-        this.input = input;
-        output = new Output();
+    Output analyze(ClassNode classNode, ScriptRoot scriptRoot, Scope scope, Input input) {
+        Class<?> promotedType;
 
-        Output leftOutput = left.analyze(scriptRoot, scope, new Input());
-        Output rightOutput = right.analyze(scriptRoot, scope, new Input());
+        Output output = new Output();
+
+        Input leftInput = new Input();
+        Output leftOutput = left.analyze(classNode, scriptRoot, scope, leftInput);
+
+        Input rightInput = new Input();
+        Output rightOutput = right.analyze(classNode, scriptRoot, scope, rightInput);
 
         if (operation == Operation.EQ || operation == Operation.EQR || operation == Operation.NE || operation == Operation.NER) {
             promotedType = AnalyzerCaster.promoteEquality(leftOutput.actual, rightOutput.actual);
@@ -75,11 +77,11 @@ public final class EComp extends AExpression {
         }
 
         if (operation != Operation.EQR && operation != Operation.NER && promotedType == def.class) {
-            left.input.expected = leftOutput.actual;
-            right.input.expected = rightOutput.actual;
+            leftInput.expected = leftOutput.actual;
+            rightInput.expected = rightOutput.actual;
         } else {
-            left.input.expected = promotedType;
-            right.input.expected = promotedType;
+            leftInput.expected = promotedType;
+            rightInput.expected = promotedType;
         }
 
         if ((operation == Operation.EQ || operation == Operation.EQR || operation == Operation.NE || operation == Operation.NER)
@@ -87,29 +89,26 @@ public final class EComp extends AExpression {
             throw createError(new IllegalArgumentException("extraneous comparison of [null] constants"));
         }
 
-        left.cast();
-        right.cast();
+        left.cast(leftInput, leftOutput);
+        right.cast(rightInput, rightOutput);
 
         output.actual = boolean.class;
 
-        return output;
-    }
-
-    @Override
-    ComparisonNode write(ClassNode classNode) {
-        return new ComparisonNode()
+        output.expressionNode = new ComparisonNode()
                 .setTypeNode(new TypeNode()
                         .setLocation(location)
                         .setType(output.actual)
                 )
-                .setLeftNode(left.cast(left.write(classNode)))
-                .setRightNode(right.cast(right.write(classNode)))
+                .setLeftNode(left.cast(leftOutput))
+                .setRightNode(right.cast(rightOutput))
                 .setComparisonTypeNode(new TypeNode()
                         .setLocation(location)
                         .setType(promotedType)
                 )
                 .setLocation(location)
                 .setOperation(operation);
+
+        return output;
     }
 
     @Override
