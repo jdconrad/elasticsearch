@@ -69,7 +69,7 @@ public class SDeclaration extends AStatement {
                 .setLocation(location)
                 .setDeclarationTypeNode(new TypeNode()
                         .setLocation(location)
-                        .setType(((DResolvedType)type).getType())
+                        .setType(resolvedType.getType())
                 )
                 .setName(name)
                 .setRequiresDefault(requiresDefault);
