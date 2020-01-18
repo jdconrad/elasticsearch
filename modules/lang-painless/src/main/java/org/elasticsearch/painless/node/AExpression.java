@@ -20,10 +20,10 @@
 package org.elasticsearch.painless.node;
 
 import org.elasticsearch.painless.AnalyzerCaster;
+import org.elasticsearch.painless.BuilderVisitor;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.Scope;
 import org.elasticsearch.painless.ir.CastNode;
-import org.elasticsearch.painless.ir.ClassNode;
 import org.elasticsearch.painless.ir.ExpressionNode;
 import org.elasticsearch.painless.ir.TypeNode;
 import org.elasticsearch.painless.lookup.PainlessCast;
@@ -38,40 +38,62 @@ public abstract class AExpression extends ANode {
 
     public static class Input {
 
+        protected boolean read = true;
+
         /**
          * Set to false when an expression will not be read from such as
          * a basic assignment.  Note this variable is always set by the parent
          * as input.
          */
-        boolean read = true;
+        public boolean isReadFrom() {
+            return read;
+        }
+
+        protected Class<?> expected = null;
 
         /**
          * Set to the expected type this node needs to be.  Note this variable
          * is always set by the parent as input and should never be read from.
          */
-        Class<?> expected = null;
+        public Class<?> getTargetType() {
+            return expected;
+        }
+
+        protected boolean explicit = false;
 
         /**
          * Set by {@link EExplicit} if a cast made on an expression node should be
          * explicit.
          */
-        boolean explicit = false;
+        public boolean doExplicitCast() {
+            return explicit;
+        }
+
+        protected boolean internal = false;
 
         /**
          * Set to true if a cast is allowed to boxed/unboxed.  This is used
          * for method arguments because casting may be required.
          */
-        boolean internal = false;
+        public boolean doInternalCast() {
+            return internal;
+        }
     }
 
-    public static class Output {
+    public static class Output<E> {
+
+        protected boolean statement = false;
 
         /**
          * Set to true when an expression can be considered a stand alone
          * statement.  Used to prevent extraneous bytecode. This is always
          * set by the node as output.
          */
-        boolean statement = false;
+        public boolean isStatement() {
+            return statement;
+        }
+
+        Class<?> actual = null;
 
         /**
          * Set to the actual type this node is.  Note this variable is always
@@ -79,19 +101,35 @@ public abstract class AExpression extends ANode {
          * node itself.  <b>Also, actual can always be read after a cast is
          * called on this node to get the type of the node after the cast.</b>
          */
-        Class<?> actual = null;
+        public Class<?> getOriginalType() {
+            return actual;
+        }
+
+        protected PainlessCast painlessCast = null;
 
         /**
          * The {@link PainlessCast} to convert this expression's actual type
          * to the parent expression's expected type. {@code null} if no cast
          * is required.
          */
-        PainlessCast painlessCast = null;
+        public PainlessCast getPainlessCast() {
+            return painlessCast;
+        }
+
+        protected E data = null;
+
+        public Output<E> setData(E data) {
+            this.data = data;
+            return this;
+        }
 
         /**
-         * The {@link ExpressionNode}(s) generated from this expression.
+         * Output data as generic parameter used by {@link BuilderVisitor}s to
+         * translate semantically valid data to other forms.
          */
-        ExpressionNode expressionNode = null;
+        public E getData() {
+            return data;
+        }
     }
 
     /**
@@ -121,29 +159,11 @@ public abstract class AExpression extends ANode {
         this.prefix = Objects.requireNonNull(prefix);
     }
 
-    /**
-     * Checks for errors and collects data for the writing phase.
-     */
-    Output analyze(ClassNode classNode, ScriptRoot scriptRoot, Scope scope, Input input) {
+    protected <S, E> Output<E> analyze(BuilderVisitor<S, E> builderVisitor, ScriptRoot scriptRoot, Scope scope, Input input) {
         throw new UnsupportedOperationException();
     }
 
     void cast(Input input, Output output) {
         output.painlessCast = AnalyzerCaster.getLegalCast(location, output.actual, input.expected, input.explicit, input.internal);
-    }
-
-    ExpressionNode cast(Output output) {
-        if (output.painlessCast == null) {
-            return output.expressionNode;
-        }
-
-        return new CastNode()
-                .setTypeNode(new TypeNode()
-                        .setLocation(location)
-                        .setType(output.painlessCast.targetType)
-                )
-                .setChildNode(output.expressionNode)
-                .setLocation(location)
-                .setCast(output.painlessCast);
     }
 }

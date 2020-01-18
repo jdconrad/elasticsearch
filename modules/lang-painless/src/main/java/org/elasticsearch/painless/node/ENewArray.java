@@ -21,7 +21,6 @@ package org.elasticsearch.painless.node;
 
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.Scope;
-import org.elasticsearch.painless.ir.ClassNode;
 import org.elasticsearch.painless.ir.NewArrayNode;
 import org.elasticsearch.painless.ir.TypeNode;
 import org.elasticsearch.painless.symbol.ScriptRoot;
@@ -49,7 +48,7 @@ public class ENewArray extends AExpression {
     }
 
     @Override
-    Output analyze(ClassNode classNode, ScriptRoot scriptRoot, Scope scope, Input input) {
+    protected Output<E> analyze(BuilderVisitor<S, E> builderVisitor, ScriptRoot scriptRoot, Scope scope, Input input) {
         Output output = new Output();
 
         if (input.read == false) {
@@ -70,7 +69,7 @@ public class ENewArray extends AExpression {
             Input expressionInput = new Input();
             expressionInput.expected = initialize ? clazz.getComponentType() : int.class;
             expressionInput.internal = true;
-            Output expressionOutput = expression.analyze(classNode, scriptRoot, scope, expressionInput);
+            Output expressionOutput = expression.analyze(builderVisitor, scriptRoot, scope, expressionInput);
             expression.cast(expressionInput, expressionOutput);
             argumentOutputs.add(expressionOutput);
         }

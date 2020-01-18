@@ -22,7 +22,6 @@ package org.elasticsearch.painless.node;
 import org.elasticsearch.painless.AnalyzerCaster;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.Scope;
-import org.elasticsearch.painless.ir.ClassNode;
 import org.elasticsearch.painless.ir.ElvisNode;
 import org.elasticsearch.painless.ir.TypeNode;
 import org.elasticsearch.painless.symbol.ScriptRoot;
@@ -46,7 +45,7 @@ public class EElvis extends AExpression {
     }
 
     @Override
-    Output analyze(ClassNode classNode, ScriptRoot scriptRoot, Scope scope, Input input) {
+    protected Output<E> analyze(BuilderVisitor<S, E> builderVisitor, ScriptRoot scriptRoot, Scope scope, Input input) {
         Output output = new Output();
 
         if (input.expected != null && input.expected.isPrimitive()) {
@@ -57,13 +56,13 @@ public class EElvis extends AExpression {
         leftInput.expected = input.expected;
         leftInput.explicit = input.explicit;
         leftInput.internal = input.internal;
-        Output leftOutput = lhs.analyze(classNode, scriptRoot, scope, leftInput);
+        Output leftOutput = lhs.analyze(builderVisitor, scriptRoot, scope, leftInput);
 
         Input rightInput = new Input();
         rightInput.expected = input.expected;
         rightInput.explicit = input.explicit;
         rightInput.internal = input.internal;
-        Output rightOutput = rhs.analyze(classNode, scriptRoot, scope, rightInput);
+        Output rightOutput = rhs.analyze(builderVisitor, scriptRoot, scope, rightInput);
 
         output.actual = input.expected;
 

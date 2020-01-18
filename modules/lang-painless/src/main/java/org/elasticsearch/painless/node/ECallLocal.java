@@ -21,7 +21,6 @@ package org.elasticsearch.painless.node;
 
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.Scope;
-import org.elasticsearch.painless.ir.ClassNode;
 import org.elasticsearch.painless.ir.FieldNode;
 import org.elasticsearch.painless.ir.TypeNode;
 import org.elasticsearch.painless.ir.UnboundCallNode;
@@ -54,7 +53,7 @@ public class ECallLocal extends AExpression {
     }
 
     @Override
-    Output analyze(ClassNode classNode, ScriptRoot scriptRoot, Scope scope, Input input) {
+    protected Output<E> analyze(BuilderVisitor<S, E> builderVisitor, ScriptRoot scriptRoot, Scope scope, Input input) {
         FunctionTable.LocalFunction localFunction = null;
         PainlessMethod importedMethod = null;
         PainlessClassBinding classBinding = null;
@@ -128,7 +127,7 @@ public class ECallLocal extends AExpression {
             output.actual = classBinding.returnType;
             bindingName = scriptRoot.getNextSyntheticName("class_binding");
 
-            classNode.addFieldNode(new FieldNode()
+            builderVisitor.addFieldNode(new FieldNode()
                     .setTypeNode(new TypeNode()
                             .setLocation(location)
                             .setType(classBinding.javaConstructor.getDeclaringClass())
@@ -141,7 +140,7 @@ public class ECallLocal extends AExpression {
             output.actual = instanceBinding.returnType;
             bindingName = scriptRoot.getNextSyntheticName("instance_binding");
 
-            classNode.addFieldNode(new FieldNode()
+            builderVisitor.addFieldNode(new FieldNode()
                     .setTypeNode(new TypeNode()
                             .setLocation(location)
                             .setType(instanceBinding.targetInstance.getClass())
@@ -164,7 +163,7 @@ public class ECallLocal extends AExpression {
             Input argumentInput = new Input();
             argumentInput.expected = typeParameters.get(argument + classBindingOffset);
             argumentInput.internal = true;
-            Output argumentOutput = expression.analyze(classNode, scriptRoot, scope, argumentInput);
+            Output argumentOutput = expression.analyze(builderVisitor, scriptRoot, scope, argumentInput);
             expression.cast(argumentInput, argumentOutput);
             argumentOutputs.add(argumentOutput);
         }

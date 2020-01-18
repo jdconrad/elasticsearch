@@ -22,7 +22,6 @@ package org.elasticsearch.painless.node;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.Scope;
 import org.elasticsearch.painless.ir.CallSubDefNode;
-import org.elasticsearch.painless.ir.ClassNode;
 import org.elasticsearch.painless.ir.TypeNode;
 import org.elasticsearch.painless.lookup.def;
 import org.elasticsearch.painless.symbol.ScriptRoot;
@@ -49,7 +48,7 @@ public class PSubDefCall extends AExpression {
     }
 
     @Override
-    Output analyze(ClassNode classNode, ScriptRoot scriptRoot, Scope scope, Input input) {
+    protected Output<E> analyze(BuilderVisitor<S, E> builderVisitor, ScriptRoot scriptRoot, Scope scope, Input input) {
         Output output = new Output();
 
         StringBuilder recipe = new StringBuilder();
@@ -66,7 +65,7 @@ public class PSubDefCall extends AExpression {
 
             Input expressionInput = new Input();
             expressionInput.internal = true;
-            Output expressionOutput = expression.analyze(classNode, scriptRoot, scope, expressionInput);
+            Output expressionOutput = expression.analyze(builderVisitor, scriptRoot, scope, expressionInput);
             argumentOutputs.add(expressionOutput);
 
             if (expressionOutput.actual == void.class) {

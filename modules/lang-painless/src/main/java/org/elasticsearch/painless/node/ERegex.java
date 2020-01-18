@@ -24,7 +24,6 @@ import org.elasticsearch.painless.Scope;
 import org.elasticsearch.painless.ir.BlockNode;
 import org.elasticsearch.painless.ir.CallNode;
 import org.elasticsearch.painless.ir.CallSubNode;
-import org.elasticsearch.painless.ir.ClassNode;
 import org.elasticsearch.painless.ir.ConstantNode;
 import org.elasticsearch.painless.ir.FieldNode;
 import org.elasticsearch.painless.ir.StatementExpressionNode;
@@ -63,7 +62,7 @@ public class ERegex extends AExpression {
     }
 
     @Override
-    Output analyze(ClassNode classNode, ScriptRoot scriptRoot, Scope scope, Input input) {
+    protected Output<E> analyze(BuilderVisitor<S, E> builderVisitor, ScriptRoot scriptRoot, Scope scope, Input input) {
         Output output = new Output();
 
         if (scriptRoot.getCompilerSettings().areRegexesEnabled() == false) {
@@ -86,7 +85,7 @@ public class ERegex extends AExpression {
         String name = scriptRoot.getNextSyntheticName("regex");
         output.actual = Pattern.class;
 
-        classNode.addFieldNode(new FieldNode()
+        builderVisitor.addFieldNode(new FieldNode()
                 .setTypeNode(new TypeNode()
                         .setLocation(location)
                         .setType(Pattern.class)
@@ -97,7 +96,7 @@ public class ERegex extends AExpression {
         );
 
         try {
-            BlockNode blockNode = classNode.getClinitNode().getBlockNode();
+            BlockNode blockNode = builderVisitor.getClinitNode().getBlockNode();
             blockNode.addStatementNode(new StatementExpressionNode()
                     .setExpressionNode(new UnboundFieldStoreNode()
                             .setChildNode(new CallNode()

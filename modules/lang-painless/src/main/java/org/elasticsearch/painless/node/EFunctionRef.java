@@ -22,7 +22,6 @@ package org.elasticsearch.painless.node;
 import org.elasticsearch.painless.FunctionRef;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.Scope;
-import org.elasticsearch.painless.ir.ClassNode;
 import org.elasticsearch.painless.ir.FuncRefNode;
 import org.elasticsearch.painless.ir.TypeNode;
 import org.elasticsearch.painless.symbol.ScriptRoot;
@@ -50,7 +49,7 @@ public class EFunctionRef extends AExpression implements ILambda {
     }
 
     @Override
-    Output analyze(ClassNode classNode, ScriptRoot scriptRoot, Scope scope, Input input) {
+    protected Output<E> analyze(BuilderVisitor<S, E> builderVisitor, ScriptRoot scriptRoot, Scope scope, Input input) {
         FunctionRef ref;
 
         Output output = new Output();

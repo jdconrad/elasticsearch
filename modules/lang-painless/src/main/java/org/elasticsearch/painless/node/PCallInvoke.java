@@ -22,7 +22,6 @@ package org.elasticsearch.painless.node;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.Scope;
 import org.elasticsearch.painless.ir.CallNode;
-import org.elasticsearch.painless.ir.ClassNode;
 import org.elasticsearch.painless.ir.TypeNode;
 import org.elasticsearch.painless.lookup.PainlessMethod;
 import org.elasticsearch.painless.lookup.def;
@@ -53,11 +52,11 @@ public class PCallInvoke extends AExpression {
     }
 
     @Override
-    Output analyze(ClassNode classNode, ScriptRoot scriptRoot, Scope scope, Input input) {
+    protected Output<E> analyze(BuilderVisitor<S, E> builderVisitor, ScriptRoot scriptRoot, Scope scope, Input input) {
         Output output = new Output();
 
         Input prefixInput = new Input();
-        Output prefixOutput = prefix.analyze(classNode, scriptRoot, scope, prefixInput);
+        Output prefixOutput = prefix.analyze(builderVisitor, scriptRoot, scope, prefixInput);
         prefixInput.expected = prefixOutput.actual;
         prefix.cast(prefixInput, prefixOutput);
 
@@ -86,7 +85,7 @@ public class PCallInvoke extends AExpression {
         Input subInput = new Input();
         subInput.expected = input.expected;
         subInput.explicit = input.explicit;
-        Output subOutput = sub.analyze(classNode, scriptRoot, scope, subInput);
+        Output subOutput = sub.analyze(builderVisitor, scriptRoot, scope, subInput);
         output.actual = subOutput.actual;
 
         output.statement = true;

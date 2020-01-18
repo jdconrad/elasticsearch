@@ -43,14 +43,14 @@ public class EVariable extends AStoreable {
     }
 
     @Override
-    Output analyze(ClassNode classNode, ScriptRoot scriptRoot, Scope scope, AExpression.Input input) {
+    protected Output<E> analyze(BuilderVisitor<S, E> builderVisitor, ScriptRoot scriptRoot, Scope scope, AExpression.Input input) {
         AStoreable.Input storeableInput = new AStoreable.Input();
         storeableInput.read = input.read;
         storeableInput.expected = input.expected;
         storeableInput.explicit = input.explicit;
         storeableInput.internal = input.internal;
 
-        return analyze(classNode, scriptRoot, scope, storeableInput);
+        return analyze(builderVisitor, scriptRoot, scope, storeableInput);
     }
 
     @Override

@@ -21,7 +21,6 @@ package org.elasticsearch.painless.node;
 
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.Scope;
-import org.elasticsearch.painless.ir.ClassNode;
 import org.elasticsearch.painless.ir.ListInitializationNode;
 import org.elasticsearch.painless.ir.TypeNode;
 import org.elasticsearch.painless.lookup.PainlessConstructor;
@@ -50,7 +49,7 @@ public class EListInit extends AExpression {
     }
 
     @Override
-    Output analyze(ClassNode classNode, ScriptRoot scriptRoot, Scope scope, Input input) {
+    protected Output<E> analyze(BuilderVisitor<S, E> builderVisitor, ScriptRoot scriptRoot, Scope scope, Input input) {
         Output output = new Output();
 
         if (input.read == false) {
@@ -80,7 +79,7 @@ public class EListInit extends AExpression {
             Input expressionInput = new Input();
             expressionInput.expected = def.class;
             expressionInput.internal = true;
-            Output expressionOutput = expression.analyze(classNode, scriptRoot, scope, expressionInput);
+            Output expressionOutput = expression.analyze(builderVisitor, scriptRoot, scope, expressionInput);
             expression.cast(expressionInput, expressionOutput);
             valueOutputs.add(expressionOutput);
         }

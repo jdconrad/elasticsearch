@@ -23,7 +23,6 @@ import org.elasticsearch.painless.AnalyzerCaster;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.Operation;
 import org.elasticsearch.painless.Scope;
-import org.elasticsearch.painless.ir.ClassNode;
 import org.elasticsearch.painless.ir.TypeNode;
 import org.elasticsearch.painless.ir.UnaryMathNode;
 import org.elasticsearch.painless.lookup.PainlessLookupUtility;
@@ -48,7 +47,7 @@ public class EUnary extends AExpression {
     }
 
     @Override
-    Output analyze(ClassNode classNode, ScriptRoot scriptRoot, Scope scope, Input input) {
+    protected Output<E> analyze(BuilderVisitor<S, E> builderVisitor, ScriptRoot scriptRoot, Scope scope, Input input) {
         Output output = new Output();
 
         Class<?> promote = null;
@@ -60,12 +59,12 @@ public class EUnary extends AExpression {
         if (operation == Operation.NOT) {
 
             childInput.expected = boolean.class;
-            childOutput = child.analyze(classNode, scriptRoot, scope, childInput);
+            childOutput = child.analyze(builderVisitor, scriptRoot, scope, childInput);
             child.cast(childInput, childOutput);
 
             output.actual = boolean.class;
         } else if (operation == Operation.BWNOT || operation == Operation.ADD || operation == Operation.SUB) {
-            childOutput = child.analyze(classNode, scriptRoot, scope, new Input());
+            childOutput = child.analyze(builderVisitor, scriptRoot, scope, new Input());
 
             promote = AnalyzerCaster.promoteNumeric(childOutput.actual, operation != Operation.BWNOT);
 

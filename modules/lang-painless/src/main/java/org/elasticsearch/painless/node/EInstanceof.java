@@ -21,7 +21,6 @@ package org.elasticsearch.painless.node;
 
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.Scope;
-import org.elasticsearch.painless.ir.ClassNode;
 import org.elasticsearch.painless.ir.InstanceofNode;
 import org.elasticsearch.painless.ir.TypeNode;
 import org.elasticsearch.painless.lookup.PainlessLookupUtility;
@@ -46,7 +45,7 @@ public class EInstanceof extends AExpression {
     }
 
     @Override
-    Output analyze(ClassNode classNode, ScriptRoot scriptRoot, Scope scope, Input input) {
+    protected Output<E> analyze(BuilderVisitor<S, E> builderVisitor, ScriptRoot scriptRoot, Scope scope, Input input) {
         Class<?> resolvedType;
         Class<?> expressionType;
         boolean primitiveExpression;
@@ -66,7 +65,7 @@ public class EInstanceof extends AExpression {
 
         // analyze and cast the expression
         Input expressionInput = new Input();
-        Output expressionOutput = expression.analyze(classNode, scriptRoot, scope, expressionInput);
+        Output expressionOutput = expression.analyze(builderVisitor, scriptRoot, scope, expressionInput);
         expressionInput.expected = expressionOutput.actual;
         expression.cast(expressionInput, expressionOutput);
 

@@ -21,7 +21,6 @@ package org.elasticsearch.painless.node;
 
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.Scope;
-import org.elasticsearch.painless.ir.ClassNode;
 import org.elasticsearch.painless.ir.NewObjectNode;
 import org.elasticsearch.painless.ir.TypeNode;
 import org.elasticsearch.painless.lookup.PainlessConstructor;
@@ -52,7 +51,7 @@ public class ENewObj extends AExpression {
     }
 
     @Override
-    Output analyze(ClassNode classNode, ScriptRoot scriptRoot, Scope scope, Input input) {
+    protected Output<E> analyze(BuilderVisitor<S, E> builderVisitor, ScriptRoot scriptRoot, Scope scope, Input input) {
         Output output = new Output();
 
         output.actual = scriptRoot.getPainlessLookup().canonicalTypeNameToType(this.type);
@@ -87,7 +86,7 @@ public class ENewObj extends AExpression {
             Input expressionInput = new Input();
             expressionInput.expected = types[argument];
             expressionInput.internal = true;
-            Output expressionOutput = expression.analyze(classNode, scriptRoot, scope, expressionInput);
+            Output expressionOutput = expression.analyze(builderVisitor, scriptRoot, scope, expressionInput);
             expression.cast(expressionInput, expressionOutput);
             argumentOutputs.add(expressionOutput);
         }

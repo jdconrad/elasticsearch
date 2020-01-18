@@ -40,7 +40,11 @@ public abstract class ANode {
     /**
      * The identifier of the script and character offset used for debugging and errors.
      */
-    final Location location;
+    protected final Location location;
+
+    public Location getLocation() {
+
+    }
 
     /**
      * Standard constructor with location used for error tracking.

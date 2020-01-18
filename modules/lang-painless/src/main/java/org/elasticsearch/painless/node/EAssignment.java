@@ -21,12 +21,12 @@ package org.elasticsearch.painless.node;
 
 
 import org.elasticsearch.painless.AnalyzerCaster;
+import org.elasticsearch.painless.BuilderVisitor;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.Operation;
 import org.elasticsearch.painless.Scope;
 import org.elasticsearch.painless.ir.AssignmentNode;
 import org.elasticsearch.painless.ir.BinaryMathNode;
-import org.elasticsearch.painless.ir.ClassNode;
 import org.elasticsearch.painless.ir.ExpressionNode;
 import org.elasticsearch.painless.ir.NullSafeSubNode;
 import org.elasticsearch.painless.ir.TypeNode;
@@ -61,8 +61,8 @@ public class EAssignment extends AExpression {
     }
 
     @Override
-    Output analyze(ClassNode classNode, ScriptRoot scriptRoot, Scope scope, Input input) {
-        Output output = new Output();
+    protected <S, E> Output<E> analyze(BuilderVisitor<S, E> builderVisitor, ScriptRoot scriptRoot, Scope scope, Input input) {
+        Output<E> output = new Output<>();
 
         AExpression rhs = this.rhs;
         Operation operation = this.operation;
@@ -72,18 +72,19 @@ public class EAssignment extends AExpression {
         PainlessCast there = null;
         PainlessCast back = null;
 
-        Output leftOutput;
+        Output<E> leftOutput;
 
         Input rightInput = new Input();
-        Output rightOutput;
+        Output<E> rightOutput;
+
+        AStoreable.Input leftInput = new AStoreable.Input();
 
         if (lhs instanceof AStoreable) {
             AStoreable lhs = (AStoreable)this.lhs;
-            AStoreable.Input leftInput = new AStoreable.Input();
 
             leftInput.read = input.read;
             leftInput.write = true;
-            leftOutput = lhs.analyze(classNode, scriptRoot, scope, leftInput);
+            leftOutput = lhs.analyze(builderVisitor, scriptRoot, scope, leftInput);
         } else {
             throw new IllegalArgumentException("Left-hand side cannot be assigned a value.");
         }
@@ -125,7 +126,7 @@ public class EAssignment extends AExpression {
         }
 
         if (operation != null) {
-            rightOutput = rhs.analyze(classNode, scriptRoot, scope, rightInput);
+            rightOutput = rhs.analyze(builderVisitor, scriptRoot, scope, rightInput);
             boolean shift = false;
 
             if (operation == Operation.MUL) {
@@ -199,7 +200,7 @@ public class EAssignment extends AExpression {
             // TODO: move this optimization to a later phase
             // If the lhs node is a def optimized node we update the actual type to remove the need for a cast.
             if (lhs.isDefOptimized()) {
-                rightOutput = rhs.analyze(classNode, scriptRoot, scope, rightInput);
+                rightOutput = rhs.analyze(builderVisitor, scriptRoot, scope, rightInput);
 
                 if (rightOutput.actual == void.class) {
                     throw createError(new IllegalArgumentException("Right-hand side cannot be a [void] type for assignment."));
@@ -219,7 +220,7 @@ public class EAssignment extends AExpression {
             // Otherwise, we must adapt the rhs type to the lhs type with a cast.
             } else {
                 rightInput.expected = leftOutput.actual;
-                rightOutput = rhs.analyze(classNode, scriptRoot, scope, rightInput);
+                rightOutput = rhs.analyze(builderVisitor, scriptRoot, scope, rightInput);
             }
 
             rhs.cast(rightInput, rightOutput);
@@ -230,25 +231,7 @@ public class EAssignment extends AExpression {
         output.statement = true;
         output.actual = input.read ? leftOutput.actual : void.class;
 
-        output.expressionNode = new AssignmentNode()
-                .setTypeNode(new TypeNode()
-                        .setLocation(location)
-                        .setType(output.actual)
-                )
-                .setLeftNode(leftOutput.expressionNode)
-                .setRightNode(rhs.cast(rightOutput))
-                .setCompoundTypeNode(new TypeNode()
-                        .setLocation(location)
-                        .setType(promote)
-                )
-                .setLocation(location)
-                .setPre(pre)
-                .setPost(post)
-                .setOperation(operation)
-                .setRead(input.read)
-                .setCat(cat)
-                .setThere(there)
-                .setBack(back);
+        builderVisitor.visitAssignmentBuilder(this, input, output, lhs, leftInput, );
 
         return output;
     }

@@ -29,7 +29,7 @@ import java.util.Objects;
 /**
  * The super class for an expression that can store a value in local memory.
  */
-abstract class AStoreable extends AExpression {
+public abstract class AStoreable extends AExpression {
 
     public static class Input extends AExpression.Input {
 
@@ -38,6 +38,8 @@ abstract class AStoreable extends AExpression {
          * a value from an rhs-expression.
          */
         boolean write = false;
+
+        public doStore
     }
 
     /**

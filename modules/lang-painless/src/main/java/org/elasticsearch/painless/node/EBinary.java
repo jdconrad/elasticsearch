@@ -24,7 +24,6 @@ import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.Operation;
 import org.elasticsearch.painless.Scope;
 import org.elasticsearch.painless.ir.BinaryMathNode;
-import org.elasticsearch.painless.ir.ClassNode;
 import org.elasticsearch.painless.ir.TypeNode;
 import org.elasticsearch.painless.lookup.PainlessLookupUtility;
 import org.elasticsearch.painless.lookup.def;
@@ -51,7 +50,7 @@ public class EBinary extends AExpression {
     }
 
     @Override
-    Output analyze(ClassNode classNode, ScriptRoot scriptRoot, Scope scope, Input input) {
+    protected Output<E> analyze(BuilderVisitor<S, E> builderVisitor, ScriptRoot scriptRoot, Scope scope, Input input) {
         Class<?> promote = null;            // promoted type
         Class<?> shiftDistance = null;      // for shifts, the rhs is promoted independently
         boolean originallyExplicit = input.explicit; // record whether there was originally an explicit cast
@@ -59,10 +58,10 @@ public class EBinary extends AExpression {
         Output output = new Output();
 
         Input leftInput = new Input();
-        Output leftOutput = left.analyze(classNode, scriptRoot, scope, leftInput);
+        Output leftOutput = left.analyze(builderVisitor, scriptRoot, scope, leftInput);
 
         Input rightInput = new Input();
-        Output rightOutput = right.analyze(classNode, scriptRoot, scope, rightInput);
+        Output rightOutput = right.analyze(builderVisitor, scriptRoot, scope, rightInput);
 
         if (operation == Operation.FIND || operation == Operation.MATCH) {
             leftInput.expected = String.class;

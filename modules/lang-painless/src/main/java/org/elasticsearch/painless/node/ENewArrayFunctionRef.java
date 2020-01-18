@@ -22,7 +22,6 @@ package org.elasticsearch.painless.node;
 import org.elasticsearch.painless.FunctionRef;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.Scope;
-import org.elasticsearch.painless.ir.ClassNode;
 import org.elasticsearch.painless.ir.FunctionNode;
 import org.elasticsearch.painless.ir.NewArrayFuncRefNode;
 import org.elasticsearch.painless.ir.TypeNode;
@@ -50,7 +49,7 @@ public class ENewArrayFunctionRef extends AExpression implements ILambda {
     }
 
     @Override
-    Output analyze(ClassNode classNode, ScriptRoot scriptRoot, Scope scope, Input input) {
+    protected Output<E> analyze(BuilderVisitor<S, E> builderVisitor, ScriptRoot scriptRoot, Scope scope, Input input) {
         FunctionRef ref;
 
         Output output = new Output();
@@ -61,7 +60,7 @@ public class ENewArrayFunctionRef extends AExpression implements ILambda {
                 Collections.singletonList("int"), Collections.singletonList("size"),
                 new SBlock(location, Collections.singletonList(code)), true, true, true, false);
         function.generateSignature(scriptRoot.getPainlessLookup());
-        FunctionNode functionNode = function.write(classNode, scriptRoot);
+        FunctionNode functionNode = function.write(builderVisitor, scriptRoot);
         scriptRoot.getFunctionTable().addFunction(function.name, function.returnType, function.typeParameters, true, true);
 
         if (input.expected == null) {
@@ -75,7 +74,7 @@ public class ENewArrayFunctionRef extends AExpression implements ILambda {
             output.actual = input.expected;
         }
 
-        classNode.addFunctionNode(functionNode);
+        builderVisitor.addFunctionNode(functionNode);
 
         output.expressionNode = new NewArrayFuncRefNode()
                 .setTypeNode(new TypeNode()
