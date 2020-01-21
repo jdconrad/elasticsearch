@@ -29,6 +29,8 @@ import org.elasticsearch.painless.ir.BinaryMathNode;
 import org.elasticsearch.painless.ir.ClassNode;
 import org.elasticsearch.painless.ir.ExpressionNode;
 import org.elasticsearch.painless.ir.NullSafeSubNode;
+import org.elasticsearch.painless.ir.PrefixNode;
+import org.elasticsearch.painless.ir.StoreNode;
 import org.elasticsearch.painless.ir.TypeNode;
 import org.elasticsearch.painless.ir.UnaryNode;
 import org.elasticsearch.painless.lookup.PainlessCast;
@@ -227,10 +229,24 @@ public class EAssignment extends AExpression {
             throw new IllegalStateException("Illegal tree structure.");
         }
 
+        rhs.cast(rightOutput);
+
         output.statement = true;
         output.actual = input.read ? leftOutput.actual : void.class;
 
-        output.expressionNode = new AssignmentNode()
+        StoreNode storeNode;
+
+        if (leftOutput.expressionNode instanceof PrefixNode) {
+            storeNode = (StoreNode)((PrefixNode)leftOutput.expressionNode).getChildNode();
+        } else {
+            storeNode = (StoreNode)leftOutput.expressionNode;
+        }
+
+        storeNode.setReadFrom(input.read);
+        storeNode.setStoreNode(rightOutput.expressionNode);
+        output.expressionNode = storeNode;
+
+        /*output.expressionNode = new AssignmentNode()
                 .setTypeNode(new TypeNode()
                         .setLocation(location)
                         .setType(output.actual)
@@ -248,7 +264,7 @@ public class EAssignment extends AExpression {
                 .setRead(input.read)
                 .setCat(cat)
                 .setThere(there)
-                .setBack(back);
+                .setBack(back);*/
 
         return output;
     }

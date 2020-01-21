@@ -75,6 +75,8 @@ public class StoreVariableNode extends StoreNode {
 
     @Override
     protected void write(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
+        storeNode.write(classWriter, methodWriter, scopeTable);
+
         if (isReadFrom()) {
             methodWriter.writeDup(MethodWriter.getType(getType()).getSize(), 0);
         }

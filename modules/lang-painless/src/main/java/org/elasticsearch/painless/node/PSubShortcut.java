@@ -23,6 +23,7 @@ import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.Scope;
 import org.elasticsearch.painless.ir.ClassNode;
 import org.elasticsearch.painless.ir.LoadDotSubShortcutNode;
+import org.elasticsearch.painless.ir.StoreDotSubShortcutNode;
 import org.elasticsearch.painless.ir.TypeNode;
 import org.elasticsearch.painless.lookup.PainlessMethod;
 import org.elasticsearch.painless.symbol.ScriptRoot;
@@ -70,14 +71,21 @@ public class PSubShortcut extends AStoreable {
             throw createError(new IllegalArgumentException("Illegal shortcut on field [" + value + "] for type [" + type + "]."));
         }
 
-        output.expressionNode = new LoadDotSubShortcutNode()
-                .setTypeNode(new TypeNode()
+        output.expressionNode = input.write ?
+                new StoreDotSubShortcutNode()
+                        .setTypeNode(new TypeNode()
+                                .setLocation(location)
+                                .setType(output.actual)
+                        )
                         .setLocation(location)
-                        .setType(output.actual)
-                )
-                .setLocation(location)
-                .setGetter(getter)
-                .setSetter(setter);
+                        .setSetter(setter)
+                : new LoadDotSubShortcutNode()
+                        .setTypeNode(new TypeNode()
+                                .setLocation(location)
+                                .setType(output.actual)
+                        )
+                        .setLocation(location)
+                        .setGetter(getter);
 
         return output;
     }

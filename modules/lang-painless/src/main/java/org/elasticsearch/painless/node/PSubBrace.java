@@ -23,6 +23,7 @@ import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.Scope;
 import org.elasticsearch.painless.ir.LoadBraceSubNode;
 import org.elasticsearch.painless.ir.ClassNode;
+import org.elasticsearch.painless.ir.StoreBraceSubNode;
 import org.elasticsearch.painless.ir.TypeNode;
 import org.elasticsearch.painless.symbol.ScriptRoot;
 
@@ -54,13 +55,21 @@ public class PSubBrace extends AStoreable {
 
         output.actual = clazz.getComponentType();
 
-        output.expressionNode = new LoadBraceSubNode()
-                .setTypeNode(new TypeNode()
+        output.expressionNode = input.write ?
+                new StoreBraceSubNode()
+                        .setTypeNode(new TypeNode()
+                                .setLocation(location)
+                                .setType(output.actual)
+                        )
+                        .setIndexNode(index.cast(indexOutput))
                         .setLocation(location)
-                        .setType(output.actual)
-                )
-                .setChildNode(index.cast(indexOutput))
-                .setLocation(location);
+                : new LoadBraceSubNode()
+                        .setTypeNode(new TypeNode()
+                                .setLocation(location)
+                                .setType(output.actual)
+                        )
+                        .setIndexNode(index.cast(indexOutput))
+                        .setLocation(location);
 
         return output;
     }

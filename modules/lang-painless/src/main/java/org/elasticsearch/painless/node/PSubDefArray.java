@@ -23,6 +23,7 @@ import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.Scope;
 import org.elasticsearch.painless.ir.LoadBraceSubDefNode;
 import org.elasticsearch.painless.ir.ClassNode;
+import org.elasticsearch.painless.ir.StoreBraceSubDefNode;
 import org.elasticsearch.painless.ir.TypeNode;
 import org.elasticsearch.painless.lookup.def;
 import org.elasticsearch.painless.symbol.ScriptRoot;
@@ -55,13 +56,21 @@ public class PSubDefArray extends AStoreable {
         // TODO: remove ZonedDateTime exception when JodaCompatibleDateTime is removed
         output.actual = input.expected == null || input.expected == ZonedDateTime.class || input.explicit ? def.class : input.expected;
 
-        output.expressionNode = new LoadBraceSubDefNode()
-                .setTypeNode(new TypeNode()
+        output.expressionNode = input.write ?
+                new StoreBraceSubDefNode()
+                        .setTypeNode(new TypeNode()
+                                .setLocation(location)
+                                .setType(output.actual)
+                        )
+                        .setIndexNode(index.cast(indexOutput))
                         .setLocation(location)
-                        .setType(output.actual)
-                )
-                .setChildNode(index.cast(indexOutput))
-                .setLocation(location);
+                : new LoadBraceSubDefNode()
+                        .setTypeNode(new TypeNode()
+                                .setLocation(location)
+                                .setType(output.actual)
+                        )
+                        .setIndexNode(index.cast(indexOutput))
+                        .setLocation(location);
 
         return output;
     }

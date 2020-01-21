@@ -23,6 +23,7 @@ import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.Scope;
 import org.elasticsearch.painless.Scope.Variable;
 import org.elasticsearch.painless.ir.ClassNode;
+import org.elasticsearch.painless.ir.StoreVariableNode;
 import org.elasticsearch.painless.ir.TypeNode;
 import org.elasticsearch.painless.ir.LoadVariableNode;
 import org.elasticsearch.painless.symbol.ScriptRoot;
@@ -65,13 +66,21 @@ public class EVariable extends AStoreable {
 
         output.actual = variable.getType();
 
-        output.expressionNode = new LoadVariableNode()
-                .setTypeNode(new TypeNode()
+        output.expressionNode = input.write ?
+                new StoreVariableNode()
+                        .setTypeNode(new TypeNode()
+                                .setLocation(location)
+                                .setType(output.actual)
+                        )
                         .setLocation(location)
-                        .setType(output.actual)
-                )
-                .setLocation(location)
-                .setName(name);
+                        .setName(name)
+                : new LoadVariableNode()
+                        .setTypeNode(new TypeNode()
+                                .setLocation(location)
+                                .setType(output.actual)
+                        )
+                        .setLocation(location)
+                        .setName(name);
 
         return output;
     }

@@ -23,6 +23,7 @@ import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.Scope;
 import org.elasticsearch.painless.ir.ClassNode;
 import org.elasticsearch.painless.ir.LoadListSubShortcutNode;
+import org.elasticsearch.painless.ir.StoreListSubShortcutNode;
 import org.elasticsearch.painless.ir.TypeNode;
 import org.elasticsearch.painless.lookup.PainlessLookupUtility;
 import org.elasticsearch.painless.lookup.PainlessMethod;
@@ -81,15 +82,23 @@ public class PSubListShortcut extends AStoreable {
             throw createError(new IllegalArgumentException("Illegal list shortcut for type [" + canonicalClassName + "]."));
         }
 
-        output.expressionNode = new LoadListSubShortcutNode()
-                .setTypeNode(new TypeNode()
+        output.expressionNode = input.write ?
+                new StoreListSubShortcutNode()
+                        .setTypeNode(new TypeNode()
+                                .setLocation(location)
+                                .setType(output.actual)
+                        )
+                        .setIndexNode(index.cast(indexOutput))
                         .setLocation(location)
-                        .setType(output.actual)
-                )
-                .setChildNode(index.cast(indexOutput))
-                .setLocation(location)
-                .setGetter(getter)
-                .setSetter(setter);
+                        .setSetter(setter)
+                : new LoadListSubShortcutNode()
+                        .setTypeNode(new TypeNode()
+                                .setLocation(location)
+                                .setType(output.actual)
+                        )
+                        .setIndexNode(index.cast(indexOutput))
+                        .setLocation(location)
+                        .setGetter(getter);
 
         return output;
     }
