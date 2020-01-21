@@ -25,13 +25,19 @@ import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.symbol.ScopeTable;
 
-public class DotSubDefNode extends ExpressionNode {
+public class StoreDotSubDefNode extends StoreNode {
 
     /* ---- begin tree structure ---- */
 
     @Override
-    public DotSubDefNode setTypeNode(TypeNode typeNode) {
+    public StoreDotSubDefNode setTypeNode(TypeNode typeNode) {
         super.setTypeNode(typeNode);
+        return this;
+    }
+
+    @Override
+    public StoreDotSubDefNode setStoreNode(ExpressionNode storeNode) {
+        this.storeNode = storeNode;
         return this;
     }
 
@@ -39,7 +45,7 @@ public class DotSubDefNode extends ExpressionNode {
 
     protected String value;
 
-    public DotSubDefNode setValue(String value) {
+    public StoreDotSubDefNode setValue(String value) {
         this.value = value;
         return this;
     }
@@ -49,51 +55,33 @@ public class DotSubDefNode extends ExpressionNode {
     }
 
     @Override
-    public DotSubDefNode setLocation(Location location) {
+    public StoreDotSubDefNode setReadFrom(boolean isReadFrom) {
+        super.setReadFrom(isReadFrom);
+        return this;
+    }
+
+    @Override
+    public StoreDotSubDefNode setLocation(Location location) {
         super.setLocation(location);
         return this;
     }
 
     /* ---- end node data ---- */
 
-    public DotSubDefNode() {
+    public StoreDotSubDefNode() {
         // do nothing
     }
 
     @Override
     protected void write(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
-        methodWriter.writeDebugInfo(location);
+        if (isReadFrom()) {
+            methodWriter.writeDup(MethodWriter.getType(getType()).getSize(), 1);
+        }
 
-        org.objectweb.asm.Type methodType =
-            org.objectweb.asm.Type.getMethodType(MethodWriter.getType(getType()), org.objectweb.asm.Type.getType(Object.class));
-        methodWriter.invokeDefCall(value, methodType, DefBootstrap.LOAD);
-    }
-
-    @Override
-    protected int accessElementCount() {
-        return 1;
-    }
-
-    @Override
-    protected void setup(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
-        // do nothing
-    }
-
-    @Override
-    protected void load(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
-        methodWriter.writeDebugInfo(location);
-
-        org.objectweb.asm.Type methodType =
-            org.objectweb.asm.Type.getMethodType(MethodWriter.getType(getType()), org.objectweb.asm.Type.getType(Object.class));
-        methodWriter.invokeDefCall(value, methodType, DefBootstrap.LOAD);
-    }
-
-    @Override
-    protected void store(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
         methodWriter.writeDebugInfo(location);
 
         org.objectweb.asm.Type methodType = org.objectweb.asm.Type.getMethodType(
-            org.objectweb.asm.Type.getType(void.class), org.objectweb.asm.Type.getType(Object.class), MethodWriter.getType(getType()));
+                org.objectweb.asm.Type.getType(void.class), org.objectweb.asm.Type.getType(Object.class), MethodWriter.getType(getType()));
         methodWriter.invokeDefCall(value, methodType, DefBootstrap.STORE);
     }
 }

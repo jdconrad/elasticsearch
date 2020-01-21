@@ -26,12 +26,12 @@ import org.elasticsearch.painless.symbol.ScopeTable;
 import org.elasticsearch.painless.symbol.ScopeTable.Variable;
 import org.objectweb.asm.Opcodes;
 
-public class VariableNode extends ExpressionNode {
+public class LoadVariableNode extends LoadNode {
 
     /* ---- begin tree structure ---- */
 
     @Override
-    public VariableNode setTypeNode(TypeNode typeNode) {
+    public LoadVariableNode setTypeNode(TypeNode typeNode) {
         super.setTypeNode(typeNode);
         return this;
     }
@@ -40,7 +40,7 @@ public class VariableNode extends ExpressionNode {
 
     protected String name;
 
-    public VariableNode setName(String name) {
+    public LoadVariableNode setName(String name) {
         this.name = name;
         return this;
     }
@@ -50,14 +50,26 @@ public class VariableNode extends ExpressionNode {
     }
 
     @Override
-    public VariableNode setLocation(Location location) {
+    public LoadVariableNode setCompoundOperation(boolean isCompoundOperation) {
+        this.isCompoundOperation = isCompoundOperation;
+        return this;
+    }
+
+    @Override
+    public LoadVariableNode setReadFrom(boolean isReadFrom) {
+        this.isReadFrom = isReadFrom;
+        return this;
+    }
+
+    @Override
+    public LoadVariableNode setLocation(Location location) {
         super.setLocation(location);
         return this;
     }
 
     /* ---- end node data ---- */
 
-    public VariableNode() {
+    public LoadVariableNode() {
         // do nothing
     }
 
@@ -65,27 +77,9 @@ public class VariableNode extends ExpressionNode {
     protected void write(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
         Variable variable = scopeTable.getVariable(name);
         methodWriter.visitVarInsn(variable.getAsmType().getOpcode(Opcodes.ILOAD), variable.getSlot());
-    }
 
-    @Override
-    protected int accessElementCount() {
-        return 0;
-    }
-
-    @Override
-    protected void setup(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
-        // do nothing
-    }
-
-    @Override
-    protected void load(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
-        Variable variable = scopeTable.getVariable(name);
-        methodWriter.visitVarInsn(variable.getAsmType().getOpcode(Opcodes.ILOAD), variable.getSlot());
-    }
-
-    @Override
-    protected void store(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
-        Variable variable = scopeTable.getVariable(name);
-        methodWriter.visitVarInsn(variable.getAsmType().getOpcode(Opcodes.ISTORE), variable.getSlot());
+        if (isReadFrom()) {
+            methodWriter.writeDup(MethodWriter.getType(getType()).getSize(), 0);
+        }
     }
 }

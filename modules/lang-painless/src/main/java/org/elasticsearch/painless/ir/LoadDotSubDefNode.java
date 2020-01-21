@@ -20,49 +20,72 @@
 package org.elasticsearch.painless.ir;
 
 import org.elasticsearch.painless.ClassWriter;
+import org.elasticsearch.painless.DefBootstrap;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.symbol.ScopeTable;
 
-public class BraceNode extends PrefixNode {
+public class LoadDotSubDefNode extends LoadNode {
 
     /* ---- begin tree structure ---- */
 
     @Override
-    public BraceNode setPrefixNode(ExpressionNode prefixNode) {
-        this.prefixNode = prefixNode;
-        return this;
-    }
-
-    @Override
-    public BraceNode setChildNode(ExpressionNode childNode) {
-        super.setChildNode(childNode);
-        return this;
-    }
-
-    @Override
-    public BraceNode setTypeNode(TypeNode typeNode) {
+    public LoadDotSubDefNode setTypeNode(TypeNode typeNode) {
         super.setTypeNode(typeNode);
         return this;
     }
 
     /* ---- end tree structure, begin node data ---- */
 
+    protected String value;
+
+    public LoadDotSubDefNode setValue(String value) {
+        this.value = value;
+        return this;
+    }
+
+    public String getValue() {
+        return value;
+    }
+
     @Override
-    public BraceNode setLocation(Location location) {
+    public LoadDotSubDefNode setCompoundOperation(boolean isCompoundOperation) {
+        this.isCompoundOperation = isCompoundOperation;
+        return this;
+    }
+
+    @Override
+    public LoadDotSubDefNode setReadFrom(boolean isReadFrom) {
+        this.isReadFrom = isReadFrom;
+        return this;
+    }
+
+    @Override
+    public LoadDotSubDefNode setLocation(Location location) {
         super.setLocation(location);
         return this;
     }
 
     /* ---- end node data ---- */
 
-    public BraceNode() {
+    public LoadDotSubDefNode() {
         // do nothing
     }
 
     @Override
     protected void write(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
-        prefixNode.write(classWriter, methodWriter, scopeTable);
-        childNode.write(classWriter, methodWriter, scopeTable);
+        if (isCompoundOperation()) {
+            methodWriter.dup();
+        }
+
+        methodWriter.writeDebugInfo(location);
+
+        org.objectweb.asm.Type methodType =
+            org.objectweb.asm.Type.getMethodType(MethodWriter.getType(getType()), org.objectweb.asm.Type.getType(Object.class));
+        methodWriter.invokeDefCall(value, methodType, DefBootstrap.LOAD);
+
+        if (isReadFrom()) {
+            methodWriter.writeDup(MethodWriter.getType(getType()).getSize(), 1);
+        }
     }
 }

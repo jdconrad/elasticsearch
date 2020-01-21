@@ -22,21 +22,35 @@ package org.elasticsearch.painless.ir;
 import org.elasticsearch.painless.ClassWriter;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.WriterConstants;
 import org.elasticsearch.painless.lookup.PainlessMethod;
 import org.elasticsearch.painless.symbol.ScopeTable;
+import org.objectweb.asm.Label;
+import org.objectweb.asm.Opcodes;
 
-public class MapSubShortcutNode extends UnaryNode {
+public class StoreListSubShortcutNode extends StoreNode {
 
     /* ---- begin tree structure ---- */
 
+    ExpressionNode indexNode;
+
+    public StoreListSubShortcutNode setIndexNode(ExpressionNode indexNode) {
+        this.indexNode = indexNode;
+        return this;
+    }
+
+    public ExpressionNode getIndexNode() {
+        return indexNode;
+    }
+
     @Override
-    public MapSubShortcutNode setChildNode(ExpressionNode childNode) {
-        super.setChildNode(childNode);
+    public StoreListSubShortcutNode setStoreNode(ExpressionNode storeNode) {
+        this.storeNode = storeNode;
         return this;
     }
 
     @Override
-    public MapSubShortcutNode setTypeNode(TypeNode typeNode) {
+    public StoreListSubShortcutNode setTypeNode(TypeNode typeNode) {
         super.setTypeNode(typeNode);
         return this;
     }
@@ -44,9 +58,8 @@ public class MapSubShortcutNode extends UnaryNode {
     /* ---- end tree structure, begin node data ---- */
 
     protected PainlessMethod setter;
-    protected PainlessMethod getter;
 
-    public MapSubShortcutNode setSetter(PainlessMethod setter) {
+    public StoreListSubShortcutNode setSetter(PainlessMethod setter) {
         this.setter = setter;
         return this;
     }
@@ -55,61 +68,41 @@ public class MapSubShortcutNode extends UnaryNode {
         return setter;
     }
 
-    public MapSubShortcutNode setGetter(PainlessMethod getter) {
-        this.getter = getter;
+    @Override
+    public StoreListSubShortcutNode setReadFrom(boolean isReadFrom) {
+        this.isReadFrom = isReadFrom;
         return this;
     }
 
-    public PainlessMethod getGetter() {
-        return getter;
-    }
-
     @Override
-    public MapSubShortcutNode setLocation(Location location) {
+    public StoreListSubShortcutNode setLocation(Location location) {
         super.setLocation(location);
         return this;
     }
 
     /* ---- end node data ---- */
 
-    public MapSubShortcutNode() {
+    public StoreListSubShortcutNode() {
         // do nothing
     }
 
     @Override
     protected void write(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
-        childNode.write(classWriter, methodWriter, scopeTable);
+        indexNode.write(classWriter, methodWriter, scopeTable);
 
-        methodWriter.writeDebugInfo(location);
-        methodWriter.invokeMethodCall(getter);
+        Label noFlip = new Label();
+        methodWriter.dup();
+        methodWriter.ifZCmp(Opcodes.IFGE, noFlip);
+        methodWriter.swap();
+        methodWriter.dupX1();
+        methodWriter.invokeInterface(WriterConstants.COLLECTION_TYPE, WriterConstants.COLLECTION_SIZE);
+        methodWriter.visitInsn(Opcodes.IADD);
+        methodWriter.mark(noFlip);
 
-        if (getter.returnType != getter.javaMethod.getReturnType()) {
-            methodWriter.checkCast(MethodWriter.getType(getter.returnType));
+        if (isReadFrom()) {
+            methodWriter.writeDup(MethodWriter.getType(getType()).getSize(), 2);
         }
-    }
 
-    @Override
-    protected int accessElementCount() {
-        return 2;
-    }
-
-    @Override
-    protected void setup(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
-        childNode.write(classWriter, methodWriter, scopeTable);
-    }
-
-    @Override
-    protected void load(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
-        methodWriter.writeDebugInfo(location);
-        methodWriter.invokeMethodCall(getter);
-
-        if (getter.returnType != getter.javaMethod.getReturnType()) {
-            methodWriter.checkCast(MethodWriter.getType(getter.returnType));
-        }
-    }
-
-    @Override
-    protected void store(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
         methodWriter.writeDebugInfo(location);
         methodWriter.invokeMethodCall(setter);
         methodWriter.writePop(MethodWriter.getType(setter.returnType).getSize());

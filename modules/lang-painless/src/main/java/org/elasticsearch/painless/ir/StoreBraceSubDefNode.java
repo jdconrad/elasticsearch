@@ -20,24 +20,35 @@
 package org.elasticsearch.painless.ir;
 
 import org.elasticsearch.painless.ClassWriter;
+import org.elasticsearch.painless.DefBootstrap;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.symbol.ScopeTable;
-import org.objectweb.asm.Label;
-import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.Type;
 
-public class BraceSubNode extends UnaryNode {
+public class StoreBraceSubDefNode extends StoreNode {
 
     /* ---- begin tree structure ---- */
 
+    ExpressionNode indexNode;
+
+    public StoreBraceSubDefNode setIndexNode(ExpressionNode indexNode) {
+        this.indexNode = indexNode;
+        return this;
+    }
+
+    public ExpressionNode getIndexNode() {
+        return indexNode;
+    }
+
     @Override
-    public BraceSubNode setChildNode(ExpressionNode childNode) {
-        super.setChildNode(childNode);
+    public StoreBraceSubDefNode setStoreNode(ExpressionNode storeNode) {
+        this.storeNode = storeNode;
         return this;
     }
 
     @Override
-    public BraceSubNode setTypeNode(TypeNode typeNode) {
+    public StoreBraceSubDefNode setTypeNode(TypeNode typeNode) {
         super.setTypeNode(typeNode);
         return this;
     }
@@ -45,51 +56,38 @@ public class BraceSubNode extends UnaryNode {
     /* ---- end tree structure, begin node data ---- */
 
     @Override
-    public BraceSubNode setLocation(Location location) {
+    public StoreBraceSubDefNode setReadFrom(boolean isReadFrom) {
+        this.isReadFrom = isReadFrom;
+        return this;
+    }
+
+    @Override
+    public StoreBraceSubDefNode setLocation(Location location) {
         super.setLocation(location);
         return this;
     }
 
     /* ---- end node data ---- */
 
-    public BraceSubNode() {
+    public StoreBraceSubDefNode() {
         // do nothing
     }
 
     @Override
     protected void write(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
-        setup(classWriter, methodWriter, scopeTable);
-        load(classWriter, methodWriter, scopeTable);
-    }
-
-    @Override
-    protected int accessElementCount() {
-        return 2;
-    }
-
-    @Override
-    protected void setup(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
-        childNode.write(classWriter, methodWriter, scopeTable);
-
-        Label noFlip = new Label();
         methodWriter.dup();
-        methodWriter.ifZCmp(Opcodes.IFGE, noFlip);
-        methodWriter.swap();
-        methodWriter.dupX1();
-        methodWriter.arrayLength();
-        methodWriter.visitInsn(Opcodes.IADD);
-        methodWriter.mark(noFlip);
-    }
+        indexNode.write(classWriter, methodWriter, scopeTable);
+        Type indexMethodType = Type.getMethodType(
+                MethodWriter.getType(indexNode.getType()), Type.getType(Object.class), MethodWriter.getType(indexNode.getType()));
+        methodWriter.invokeDefCall("normalizeIndex", indexMethodType, DefBootstrap.INDEX_NORMALIZE);
 
-    @Override
-    protected void load(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
-        methodWriter.writeDebugInfo(location);
-        methodWriter.arrayLoad(MethodWriter.getType(getType()));
-    }
+        if (isReadFrom()) {
+            methodWriter.writeDup(MethodWriter.getType(getType()).getSize(), 2);
+        }
 
-    @Override
-    protected void store(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
         methodWriter.writeDebugInfo(location);
-        methodWriter.arrayStore(MethodWriter.getType(getType()));
+        Type storeMethodType = Type.getMethodType(Type.getType(void.class), Type.getType(Object.class),
+                MethodWriter.getType(indexNode.getType()), MethodWriter.getType(getType()));
+        methodWriter.invokeDefCall("arrayStore", storeMethodType, DefBootstrap.ARRAY_STORE);
     }
 }

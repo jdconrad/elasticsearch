@@ -24,7 +24,7 @@ import org.elasticsearch.painless.Scope;
 import org.elasticsearch.painless.Scope.Variable;
 import org.elasticsearch.painless.ir.ClassNode;
 import org.elasticsearch.painless.ir.TypeNode;
-import org.elasticsearch.painless.ir.VariableNode;
+import org.elasticsearch.painless.ir.LoadVariableNode;
 import org.elasticsearch.painless.symbol.ScriptRoot;
 
 import java.util.Objects;
@@ -65,7 +65,7 @@ public class EVariable extends AStoreable {
 
         output.actual = variable.getType();
 
-        output.expressionNode = new VariableNode()
+        output.expressionNode = new LoadVariableNode()
                 .setTypeNode(new TypeNode()
                         .setLocation(location)
                         .setType(output.actual)

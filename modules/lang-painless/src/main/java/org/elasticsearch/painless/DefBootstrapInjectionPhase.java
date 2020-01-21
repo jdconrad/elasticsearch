@@ -27,7 +27,7 @@ import org.elasticsearch.painless.ir.ReturnNode;
 import org.elasticsearch.painless.ir.StaticNode;
 import org.elasticsearch.painless.ir.TypeNode;
 import org.elasticsearch.painless.ir.UnboundFieldLoadNode;
-import org.elasticsearch.painless.ir.VariableNode;
+import org.elasticsearch.painless.ir.LoadVariableNode;
 import org.elasticsearch.painless.lookup.PainlessLookup;
 import org.elasticsearch.painless.lookup.PainlessMethod;
 import org.elasticsearch.painless.symbol.FunctionTable;
@@ -111,7 +111,7 @@ public class DefBootstrapInjectionPhase {
                                                             .setName("$FUNCTIONS")
                                                             .setStatic(true)
                                                     )
-                                                    .addArgumentNode(new VariableNode()
+                                                    .addArgumentNode(new LoadVariableNode()
                                                             .setTypeNode(new TypeNode()
                                                                     .setLocation(location)
                                                                     .setType(Lookup.class)
@@ -119,7 +119,7 @@ public class DefBootstrapInjectionPhase {
                                                             .setLocation(location)
                                                             .setName("methodHandlesLookup")
                                                     )
-                                                    .addArgumentNode(new VariableNode()
+                                                    .addArgumentNode(new LoadVariableNode()
                                                             .setTypeNode(new TypeNode()
                                                                     .setLocation(location)
                                                                     .setType(String.class)
@@ -127,7 +127,7 @@ public class DefBootstrapInjectionPhase {
                                                             .setLocation(location)
                                                             .setName("name")
                                                     )
-                                                    .addArgumentNode(new VariableNode()
+                                                    .addArgumentNode(new LoadVariableNode()
                                                             .setTypeNode(new TypeNode()
                                                                     .setLocation(location)
                                                                     .setType(MethodType.class)
@@ -135,7 +135,7 @@ public class DefBootstrapInjectionPhase {
                                                             .setLocation(location)
                                                             .setName("type")
                                                     )
-                                                    .addArgumentNode(new VariableNode()
+                                                    .addArgumentNode(new LoadVariableNode()
                                                             .setTypeNode(new TypeNode()
                                                                     .setLocation(location)
                                                                     .setType(int.class)
@@ -143,7 +143,7 @@ public class DefBootstrapInjectionPhase {
                                                             .setLocation(location)
                                                             .setName("initialDepth")
                                                     )
-                                                    .addArgumentNode(new VariableNode()
+                                                    .addArgumentNode(new LoadVariableNode()
                                                             .setTypeNode(new TypeNode()
                                                                     .setLocation(location)
                                                                     .setType(int.class)
@@ -151,7 +151,7 @@ public class DefBootstrapInjectionPhase {
                                                             .setLocation(location)
                                                             .setName("flavor")
                                                     )
-                                                    .addArgumentNode(new VariableNode()
+                                                    .addArgumentNode(new LoadVariableNode()
                                                             .setTypeNode(new TypeNode()
                                                                     .setLocation(location)
                                                                     .setType(Object[].class)

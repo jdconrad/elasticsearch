@@ -19,50 +19,46 @@
 
 package org.elasticsearch.painless.ir;
 
-import org.elasticsearch.painless.ClassWriter;
 import org.elasticsearch.painless.Location;
-import org.elasticsearch.painless.MethodWriter;
-import org.elasticsearch.painless.symbol.ScopeTable;
 
-public class BraceNode extends PrefixNode {
+public class LoadNode extends ExpressionNode {
 
     /* ---- begin tree structure ---- */
 
     @Override
-    public BraceNode setPrefixNode(ExpressionNode prefixNode) {
-        this.prefixNode = prefixNode;
-        return this;
-    }
-
-    @Override
-    public BraceNode setChildNode(ExpressionNode childNode) {
-        super.setChildNode(childNode);
-        return this;
-    }
-
-    @Override
-    public BraceNode setTypeNode(TypeNode typeNode) {
+    public LoadNode setTypeNode(TypeNode typeNode) {
         super.setTypeNode(typeNode);
         return this;
     }
 
     /* ---- end tree structure, begin node data ---- */
 
+    protected boolean isCompoundOperation;
+    protected boolean isReadFrom;
+
+    public LoadNode setCompoundOperation(boolean isCompoundOperation) {
+        this.isCompoundOperation = isCompoundOperation;
+        return this;
+    }
+
+    public boolean isCompoundOperation() {
+        return isCompoundOperation;
+    }
+
+    public LoadNode setReadFrom(boolean isReadFrom) {
+        this.isReadFrom = isReadFrom;
+        return this;
+    }
+
+    public boolean isReadFrom() {
+        return isReadFrom;
+    }
+
     @Override
-    public BraceNode setLocation(Location location) {
+    public LoadNode setLocation(Location location) {
         super.setLocation(location);
         return this;
     }
 
     /* ---- end node data ---- */
-
-    public BraceNode() {
-        // do nothing
-    }
-
-    @Override
-    protected void write(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
-        prefixNode.write(classWriter, methodWriter, scopeTable);
-        childNode.write(classWriter, methodWriter, scopeTable);
-    }
 }

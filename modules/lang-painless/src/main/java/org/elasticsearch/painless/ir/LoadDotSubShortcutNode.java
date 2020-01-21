@@ -22,47 +22,71 @@ package org.elasticsearch.painless.ir;
 import org.elasticsearch.painless.ClassWriter;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.lookup.PainlessMethod;
 import org.elasticsearch.painless.symbol.ScopeTable;
 
-public class BraceNode extends PrefixNode {
+public class LoadDotSubShortcutNode extends LoadNode {
 
-    /* ---- begin tree structure ---- */
-
-    @Override
-    public BraceNode setPrefixNode(ExpressionNode prefixNode) {
-        this.prefixNode = prefixNode;
-        return this;
-    }
+    /* begin tree structure */
 
     @Override
-    public BraceNode setChildNode(ExpressionNode childNode) {
-        super.setChildNode(childNode);
-        return this;
-    }
-
-    @Override
-    public BraceNode setTypeNode(TypeNode typeNode) {
+    public LoadDotSubShortcutNode setTypeNode(TypeNode typeNode) {
         super.setTypeNode(typeNode);
         return this;
     }
 
     /* ---- end tree structure, begin node data ---- */
 
+    protected PainlessMethod getter;
+
+    public LoadDotSubShortcutNode setGetter(PainlessMethod getter) {
+        this.getter = getter;
+        return this;
+    }
+
+    public PainlessMethod getGetter() {
+        return getter;
+    }
+
     @Override
-    public BraceNode setLocation(Location location) {
+    public LoadDotSubShortcutNode setCompoundOperation(boolean isCompoundOperation) {
+        this.isCompoundOperation = isCompoundOperation;
+        return this;
+    }
+
+    @Override
+    public LoadDotSubShortcutNode setReadFrom(boolean isReadFrom) {
+        this.isReadFrom = isReadFrom;
+        return this;
+    }
+
+    @Override
+    public LoadDotSubShortcutNode setLocation(Location location) {
         super.setLocation(location);
         return this;
     }
 
     /* ---- end node data ---- */
 
-    public BraceNode() {
+    public LoadDotSubShortcutNode() {
         // do nothing
     }
 
     @Override
     protected void write(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
-        prefixNode.write(classWriter, methodWriter, scopeTable);
-        childNode.write(classWriter, methodWriter, scopeTable);
+        if (isCompoundOperation()) {
+            methodWriter.dup();
+        }
+
+        methodWriter.writeDebugInfo(location);
+        methodWriter.invokeMethodCall(getter);
+
+        if (!getter.returnType.equals(getter.javaMethod.getReturnType())) {
+            methodWriter.checkCast(MethodWriter.getType(getter.returnType));
+        }
+
+        if (isReadFrom()) {
+            methodWriter.writeDup(MethodWriter.getType(getType()).getSize(), 1);
+        }
     }
 }

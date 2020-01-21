@@ -22,7 +22,7 @@ package org.elasticsearch.painless.node;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.Scope;
 import org.elasticsearch.painless.ir.ClassNode;
-import org.elasticsearch.painless.ir.MapSubShortcutNode;
+import org.elasticsearch.painless.ir.LoadMapSubShortcutNode;
 import org.elasticsearch.painless.ir.TypeNode;
 import org.elasticsearch.painless.lookup.PainlessLookupUtility;
 import org.elasticsearch.painless.lookup.PainlessMethod;
@@ -80,7 +80,7 @@ public class PSubMapShortcut extends AStoreable {
             throw createError(new IllegalArgumentException("Illegal map shortcut for type [" + canonicalClassName + "]."));
         }
 
-        output.expressionNode = new MapSubShortcutNode()
+        output.expressionNode = new LoadMapSubShortcutNode()
                 .setTypeNode(new TypeNode()
                         .setLocation(location)
                         .setType(output.actual)

@@ -22,47 +22,64 @@ package org.elasticsearch.painless.ir;
 import org.elasticsearch.painless.ClassWriter;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.lookup.PainlessMethod;
 import org.elasticsearch.painless.symbol.ScopeTable;
 
-public class BraceNode extends PrefixNode {
+public class StoreDotSubShortcutNode extends StoreNode {
 
-    /* ---- begin tree structure ---- */
+    /* begin tree structure */
 
     @Override
-    public BraceNode setPrefixNode(ExpressionNode prefixNode) {
-        this.prefixNode = prefixNode;
+    public StoreDotSubShortcutNode setStoreNode(ExpressionNode storeNode) {
+        this.storeNode = storeNode;
         return this;
     }
 
     @Override
-    public BraceNode setChildNode(ExpressionNode childNode) {
-        super.setChildNode(childNode);
-        return this;
-    }
-
-    @Override
-    public BraceNode setTypeNode(TypeNode typeNode) {
+    public StoreDotSubShortcutNode setTypeNode(TypeNode typeNode) {
         super.setTypeNode(typeNode);
         return this;
     }
 
     /* ---- end tree structure, begin node data ---- */
 
+    protected PainlessMethod setter;
+
+    public StoreDotSubShortcutNode setSetter(PainlessMethod setter) {
+        this.setter = setter;
+        return this;
+    }
+
+    public PainlessMethod getSetter() {
+        return setter;
+    }
+
     @Override
-    public BraceNode setLocation(Location location) {
+    public StoreDotSubShortcutNode setReadFrom(boolean isReadFrom) {
+        super.setReadFrom(isReadFrom);
+        return this;
+    }
+
+    @Override
+    public StoreDotSubShortcutNode setLocation(Location location) {
         super.setLocation(location);
         return this;
     }
 
     /* ---- end node data ---- */
 
-    public BraceNode() {
+    public StoreDotSubShortcutNode() {
         // do nothing
     }
 
     @Override
     protected void write(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
-        prefixNode.write(classWriter, methodWriter, scopeTable);
-        childNode.write(classWriter, methodWriter, scopeTable);
+        if (isReadFrom()) {
+            methodWriter.writeDup(MethodWriter.getType(getType()).getSize(), 1);
+        }
+
+        methodWriter.writeDebugInfo(location);
+        methodWriter.invokeMethodCall(setter);
+        methodWriter.writePop(MethodWriter.getType(setter.returnType).getSize());
     }
 }

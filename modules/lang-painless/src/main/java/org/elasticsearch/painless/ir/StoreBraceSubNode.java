@@ -20,24 +20,35 @@
 package org.elasticsearch.painless.ir;
 
 import org.elasticsearch.painless.ClassWriter;
-import org.elasticsearch.painless.DefBootstrap;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.symbol.ScopeTable;
-import org.objectweb.asm.Type;
+import org.objectweb.asm.Label;
+import org.objectweb.asm.Opcodes;
 
-public class BraceSubDefNode extends UnaryNode {
+public class StoreBraceSubNode extends StoreNode {
 
     /* ---- begin tree structure ---- */
 
+    ExpressionNode indexNode;
+
+    public StoreBraceSubNode setIndexNode(ExpressionNode indexNode) {
+        this.indexNode = indexNode;
+        return this;
+    }
+
+    public ExpressionNode getIndexNode() {
+        return indexNode;
+    }
+
     @Override
-    public BraceSubDefNode setChildNode(ExpressionNode childNode) {
-        super.setChildNode(childNode);
+    public StoreBraceSubNode setStoreNode(ExpressionNode storeNode) {
+        this.storeNode = storeNode;
         return this;
     }
 
     @Override
-    public BraceSubDefNode setTypeNode(TypeNode typeNode) {
+    public StoreBraceSubNode setTypeNode(TypeNode typeNode) {
         super.setTypeNode(typeNode);
         return this;
     }
@@ -45,21 +56,45 @@ public class BraceSubDefNode extends UnaryNode {
     /* ---- end tree structure, begin node data ---- */
 
     @Override
-    public BraceSubDefNode setLocation(Location location) {
+    public StoreBraceSubNode setReadFrom(boolean isReadFrom) {
+        super.setReadFrom(isReadFrom);
+        return this;
+    }
+
+    @Override
+    public StoreBraceSubNode setLocation(Location location) {
         super.setLocation(location);
         return this;
     }
 
     /* ---- end node data ---- */
 
-    public BraceSubDefNode() {
+    public StoreBraceSubNode() {
         // do nothing
     }
 
     @Override
     protected void write(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
-        setup(classWriter, methodWriter, scopeTable);
+        indexNode.write(classWriter, methodWriter, scopeTable);
+
+        Label noFlip = new Label();
+        methodWriter.dup();
+        methodWriter.ifZCmp(Opcodes.IFGE, noFlip);
+        methodWriter.swap();
+        methodWriter.dupX1();
+        methodWriter.arrayLength();
+        methodWriter.visitInsn(Opcodes.IADD);
+        methodWriter.mark(noFlip);
         load(classWriter, methodWriter, scopeTable);
+
+        storeNode.write(classWriter, methodWriter, scopeTable);
+
+        if (isReadFrom()) {
+            methodWriter.writeDup(MethodWriter.getType(getType()).getSize(), 2);
+        }
+
+        methodWriter.writeDebugInfo(location);
+        methodWriter.arrayStore(MethodWriter.getType(getType()));
     }
 
     @Override
@@ -69,28 +104,12 @@ public class BraceSubDefNode extends UnaryNode {
 
     @Override
     protected void setup(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
-        methodWriter.dup();
-        childNode.write(classWriter, methodWriter, scopeTable);
-        Type methodType = Type.getMethodType(
-                MethodWriter.getType(childNode.getType()), Type.getType(Object.class), MethodWriter.getType(childNode.getType()));
-        methodWriter.invokeDefCall("normalizeIndex", methodType, DefBootstrap.INDEX_NORMALIZE);
+
     }
 
     @Override
     protected void load(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
         methodWriter.writeDebugInfo(location);
-
-        Type methodType =
-                Type.getMethodType(MethodWriter.getType(getType()), Type.getType(Object.class), MethodWriter.getType(childNode.getType()));
-        methodWriter.invokeDefCall("arrayLoad", methodType, DefBootstrap.ARRAY_LOAD);
-    }
-
-    @Override
-    protected void store(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
-        methodWriter.writeDebugInfo(location);
-
-        Type methodType = Type.getMethodType(Type.getType(void.class), Type.getType(Object.class),
-                MethodWriter.getType(childNode.getType()), MethodWriter.getType(getType()));
-        methodWriter.invokeDefCall("arrayStore", methodType, DefBootstrap.ARRAY_STORE);
+        methodWriter.arrayLoad(MethodWriter.getType(getType()));
     }
 }

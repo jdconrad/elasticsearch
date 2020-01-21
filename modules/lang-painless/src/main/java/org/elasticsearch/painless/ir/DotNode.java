@@ -65,25 +65,4 @@ public class DotNode extends PrefixNode {
         prefixNode.write(classWriter, methodWriter, scopeTable);
         childNode.write(classWriter, methodWriter, scopeTable);
     }
-
-    @Override
-    protected int accessElementCount() {
-        return childNode.accessElementCount();
-    }
-
-    @Override
-    protected void setup(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
-        prefixNode.write(classWriter, methodWriter, scopeTable);
-        childNode.setup(classWriter, methodWriter, scopeTable);
-    }
-
-    @Override
-    protected void load(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
-        childNode.load(classWriter, methodWriter, scopeTable);
-    }
-
-    @Override
-    protected void store(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
-        childNode.store(classWriter, methodWriter, scopeTable);
-    }
 }

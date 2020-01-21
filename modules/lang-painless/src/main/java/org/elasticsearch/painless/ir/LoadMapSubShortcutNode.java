@@ -25,31 +25,32 @@ import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.lookup.PainlessMethod;
 import org.elasticsearch.painless.symbol.ScopeTable;
 
-public class DotSubShortcutNode extends ExpressionNode {
+public class LoadMapSubShortcutNode extends LoadNode {
 
-    /* begin tree structure */
+    /* ---- begin tree structure ---- */
+
+    ExpressionNode indexNode;
+
+    public LoadMapSubShortcutNode setIndexNode(ExpressionNode indexNode) {
+        this.indexNode = indexNode;
+        return this;
+    }
+
+    public ExpressionNode getIndexNode() {
+        return indexNode;
+    }
 
     @Override
-    public DotSubShortcutNode setTypeNode(TypeNode typeNode) {
+    public LoadMapSubShortcutNode setTypeNode(TypeNode typeNode) {
         super.setTypeNode(typeNode);
         return this;
     }
 
     /* ---- end tree structure, begin node data ---- */
 
-    protected PainlessMethod setter;
     protected PainlessMethod getter;
 
-    public DotSubShortcutNode setSetter(PainlessMethod setter) {
-        this.setter = setter;
-        return this;
-    }
-
-    public PainlessMethod getSetter() {
-        return setter;
-    }
-
-    public DotSubShortcutNode setGetter(PainlessMethod getter) {
+    public LoadMapSubShortcutNode setGetter(PainlessMethod getter) {
         this.getter = getter;
         return this;
     }
@@ -58,57 +59,47 @@ public class DotSubShortcutNode extends ExpressionNode {
         return getter;
     }
 
+    @Override
+    public LoadMapSubShortcutNode setCompoundOperation(boolean isCompoundOperation) {
+        this.isCompoundOperation = isCompoundOperation;
+        return this;
+    }
 
     @Override
-    public DotSubShortcutNode setLocation(Location location) {
+    public LoadMapSubShortcutNode setReadFrom(boolean isReadFrom) {
+        this.isReadFrom = isReadFrom;
+        return this;
+    }
+
+    @Override
+    public LoadMapSubShortcutNode setLocation(Location location) {
         super.setLocation(location);
         return this;
     }
 
     /* ---- end node data ---- */
 
-    public DotSubShortcutNode() {
+    public LoadMapSubShortcutNode() {
         // do nothing
     }
 
     @Override
     protected void write(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
-        methodWriter.writeDebugInfo(location);
-
-        methodWriter.invokeMethodCall(getter);
-
-        if (!getter.returnType.equals(getter.javaMethod.getReturnType())) {
-            methodWriter.checkCast(MethodWriter.getType(getter.returnType));
+        if (isCompoundOperation()) {
+            methodWriter.dup2();
+        } else {
+            indexNode.write(classWriter, methodWriter, scopeTable);
         }
-    }
 
-    @Override
-    protected int accessElementCount() {
-        return 1;
-    }
-
-    @Override
-    protected void setup(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
-        // do nothing
-    }
-
-    @Override
-    protected void load(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
         methodWriter.writeDebugInfo(location);
-
         methodWriter.invokeMethodCall(getter);
 
         if (getter.returnType != getter.javaMethod.getReturnType()) {
             methodWriter.checkCast(MethodWriter.getType(getter.returnType));
         }
-    }
 
-    @Override
-    protected void store(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
-        methodWriter.writeDebugInfo(location);
-
-        methodWriter.invokeMethodCall(setter);
-
-        methodWriter.writePop(MethodWriter.getType(setter.returnType).getSize());
+        if (isReadFrom()) {
+            methodWriter.writeDup(MethodWriter.getType(getType()).getSize(), 2);
+        }
     }
 }

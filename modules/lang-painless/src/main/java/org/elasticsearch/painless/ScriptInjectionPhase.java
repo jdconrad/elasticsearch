@@ -36,7 +36,7 @@ import org.elasticsearch.painless.ir.TryNode;
 import org.elasticsearch.painless.ir.TypeNode;
 import org.elasticsearch.painless.ir.UnboundCallNode;
 import org.elasticsearch.painless.ir.UnboundFieldLoadNode;
-import org.elasticsearch.painless.ir.VariableNode;
+import org.elasticsearch.painless.ir.LoadVariableNode;
 import org.elasticsearch.painless.lookup.PainlessLookup;
 import org.elasticsearch.painless.lookup.PainlessMethod;
 import org.elasticsearch.painless.symbol.FunctionTable.LocalFunction;
@@ -311,7 +311,7 @@ public class ScriptInjectionPhase {
                                                             .setLocation(location)
                                                             .setType(ScriptException.class)
                                                     )
-                                                    .addArgumentNode(new VariableNode()
+                                                    .addArgumentNode(new LoadVariableNode()
                                                             .setTypeNode(new TypeNode()
                                                                     .setLocation(location)
                                                                     .setType(ScriptException.class)
@@ -324,7 +324,7 @@ public class ScriptInjectionPhase {
                                                                     .setLocation(location)
                                                                     .setType(Map.class)
                                                             )
-                                                            .setPrefixNode(new VariableNode()
+                                                            .setPrefixNode(new LoadVariableNode()
                                                                     .setTypeNode(new TypeNode()
                                                                             .setLocation(location)
                                                                             .setType(PainlessExplainError.class)
@@ -406,7 +406,7 @@ public class ScriptInjectionPhase {
                                                         .setLocation(location)
                                                         .setType(ScriptException.class)
                                                 )
-                                                .addArgumentNode(new VariableNode()
+                                                .addArgumentNode(new LoadVariableNode()
                                                         .setTypeNode(new TypeNode()
                                                                 .setLocation(location)
                                                                 .setType(ScriptException.class)

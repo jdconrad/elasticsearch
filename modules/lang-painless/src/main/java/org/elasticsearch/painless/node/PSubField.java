@@ -22,7 +22,7 @@ package org.elasticsearch.painless.node;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.Scope;
 import org.elasticsearch.painless.ir.ClassNode;
-import org.elasticsearch.painless.ir.DotSubNode;
+import org.elasticsearch.painless.ir.StoreDotSubNode;
 import org.elasticsearch.painless.ir.TypeNode;
 import org.elasticsearch.painless.lookup.PainlessField;
 import org.elasticsearch.painless.lookup.PainlessLookupUtility;
@@ -55,7 +55,7 @@ public class PSubField extends AStoreable {
 
          output.actual = field.typeParameter;
 
-        output.expressionNode = new DotSubNode()
+        output.expressionNode = new StoreDotSubNode()
                 .setTypeNode(new TypeNode()
                         .setLocation(location)
                         .setType(output.actual)
