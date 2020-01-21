@@ -62,6 +62,7 @@ public class BraceNode extends PrefixNode {
 
     @Override
     protected void write(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
+        methodWriter.writeDebugInfo(location);
         prefixNode.write(classWriter, methodWriter, scopeTable);
         childNode.write(classWriter, methodWriter, scopeTable);
     }

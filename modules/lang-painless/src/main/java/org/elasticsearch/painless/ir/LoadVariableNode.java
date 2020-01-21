@@ -75,6 +75,7 @@ public class LoadVariableNode extends LoadNode {
 
     @Override
     protected void write(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
+        methodWriter.writeDebugInfo(location);
         Variable variable = scopeTable.getVariable(name);
         methodWriter.visitVarInsn(variable.getAsmType().getOpcode(Opcodes.ILOAD), variable.getSlot());
 

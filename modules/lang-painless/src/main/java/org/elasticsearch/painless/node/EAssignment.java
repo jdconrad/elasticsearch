@@ -244,7 +244,8 @@ public class EAssignment extends AExpression {
 
         storeNode.setReadFrom(input.read);
         storeNode.setStoreNode(rightOutput.expressionNode);
-        output.expressionNode = storeNode;
+        leftOutput.expressionNode.getTypeNode().setType(output.actual);
+        output.expressionNode = leftOutput.expressionNode;
 
         /*output.expressionNode = new AssignmentNode()
                 .setTypeNode(new TypeNode()

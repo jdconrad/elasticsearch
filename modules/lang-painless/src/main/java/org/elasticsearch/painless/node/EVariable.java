@@ -74,13 +74,16 @@ public class EVariable extends AStoreable {
                         )
                         .setLocation(location)
                         .setName(name)
+                        .setReadFrom(false)
                 : new LoadVariableNode()
                         .setTypeNode(new TypeNode()
                                 .setLocation(location)
                                 .setType(output.actual)
                         )
                         .setLocation(location)
-                        .setName(name);
+                        .setName(name)
+                        .setCompoundOperation(false)
+                        .setReadFrom(false);
 
         return output;
     }
