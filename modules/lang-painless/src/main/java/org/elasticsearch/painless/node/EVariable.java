@@ -49,7 +49,7 @@ public class EVariable extends AExpression {
         Class<?> type = scriptRoot.getPainlessLookup().canonicalTypeNameToType(name);
 
         if (type != null)  {
-            if (input.write) {
+            if (input.write != null) {
                 throw createError(new IllegalArgumentException("invalid assignment: " +
                         "cannot write a value to a static type [" + PainlessLookupUtility.typeToCanonicalTypeName(type) + "]"));
             }
@@ -69,13 +69,13 @@ public class EVariable extends AExpression {
 
             output.expressionNode = staticNode;
         } else if (scope.isVariableDefined(name)) {
-            if (input.read == false && input.write == false) {
+            if (input.read == false && input.write == null) {
                 throw createError(new IllegalArgumentException("not a statement: variable [" + name + "] not used"));
             }
 
             Variable variable = scope.getVariable(location, name);
 
-            if (input.write && variable.isFinal()) {
+            if (input.write != null && variable.isFinal()) {
                 throw createError(new IllegalArgumentException("Variable [" + variable.getName() + "] is read-only."));
             }
 

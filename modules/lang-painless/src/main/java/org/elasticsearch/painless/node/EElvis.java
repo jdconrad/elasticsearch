@@ -47,7 +47,7 @@ public class EElvis extends AExpression {
 
     @Override
     Output analyze(ClassNode classNode, ScriptRoot scriptRoot, Scope scope, Input input) {
-        if (input.write) {
+        if (input.write != null) {
             throw createError(new IllegalArgumentException("invalid assignment: cannot assign a value to elvis operation [?:]"));
         }
 

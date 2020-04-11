@@ -52,7 +52,7 @@ public class EFunctionRef extends AExpression {
         Class<?> type = scriptRoot.getPainlessLookup().canonicalTypeNameToType(name);
 
         if (name.equals("this") || type != null)  {
-            if (input.write) {
+            if (input.write != null) {
                 throw createError(new IllegalArgumentException(
                         "invalid assignment: cannot assign a value to function reference [" + name + ":" + call + "]"));
             }
@@ -86,7 +86,7 @@ public class EFunctionRef extends AExpression {
                 output.expressionNode = typedInterfaceReferenceNode;
             }
         } else {
-            if (input.write) {
+            if (input.write != null) {
                 throw createError(new IllegalArgumentException(
                         "invalid assignment: cannot assign a value to capturing function reference [" + name + ":"  + call + "]"));
             }

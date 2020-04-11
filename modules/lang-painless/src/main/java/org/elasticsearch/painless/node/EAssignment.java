@@ -45,17 +45,13 @@ public class EAssignment extends AExpression {
 
     protected final AExpression lhs;
     protected final AExpression rhs;
-    protected final boolean pre;
-    protected final boolean post;
     protected final Operation operation;
 
-    public EAssignment(Location location, AExpression lhs, AExpression rhs, boolean pre, boolean post, Operation operation) {
+    public EAssignment(Location location, AExpression lhs, AExpression rhs, Operation operation) {
         super(location);
 
         this.lhs = Objects.requireNonNull(lhs);
         this.rhs = rhs;
-        this.pre = pre;
-        this.post = post;
         this.operation = operation;
     }
 
@@ -80,9 +76,7 @@ public class EAssignment extends AExpression {
         Input rightInput = new Input();
         Output rightOutput;
 
-        if (pre && post) {
-            throw createError(new IllegalStateException("Illegal tree structure."));
-        } else if (pre || post) {
+        if (pre || post) {
             if (rhs != null) {
                 throw createError(new IllegalStateException("Illegal tree structure."));
             }
@@ -205,8 +199,9 @@ public class EAssignment extends AExpression {
 
                 if (expressionNode instanceof AccessNode && ((AccessNode)expressionNode).getRightNode() instanceof StoreDefDotNode) {
                     ((AccessNode)expressionNode).getRightNode().setExpressionType(leftOutput.actual);
-                } else if (expressionNode instanceof BraceNode && ((BraceNode)expressionNode).getRightNode() instanceof LoadDefBraceNode) {
-                    ((BraceNode)expressionNode).getRightNode().setExpressionType(leftOutput.actual);
+                } else if (expressionNode instanceof AccessNode &&
+                        ((AccessNode)expressionNode).getRightNode() instanceof LoadDefBraceNode) {
+                    ((AccessNode)expressionNode).getRightNode().setExpressionType(leftOutput.actual);
                 }
             // Otherwise, we must adapt the rhs type to the lhs type with a cast.
             } else {
@@ -230,8 +225,6 @@ public class EAssignment extends AExpression {
         assignmentNode.setLocation(location);
         assignmentNode.setExpressionType(output.actual);
         assignmentNode.setCompoundType(promote);
-        assignmentNode.setPre(pre);
-        assignmentNode.setPost(post);
         assignmentNode.setOperation(operation);
         assignmentNode.setRead(input.read);
         assignmentNode.setCat(cat);

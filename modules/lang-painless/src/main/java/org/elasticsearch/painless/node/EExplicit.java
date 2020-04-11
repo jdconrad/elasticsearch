@@ -47,7 +47,7 @@ public class EExplicit extends AExpression {
     Output analyze(ClassNode classNode, ScriptRoot scriptRoot, Scope scope, Input input) {
         String canonicalTypeName = type.getCanonicalTypeName();
 
-        if (input.write) {
+        if (input.write != null) {
             throw createError(new IllegalArgumentException(
                     "invalid assignment: cannot assign a value to an explicit cast with target type [" + canonicalTypeName + "]"));
         }
