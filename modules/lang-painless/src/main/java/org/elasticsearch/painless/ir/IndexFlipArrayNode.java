@@ -7,7 +7,7 @@
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -25,21 +25,10 @@ import org.elasticsearch.painless.symbol.ScopeTable;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.Opcodes;
 
-public class BraceSubNode extends UnaryNode {
+public class IndexFlipArrayNode extends UnaryNode {
 
     @Override
     protected void write(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
-        setup(classWriter, methodWriter, scopeTable);
-        load(classWriter, methodWriter, scopeTable);
-    }
-
-    @Override
-    protected int accessElementCount() {
-        return 2;
-    }
-
-    @Override
-    protected void setup(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
         getChildNode().write(classWriter, methodWriter, scopeTable);
 
         Label noFlip = new Label();
@@ -50,17 +39,5 @@ public class BraceSubNode extends UnaryNode {
         methodWriter.arrayLength();
         methodWriter.visitInsn(Opcodes.IADD);
         methodWriter.mark(noFlip);
-    }
-
-    @Override
-    protected void load(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
-        methodWriter.writeDebugInfo(location);
-        methodWriter.arrayLoad(MethodWriter.getType(getExpressionType()));
-    }
-
-    @Override
-    protected void store(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
-        methodWriter.writeDebugInfo(location);
-        methodWriter.arrayStore(MethodWriter.getType(getExpressionType()));
     }
 }

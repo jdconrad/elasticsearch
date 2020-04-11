@@ -20,27 +20,38 @@
 package org.elasticsearch.painless.ir;
 
 import org.elasticsearch.painless.ClassWriter;
-import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.lookup.PainlessField;
 import org.elasticsearch.painless.symbol.ScopeTable;
+import org.objectweb.asm.Type;
 
-public abstract class IRNode {
+public class StoreFieldNode extends UnaryNode {
 
-    /* begin node data */
+    /* ---- begin node data ---- */
 
-    protected Location location;
+    private PainlessField field;
 
-    public void setLocation(Location location) {
-        this.location = location;
+    public void setField(PainlessField field) {
+        this.field = field;
     }
 
-    public Location getLocation() {
-        return location;
+    public PainlessField getField() {
+        return field;
     }
 
-    /* end node data */
+    /* ---- end node data ---- */
 
+    @Override
     protected void write(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
-        throw new UnsupportedOperationException();
+        methodWriter.writeDebugInfo(location);
+        getChildNode().write(classWriter, methodWriter, scopeTable);
+
+        if (java.lang.reflect.Modifier.isStatic(field.javaField.getModifiers())) {
+            methodWriter.putStatic(Type.getType(
+                    field.javaField.getDeclaringClass()), field.javaField.getName(), MethodWriter.getType(field.typeParameter));
+        } else {
+            methodWriter.putField(Type.getType(
+                    field.javaField.getDeclaringClass()), field.javaField.getName(), MethodWriter.getType(field.typeParameter));
+        }
     }
 }

@@ -20,27 +20,32 @@
 package org.elasticsearch.painless.ir;
 
 import org.elasticsearch.painless.ClassWriter;
-import org.elasticsearch.painless.Location;
+import org.elasticsearch.painless.DefBootstrap;
 import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.symbol.ScopeTable;
+import org.objectweb.asm.Type;
 
-public abstract class IRNode {
+public class LoadDefBraceNode extends ExpressionNode {
 
-    /* begin node data */
+    /* ---- begin tree structure ---- */
 
-    protected Location location;
+    private ExpressionNode indexNode;
 
-    public void setLocation(Location location) {
-        this.location = location;
+    public void setIndexNode(ExpressionNode indexNode) {
+        this.indexNode = indexNode;
     }
 
-    public Location getLocation() {
-        return location;
+    public ExpressionNode getIndexNode() {
+        return indexNode;
     }
 
-    /* end node data */
+    /* ---- end tree structure ---- */
 
+    @Override
     protected void write(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
-        throw new UnsupportedOperationException();
+        methodWriter.writeDebugInfo(location);
+        Type methodType = Type.getMethodType(MethodWriter.getType(
+                getExpressionType()), Type.getType(Object.class), MethodWriter.getType(indexNode.getExpressionType()));
+        methodWriter.invokeDefCall("arrayLoad", methodType, DefBootstrap.ARRAY_LOAD);
     }
 }

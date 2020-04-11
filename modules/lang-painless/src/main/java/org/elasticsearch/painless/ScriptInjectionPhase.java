@@ -21,7 +21,7 @@ package org.elasticsearch.painless;
 
 import org.elasticsearch.painless.ir.BlockNode;
 import org.elasticsearch.painless.ir.CallNode;
-import org.elasticsearch.painless.ir.CallSubNode;
+import org.elasticsearch.painless.ir.AccessCallNode;
 import org.elasticsearch.painless.ir.CatchNode;
 import org.elasticsearch.painless.ir.ClassNode;
 import org.elasticsearch.painless.ir.ConstantNode;
@@ -35,7 +35,7 @@ import org.elasticsearch.painless.ir.StatementNode;
 import org.elasticsearch.painless.ir.StaticNode;
 import org.elasticsearch.painless.ir.ThrowNode;
 import org.elasticsearch.painless.ir.TryNode;
-import org.elasticsearch.painless.ir.VariableNode;
+import org.elasticsearch.painless.ir.LoadVariableNode;
 import org.elasticsearch.painless.lookup.PainlessLookup;
 import org.elasticsearch.painless.lookup.PainlessMethod;
 import org.elasticsearch.painless.symbol.FunctionTable.LocalFunction;
@@ -348,12 +348,12 @@ public class ScriptInjectionPhase {
 
             throwNode.setExpressionNode(memberCallNode);
 
-            VariableNode variableNode = new VariableNode();
-            variableNode.setLocation(internalLocation);
-            variableNode.setExpressionType(ScriptException.class);
-            variableNode.setName("#painlessExplainError");
+            LoadVariableNode loadVariableNode = new LoadVariableNode();
+            loadVariableNode.setLocation(internalLocation);
+            loadVariableNode.setExpressionType(ScriptException.class);
+            loadVariableNode.setName("#painlessExplainError");
 
-            memberCallNode.addArgumentNode(variableNode);
+            memberCallNode.addArgumentNode(loadVariableNode);
 
             CallNode callNode = new CallNode();
             callNode.setLocation(internalLocation);
@@ -361,18 +361,18 @@ public class ScriptInjectionPhase {
 
             memberCallNode.addArgumentNode(callNode);
 
-            variableNode = new VariableNode();
-            variableNode.setLocation(internalLocation);
-            variableNode.setExpressionType(PainlessExplainError.class);
-            variableNode.setName("#painlessExplainError");
+            loadVariableNode = new LoadVariableNode();
+            loadVariableNode.setLocation(internalLocation);
+            loadVariableNode.setExpressionType(PainlessExplainError.class);
+            loadVariableNode.setName("#painlessExplainError");
 
-            callNode.setLeftNode(variableNode);
+            callNode.setLeftNode(loadVariableNode);
 
-            CallSubNode callSubNode = new CallSubNode();
-            callSubNode.setLocation(internalLocation);
-            callSubNode.setExpressionType(Map.class);
-            callSubNode.setBox(PainlessExplainError.class);
-            callSubNode.setMethod(new PainlessMethod(
+            AccessCallNode accessCallNode = new AccessCallNode();
+            accessCallNode.setLocation(internalLocation);
+            accessCallNode.setExpressionType(Map.class);
+            accessCallNode.setBox(PainlessExplainError.class);
+            accessCallNode.setMethod(new PainlessMethod(
                     PainlessExplainError.class.getMethod(
                             "getHeaders",
                             PainlessLookup.class),
@@ -385,7 +385,7 @@ public class ScriptInjectionPhase {
                     )
             );
 
-            callNode.setRightNode(callSubNode);
+            callNode.setRightNode(accessCallNode);
 
             MemberFieldLoadNode memberFieldLoadNode = new MemberFieldLoadNode();
             memberFieldLoadNode.setLocation(internalLocation);
@@ -393,7 +393,7 @@ public class ScriptInjectionPhase {
             memberFieldLoadNode.setName("$DEFINITION");
             memberFieldLoadNode.setStatic(true);
 
-            callSubNode.addArgumentNode(memberFieldLoadNode);
+            accessCallNode.addArgumentNode(memberFieldLoadNode);
 
             for (Class<?> throwable : new Class<?>[] {
                     PainlessError.class, BootstrapMethodError.class, OutOfMemoryError.class, StackOverflowError.class, Exception.class}) {
@@ -440,12 +440,12 @@ public class ScriptInjectionPhase {
 
                 throwNode.setExpressionNode(memberCallNode);
 
-                variableNode = new VariableNode();
-                variableNode.setLocation(internalLocation);
-                variableNode.setExpressionType(ScriptException.class);
-                variableNode.setName(name);
+                loadVariableNode = new LoadVariableNode();
+                loadVariableNode.setLocation(internalLocation);
+                loadVariableNode.setExpressionType(ScriptException.class);
+                loadVariableNode.setName(name);
 
-                memberCallNode.addArgumentNode(variableNode);
+                memberCallNode.addArgumentNode(loadVariableNode);
 
                 callNode = new CallNode();
                 callNode.setLocation(internalLocation);
@@ -459,11 +459,11 @@ public class ScriptInjectionPhase {
 
                 callNode.setLeftNode(staticNode);
 
-                callSubNode = new CallSubNode();
-                callSubNode.setLocation(internalLocation);
-                callSubNode.setExpressionType(Map.class);
-                callSubNode.setBox(Collections.class);
-                callSubNode.setMethod(new PainlessMethod(
+                accessCallNode = new AccessCallNode();
+                accessCallNode.setLocation(internalLocation);
+                accessCallNode.setExpressionType(Map.class);
+                accessCallNode.setBox(Collections.class);
+                accessCallNode.setMethod(new PainlessMethod(
                         Collections.class.getMethod("emptyMap"),
                         Collections.class,
                         null,
@@ -474,7 +474,7 @@ public class ScriptInjectionPhase {
                         )
                 );
 
-                callNode.setRightNode(callSubNode);
+                callNode.setRightNode(accessCallNode);
             }
 
             blockNode = new BlockNode();

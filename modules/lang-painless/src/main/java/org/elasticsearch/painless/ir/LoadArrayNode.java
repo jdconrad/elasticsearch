@@ -23,11 +23,29 @@ import org.elasticsearch.painless.ClassWriter;
 import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.symbol.ScopeTable;
 
-public class CallNode extends BinaryNode {
+public class LoadArrayNode extends ExpressionNode {
+
+    /* ---- begin tree structure ---- */
+
+    private ExpressionNode indexNode;
+
+    public void setIndexNode(ExpressionNode indexNode) {
+        this.indexNode = indexNode;
+    }
+
+    public ExpressionNode getIndexNode() {
+        return indexNode;
+    }
+
+    /* ---- end tree structure ---- */
 
     @Override
     protected void write(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
-        getLeftNode().write(classWriter, methodWriter, scopeTable);
-        getRightNode().write(classWriter, methodWriter, scopeTable);
+        if (indexNode != null) {
+            indexNode.write(classWriter, methodWriter, scopeTable);
+        }
+
+        methodWriter.writeDebugInfo(location);
+        methodWriter.arrayLoad(MethodWriter.getType(getExpressionType()));
     }
 }

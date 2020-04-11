@@ -20,27 +20,30 @@
 package org.elasticsearch.painless.ir;
 
 import org.elasticsearch.painless.ClassWriter;
-import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.symbol.ScopeTable;
 
-public abstract class IRNode {
+public class StoreArrayNode extends UnaryNode {
 
-    /* begin node data */
+    /* ---- begin tree structure ---- */
 
-    protected Location location;
+    private ExpressionNode indexNode;
 
-    public void setLocation(Location location) {
-        this.location = location;
+    public void setIndexNode(ExpressionNode indexNode) {
+        this.indexNode = indexNode;
     }
 
-    public Location getLocation() {
-        return location;
+    public ExpressionNode getIndexNode() {
+        return indexNode;
     }
 
-    /* end node data */
+    /* ---- end tree structure ---- */
 
+    @Override
     protected void write(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
-        throw new UnsupportedOperationException();
+        indexNode.write(classWriter, methodWriter, scopeTable);
+        getChildNode().write(classWriter, methodWriter, scopeTable);
+        methodWriter.writeDebugInfo(location);
+        methodWriter.arrayStore(MethodWriter.getType(getChildNode().getExpressionType()));
     }
 }

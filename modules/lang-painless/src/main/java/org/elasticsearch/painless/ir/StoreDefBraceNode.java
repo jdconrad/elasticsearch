@@ -20,14 +20,32 @@
 package org.elasticsearch.painless.ir;
 
 import org.elasticsearch.painless.ClassWriter;
+import org.elasticsearch.painless.DefBootstrap;
 import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.symbol.ScopeTable;
+import org.objectweb.asm.Type;
 
-public class DotSubArrayLengthNode extends ExpressionNode {
+public class StoreDefBraceNode extends UnaryNode {
+
+    /* ---- begin tree structure ---- */
+
+    private ExpressionNode indexNode;
+
+    public void setIndexNode(ExpressionNode indexNode) {
+        this.indexNode = indexNode;
+    }
+
+    public ExpressionNode getIndexNode() {
+        return indexNode;
+    }
+
+    /* ---- end tree structure ---- */
 
     @Override
     protected void write(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
         methodWriter.writeDebugInfo(location);
-        methodWriter.arrayLength();
+        Type methodType = Type.getMethodType(Type.getType(void.class), Type.getType(Object.class),
+                MethodWriter.getType(indexNode.getExpressionType()), MethodWriter.getType(getChildNode().getExpressionType()));
+        methodWriter.invokeDefCall("arrayStore", methodType, DefBootstrap.ARRAY_STORE);
     }
 }

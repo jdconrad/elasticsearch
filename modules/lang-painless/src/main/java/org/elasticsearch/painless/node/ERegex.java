@@ -23,7 +23,7 @@ import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.Scope;
 import org.elasticsearch.painless.ir.BlockNode;
 import org.elasticsearch.painless.ir.CallNode;
-import org.elasticsearch.painless.ir.CallSubNode;
+import org.elasticsearch.painless.ir.AccessCallNode;
 import org.elasticsearch.painless.ir.ClassNode;
 import org.elasticsearch.painless.ir.ConstantNode;
 import org.elasticsearch.painless.ir.FieldNode;
@@ -127,11 +127,11 @@ public class ERegex extends AExpression {
 
             callNode.setLeftNode(staticNode);
 
-            CallSubNode callSubNode = new CallSubNode();
-            callSubNode.setLocation(location);
-            callSubNode.setExpressionType(Pattern.class);
-            callSubNode.setBox(Pattern.class);
-            callSubNode.setMethod(new PainlessMethod(
+            AccessCallNode accessCallNode = new AccessCallNode();
+            accessCallNode.setLocation(location);
+            accessCallNode.setExpressionType(Pattern.class);
+            accessCallNode.setBox(Pattern.class);
+            accessCallNode.setMethod(new PainlessMethod(
                     Pattern.class.getMethod("compile", String.class, int.class),
                     Pattern.class,
                     Pattern.class,
@@ -142,21 +142,21 @@ public class ERegex extends AExpression {
                     )
             );
 
-            callNode.setRightNode(callSubNode);
+            callNode.setRightNode(accessCallNode);
 
             ConstantNode constantNode = new ConstantNode();
             constantNode.setLocation(location);
             constantNode.setExpressionType(String.class);
             constantNode.setConstant(pattern);
 
-            callSubNode.addArgumentNode(constantNode);
+            accessCallNode.addArgumentNode(constantNode);
 
             constantNode = new ConstantNode();
             constantNode.setLocation(location);
             constantNode.setExpressionType(int.class);
             constantNode.setConstant(flags);
 
-            callSubNode.addArgumentNode(constantNode);
+            accessCallNode.addArgumentNode(constantNode);
         } catch (Exception exception) {
             throw createError(new IllegalStateException("could not generate regex constant [" + pattern + "/" + flags +"] in clinit"));
         }

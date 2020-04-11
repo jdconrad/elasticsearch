@@ -25,7 +25,7 @@ import org.elasticsearch.painless.symbol.ScopeTable;
 import org.elasticsearch.painless.symbol.ScopeTable.Variable;
 import org.objectweb.asm.Opcodes;
 
-public class VariableNode extends ExpressionNode {
+public class LoadVariableNode extends ExpressionNode {
 
     /* ---- begin node data ---- */
 
@@ -45,27 +45,5 @@ public class VariableNode extends ExpressionNode {
     protected void write(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
         Variable variable = scopeTable.getVariable(name);
         methodWriter.visitVarInsn(variable.getAsmType().getOpcode(Opcodes.ILOAD), variable.getSlot());
-    }
-
-    @Override
-    protected int accessElementCount() {
-        return 0;
-    }
-
-    @Override
-    protected void setup(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
-        // do nothing
-    }
-
-    @Override
-    protected void load(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
-        Variable variable = scopeTable.getVariable(name);
-        methodWriter.visitVarInsn(variable.getAsmType().getOpcode(Opcodes.ILOAD), variable.getSlot());
-    }
-
-    @Override
-    protected void store(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
-        Variable variable = scopeTable.getVariable(name);
-        methodWriter.visitVarInsn(variable.getAsmType().getOpcode(Opcodes.ISTORE), variable.getSlot());
     }
 }

@@ -24,7 +24,7 @@ import org.elasticsearch.painless.Scope;
 import org.elasticsearch.painless.Scope.Variable;
 import org.elasticsearch.painless.ir.ClassNode;
 import org.elasticsearch.painless.ir.StaticNode;
-import org.elasticsearch.painless.ir.VariableNode;
+import org.elasticsearch.painless.ir.LoadVariableNode;
 import org.elasticsearch.painless.lookup.PainlessLookupUtility;
 import org.elasticsearch.painless.symbol.ScriptRoot;
 
@@ -81,13 +81,13 @@ public class EVariable extends AExpression {
 
             output.actual = variable.getType();
 
-            VariableNode variableNode = new VariableNode();
+            LoadVariableNode loadVariableNode = new LoadVariableNode();
 
-            variableNode.setLocation(location);
-            variableNode.setExpressionType(output.actual);
-            variableNode.setName(name);
+            loadVariableNode.setLocation(location);
+            loadVariableNode.setExpressionType(output.actual);
+            loadVariableNode.setName(name);
 
-            output.expressionNode = variableNode;
+            output.expressionNode = loadVariableNode;
         } else {
             output.partialCanonicalTypeName = name;
         }

@@ -23,8 +23,8 @@ import org.elasticsearch.painless.AnalyzerCaster;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.Scope;
 import org.elasticsearch.painless.ir.CallNode;
-import org.elasticsearch.painless.ir.CallSubDefNode;
-import org.elasticsearch.painless.ir.CallSubNode;
+import org.elasticsearch.painless.ir.AccessDefCallNode;
+import org.elasticsearch.painless.ir.AccessCallNode;
 import org.elasticsearch.painless.ir.ClassNode;
 import org.elasticsearch.painless.ir.ExpressionNode;
 import org.elasticsearch.painless.ir.NullSafeSubNode;
@@ -103,17 +103,17 @@ public class ECall extends AExpression {
             // TODO: remove ZonedDateTime exception when JodaCompatibleDateTime is removed
             output.actual = input.expected == null || input.expected == ZonedDateTime.class || input.explicit ? def.class : input.expected;
 
-            CallSubDefNode callSubDefNode = new CallSubDefNode();
+            AccessDefCallNode accessDefCallNode = new AccessDefCallNode();
 
             for (Output argumentOutput : argumentOutputs) {
-                callSubDefNode.addArgumentNode(argumentOutput.expressionNode);
+                accessDefCallNode.addArgumentNode(argumentOutput.expressionNode);
             }
 
-            callSubDefNode.setLocation(location);
-            callSubDefNode.setExpressionType(output.actual);
-            callSubDefNode.setName(name);
+            accessDefCallNode.setLocation(location);
+            accessDefCallNode.setExpressionType(output.actual);
+            accessDefCallNode.setName(name);
 
-            expressionNode = callSubDefNode;
+            expressionNode = accessDefCallNode;
         } else {
             PainlessMethod method = scriptRoot.getPainlessLookup().lookupPainlessMethod(
                     prefixOutput.actual, prefixOutput.isStaticType, name, arguments.size());
@@ -143,17 +143,17 @@ public class ECall extends AExpression {
 
             output.actual = method.returnType;
 
-            CallSubNode callSubNode = new CallSubNode();
+            AccessCallNode accessCallNode = new AccessCallNode();
 
             for (int argument = 0; argument < arguments.size(); ++argument) {
-                callSubNode.addArgumentNode(cast(argumentOutputs.get(argument).expressionNode, argumentCasts.get(argument)));
+                accessCallNode.addArgumentNode(cast(argumentOutputs.get(argument).expressionNode, argumentCasts.get(argument)));
             }
 
-            callSubNode.setLocation(location);
-            callSubNode.setExpressionType(output.actual);
-            callSubNode.setMethod(method);
-            callSubNode.setBox(prefixOutput.actual);
-            expressionNode = callSubNode;
+            accessCallNode.setLocation(location);
+            accessCallNode.setExpressionType(output.actual);
+            accessCallNode.setMethod(method);
+            accessCallNode.setBox(prefixOutput.actual);
+            expressionNode = accessCallNode;
         }
 
         if (nullSafe) {

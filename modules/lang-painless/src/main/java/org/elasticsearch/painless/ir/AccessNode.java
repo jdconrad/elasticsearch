@@ -20,27 +20,14 @@
 package org.elasticsearch.painless.ir;
 
 import org.elasticsearch.painless.ClassWriter;
-import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.symbol.ScopeTable;
 
-public abstract class IRNode {
+public class AccessNode extends BinaryNode {
 
-    /* begin node data */
-
-    protected Location location;
-
-    public void setLocation(Location location) {
-        this.location = location;
-    }
-
-    public Location getLocation() {
-        return location;
-    }
-
-    /* end node data */
-
+    @Override
     protected void write(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
-        throw new UnsupportedOperationException();
+        getLeftNode().write(classWriter, methodWriter, scopeTable);
+        getRightNode().write(classWriter, methodWriter, scopeTable);
     }
 }

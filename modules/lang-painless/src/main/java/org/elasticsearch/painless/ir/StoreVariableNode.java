@@ -20,27 +20,31 @@
 package org.elasticsearch.painless.ir;
 
 import org.elasticsearch.painless.ClassWriter;
-import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.symbol.ScopeTable;
+import org.elasticsearch.painless.symbol.ScopeTable.Variable;
+import org.objectweb.asm.Opcodes;
 
-public abstract class IRNode {
+public class StoreVariableNode extends UnaryNode {
 
-    /* begin node data */
+    /* ---- begin node data ---- */
 
-    protected Location location;
+    private String name;
 
-    public void setLocation(Location location) {
-        this.location = location;
+    public void setName(String name) {
+        this.name = name;
     }
 
-    public Location getLocation() {
-        return location;
+    public String getName() {
+        return name;
     }
 
-    /* end node data */
+    /* ---- end node data ---- */
 
+    @Override
     protected void write(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
-        throw new UnsupportedOperationException();
+        getChildNode().write(classWriter, methodWriter, scopeTable);
+        Variable variable = scopeTable.getVariable(name);
+        methodWriter.visitVarInsn(variable.getAsmType().getOpcode(Opcodes.ISTORE), variable.getSlot());
     }
 }

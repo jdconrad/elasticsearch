@@ -114,7 +114,7 @@ public class AssignmentNode extends BinaryNode {
 
     @Override
     protected void write(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
-        methodWriter.writeDebugInfo(location);
+        /*methodWriter.writeDebugInfo(location);
 
         // For the case where the assignment represents a String concatenation
         // we must, depending on the Java version, write a StringBuilder or
@@ -211,6 +211,6 @@ public class AssignmentNode extends BinaryNode {
 
             // store the lhs's value from the stack in its respective variable/field/array
             getLeftNode().store(classWriter, methodWriter, scopeTable);
-        }
+        }*/
     }
 }

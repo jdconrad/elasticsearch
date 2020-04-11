@@ -20,27 +20,31 @@
 package org.elasticsearch.painless.ir;
 
 import org.elasticsearch.painless.ClassWriter;
-import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.lookup.PainlessMethod;
 import org.elasticsearch.painless.symbol.ScopeTable;
 
-public abstract class IRNode {
+public class StoreShortcutNode extends UnaryNode {
 
-    /* begin node data */
+    /* ---- begin node data ---- */
 
-    protected Location location;
+    private PainlessMethod setter;
 
-    public void setLocation(Location location) {
-        this.location = location;
+    public void setSetter(PainlessMethod setter) {
+        this.setter = setter;
     }
 
-    public Location getLocation() {
-        return location;
+    public PainlessMethod getSetter() {
+        return setter;
     }
 
-    /* end node data */
+    /* ---- end node data ---- */
 
+    @Override
     protected void write(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
-        throw new UnsupportedOperationException();
+        getChildNode().write(classWriter, methodWriter, scopeTable);
+        methodWriter.writeDebugInfo(location);
+        methodWriter.invokeMethodCall(setter);
+        methodWriter.writePop(MethodWriter.getType(setter.returnType).getSize());
     }
 }

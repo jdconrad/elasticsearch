@@ -29,7 +29,7 @@ import org.elasticsearch.painless.ir.FunctionNode;
 import org.elasticsearch.painless.ir.NewArrayNode;
 import org.elasticsearch.painless.ir.ReturnNode;
 import org.elasticsearch.painless.ir.TypedInterfaceReferenceNode;
-import org.elasticsearch.painless.ir.VariableNode;
+import org.elasticsearch.painless.ir.LoadVariableNode;
 import org.elasticsearch.painless.symbol.ScriptRoot;
 
 import java.util.Collections;
@@ -96,17 +96,17 @@ public class ENewArrayFunctionRef extends AExpression {
             output.expressionNode = typedInterfaceReferenceNode;
         }
 
-        VariableNode variableNode = new VariableNode();
-        variableNode.setLocation(location);
-        variableNode.setExpressionType(int.class);
-        variableNode.setName("size");
+        LoadVariableNode loadVariableNode = new LoadVariableNode();
+        loadVariableNode.setLocation(location);
+        loadVariableNode.setExpressionType(int.class);
+        loadVariableNode.setName("size");
 
         NewArrayNode newArrayNode = new NewArrayNode();
         newArrayNode.setLocation(location);
         newArrayNode.setExpressionType(clazz);
         newArrayNode.setInitialize(false);
 
-        newArrayNode.addArgumentNode(variableNode);
+        newArrayNode.addArgumentNode(loadVariableNode);
 
         ReturnNode returnNode = new ReturnNode();
         returnNode.setLocation(location);

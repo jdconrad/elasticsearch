@@ -25,7 +25,7 @@ import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.symbol.ScopeTable;
 import org.objectweb.asm.Type;
 
-public class DotSubDefNode extends ExpressionNode {
+public class LoadDefDotNode extends ExpressionNode {
 
     /* ---- begin node data ---- */
 
@@ -47,32 +47,5 @@ public class DotSubDefNode extends ExpressionNode {
 
         Type methodType = Type.getMethodType(MethodWriter.getType(getExpressionType()), Type.getType(Object.class));
         methodWriter.invokeDefCall(value, methodType, DefBootstrap.LOAD);
-    }
-
-    @Override
-    protected int accessElementCount() {
-        return 1;
-    }
-
-    @Override
-    protected void setup(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
-        // do nothing
-    }
-
-    @Override
-    protected void load(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
-        methodWriter.writeDebugInfo(location);
-
-        Type methodType = Type.getMethodType(MethodWriter.getType(getExpressionType()), Type.getType(Object.class));
-        methodWriter.invokeDefCall(value, methodType, DefBootstrap.LOAD);
-    }
-
-    @Override
-    protected void store(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
-        methodWriter.writeDebugInfo(location);
-
-        Type methodType = Type.getMethodType(
-                Type.getType(void.class), Type.getType(Object.class), MethodWriter.getType(getExpressionType()));
-        methodWriter.invokeDefCall(value, methodType, DefBootstrap.STORE);
     }
 }

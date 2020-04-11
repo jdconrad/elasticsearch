@@ -19,14 +19,14 @@ package org.elasticsearch.painless;/*
 
 import org.elasticsearch.painless.ir.BlockNode;
 import org.elasticsearch.painless.ir.CallNode;
-import org.elasticsearch.painless.ir.CallSubNode;
+import org.elasticsearch.painless.ir.AccessCallNode;
 import org.elasticsearch.painless.ir.ClassNode;
 import org.elasticsearch.painless.ir.FieldNode;
 import org.elasticsearch.painless.ir.FunctionNode;
 import org.elasticsearch.painless.ir.MemberFieldLoadNode;
 import org.elasticsearch.painless.ir.ReturnNode;
 import org.elasticsearch.painless.ir.StaticNode;
-import org.elasticsearch.painless.ir.VariableNode;
+import org.elasticsearch.painless.ir.LoadVariableNode;
 import org.elasticsearch.painless.lookup.PainlessLookup;
 import org.elasticsearch.painless.lookup.PainlessMethod;
 import org.elasticsearch.painless.symbol.FunctionTable;
@@ -117,10 +117,10 @@ public class DefBootstrapInjectionPhase {
 
             callNode.setLeftNode(staticNode);
 
-            CallSubNode callSubNode = new CallSubNode();
-            callSubNode.setLocation(internalLocation);
-            callSubNode.setExpressionType(CallSite.class);
-            callSubNode.setMethod(new PainlessMethod(
+            AccessCallNode accessCallNode = new AccessCallNode();
+            accessCallNode.setLocation(internalLocation);
+            accessCallNode.setExpressionType(CallSite.class);
+            accessCallNode.setMethod(new PainlessMethod(
                     DefBootstrap.class.getMethod("bootstrap",
                             PainlessLookup.class,
                             FunctionTable.class,
@@ -146,9 +146,9 @@ public class DefBootstrapInjectionPhase {
                     null
                     )
             );
-            callSubNode.setBox(DefBootstrap.class);
+            accessCallNode.setBox(DefBootstrap.class);
 
-            callNode.setRightNode(callSubNode);
+            callNode.setRightNode(accessCallNode);
 
             MemberFieldLoadNode memberFieldLoadNode = new MemberFieldLoadNode();
             memberFieldLoadNode.setLocation(internalLocation);
@@ -156,7 +156,7 @@ public class DefBootstrapInjectionPhase {
             memberFieldLoadNode.setName("$DEFINITION");
             memberFieldLoadNode.setStatic(true);
 
-            callSubNode.addArgumentNode(memberFieldLoadNode);
+            accessCallNode.addArgumentNode(memberFieldLoadNode);
 
             memberFieldLoadNode = new MemberFieldLoadNode();
             memberFieldLoadNode.setLocation(internalLocation);
@@ -164,49 +164,49 @@ public class DefBootstrapInjectionPhase {
             memberFieldLoadNode.setName("$FUNCTIONS");
             memberFieldLoadNode.setStatic(true);
 
-            callSubNode.addArgumentNode(memberFieldLoadNode);
+            accessCallNode.addArgumentNode(memberFieldLoadNode);
 
-            VariableNode variableNode = new VariableNode();
-            variableNode.setLocation(internalLocation);
-            variableNode.setExpressionType(Lookup.class);
-            variableNode.setName("methodHandlesLookup");
+            LoadVariableNode loadVariableNode = new LoadVariableNode();
+            loadVariableNode.setLocation(internalLocation);
+            loadVariableNode.setExpressionType(Lookup.class);
+            loadVariableNode.setName("methodHandlesLookup");
 
-            callSubNode.addArgumentNode(variableNode);
+            accessCallNode.addArgumentNode(loadVariableNode);
 
-            variableNode = new VariableNode();
-            variableNode.setLocation(internalLocation);
-            variableNode.setExpressionType(String.class);
-            variableNode.setName("name");
+            loadVariableNode = new LoadVariableNode();
+            loadVariableNode.setLocation(internalLocation);
+            loadVariableNode.setExpressionType(String.class);
+            loadVariableNode.setName("name");
 
-            callSubNode.addArgumentNode(variableNode);
+            accessCallNode.addArgumentNode(loadVariableNode);
 
-            variableNode = new VariableNode();
-            variableNode.setLocation(internalLocation);
-            variableNode.setExpressionType(MethodType.class);
-            variableNode.setName("type");
+            loadVariableNode = new LoadVariableNode();
+            loadVariableNode.setLocation(internalLocation);
+            loadVariableNode.setExpressionType(MethodType.class);
+            loadVariableNode.setName("type");
 
-            callSubNode.addArgumentNode(variableNode);
+            accessCallNode.addArgumentNode(loadVariableNode);
 
-            variableNode = new VariableNode();
-            variableNode.setLocation(internalLocation);
-            variableNode.setExpressionType(int.class);
-            variableNode.setName("initialDepth");
+            loadVariableNode = new LoadVariableNode();
+            loadVariableNode.setLocation(internalLocation);
+            loadVariableNode.setExpressionType(int.class);
+            loadVariableNode.setName("initialDepth");
 
-            callSubNode.addArgumentNode(variableNode);
+            accessCallNode.addArgumentNode(loadVariableNode);
 
-            variableNode = new VariableNode();
-            variableNode.setLocation(internalLocation);
-            variableNode.setExpressionType(int.class);
-            variableNode.setName("flavor");
+            loadVariableNode = new LoadVariableNode();
+            loadVariableNode.setLocation(internalLocation);
+            loadVariableNode.setExpressionType(int.class);
+            loadVariableNode.setName("flavor");
 
-            callSubNode.addArgumentNode(variableNode);
+            accessCallNode.addArgumentNode(loadVariableNode);
 
-            variableNode = new VariableNode();
-            variableNode.setLocation(internalLocation);
-            variableNode.setExpressionType(Object[].class);
-            variableNode.setName("args");
+            loadVariableNode = new LoadVariableNode();
+            loadVariableNode.setLocation(internalLocation);
+            loadVariableNode.setExpressionType(Object[].class);
+            loadVariableNode.setName("args");
 
-            callSubNode.addArgumentNode(variableNode);
+            accessCallNode.addArgumentNode(loadVariableNode);
         } catch (Exception exception) {
             throw new RuntimeException(exception);
         }

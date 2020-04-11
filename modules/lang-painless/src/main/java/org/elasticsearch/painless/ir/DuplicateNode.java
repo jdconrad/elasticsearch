@@ -7,7 +7,7 @@
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -21,46 +21,36 @@ package org.elasticsearch.painless.ir;
 
 import org.elasticsearch.painless.ClassWriter;
 import org.elasticsearch.painless.MethodWriter;
-import org.elasticsearch.painless.lookup.PainlessMethod;
 import org.elasticsearch.painless.symbol.ScopeTable;
 
-public class CallSubNode extends ArgumentsNode {
+public class DuplicateNode extends UnaryNode {
 
     /* ---- begin node data ---- */
 
-    private PainlessMethod method;
-    private Class<?> box;
+    private int size;
+    private int xSize;
 
-    public void setMethod(PainlessMethod method) {
-        this.method = method;
+    public void setSize(int size) {
+        this.size = size;
     }
 
-    public PainlessMethod getMethod() {
-        return method;
+    public int getSize() {
+        return size;
     }
 
-    public void setBox(Class<?> box) {
-        this.box = box;
+    public void setXSize(int xSize) {
+        this.xSize = xSize;
     }
 
-    public Class<?> getBox() {
-        return box;
+    public int getXSize() {
+        return xSize;
     }
 
     /* ---- end node data ---- */
 
     @Override
     protected void write(ClassWriter classWriter, MethodWriter methodWriter, ScopeTable scopeTable) {
-        methodWriter.writeDebugInfo(location);
-
-        if (box.isPrimitive()) {
-            methodWriter.box(MethodWriter.getType(box));
-        }
-
-        for (ExpressionNode argumentNode : getArgumentNodes()) {
-            argumentNode.write(classWriter, methodWriter, scopeTable);
-        }
-
-        methodWriter.invokeMethodCall(method);
+        getChildNode().write(classWriter, methodWriter, scopeTable);
+        methodWriter.writeDup(size, xSize);
     }
 }
