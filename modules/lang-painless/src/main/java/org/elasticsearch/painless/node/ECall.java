@@ -22,7 +22,7 @@ package org.elasticsearch.painless.node;
 import org.elasticsearch.painless.AnalyzerCaster;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.Scope;
-import org.elasticsearch.painless.ir.CallNode;
+import org.elasticsearch.painless.ir.AccessNode;
 import org.elasticsearch.painless.ir.AccessDefCallNode;
 import org.elasticsearch.painless.ir.AccessCallNode;
 import org.elasticsearch.painless.ir.ClassNode;
@@ -168,15 +168,15 @@ public class ECall extends AExpression {
             expressionNode = nullSafeSubNode;
         }
 
-        CallNode callNode = new CallNode();
+        AccessNode accessNode = new AccessNode();
 
-        callNode.setLeftNode(prefixOutput.expressionNode);
-        callNode.setRightNode(expressionNode);
+        accessNode.setLeftNode(prefixOutput.expressionNode);
+        accessNode.setRightNode(expressionNode);
 
-        callNode.setLocation(location);
-        callNode.setExpressionType(output.actual);
+        accessNode.setLocation(location);
+        accessNode.setExpressionType(output.actual);
 
-        output.expressionNode = callNode;
+        output.expressionNode = accessNode;
 
         return output;
     }

@@ -17,8 +17,8 @@ package org.elasticsearch.painless;/*
  * under the License.
  */
 
+import org.elasticsearch.painless.ir.AccessNode;
 import org.elasticsearch.painless.ir.BlockNode;
-import org.elasticsearch.painless.ir.CallNode;
 import org.elasticsearch.painless.ir.AccessCallNode;
 import org.elasticsearch.painless.ir.ClassNode;
 import org.elasticsearch.painless.ir.FieldNode;
@@ -105,17 +105,17 @@ public class DefBootstrapInjectionPhase {
 
             blockNode.addStatementNode(returnNode);
 
-            CallNode callNode = new CallNode();
-            callNode.setLocation(internalLocation);
-            callNode.setExpressionType(CallSite.class);
+            AccessNode accessNode = new AccessNode();
+            accessNode.setLocation(internalLocation);
+            accessNode.setExpressionType(CallSite.class);
 
-            returnNode.setExpressionNode(callNode);
+            returnNode.setExpressionNode(accessNode);
 
             StaticNode staticNode = new StaticNode();
             staticNode.setLocation(internalLocation);
             staticNode.setExpressionType(DefBootstrap.class);
 
-            callNode.setLeftNode(staticNode);
+            accessNode.setLeftNode(staticNode);
 
             AccessCallNode accessCallNode = new AccessCallNode();
             accessCallNode.setLocation(internalLocation);
@@ -148,7 +148,7 @@ public class DefBootstrapInjectionPhase {
             );
             accessCallNode.setBox(DefBootstrap.class);
 
-            callNode.setRightNode(accessCallNode);
+            accessNode.setRightNode(accessCallNode);
 
             MemberFieldLoadNode memberFieldLoadNode = new MemberFieldLoadNode();
             memberFieldLoadNode.setLocation(internalLocation);
