@@ -21,12 +21,10 @@ package org.elasticsearch.painless.ir;
 
 
 import org.elasticsearch.painless.ClassWriter;
-import org.elasticsearch.painless.DefBootstrap;
 import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.Operation;
 import org.elasticsearch.painless.lookup.PainlessCast;
 import org.elasticsearch.painless.lookup.PainlessLookupUtility;
-import org.elasticsearch.painless.lookup.def;
 import org.elasticsearch.painless.symbol.ScopeTable;
 
 public class AssignmentNode extends BinaryNode {

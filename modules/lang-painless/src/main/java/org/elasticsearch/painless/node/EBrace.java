@@ -22,13 +22,20 @@ package org.elasticsearch.painless.node;
 import org.elasticsearch.painless.AnalyzerCaster;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.Scope;
-import org.elasticsearch.painless.ir.BraceNode;
+import org.elasticsearch.painless.ir.AccessNode;
+import org.elasticsearch.painless.ir.IndexFlipArrayNode;
+import org.elasticsearch.painless.ir.IndexFlipCollectionNode;
+import org.elasticsearch.painless.ir.IndexFlipDefNode;
 import org.elasticsearch.painless.ir.LoadDefBraceNode;
 import org.elasticsearch.painless.ir.LoadArrayNode;
 import org.elasticsearch.painless.ir.ClassNode;
 import org.elasticsearch.painless.ir.ExpressionNode;
 import org.elasticsearch.painless.ir.LoadListShortcutNode;
 import org.elasticsearch.painless.ir.LoadMapShortcutNode;
+import org.elasticsearch.painless.ir.StoreArrayNode;
+import org.elasticsearch.painless.ir.StoreDefBraceNode;
+import org.elasticsearch.painless.ir.StoreListShortcutNode;
+import org.elasticsearch.painless.ir.StoreMapShortcutNode;
 import org.elasticsearch.painless.lookup.PainlessCast;
 import org.elasticsearch.painless.lookup.PainlessLookupUtility;
 import org.elasticsearch.painless.lookup.PainlessMethod;
@@ -75,11 +82,24 @@ public class EBrace extends AExpression {
 
             output.actual = prefixOutput.actual.getComponentType();
 
-            LoadArrayNode loadArrayNode = new LoadArrayNode();
-            loadArrayNode.setChildNode(cast(indexOutput.expressionNode, indexCast));
-            loadArrayNode.setLocation(location);
-            loadArrayNode.setExpressionType(output.actual);
-            expressionNode = loadArrayNode;
+            IndexFlipArrayNode indexFlipArrayNode = new IndexFlipArrayNode();
+            indexFlipArrayNode.setLocation(location);
+            indexFlipArrayNode.setExpressionType(int.class);
+            indexFlipArrayNode.setChildNode(cast(indexOutput.expressionNode, indexCast));
+
+            if (input.write) {
+                StoreArrayNode storeArrayNode = new StoreArrayNode();
+                storeArrayNode.setLocation(location);
+                storeArrayNode.setExpressionType(input.read ? output.actual : void.class); 
+                storeArrayNode.setIndexNode(indexFlipArrayNode);
+                expressionNode = storeArrayNode;
+            } else {
+                LoadArrayNode loadArrayNode = new LoadArrayNode();
+                loadArrayNode.setLocation(location);
+                loadArrayNode.setExpressionType(output.actual);
+                loadArrayNode.setIndexNode(indexFlipArrayNode);
+                expressionNode = loadArrayNode;
+            }
         } else if (prefixOutput.actual == def.class) {
             Input indexInput = new Input();
             Output indexOutput = analyze(index, classNode, scriptRoot, scope, indexInput);
@@ -88,11 +108,24 @@ public class EBrace extends AExpression {
             output.actual = input.expected == null || input.expected == ZonedDateTime.class || input.explicit ? def.class : input.expected;
             output.isDefOptimized = true;
 
-            LoadDefBraceNode loadDefBraceNode = new LoadDefBraceNode();
-            loadDefBraceNode.setChildNode(indexOutput.expressionNode);
-            loadDefBraceNode.setLocation(location);
-            loadDefBraceNode.setExpressionType(output.actual);
-            expressionNode = loadDefBraceNode;
+            IndexFlipDefNode indexFlipDefNode = new IndexFlipDefNode();
+            indexFlipDefNode.setLocation(location);
+            indexFlipDefNode.setExpressionType(indexOutput.actual);
+            indexFlipDefNode.setChildNode(indexOutput.expressionNode);
+
+            if (input.write) {
+                StoreDefBraceNode storeDefBraceNode = new StoreDefBraceNode();
+                storeDefBraceNode.setLocation(location);
+                storeDefBraceNode.setExpressionType(input.read ? output.actual : void.class);
+                storeDefBraceNode.setIndexNode(indexFlipDefNode);
+                expressionNode = storeDefBraceNode;
+            } else {
+                LoadDefBraceNode loadDefBraceNode = new LoadDefBraceNode();
+                loadDefBraceNode.setLocation(location);
+                loadDefBraceNode.setExpressionType(output.actual);
+                loadDefBraceNode.setIndexNode(indexFlipDefNode);
+                expressionNode = loadDefBraceNode;
+            }
         } else if (Map.class.isAssignableFrom(prefixOutput.actual)) {
             Class<?> targetClass = prefixOutput.actual;
             String canonicalClassName = PainlessLookupUtility.typeToCanonicalTypeName(targetClass);
@@ -128,13 +161,21 @@ public class EBrace extends AExpression {
                 throw createError(new IllegalArgumentException("Illegal map shortcut for type [" + canonicalClassName + "]."));
             }
 
-            LoadMapShortcutNode loadMapShortcutNode = new LoadMapShortcutNode();
-            loadMapShortcutNode.setChildNode(cast(indexOutput.expressionNode, indexCast));
-            loadMapShortcutNode.setLocation(location);
-            loadMapShortcutNode.setExpressionType(output.actual);
-            loadMapShortcutNode.setGetter(getter);
-            loadMapShortcutNode.setSetter(setter);
-            expressionNode = loadMapShortcutNode;
+            if (input.write) {
+                StoreMapShortcutNode storeMapShortcutNode = new StoreMapShortcutNode();
+                storeMapShortcutNode.setLocation(location);
+                storeMapShortcutNode.setExpressionType(input.read ? output.actual : void.class);
+                storeMapShortcutNode.setSetter(setter);
+                storeMapShortcutNode.setIndexNode(cast(indexOutput.expressionNode, indexCast));
+                expressionNode = storeMapShortcutNode;
+            } else {
+                LoadMapShortcutNode loadMapShortcutNode = new LoadMapShortcutNode();
+                loadMapShortcutNode.setLocation(location);
+                loadMapShortcutNode.setExpressionType(output.actual);
+                loadMapShortcutNode.setGetter(getter);
+                loadMapShortcutNode.setIndexNode(cast(indexOutput.expressionNode, indexCast));
+                expressionNode = loadMapShortcutNode;
+            }
         } else if (List.class.isAssignableFrom(prefixOutput.actual)) {
             Class<?> targetClass = prefixOutput.actual;
             String canonicalClassName = PainlessLookupUtility.typeToCanonicalTypeName(targetClass);
@@ -171,25 +212,37 @@ public class EBrace extends AExpression {
                 throw createError(new IllegalArgumentException("Illegal list shortcut for type [" + canonicalClassName + "]."));
             }
 
-            LoadListShortcutNode loadListShortcutNode = new LoadListShortcutNode();
-            loadListShortcutNode.setChildNode(cast(indexOutput.expressionNode, indexCast));
-            loadListShortcutNode.setLocation(location);
-            loadListShortcutNode.setExpressionType(output.actual);
-            loadListShortcutNode.setGetter(getter);
-            loadListShortcutNode.setSetter(setter);
-            expressionNode = loadListShortcutNode;
+            IndexFlipCollectionNode indexFlipCollectionNode = new IndexFlipCollectionNode();
+            indexFlipCollectionNode.setLocation(location);
+            indexFlipCollectionNode.setExpressionType(int.class);
+            indexFlipCollectionNode.setChildNode(cast(indexOutput.expressionNode, indexCast));
+
+            if (input.write) {
+                StoreListShortcutNode storeListShortcutNode = new StoreListShortcutNode();
+                storeListShortcutNode.setLocation(location);
+                storeListShortcutNode.setExpressionType(input.read  ? output.actual : void.class);
+                storeListShortcutNode.setSetter(setter);
+                storeListShortcutNode.setIndexNode(indexFlipCollectionNode);
+                expressionNode = storeListShortcutNode;
+            } else {
+                LoadListShortcutNode loadListShortcutNode = new LoadListShortcutNode();
+                loadListShortcutNode.setLocation(location);
+                loadListShortcutNode.setExpressionType(output.actual);
+                loadListShortcutNode.setGetter(getter);
+                loadListShortcutNode.setIndexNode(indexFlipCollectionNode);
+                expressionNode = loadListShortcutNode;
+            }
         } else {
             throw createError(new IllegalArgumentException("Illegal array access on type " +
                     "[" + PainlessLookupUtility.typeToCanonicalTypeName(prefixOutput.actual) + "]."));
         }
 
-        BraceNode braceNode = new BraceNode();
-        braceNode.setLeftNode(prefixOutput.expressionNode);
-        braceNode.setRightNode(expressionNode);
-        braceNode.setLocation(location);
-        braceNode.setExpressionType(output.actual);
-
-        output.expressionNode = braceNode;
+        AccessNode accessNode = new AccessNode();
+        accessNode.setLeftNode(prefixOutput.expressionNode);
+        accessNode.setRightNode(expressionNode);
+        accessNode.setLocation(location);
+        accessNode.setExpressionType(expressionNode.getExpressionType());
+        output.expressionNode = accessNode;
 
         return output;
     }

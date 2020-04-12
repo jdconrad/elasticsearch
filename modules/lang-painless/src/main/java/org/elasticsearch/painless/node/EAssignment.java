@@ -24,14 +24,13 @@ import org.elasticsearch.painless.AnalyzerCaster;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.Operation;
 import org.elasticsearch.painless.Scope;
-import org.elasticsearch.painless.ir.AssignmentNode;
-import org.elasticsearch.painless.ir.BinaryMathNode;
-import org.elasticsearch.painless.ir.BraceNode;
-import org.elasticsearch.painless.ir.LoadDefBraceNode;
-import org.elasticsearch.painless.ir.ClassNode;
 import org.elasticsearch.painless.ir.AccessNode;
-import org.elasticsearch.painless.ir.StoreDefDotNode;
+import org.elasticsearch.painless.ir.BinaryMathNode;
+import org.elasticsearch.painless.ir.ClassNode;
 import org.elasticsearch.painless.ir.ExpressionNode;
+import org.elasticsearch.painless.ir.LoadDefBraceNode;
+import org.elasticsearch.painless.ir.StoreDefDotNode;
+import org.elasticsearch.painless.ir.UnaryNode;
 import org.elasticsearch.painless.lookup.PainlessCast;
 import org.elasticsearch.painless.lookup.def;
 import org.elasticsearch.painless.symbol.ScriptRoot;
@@ -205,8 +204,9 @@ public class EAssignment extends AExpression {
 
                 if (expressionNode instanceof AccessNode && ((AccessNode)expressionNode).getRightNode() instanceof StoreDefDotNode) {
                     ((AccessNode)expressionNode).getRightNode().setExpressionType(leftOutput.actual);
-                } else if (expressionNode instanceof BraceNode && ((BraceNode)expressionNode).getRightNode() instanceof LoadDefBraceNode) {
-                    ((BraceNode)expressionNode).getRightNode().setExpressionType(leftOutput.actual);
+                } else if (expressionNode instanceof AccessNode &&
+                        ((AccessNode)expressionNode).getRightNode() instanceof LoadDefBraceNode) {
+                    ((AccessNode)expressionNode).getRightNode().setExpressionType(leftOutput.actual);
                 }
             // Otherwise, we must adapt the rhs type to the lhs type with a cast.
             } else {
@@ -220,25 +220,16 @@ public class EAssignment extends AExpression {
             throw new IllegalStateException("Illegal tree structure.");
         }
 
-        output.actual = input.read ? leftOutput.actual : void.class;
+        ExpressionNode rightNode = cast(rightOutput.expressionNode, rightCast);
 
-        AssignmentNode assignmentNode = new AssignmentNode();
+        if (leftOutput.expressionNode instanceof AccessNode) {
+            ((UnaryNode)((AccessNode)leftOutput.expressionNode).getRightNode()).setChildNode(rightNode);
+        } else {
+            ((UnaryNode)leftOutput.expressionNode).setChildNode(rightNode);
+        }
 
-        assignmentNode.setLeftNode(leftOutput.expressionNode);
-        assignmentNode.setRightNode(cast(rightOutput.expressionNode, rightCast));
-
-        assignmentNode.setLocation(location);
-        assignmentNode.setExpressionType(output.actual);
-        assignmentNode.setCompoundType(promote);
-        assignmentNode.setPre(pre);
-        assignmentNode.setPost(post);
-        assignmentNode.setOperation(operation);
-        assignmentNode.setRead(input.read);
-        assignmentNode.setCat(cat);
-        assignmentNode.setThere(there);
-        assignmentNode.setBack(back);
-
-        output.expressionNode = assignmentNode;
+        output.actual = leftOutput.actual;
+        output.expressionNode = leftOutput.expressionNode;
 
         return output;
     }

@@ -22,17 +22,22 @@ package org.elasticsearch.painless.node;
 import org.elasticsearch.painless.AnalyzerCaster;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.Scope;
-import org.elasticsearch.painless.ir.ClassNode;
 import org.elasticsearch.painless.ir.AccessNode;
 import org.elasticsearch.painless.ir.ArrayLengthAccessNode;
-import org.elasticsearch.painless.ir.StoreDefDotNode;
-import org.elasticsearch.painless.ir.LoadFieldNode;
-import org.elasticsearch.painless.ir.LoadShortcutNode;
+import org.elasticsearch.painless.ir.ClassNode;
 import org.elasticsearch.painless.ir.ExpressionNode;
+import org.elasticsearch.painless.ir.LoadDefDotNode;
+import org.elasticsearch.painless.ir.LoadFieldNode;
 import org.elasticsearch.painless.ir.LoadListShortcutNode;
 import org.elasticsearch.painless.ir.LoadMapShortcutNode;
+import org.elasticsearch.painless.ir.LoadShortcutNode;
 import org.elasticsearch.painless.ir.NullSafeSubNode;
 import org.elasticsearch.painless.ir.StaticNode;
+import org.elasticsearch.painless.ir.StoreDefDotNode;
+import org.elasticsearch.painless.ir.StoreFieldNode;
+import org.elasticsearch.painless.ir.StoreListShortcutNode;
+import org.elasticsearch.painless.ir.StoreMapShortcutNode;
+import org.elasticsearch.painless.ir.StoreShortcutNode;
 import org.elasticsearch.painless.lookup.PainlessCast;
 import org.elasticsearch.painless.lookup.PainlessField;
 import org.elasticsearch.painless.lookup.PainlessLookupUtility;
@@ -145,11 +150,19 @@ public class EDot extends AExpression {
                         input.expected == null || input.expected == ZonedDateTime.class || input.explicit ? def.class : input.expected;
                 output.isDefOptimized = true;
 
-                StoreDefDotNode storeDefDotNode = new StoreDefDotNode();
-                storeDefDotNode.setLocation(location);
-                storeDefDotNode.setExpressionType(output.actual);
-                storeDefDotNode.setValue(value);
-                expressionNode = storeDefDotNode;
+                if (input.write) {
+                    StoreDefDotNode storeDefDotNode = new StoreDefDotNode();
+                    storeDefDotNode.setLocation(location);
+                    storeDefDotNode.setExpressionType(input.read ? output.actual : void.class);
+                    storeDefDotNode.setValue(value);
+                    expressionNode = storeDefDotNode;
+                } else {
+                    LoadDefDotNode loadDefDotNode = new LoadDefDotNode();
+                    loadDefDotNode.setLocation(location);
+                    loadDefDotNode.setExpressionType(output.actual);
+                    loadDefDotNode.setValue(value);
+                    expressionNode = loadDefDotNode;
+                }
             } else {
                 PainlessField field =
                         scriptRoot.getPainlessLookup().lookupPainlessField(prefixOutput.actual, prefixOutput.isStaticType, value);
@@ -191,12 +204,19 @@ public class EDot extends AExpression {
                                     "Illegal shortcut on field [" + value + "] for type [" + targetCanonicalTypeName + "]."));
                         }
 
-                        LoadShortcutNode loadShortcutNode = new LoadShortcutNode();
-                        loadShortcutNode.setLocation(location);
-                        loadShortcutNode.setExpressionType(output.actual);
-                        loadShortcutNode.setGetter(getter);
-                        loadShortcutNode.setSetter(setter);
-                        expressionNode = loadShortcutNode;
+                        if (input.write) {
+                            StoreShortcutNode storeShortcutNode = new StoreShortcutNode();
+                            storeShortcutNode.setLocation(location);
+                            storeShortcutNode.setExpressionType(input.read ? output.actual : void.class);
+                            storeShortcutNode.setSetter(setter);
+                            expressionNode = storeShortcutNode;
+                        } else {
+                            LoadShortcutNode loadShortcutNode = new LoadShortcutNode();
+                            loadShortcutNode.setLocation(location);
+                            loadShortcutNode.setExpressionType(output.actual);
+                            loadShortcutNode.setGetter(getter);
+                            expressionNode = loadShortcutNode;
+                        }
                     } else {
                         if (Map.class.isAssignableFrom(prefixOutput.actual)) {
                             getter = scriptRoot.getPainlessLookup().lookupPainlessMethod(targetType, false, "get", 1);
@@ -235,13 +255,21 @@ public class EDot extends AExpression {
                                         "Illegal map shortcut for type [" + targetCanonicalTypeName + "]."));
                             }
 
-                            LoadMapShortcutNode loadMapShortcutNode = new LoadMapShortcutNode();
-                            loadMapShortcutNode.setChildNode(cast(indexOutput.expressionNode, indexCast));
-                            loadMapShortcutNode.setLocation(location);
-                            loadMapShortcutNode.setExpressionType(output.actual);
-                            loadMapShortcutNode.setGetter(getter);
-                            loadMapShortcutNode.setSetter(setter);
-                            expressionNode = loadMapShortcutNode;
+                            if (input.write) {
+                                StoreMapShortcutNode storeMapShortcutNode = new StoreMapShortcutNode();
+                                storeMapShortcutNode.setLocation(location);
+                                storeMapShortcutNode.setExpressionType(input.read ? output.actual : void.class);
+                                storeMapShortcutNode.setSetter(setter);
+                                storeMapShortcutNode.setIndexNode(cast(indexOutput.expressionNode, indexCast));
+                                expressionNode = storeMapShortcutNode;
+                            } else {
+                                LoadMapShortcutNode loadMapShortcutNode = new LoadMapShortcutNode();
+                                loadMapShortcutNode.setLocation(location);
+                                loadMapShortcutNode.setExpressionType(output.actual);
+                                loadMapShortcutNode.setGetter(getter);
+                                loadMapShortcutNode.setIndexNode(cast(indexOutput.expressionNode, indexCast));
+                                expressionNode = loadMapShortcutNode;
+                            }
                         }
 
                         if (List.class.isAssignableFrom(prefixOutput.actual)) {
@@ -282,13 +310,21 @@ public class EDot extends AExpression {
                                         "Illegal list shortcut for type [" + targetCanonicalTypeName + "]."));
                             }
 
-                            LoadListShortcutNode loadListShortcutNode = new LoadListShortcutNode();
-                            loadListShortcutNode.setChildNode(cast(indexOutput.expressionNode, indexCast));
-                            loadListShortcutNode.setLocation(location);
-                            loadListShortcutNode.setExpressionType(output.actual);
-                            loadListShortcutNode.setGetter(getter);
-                            loadListShortcutNode.setSetter(setter);
-                            expressionNode = loadListShortcutNode;
+                            if (input.write) {
+                                StoreListShortcutNode storeListShortcutNode = new StoreListShortcutNode();
+                                storeListShortcutNode.setLocation(location);
+                                storeListShortcutNode.setExpressionType(input.read  ? output.actual : void.class);
+                                storeListShortcutNode.setSetter(setter);
+                                storeListShortcutNode.setIndexNode(cast(indexOutput.expressionNode, indexCast));
+                                expressionNode = storeListShortcutNode;
+                            } else {
+                                LoadListShortcutNode loadListShortcutNode = new LoadListShortcutNode();
+                                loadListShortcutNode.setLocation(location);
+                                loadListShortcutNode.setExpressionType(output.actual);
+                                loadListShortcutNode.setGetter(getter);
+                                loadListShortcutNode.setIndexNode(cast(indexOutput.expressionNode, indexCast));
+                                expressionNode = loadListShortcutNode;
+                            }
                         }
                     }
 
@@ -304,11 +340,19 @@ public class EDot extends AExpression {
 
                     output.actual = field.typeParameter;
 
-                    LoadFieldNode loadFieldNode = new LoadFieldNode();
-                    loadFieldNode.setLocation(location);
-                    loadFieldNode.setExpressionType(output.actual);
-                    loadFieldNode.setField(field);
-                    expressionNode = loadFieldNode;
+                    if (input.write) {
+                        StoreFieldNode storeFieldNode = new StoreFieldNode();
+                        storeFieldNode.setLocation(location);
+                        storeFieldNode.setExpressionType(input.write ? output.actual : void.class);
+                        storeFieldNode.setField(field);
+                        expressionNode = storeFieldNode;
+                    } else {
+                        LoadFieldNode loadFieldNode = new LoadFieldNode();
+                        loadFieldNode.setLocation(location);
+                        loadFieldNode.setExpressionType(output.actual);
+                        loadFieldNode.setField(field);
+                        expressionNode = loadFieldNode;
+                    }
                 }
             }
 
@@ -333,7 +377,7 @@ public class EDot extends AExpression {
             accessNode.setLeftNode(prefixOutput.expressionNode);
             accessNode.setRightNode(expressionNode);
             accessNode.setLocation(location);
-            accessNode.setExpressionType(output.actual);
+            accessNode.setExpressionType(expressionNode.getExpressionType());
             output.expressionNode = accessNode;
         }
 
