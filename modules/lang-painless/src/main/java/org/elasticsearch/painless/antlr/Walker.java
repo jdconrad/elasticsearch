@@ -716,7 +716,7 @@ public final class Walker extends PainlessParserBaseVisitor<ANode> {
         final Operation operation;
 
         if (ctx.ASSIGN() != null) {
-            operation = null;
+            operation = Operation.ASSIGN;
         } else if (ctx.AMUL() != null) {
             operation = Operation.MUL;
         } else if (ctx.ADIV() != null) {
@@ -743,7 +743,7 @@ public final class Walker extends PainlessParserBaseVisitor<ANode> {
             throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
         }
 
-        return new EAssignment(location(ctx), lhs, rhs, false, false, operation);
+        return new EAssignment(location(ctx), lhs, rhs, operation);
     }
 
     @Override
@@ -753,14 +753,14 @@ public final class Walker extends PainlessParserBaseVisitor<ANode> {
         final Operation operation;
 
         if (ctx.INCR() != null) {
-            operation = Operation.INCR;
+            operation = Operation.PREINCR;
         } else if (ctx.DECR() != null) {
-            operation = Operation.DECR;
+            operation = Operation.PREDECR;
         } else {
             throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
         }
 
-        return new EAssignment(location(ctx), expression, null, true, false, operation);
+        return new EAssignment(location(ctx), expression, null, operation);
     }
 
     @Override
@@ -797,14 +797,14 @@ public final class Walker extends PainlessParserBaseVisitor<ANode> {
         final Operation operation;
 
         if (ctx.INCR() != null) {
-            operation = Operation.INCR;
+            operation = Operation.POSTINCR;
         } else if (ctx.DECR() != null) {
-            operation = Operation.DECR;
+            operation = Operation.POSTDECR;
         } else {
             throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
         }
 
-        return new EAssignment(location(ctx), expression, null, false, true, operation);
+        return new EAssignment(location(ctx), expression, null, operation);
     }
 
     @Override
