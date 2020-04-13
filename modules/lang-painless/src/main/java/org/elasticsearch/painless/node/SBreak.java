@@ -35,6 +35,11 @@ public class SBreak extends AStatement {
     }
 
     @Override
+    public <I, O> O visit(UserTreeVisitor<I, O> userTreeVisitor, I input) {
+        return userTreeVisitor.visitBreak(this, input);
+    }
+
+    @Override
     Output analyze(ClassNode classNode, ScriptRoot scriptRoot, Scope scope, Input input) {
         Output output = new Output();
 

@@ -78,6 +78,11 @@ public class SFunction extends ANode {
         this.isAutoReturnEnabled = isAutoReturnEnabled;
     }
 
+    @Override
+    public <I, O> O visit(UserTreeVisitor<I, O> userTreeVisitor, I input) {
+        return userTreeVisitor.visitFunction(this, input);
+    }
+
     void buildClassScope(ScriptRoot scriptRoot) {
         if (paramTypeStrs.size() != paramNameStrs.size()) {
             throw createError(new IllegalStateException(

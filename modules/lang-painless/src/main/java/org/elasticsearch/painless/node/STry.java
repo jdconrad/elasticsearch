@@ -47,6 +47,11 @@ public class STry extends AStatement {
     }
 
     @Override
+    public <I, O> O visit(UserTreeVisitor<I, O> userTreeVisitor, I input) {
+        return userTreeVisitor.visitTry(this, input);
+    }
+
+    @Override
     Output analyze(ClassNode classNode, ScriptRoot scriptRoot, Scope scope, Input input) {
         Output output = new Output();
 

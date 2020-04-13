@@ -40,6 +40,11 @@ public class EPrecedence extends AExpression {
     }
 
     @Override
+    public <I, O> O visit(UserTreeVisitor<I, O> userTreeVisitor, I input) {
+        return userTreeVisitor.visitPrecedence(this, input);
+    }
+
+    @Override
     AExpression getChildIf(Class<? extends AExpression> type) {
         return child.getChildIf(type);
     }

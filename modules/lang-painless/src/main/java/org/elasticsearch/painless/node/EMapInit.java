@@ -54,6 +54,11 @@ public class EMapInit extends AExpression {
     }
 
     @Override
+    public <I, O> O visit(UserTreeVisitor<I, O> userTreeVisitor, I input) {
+        return userTreeVisitor.visitMapInitialization(this, input);
+    }
+
+    @Override
     Output analyze(ClassNode classNode, ScriptRoot scriptRoot, Scope scope, Input input) {
         if (input.write) {
             throw createError(new IllegalArgumentException("invalid assignment: cannot assign a value to map initializer"));

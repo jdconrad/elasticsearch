@@ -53,6 +53,11 @@ public class ENewObj extends AExpression {
     }
 
     @Override
+    public <I, O> O visit(UserTreeVisitor<I, O> userTreeVisitor, I input) {
+        return userTreeVisitor.visitNewObject(this, input);
+    }
+
+    @Override
     Output analyze(ClassNode classNode, ScriptRoot scriptRoot, Scope scope, Input input) {
         if (input.write) {
             throw createError(new IllegalArgumentException(

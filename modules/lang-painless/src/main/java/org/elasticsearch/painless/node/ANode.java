@@ -36,9 +36,11 @@ public abstract class ANode {
     /**
      * Standard constructor with location used for error tracking.
      */
-    ANode(Location location) {
+    protected ANode(Location location) {
         this.location = Objects.requireNonNull(location);
     }
+
+    public abstract <I, O> O visit(UserTreeVisitor<I, O> userTreeVisitor, I input);
 
     /**
      * Create an error with location information pointing to this node.

@@ -39,6 +39,11 @@ public class SClass extends ANode {
         this.functions.addAll(Objects.requireNonNull(functions));
     }
 
+    @Override
+    public <I, O> O visit(UserTreeVisitor<I, O> userTreeVisitor, I input) {
+        return userTreeVisitor.visitClass(this, input);
+    }
+
     public void buildClassScope(ScriptRoot scriptRoot) {
         for (SFunction function : functions) {
             function.buildClassScope(scriptRoot);

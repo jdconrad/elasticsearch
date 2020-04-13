@@ -56,6 +56,11 @@ public class EBrace extends AExpression {
     }
 
     @Override
+    public <I, O> O visit(UserTreeVisitor<I, O> userTreeVisitor, I input) {
+        return userTreeVisitor.visitBraceAccess(this, input);
+    }
+
+    @Override
     Output analyze(ClassNode classNode, ScriptRoot scriptRoot, Scope scope, Input input) {
         if (input.read == false && input.write == false) {
             throw createError(new IllegalArgumentException("not a statement: result of brace operator not used"));

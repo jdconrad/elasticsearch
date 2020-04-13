@@ -49,6 +49,11 @@ public class SDeclaration extends AStatement {
     }
 
     @Override
+    public <I, O> O visit(UserTreeVisitor<I, O> userTreeVisitor, I input) {
+        return userTreeVisitor.visitDeclaration(this, input);
+    }
+
+    @Override
     Output analyze(ClassNode classNode, ScriptRoot scriptRoot, Scope scope, Input input) {
         if (scriptRoot.getPainlessLookup().isValidCanonicalClassName(name)) {
             throw createError(new IllegalArgumentException("invalid declaration: type [" + name + "] cannot be a name"));
