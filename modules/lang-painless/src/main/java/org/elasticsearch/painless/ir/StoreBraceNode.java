@@ -25,23 +25,11 @@ import org.elasticsearch.painless.symbol.WriteScope;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.Opcodes;
 
-public class BraceSubNode extends UnaryNode {
+public class StoreBraceNode extends UnaryNode {
 
     @Override
     protected void write(ClassWriter classWriter, MethodWriter methodWriter, WriteScope writeScope) {
-        setup(classWriter, methodWriter, writeScope);
-        load(classWriter, methodWriter, writeScope);
-    }
-
-    @Override
-    protected int accessElementCount() {
-        return 2;
-    }
-
-    @Override
-    protected void setup(ClassWriter classWriter, MethodWriter methodWriter, WriteScope writeScope) {
         getChildNode().write(classWriter, methodWriter, writeScope);
-
         Label noFlip = new Label();
         methodWriter.dup();
         methodWriter.ifZCmp(Opcodes.IFGE, noFlip);
@@ -50,17 +38,8 @@ public class BraceSubNode extends UnaryNode {
         methodWriter.arrayLength();
         methodWriter.visitInsn(Opcodes.IADD);
         methodWriter.mark(noFlip);
-    }
 
-    @Override
-    protected void load(ClassWriter classWriter, MethodWriter methodWriter, WriteScope writeScope) {
-        methodWriter.writeDebugInfo(location);
+        methodWriter.writeDebugInfo(getLocation());
         methodWriter.arrayLoad(MethodWriter.getType(getExpressionType()));
-    }
-
-    @Override
-    protected void store(ClassWriter classWriter, MethodWriter methodWriter, WriteScope writeScope) {
-        methodWriter.writeDebugInfo(location);
-        methodWriter.arrayStore(MethodWriter.getType(getExpressionType()));
     }
 }

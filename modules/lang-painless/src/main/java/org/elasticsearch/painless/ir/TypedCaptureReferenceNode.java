@@ -45,7 +45,7 @@ public class TypedCaptureReferenceNode extends ReferenceNode {
 
     @Override
     protected void write(ClassWriter classWriter, MethodWriter methodWriter, WriteScope writeScope) {
-        methodWriter.writeDebugInfo(location);
+        methodWriter.writeDebugInfo(getLocation());
         Variable captured = writeScope.getVariable(getCaptures().get(0));
 
         methodWriter.visitVarInsn(captured.getAsmType().getOpcode(Opcodes.ILOAD), captured.getSlot());

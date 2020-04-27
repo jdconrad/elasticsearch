@@ -101,7 +101,7 @@ public class ForEachSubIterableNode extends LoopNode {
 
     @Override
     protected void write(ClassWriter classWriter, MethodWriter methodWriter, WriteScope writeScope) {
-        methodWriter.writeStatementOffset(location);
+        methodWriter.writeStatementOffset(getLocation());
 
         Variable variable = writeScope.defineVariable(variableType, variableName);
         Variable iterator = writeScope.defineInternalVariable(iteratorType, iteratorName);
@@ -135,7 +135,7 @@ public class ForEachSubIterableNode extends LoopNode {
         Variable loop = writeScope.getInternalVariable("loop");
 
         if (loop != null) {
-            methodWriter.writeLoopCounter(loop.getSlot(), location);
+            methodWriter.writeLoopCounter(loop.getSlot(), getLocation());
         }
 
         getBlockNode().continueLabel = begin;

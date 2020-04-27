@@ -69,7 +69,7 @@ public class DeclarationNode extends StatementNode {
 
     @Override
     protected void write(ClassWriter classWriter, MethodWriter methodWriter, WriteScope writeScope) {
-        methodWriter.writeStatementOffset(location);
+        methodWriter.writeStatementOffset(getLocation());
 
         Variable variable = writeScope.defineVariable(declarationType, name);
 

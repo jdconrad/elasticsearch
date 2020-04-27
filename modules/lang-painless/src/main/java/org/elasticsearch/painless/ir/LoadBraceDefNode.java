@@ -25,43 +25,19 @@ import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.symbol.WriteScope;
 import org.objectweb.asm.Type;
 
-public class BraceSubDefNode extends UnaryNode {
+public class LoadBraceDefNode extends UnaryNode {
 
     @Override
     protected void write(ClassWriter classWriter, MethodWriter methodWriter, WriteScope writeScope) {
-        setup(classWriter, methodWriter, writeScope);
-        load(classWriter, methodWriter, writeScope);
-    }
-
-    @Override
-    protected int accessElementCount() {
-        return 2;
-    }
-
-    @Override
-    protected void setup(ClassWriter classWriter, MethodWriter methodWriter, WriteScope writeScope) {
         methodWriter.dup();
         getChildNode().write(classWriter, methodWriter, writeScope);
-        Type methodType = Type.getMethodType(MethodWriter.getType(
+        Type indexFlipMethodType = Type.getMethodType(MethodWriter.getType(
                 getChildNode().getExpressionType()), Type.getType(Object.class), MethodWriter.getType(getChildNode().getExpressionType()));
-        methodWriter.invokeDefCall("normalizeIndex", methodType, DefBootstrap.INDEX_NORMALIZE);
-    }
+        methodWriter.invokeDefCall("normalizeIndex", indexFlipMethodType, DefBootstrap.INDEX_NORMALIZE);
 
-    @Override
-    protected void load(ClassWriter classWriter, MethodWriter methodWriter, WriteScope writeScope) {
-        methodWriter.writeDebugInfo(location);
-
-        Type methodType = Type.getMethodType(MethodWriter.getType(
+        methodWriter.writeDebugInfo(getLocation());
+        Type defCallMethodType = Type.getMethodType(MethodWriter.getType(
                 getExpressionType()), Type.getType(Object.class), MethodWriter.getType(getChildNode().getExpressionType()));
-        methodWriter.invokeDefCall("arrayLoad", methodType, DefBootstrap.ARRAY_LOAD);
-    }
-
-    @Override
-    protected void store(ClassWriter classWriter, MethodWriter methodWriter, WriteScope writeScope) {
-        methodWriter.writeDebugInfo(location);
-
-        Type methodType = Type.getMethodType(Type.getType(void.class), Type.getType(Object.class),
-                MethodWriter.getType(getChildNode().getExpressionType()), MethodWriter.getType(getExpressionType()));
-        methodWriter.invokeDefCall("arrayStore", methodType, DefBootstrap.ARRAY_STORE);
+        methodWriter.invokeDefCall("arrayLoad", defCallMethodType, DefBootstrap.ARRAY_LOAD);
     }
 }

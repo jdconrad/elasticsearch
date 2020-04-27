@@ -41,7 +41,7 @@ public class ThrowNode extends StatementNode {
 
     @Override
     protected void write(ClassWriter classWriter, MethodWriter methodWriter, WriteScope writeScope) {
-        methodWriter.writeStatementOffset(location);
+        methodWriter.writeStatementOffset(getLocation());
         expressionNode.write(classWriter, methodWriter, writeScope);
         methodWriter.throwException();
     }

@@ -32,7 +32,7 @@ import org.objectweb.asm.commons.Method;
 
 import static org.elasticsearch.painless.WriterConstants.CLASS_TYPE;
 
-public class MemberCallNode extends ArgumentsNode {
+public class InvokeCallMemberNode extends ArgumentsNode {
 
     /* ---- begin node data ---- */
 
@@ -95,7 +95,7 @@ public class MemberCallNode extends ArgumentsNode {
 
     @Override
     public void write(ClassWriter classWriter, MethodWriter methodWriter, WriteScope writeScope) {
-        methodWriter.writeDebugInfo(location);
+        methodWriter.writeDebugInfo(getLocation());
 
         if (localFunction != null) {
             if (localFunction.isStatic() == false) {

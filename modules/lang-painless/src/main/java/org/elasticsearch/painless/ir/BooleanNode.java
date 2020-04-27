@@ -44,7 +44,7 @@ public class BooleanNode extends BinaryNode {
 
     @Override
     protected void write(ClassWriter classWriter, MethodWriter methodWriter, WriteScope writeScope) {
-        methodWriter.writeDebugInfo(location);
+        methodWriter.writeDebugInfo(getLocation());
 
         if (operation == Operation.AND) {
             Label fals = new Label();

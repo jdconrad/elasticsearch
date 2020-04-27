@@ -41,7 +41,7 @@ public class ReturnNode extends StatementNode {
 
     @Override
     protected void write(ClassWriter classWriter, MethodWriter methodWriter, WriteScope writeScope) {
-        methodWriter.writeStatementOffset(location);
+        methodWriter.writeStatementOffset(getLocation());
 
         if (expressionNode != null) {
             expressionNode.write(classWriter, methodWriter, writeScope);

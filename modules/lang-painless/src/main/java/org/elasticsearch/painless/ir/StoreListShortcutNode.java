@@ -27,12 +27,11 @@ import org.elasticsearch.painless.symbol.WriteScope;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.Opcodes;
 
-public class ListSubShortcutNode extends UnaryNode {
+public class StoreListShortcutNode extends UnaryNode {
 
     /* ---- begin node data ---- */
 
     private PainlessMethod setter;
-    private PainlessMethod getter;
 
     public void setSetter(PainlessMethod setter) {
         this.setter = setter;
@@ -42,31 +41,11 @@ public class ListSubShortcutNode extends UnaryNode {
         return setter;
     }
 
-    public void setGetter(PainlessMethod getter) {
-        this.getter = getter;
-    }
-
-    public PainlessMethod getGetter() {
-        return getter;
-    }
-
     /* ---- end node data ---- */
 
     @Override
     protected void write(ClassWriter classWriter, MethodWriter methodWriter, WriteScope writeScope) {
-        setup(classWriter, methodWriter, writeScope);
-        load(classWriter, methodWriter, writeScope);
-    }
-
-    @Override
-    protected int accessElementCount() {
-        return 2;
-    }
-
-    @Override
-    protected void setup(ClassWriter classWriter, MethodWriter methodWriter, WriteScope writeScope) {
         getChildNode().write(classWriter, methodWriter, writeScope);
-
         Label noFlip = new Label();
         methodWriter.dup();
         methodWriter.ifZCmp(Opcodes.IFGE, noFlip);
@@ -75,21 +54,8 @@ public class ListSubShortcutNode extends UnaryNode {
         methodWriter.invokeInterface(WriterConstants.COLLECTION_TYPE, WriterConstants.COLLECTION_SIZE);
         methodWriter.visitInsn(Opcodes.IADD);
         methodWriter.mark(noFlip);
-    }
 
-    @Override
-    protected void load(ClassWriter classWriter, MethodWriter methodWriter, WriteScope writeScope) {
-        methodWriter.writeDebugInfo(location);
-        methodWriter.invokeMethodCall(getter);
-
-        if (getter.returnType == getter.javaMethod.getReturnType()) {
-            methodWriter.checkCast(MethodWriter.getType(getter.returnType));
-        }
-    }
-
-    @Override
-    protected void store(ClassWriter classWriter, MethodWriter methodWriter, WriteScope writeScope) {
-        methodWriter.writeDebugInfo(location);
+        methodWriter.writeDebugInfo(getLocation());
         methodWriter.invokeMethodCall(setter);
         methodWriter.writePop(MethodWriter.getType(setter.returnType).getSize());
     }

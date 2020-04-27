@@ -43,7 +43,7 @@ public class CastNode extends UnaryNode {
     @Override
     protected void write(ClassWriter classWriter, MethodWriter methodWriter, WriteScope writeScope) {
         getChildNode().write(classWriter, methodWriter, writeScope);
-        methodWriter.writeDebugInfo(location);
+        methodWriter.writeDebugInfo(getLocation());
         methodWriter.writeCast(cast);
     }
 }

@@ -21,19 +21,45 @@ package org.elasticsearch.painless.ir;
 
 import org.elasticsearch.painless.ClassWriter;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.WriterConstants;
+import org.elasticsearch.painless.lookup.PainlessMethod;
 import org.elasticsearch.painless.symbol.WriteScope;
 import org.objectweb.asm.Label;
+import org.objectweb.asm.Opcodes;
 
-public class NullSafeSubNode extends UnaryNode {
+public class LoadListShortcutNode extends UnaryNode {
+
+    /* ---- begin node data ---- */
+
+    private PainlessMethod getter;
+
+    public void setGetter(PainlessMethod getter) {
+        this.getter = getter;
+    }
+
+    public PainlessMethod getGetter() {
+        return getter;
+    }
+
+    /* ---- end node data ---- */
 
     @Override
     protected void write(ClassWriter classWriter, MethodWriter methodWriter, WriteScope writeScope) {
-        methodWriter.writeDebugInfo(getLocation());
-
-        Label end = new Label();
-        methodWriter.dup();
-        methodWriter.ifNull(end);
         getChildNode().write(classWriter, methodWriter, writeScope);
-        methodWriter.mark(end);
+        Label noFlip = new Label();
+        methodWriter.dup();
+        methodWriter.ifZCmp(Opcodes.IFGE, noFlip);
+        methodWriter.swap();
+        methodWriter.dupX1();
+        methodWriter.invokeInterface(WriterConstants.COLLECTION_TYPE, WriterConstants.COLLECTION_SIZE);
+        methodWriter.visitInsn(Opcodes.IADD);
+        methodWriter.mark(noFlip);
+
+        methodWriter.writeDebugInfo(getLocation());
+        methodWriter.invokeMethodCall(getter);
+
+        if (getter.returnType == getter.javaMethod.getReturnType()) {
+            methodWriter.checkCast(MethodWriter.getType(getter.returnType));
+        }
     }
 }

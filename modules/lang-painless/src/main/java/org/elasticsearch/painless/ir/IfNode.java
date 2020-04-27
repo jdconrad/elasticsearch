@@ -29,7 +29,7 @@ public class IfNode extends ConditionNode {
 
     @Override
     protected void write(ClassWriter classWriter, MethodWriter methodWriter, WriteScope writeScope) {
-        methodWriter.writeStatementOffset(location);
+        methodWriter.writeStatementOffset(getLocation());
 
         Label fals = new Label();
 

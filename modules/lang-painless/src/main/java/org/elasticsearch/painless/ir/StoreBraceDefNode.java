@@ -20,47 +20,24 @@
 package org.elasticsearch.painless.ir;
 
 import org.elasticsearch.painless.ClassWriter;
+import org.elasticsearch.painless.DefBootstrap;
 import org.elasticsearch.painless.MethodWriter;
-import org.elasticsearch.painless.lookup.PainlessMethod;
 import org.elasticsearch.painless.symbol.WriteScope;
+import org.objectweb.asm.Type;
 
-public class CallSubNode extends ArgumentsNode {
-
-    /* ---- begin node data ---- */
-
-    private PainlessMethod method;
-    private Class<?> box;
-
-    public void setMethod(PainlessMethod method) {
-        this.method = method;
-    }
-
-    public PainlessMethod getMethod() {
-        return method;
-    }
-
-    public void setBox(Class<?> box) {
-        this.box = box;
-    }
-
-    public Class<?> getBox() {
-        return box;
-    }
-
-    /* ---- end node data ---- */
+public class StoreBraceDefNode extends UnaryNode {
 
     @Override
     protected void write(ClassWriter classWriter, MethodWriter methodWriter, WriteScope writeScope) {
-        methodWriter.writeDebugInfo(location);
+        methodWriter.dup();
+        getChildNode().write(classWriter, methodWriter, writeScope);
+        Type indexFlipMethodType = Type.getMethodType(MethodWriter.getType(
+                getChildNode().getExpressionType()), Type.getType(Object.class), MethodWriter.getType(getChildNode().getExpressionType()));
+        methodWriter.invokeDefCall("normalizeIndex", indexFlipMethodType, DefBootstrap.INDEX_NORMALIZE);
 
-        if (box.isPrimitive()) {
-            methodWriter.box(MethodWriter.getType(box));
-        }
-
-        for (ExpressionNode argumentNode : getArgumentNodes()) {
-            argumentNode.write(classWriter, methodWriter, writeScope);
-        }
-
-        methodWriter.invokeMethodCall(method);
+        methodWriter.writeDebugInfo(getLocation());
+        Type defCallMethodType = Type.getMethodType(Type.getType(void.class), Type.getType(Object.class),
+                MethodWriter.getType(getChildNode().getExpressionType()), MethodWriter.getType(getExpressionType()));
+        methodWriter.invokeDefCall("arrayStore", defCallMethodType, DefBootstrap.ARRAY_STORE);
     }
 }

@@ -79,7 +79,7 @@ public class UnaryMathNode extends UnaryNode {
 
     @Override
     public void write(ClassWriter classWriter, MethodWriter methodWriter, WriteScope writeScope) {
-        methodWriter.writeDebugInfo(location);
+        methodWriter.writeDebugInfo(getLocation());
 
         if (operation == Operation.NOT) {
             Label fals = new Label();

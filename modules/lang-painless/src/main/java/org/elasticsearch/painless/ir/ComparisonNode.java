@@ -63,7 +63,7 @@ public class ComparisonNode extends BinaryNode {
 
     @Override
     protected void write(ClassWriter classWriter, MethodWriter methodWriter, WriteScope writeScope) {
-        methodWriter.writeDebugInfo(location);
+        methodWriter.writeDebugInfo(getLocation());
 
         getLeftNode().write(classWriter, methodWriter, writeScope);
 

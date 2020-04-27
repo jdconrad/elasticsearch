@@ -125,7 +125,7 @@ public class ForEachSubArrayNode extends LoopNode {
 
     @Override
     protected void write(ClassWriter classWriter, MethodWriter methodWriter, WriteScope writeScope) {
-        methodWriter.writeStatementOffset(location);
+        methodWriter.writeStatementOffset(getLocation());
 
         Variable variable = writeScope.defineVariable(variableType, variableName);
         Variable array = writeScope.defineInternalVariable(arrayType, arrayName);
@@ -156,7 +156,7 @@ public class ForEachSubArrayNode extends LoopNode {
         Variable loop = writeScope.getInternalVariable("loop");
 
         if (loop != null) {
-            methodWriter.writeLoopCounter(loop.getSlot(), location);
+            methodWriter.writeLoopCounter(loop.getSlot(), getLocation());
         }
 
         getBlockNode().continueLabel = begin;

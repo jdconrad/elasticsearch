@@ -54,7 +54,7 @@ public class TryNode extends StatementNode {
 
     @Override
     protected void write(ClassWriter classWriter, MethodWriter methodWriter, WriteScope writeScope) {
-        methodWriter.writeStatementOffset(location);
+        methodWriter.writeStatementOffset(getLocation());
 
         Label begin = new Label();
         Label end = new Label();

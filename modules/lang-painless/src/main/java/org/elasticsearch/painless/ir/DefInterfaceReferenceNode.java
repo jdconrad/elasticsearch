@@ -42,7 +42,7 @@ public class DefInterfaceReferenceNode extends ReferenceNode {
 
     @Override
     protected void write(ClassWriter classWriter, MethodWriter methodWriter, WriteScope writeScope) {
-        methodWriter.writeDebugInfo(location);
+        methodWriter.writeDebugInfo(getLocation());
 
         // place holder for functional interface receiver
         // which is resolved and replace at runtime

@@ -43,7 +43,7 @@ public class TypedInterfaceReferenceNode extends ReferenceNode {
 
     @Override
     protected void write(ClassWriter classWriter, MethodWriter methodWriter, WriteScope writeScope) {
-        methodWriter.writeDebugInfo(location);
+        methodWriter.writeDebugInfo(getLocation());
 
         for (String capture : getCaptures()) {
             WriteScope.Variable variable = writeScope.getVariable(capture);

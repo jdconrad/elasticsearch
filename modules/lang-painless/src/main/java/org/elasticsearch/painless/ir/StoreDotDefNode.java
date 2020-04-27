@@ -20,49 +20,32 @@
 package org.elasticsearch.painless.ir;
 
 import org.elasticsearch.painless.ClassWriter;
+import org.elasticsearch.painless.DefBootstrap;
 import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.symbol.WriteScope;
+import org.objectweb.asm.Type;
 
-import static org.elasticsearch.painless.WriterConstants.CLASS_TYPE;
-
-/**
- * Represents reading a value from a member field from
- * the main class.
- */
-public class MemberFieldLoadNode extends ExpressionNode {
+public class StoreDotDefNode extends ExpressionNode {
 
     /* ---- begin node data ---- */
 
-    protected String name;
-    protected boolean isStatic;
+    private String value;
 
-    public void setName(String name) {
-        this.name = name;
+    public void setValue(String value) {
+        this.value = value;
     }
 
-    public String getName() {
-        return name;
-    }
-
-    public void setStatic(boolean isStatic) {
-        this.isStatic = isStatic;
-    }
-
-    public boolean isStatic() {
-        return isStatic;
+    public String getValue() {
+        return value;
     }
 
     /* ---- end node data ---- */
 
     @Override
-    public void write(ClassWriter classWriter, MethodWriter methodWriter, WriteScope writeScope) {
-        methodWriter.writeDebugInfo(location);
-
-        if (isStatic) {
-            methodWriter.getStatic(CLASS_TYPE, name, MethodWriter.getType(getExpressionType()));
-        } else {
-            methodWriter.loadThis();
-            methodWriter.getField(CLASS_TYPE, name, MethodWriter.getType(getExpressionType()));
-        }
+    protected void write(ClassWriter classWriter, MethodWriter methodWriter, WriteScope writeScope) {
+        methodWriter.writeDebugInfo(getLocation());
+        Type methodType = Type.getMethodType(
+                Type.getType(void.class), Type.getType(Object.class), MethodWriter.getType(getExpressionType()));
+        methodWriter.invokeDefCall(value, methodType, DefBootstrap.STORE);
     }
 }

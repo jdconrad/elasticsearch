@@ -99,7 +99,7 @@ public class BinaryMathNode extends BinaryNode {
 
     @Override
     protected void write(ClassWriter classWriter, MethodWriter methodWriter, WriteScope writeScope) {
-        methodWriter.writeDebugInfo(location);
+        methodWriter.writeDebugInfo(getLocation());
 
         if (getBinaryType() == String.class && operation == Operation.ADD) {
             if (cat == false) {
@@ -145,10 +145,10 @@ public class BinaryMathNode extends BinaryNode {
                 if (originallyExplicit) {
                     flags |= DefBootstrap.OPERATOR_EXPLICIT_CAST;
                 }
-                methodWriter.writeDynamicBinaryInstruction(location,
+                methodWriter.writeDynamicBinaryInstruction(getLocation(),
                         getExpressionType(), getLeftNode().getExpressionType(), getRightNode().getExpressionType(), operation, flags);
             } else {
-                methodWriter.writeBinaryInstruction(location, getExpressionType(), operation);
+                methodWriter.writeBinaryInstruction(getLocation(), getExpressionType(), operation);
             }
         }
     }

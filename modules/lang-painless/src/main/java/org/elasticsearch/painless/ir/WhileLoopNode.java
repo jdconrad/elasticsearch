@@ -30,7 +30,7 @@ public class WhileLoopNode extends LoopNode {
 
     @Override
     protected void write(ClassWriter classWriter, MethodWriter methodWriter, WriteScope writeScope) {
-        methodWriter.writeStatementOffset(location);
+        methodWriter.writeStatementOffset(getLocation());
 
         writeScope = writeScope.newScope();
 
@@ -47,7 +47,7 @@ public class WhileLoopNode extends LoopNode {
         Variable loop = writeScope.getInternalVariable("loop");
 
         if (loop != null) {
-            methodWriter.writeLoopCounter(loop.getSlot(), location);
+            methodWriter.writeLoopCounter(loop.getSlot(), getLocation());
         }
 
         if (getBlockNode() != null) {

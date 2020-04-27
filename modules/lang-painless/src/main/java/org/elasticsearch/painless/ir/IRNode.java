@@ -28,7 +28,7 @@ public abstract class IRNode {
 
     /* begin node data */
 
-    protected Location location;
+    private Location location;
 
     public void setLocation(Location location) {
         this.location = location;
@@ -41,22 +41,6 @@ public abstract class IRNode {
     /* end node data */
 
     protected void write(ClassWriter classWriter, MethodWriter methodWriter, WriteScope writeScope) {
-        throw new UnsupportedOperationException();
-    }
-
-    protected int accessElementCount() {
-        throw new UnsupportedOperationException();
-    }
-
-    protected void setup(ClassWriter classWriter, MethodWriter methodWriter, WriteScope writeScope) {
-        throw new UnsupportedOperationException();
-    }
-
-    protected void load(ClassWriter classWriter, MethodWriter methodWriter, WriteScope writeScope) {
-        throw new UnsupportedOperationException();
-    }
-
-    protected void store(ClassWriter classWriter, MethodWriter methodWriter, WriteScope writeScope) {
         throw new UnsupportedOperationException();
     }
 }

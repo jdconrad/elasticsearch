@@ -27,7 +27,7 @@ public class DotSubArrayLengthNode extends ExpressionNode {
 
     @Override
     protected void write(ClassWriter classWriter, MethodWriter methodWriter, WriteScope writeScope) {
-        methodWriter.writeDebugInfo(location);
+        methodWriter.writeDebugInfo(getLocation());
         methodWriter.arrayLength();
     }
 }

@@ -23,17 +23,23 @@ import org.elasticsearch.painless.ClassWriter;
 import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.symbol.WriteScope;
 import org.objectweb.asm.Label;
+import org.objectweb.asm.Opcodes;
 
-public class NullSafeSubNode extends UnaryNode {
+public class LoadBraceNode extends UnaryNode {
 
     @Override
     protected void write(ClassWriter classWriter, MethodWriter methodWriter, WriteScope writeScope) {
-        methodWriter.writeDebugInfo(getLocation());
-
-        Label end = new Label();
-        methodWriter.dup();
-        methodWriter.ifNull(end);
         getChildNode().write(classWriter, methodWriter, writeScope);
-        methodWriter.mark(end);
+        Label noFlip = new Label();
+        methodWriter.dup();
+        methodWriter.ifZCmp(Opcodes.IFGE, noFlip);
+        methodWriter.swap();
+        methodWriter.dupX1();
+        methodWriter.arrayLength();
+        methodWriter.visitInsn(Opcodes.IADD);
+        methodWriter.mark(noFlip);
+
+        methodWriter.writeDebugInfo(getLocation());
+        methodWriter.arrayLoad(MethodWriter.getType(getExpressionType()));
     }
 }

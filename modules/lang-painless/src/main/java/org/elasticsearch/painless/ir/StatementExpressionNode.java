@@ -41,7 +41,7 @@ public class StatementExpressionNode extends StatementNode {
 
     @Override
     protected void write(ClassWriter classWriter, MethodWriter methodWriter, WriteScope writeScope) {
-        methodWriter.writeStatementOffset(location);
+        methodWriter.writeStatementOffset(getLocation());
         expressionNode.write(classWriter, methodWriter, writeScope);
         methodWriter.writePop(MethodWriter.getType(expressionNode.getExpressionType()).getSize());
     }

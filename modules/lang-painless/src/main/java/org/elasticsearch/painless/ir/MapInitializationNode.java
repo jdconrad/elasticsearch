@@ -87,7 +87,7 @@ public class MapInitializationNode extends ExpressionNode {
 
     @Override
     protected void write(ClassWriter classWriter, MethodWriter methodWriter, WriteScope writeScope) {
-        methodWriter.writeDebugInfo(location);
+        methodWriter.writeDebugInfo(getLocation());
 
         methodWriter.newInstance(MethodWriter.getType(getExpressionType()));
         methodWriter.dup();

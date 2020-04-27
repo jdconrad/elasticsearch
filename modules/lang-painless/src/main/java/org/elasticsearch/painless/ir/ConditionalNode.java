@@ -43,7 +43,7 @@ public class ConditionalNode extends BinaryNode {
 
     @Override
     protected void write(ClassWriter classWriter, MethodWriter methodWriter, WriteScope writeScope) {
-        methodWriter.writeDebugInfo(location);
+        methodWriter.writeDebugInfo(getLocation());
 
         Label fals = new Label();
         Label end = new Label();

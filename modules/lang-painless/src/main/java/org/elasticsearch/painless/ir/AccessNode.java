@@ -30,25 +30,4 @@ public class AccessNode extends BinaryNode {
         getLeftNode().write(classWriter, methodWriter, writeScope);
         getRightNode().write(classWriter, methodWriter, writeScope);
     }
-
-    @Override
-    protected int accessElementCount() {
-        return getRightNode().accessElementCount();
-    }
-
-    @Override
-    protected void setup(ClassWriter classWriter, MethodWriter methodWriter, WriteScope writeScope) {
-        getLeftNode().write(classWriter, methodWriter, writeScope);
-        getRightNode().setup(classWriter, methodWriter, writeScope);
-    }
-
-    @Override
-    protected void load(ClassWriter classWriter, MethodWriter methodWriter, WriteScope writeScope) {
-        getRightNode().load(classWriter, methodWriter, writeScope);
-    }
-
-    @Override
-    protected void store(ClassWriter classWriter, MethodWriter methodWriter, WriteScope writeScope) {
-        getRightNode().store(classWriter, methodWriter, writeScope);
-    }
 }

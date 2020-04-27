@@ -7,7 +7,7 @@
  * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -19,21 +19,20 @@
 
 package org.elasticsearch.painless.ir;
 
-import org.elasticsearch.painless.ClassWriter;
-import org.elasticsearch.painless.MethodWriter;
-import org.elasticsearch.painless.symbol.WriteScope;
-import org.objectweb.asm.Label;
+public class StoreNode extends ExpressionNode {
 
-public class NullSafeSubNode extends UnaryNode {
+    /* ---- begin tree structure ---- */
 
-    @Override
-    protected void write(ClassWriter classWriter, MethodWriter methodWriter, WriteScope writeScope) {
-        methodWriter.writeDebugInfo(getLocation());
+    private ExpressionNode valueNode;
 
-        Label end = new Label();
-        methodWriter.dup();
-        methodWriter.ifNull(end);
-        getChildNode().write(classWriter, methodWriter, writeScope);
-        methodWriter.mark(end);
+    public void setStoreNode(ExpressionNode valueNode) {
+        this.valueNode = valueNode;
     }
+
+    public ExpressionNode getValueNode() {
+        return valueNode;
+    }
+
+    /* ---- end tree structure ---- */
+
 }

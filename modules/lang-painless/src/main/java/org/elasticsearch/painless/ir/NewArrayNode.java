@@ -41,7 +41,7 @@ public class NewArrayNode extends ArgumentsNode {
 
     @Override
     protected void write(ClassWriter classWriter, MethodWriter methodWriter, WriteScope writeScope) {
-        methodWriter.writeDebugInfo(location);
+        methodWriter.writeDebugInfo(getLocation());
 
         if (initialize) {
             methodWriter.push(getArgumentNodes().size());

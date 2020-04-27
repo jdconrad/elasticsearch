@@ -26,7 +26,7 @@ import org.elasticsearch.painless.ScriptClassInfo;
 import org.elasticsearch.painless.ScriptClassInfo.MethodArgument;
 import org.elasticsearch.painless.ir.AccessNode;
 import org.elasticsearch.painless.ir.BlockNode;
-import org.elasticsearch.painless.ir.CallSubNode;
+import org.elasticsearch.painless.ir.InvokeCallNode;
 import org.elasticsearch.painless.ir.CatchNode;
 import org.elasticsearch.painless.ir.ClassNode;
 import org.elasticsearch.painless.ir.ConstantNode;
@@ -35,14 +35,14 @@ import org.elasticsearch.painless.ir.ExpressionNode;
 import org.elasticsearch.painless.ir.FieldNode;
 import org.elasticsearch.painless.ir.FunctionNode;
 import org.elasticsearch.painless.ir.IRNode;
-import org.elasticsearch.painless.ir.MemberCallNode;
-import org.elasticsearch.painless.ir.MemberFieldLoadNode;
+import org.elasticsearch.painless.ir.InvokeCallMemberNode;
+import org.elasticsearch.painless.ir.LoadFieldMemberNode;
 import org.elasticsearch.painless.ir.NullNode;
 import org.elasticsearch.painless.ir.ReturnNode;
 import org.elasticsearch.painless.ir.StaticNode;
 import org.elasticsearch.painless.ir.ThrowNode;
 import org.elasticsearch.painless.ir.TryNode;
-import org.elasticsearch.painless.ir.VariableNode;
+import org.elasticsearch.painless.ir.LoadVariableNode;
 import org.elasticsearch.painless.lookup.PainlessLookup;
 import org.elasticsearch.painless.lookup.PainlessMethod;
 import org.elasticsearch.painless.node.SFunction;
@@ -204,13 +204,13 @@ public class ESIRTreeBuilderPhase extends DefaultIRTreeBuilderPhase {
 
         blockNode.addStatementNode(returnNode);
 
-        MemberFieldLoadNode memberFieldLoadNode = new MemberFieldLoadNode();
-        memberFieldLoadNode.setLocation(internalLocation);
-        memberFieldLoadNode.setExpressionType(String.class);
-        memberFieldLoadNode.setName("$NAME");
-        memberFieldLoadNode.setStatic(true);
+        LoadFieldMemberNode loadFieldMemberNode = new LoadFieldMemberNode();
+        loadFieldMemberNode.setLocation(internalLocation);
+        loadFieldMemberNode.setExpressionType(String.class);
+        loadFieldMemberNode.setName("$NAME");
+        loadFieldMemberNode.setStatic(true);
 
-        returnNode.setExpressionNode(memberFieldLoadNode);
+        returnNode.setExpressionNode(loadFieldMemberNode);
 
         functionNode = new FunctionNode();
         functionNode.setLocation(internalLocation);
@@ -235,13 +235,13 @@ public class ESIRTreeBuilderPhase extends DefaultIRTreeBuilderPhase {
 
         blockNode.addStatementNode(returnNode);
 
-        memberFieldLoadNode = new MemberFieldLoadNode();
-        memberFieldLoadNode.setLocation(internalLocation);
-        memberFieldLoadNode.setExpressionType(String.class);
-        memberFieldLoadNode.setName("$SOURCE");
-        memberFieldLoadNode.setStatic(true);
+        loadFieldMemberNode = new LoadFieldMemberNode();
+        loadFieldMemberNode.setLocation(internalLocation);
+        loadFieldMemberNode.setExpressionType(String.class);
+        loadFieldMemberNode.setName("$SOURCE");
+        loadFieldMemberNode.setStatic(true);
 
-        returnNode.setExpressionNode(memberFieldLoadNode);
+        returnNode.setExpressionNode(loadFieldMemberNode);
 
         functionNode = new FunctionNode();
         functionNode.setLocation(internalLocation);
@@ -266,13 +266,13 @@ public class ESIRTreeBuilderPhase extends DefaultIRTreeBuilderPhase {
 
         blockNode.addStatementNode(returnNode);
 
-        memberFieldLoadNode = new MemberFieldLoadNode();
-        memberFieldLoadNode.setLocation(internalLocation);
-        memberFieldLoadNode.setExpressionType(BitSet.class);
-        memberFieldLoadNode.setName("$STATEMENTS");
-        memberFieldLoadNode.setStatic(true);
+        loadFieldMemberNode = new LoadFieldMemberNode();
+        loadFieldMemberNode.setLocation(internalLocation);
+        loadFieldMemberNode.setExpressionType(BitSet.class);
+        loadFieldMemberNode.setName("$STATEMENTS");
+        loadFieldMemberNode.setStatic(true);
 
-        returnNode.setExpressionNode(memberFieldLoadNode);
+        returnNode.setExpressionNode(loadFieldMemberNode);
     }
 
     // convert gets methods to a new set of inserted ir nodes as necessary -
@@ -296,12 +296,12 @@ public class ESIRTreeBuilderPhase extends DefaultIRTreeBuilderPhase {
                 declarationNode.setDeclarationType(returnType);
                 blockNode.getStatementsNodes().add(0, declarationNode);
 
-                MemberCallNode memberCallNode = new MemberCallNode();
-                memberCallNode.setLocation(internalLocation);
-                memberCallNode.setExpressionType(declarationNode.getDeclarationType());
-                memberCallNode.setLocalFunction(new LocalFunction(
+                InvokeCallMemberNode invokeCallMemberNode = new InvokeCallMemberNode();
+                invokeCallMemberNode.setLocation(internalLocation);
+                invokeCallMemberNode.setExpressionType(declarationNode.getDeclarationType());
+                invokeCallMemberNode.setLocalFunction(new LocalFunction(
                         getMethod.getName(), returnType, Collections.emptyList(), true, false));
-                declarationNode.setExpressionNode(memberCallNode);
+                declarationNode.setExpressionNode(invokeCallMemberNode);
             }
         }
     }
@@ -385,10 +385,10 @@ public class ESIRTreeBuilderPhase extends DefaultIRTreeBuilderPhase {
 
             catchBlockNode.addStatementNode(throwNode);
 
-            MemberCallNode memberCallNode = new MemberCallNode();
-            memberCallNode.setLocation(internalLocation);
-            memberCallNode.setExpressionType(ScriptException.class);
-            memberCallNode.setLocalFunction(new LocalFunction(
+            InvokeCallMemberNode invokeCallMemberNode = new InvokeCallMemberNode();
+            invokeCallMemberNode.setLocation(internalLocation);
+            invokeCallMemberNode.setExpressionType(ScriptException.class);
+            invokeCallMemberNode.setLocalFunction(new LocalFunction(
                             "convertToScriptException",
                             ScriptException.class,
                             Arrays.asList(Throwable.class, Map.class),
@@ -397,33 +397,33 @@ public class ESIRTreeBuilderPhase extends DefaultIRTreeBuilderPhase {
                     )
             );
 
-            throwNode.setExpressionNode(memberCallNode);
+            throwNode.setExpressionNode(invokeCallMemberNode);
 
-            VariableNode variableNode = new VariableNode();
-            variableNode.setLocation(internalLocation);
-            variableNode.setExpressionType(ScriptException.class);
-            variableNode.setName("#painlessExplainError");
+            LoadVariableNode loadVariableNode = new LoadVariableNode();
+            loadVariableNode.setLocation(internalLocation);
+            loadVariableNode.setExpressionType(ScriptException.class);
+            loadVariableNode.setName("#painlessExplainError");
 
-            memberCallNode.addArgumentNode(variableNode);
+            invokeCallMemberNode.addArgumentNode(loadVariableNode);
 
             AccessNode irAccessNode = new AccessNode();
             irAccessNode.setLocation(internalLocation);
             irAccessNode.setExpressionType(Map.class);
 
-            memberCallNode.addArgumentNode(irAccessNode);
+            invokeCallMemberNode.addArgumentNode(irAccessNode);
 
-            variableNode = new VariableNode();
-            variableNode.setLocation(internalLocation);
-            variableNode.setExpressionType(PainlessExplainError.class);
-            variableNode.setName("#painlessExplainError");
+            loadVariableNode = new LoadVariableNode();
+            loadVariableNode.setLocation(internalLocation);
+            loadVariableNode.setExpressionType(PainlessExplainError.class);
+            loadVariableNode.setName("#painlessExplainError");
 
-            irAccessNode.setLeftNode(variableNode);
+            irAccessNode.setLeftNode(loadVariableNode);
 
-            CallSubNode callSubNode = new CallSubNode();
-            callSubNode.setLocation(internalLocation);
-            callSubNode.setExpressionType(Map.class);
-            callSubNode.setBox(PainlessExplainError.class);
-            callSubNode.setMethod(new PainlessMethod(
+            InvokeCallNode invokeCallNode = new InvokeCallNode();
+            invokeCallNode.setLocation(internalLocation);
+            invokeCallNode.setExpressionType(Map.class);
+            invokeCallNode.setBox(PainlessExplainError.class);
+            invokeCallNode.setMethod(new PainlessMethod(
                             PainlessExplainError.class.getMethod(
                                     "getHeaders",
                                     PainlessLookup.class),
@@ -436,15 +436,15 @@ public class ESIRTreeBuilderPhase extends DefaultIRTreeBuilderPhase {
                     )
             );
 
-            irAccessNode.setRightNode(callSubNode);
+            irAccessNode.setRightNode(invokeCallNode);
 
-            MemberFieldLoadNode memberFieldLoadNode = new MemberFieldLoadNode();
-            memberFieldLoadNode.setLocation(internalLocation);
-            memberFieldLoadNode.setExpressionType(PainlessLookup.class);
-            memberFieldLoadNode.setName("$DEFINITION");
-            memberFieldLoadNode.setStatic(true);
+            LoadFieldMemberNode loadFieldMemberNode = new LoadFieldMemberNode();
+            loadFieldMemberNode.setLocation(internalLocation);
+            loadFieldMemberNode.setExpressionType(PainlessLookup.class);
+            loadFieldMemberNode.setName("$DEFINITION");
+            loadFieldMemberNode.setStatic(true);
 
-            callSubNode.addArgumentNode(memberFieldLoadNode);
+            invokeCallNode.addArgumentNode(loadFieldMemberNode);
 
             for (Class<?> throwable : new Class<?>[] {
                     PainlessError.class, BootstrapMethodError.class, OutOfMemoryError.class, StackOverflowError.class, Exception.class}) {
@@ -471,10 +471,10 @@ public class ESIRTreeBuilderPhase extends DefaultIRTreeBuilderPhase {
 
                 catchBlockNode.addStatementNode(throwNode);
 
-                memberCallNode = new MemberCallNode();
-                memberCallNode.setLocation(internalLocation);
-                memberCallNode.setExpressionType(ScriptException.class);
-                memberCallNode.setLocalFunction(new LocalFunction(
+                invokeCallMemberNode = new InvokeCallMemberNode();
+                invokeCallMemberNode.setLocation(internalLocation);
+                invokeCallMemberNode.setExpressionType(ScriptException.class);
+                invokeCallMemberNode.setLocalFunction(new LocalFunction(
                                 "convertToScriptException",
                                 ScriptException.class,
                                 Arrays.asList(Throwable.class, Map.class),
@@ -483,20 +483,20 @@ public class ESIRTreeBuilderPhase extends DefaultIRTreeBuilderPhase {
                         )
                 );
 
-                throwNode.setExpressionNode(memberCallNode);
+                throwNode.setExpressionNode(invokeCallMemberNode);
 
-                variableNode = new VariableNode();
-                variableNode.setLocation(internalLocation);
-                variableNode.setExpressionType(ScriptException.class);
-                variableNode.setName(name);
+                loadVariableNode = new LoadVariableNode();
+                loadVariableNode.setLocation(internalLocation);
+                loadVariableNode.setExpressionType(ScriptException.class);
+                loadVariableNode.setName(name);
 
-                memberCallNode.addArgumentNode(variableNode);
+                invokeCallMemberNode.addArgumentNode(loadVariableNode);
 
                 irAccessNode = new AccessNode();
                 irAccessNode.setLocation(internalLocation);
                 irAccessNode.setExpressionType(Map.class);
 
-                memberCallNode.addArgumentNode(irAccessNode);
+                invokeCallMemberNode.addArgumentNode(irAccessNode);
 
                 StaticNode staticNode = new StaticNode();
                 staticNode.setLocation(internalLocation);
@@ -504,11 +504,11 @@ public class ESIRTreeBuilderPhase extends DefaultIRTreeBuilderPhase {
 
                 irAccessNode.setLeftNode(staticNode);
 
-                callSubNode = new CallSubNode();
-                callSubNode.setLocation(internalLocation);
-                callSubNode.setExpressionType(Map.class);
-                callSubNode.setBox(Collections.class);
-                callSubNode.setMethod(new PainlessMethod(
+                invokeCallNode = new InvokeCallNode();
+                invokeCallNode.setLocation(internalLocation);
+                invokeCallNode.setExpressionType(Map.class);
+                invokeCallNode.setBox(Collections.class);
+                invokeCallNode.setMethod(new PainlessMethod(
                                 Collections.class.getMethod("emptyMap"),
                                 Collections.class,
                                 null,
@@ -519,7 +519,7 @@ public class ESIRTreeBuilderPhase extends DefaultIRTreeBuilderPhase {
                         )
                 );
 
-                irAccessNode.setRightNode(callSubNode);
+                irAccessNode.setRightNode(invokeCallNode);
             }
 
             blockNode = new BlockNode();

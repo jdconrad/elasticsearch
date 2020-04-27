@@ -22,18 +22,29 @@ package org.elasticsearch.painless.ir;
 import org.elasticsearch.painless.ClassWriter;
 import org.elasticsearch.painless.MethodWriter;
 import org.elasticsearch.painless.symbol.WriteScope;
-import org.objectweb.asm.Label;
+import org.elasticsearch.painless.symbol.WriteScope.Variable;
+import org.objectweb.asm.Opcodes;
 
-public class NullSafeSubNode extends UnaryNode {
+public class StoreVariableNode extends StoreNode {
+
+    /* ---- begin node data ---- */
+
+    private String name;
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    /* ---- end node data ---- */
 
     @Override
     protected void write(ClassWriter classWriter, MethodWriter methodWriter, WriteScope writeScope) {
-        methodWriter.writeDebugInfo(getLocation());
-
-        Label end = new Label();
-        methodWriter.dup();
-        methodWriter.ifNull(end);
-        getChildNode().write(classWriter, methodWriter, writeScope);
-        methodWriter.mark(end);
+        getValueNode().write(classWriter, methodWriter, writeScope);
+        Variable variable = writeScope.getVariable(name);
+        methodWriter.visitVarInsn(variable.getAsmType().getOpcode(Opcodes.ISTORE), variable.getSlot());
     }
 }

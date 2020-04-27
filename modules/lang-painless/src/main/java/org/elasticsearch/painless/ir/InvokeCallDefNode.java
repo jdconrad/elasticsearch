@@ -30,7 +30,7 @@ import java.util.List;
 
 import static org.elasticsearch.painless.symbol.WriteScope.Variable;
 
-public class CallSubDefNode extends ArgumentsNode {
+public class InvokeCallDefNode extends ArgumentsNode {
 
     /* ---- begin node data ---- */
 
@@ -51,7 +51,7 @@ public class CallSubDefNode extends ArgumentsNode {
      */
     @Override
     protected void write(ClassWriter classWriter, MethodWriter methodWriter, WriteScope writeScope) {
-        methodWriter.writeDebugInfo(location);
+        methodWriter.writeDebugInfo(getLocation());
 
         // its possible to have unknown functional interfaces
         // as arguments that require captures; the set of

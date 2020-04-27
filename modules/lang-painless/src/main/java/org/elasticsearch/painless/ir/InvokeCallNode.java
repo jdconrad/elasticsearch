@@ -21,19 +21,46 @@ package org.elasticsearch.painless.ir;
 
 import org.elasticsearch.painless.ClassWriter;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.lookup.PainlessMethod;
 import org.elasticsearch.painless.symbol.WriteScope;
-import org.objectweb.asm.Label;
 
-public class NullSafeSubNode extends UnaryNode {
+public class InvokeCallNode extends ArgumentsNode {
+
+    /* ---- begin node data ---- */
+
+    private PainlessMethod method;
+    private Class<?> box;
+
+    public void setMethod(PainlessMethod method) {
+        this.method = method;
+    }
+
+    public PainlessMethod getMethod() {
+        return method;
+    }
+
+    public void setBox(Class<?> box) {
+        this.box = box;
+    }
+
+    public Class<?> getBox() {
+        return box;
+    }
+
+    /* ---- end node data ---- */
 
     @Override
     protected void write(ClassWriter classWriter, MethodWriter methodWriter, WriteScope writeScope) {
         methodWriter.writeDebugInfo(getLocation());
 
-        Label end = new Label();
-        methodWriter.dup();
-        methodWriter.ifNull(end);
-        getChildNode().write(classWriter, methodWriter, writeScope);
-        methodWriter.mark(end);
+        if (box.isPrimitive()) {
+            methodWriter.box(MethodWriter.getType(box));
+        }
+
+        for (ExpressionNode argumentNode : getArgumentNodes()) {
+            argumentNode.write(classWriter, methodWriter, writeScope);
+        }
+
+        methodWriter.invokeMethodCall(method);
     }
 }

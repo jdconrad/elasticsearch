@@ -21,19 +21,36 @@ package org.elasticsearch.painless.ir;
 
 import org.elasticsearch.painless.ClassWriter;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.lookup.PainlessField;
 import org.elasticsearch.painless.symbol.WriteScope;
-import org.objectweb.asm.Label;
+import org.objectweb.asm.Type;
 
-public class NullSafeSubNode extends UnaryNode {
+public class LoadDotNode extends ExpressionNode {
+
+    /* ---- begin node data ---- */
+
+    private PainlessField field;
+
+    public void setField(PainlessField field) {
+        this.field = field;
+    }
+
+    public PainlessField getField() {
+        return field;
+    }
+
+    /* ---- end node data ---- */
 
     @Override
     protected void write(ClassWriter classWriter, MethodWriter methodWriter, WriteScope writeScope) {
         methodWriter.writeDebugInfo(getLocation());
 
-        Label end = new Label();
-        methodWriter.dup();
-        methodWriter.ifNull(end);
-        getChildNode().write(classWriter, methodWriter, writeScope);
-        methodWriter.mark(end);
+        if (java.lang.reflect.Modifier.isStatic(field.javaField.getModifiers())) {
+            methodWriter.getStatic(Type.getType(
+                    field.javaField.getDeclaringClass()), field.javaField.getName(), MethodWriter.getType(field.typeParameter));
+        } else {
+            methodWriter.getField(Type.getType(
+                    field.javaField.getDeclaringClass()), field.javaField.getName(), MethodWriter.getType(field.typeParameter));
+        }
     }
 }

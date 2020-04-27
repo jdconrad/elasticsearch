@@ -21,12 +21,12 @@ package org.elasticsearch.painless.node;
 
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.ir.AccessNode;
-import org.elasticsearch.painless.ir.BraceSubDefNode;
-import org.elasticsearch.painless.ir.BraceSubNode;
+import org.elasticsearch.painless.ir.LoadBraceDefNode;
+import org.elasticsearch.painless.ir.LoadBraceNode;
 import org.elasticsearch.painless.ir.ExpressionNode;
 import org.elasticsearch.painless.ir.IRNode;
-import org.elasticsearch.painless.ir.ListSubShortcutNode;
-import org.elasticsearch.painless.ir.MapSubShortcutNode;
+import org.elasticsearch.painless.ir.LoadListShortcutNode;
+import org.elasticsearch.painless.ir.LoadMapShortcutNode;
 import org.elasticsearch.painless.lookup.PainlessLookupUtility;
 import org.elasticsearch.painless.lookup.PainlessMethod;
 import org.elasticsearch.painless.lookup.def;
@@ -215,51 +215,51 @@ public class EBrace extends AExpression {
         Class<?> prefixValueType = scriptScope.getDecoration(userBraceNode.getPrefixNode(), ValueType.class).getValueType();
 
         if (prefixValueType.isArray()) {
-            BraceSubNode braceSubNode = new BraceSubNode();
-            braceSubNode.setChildNode(visitor.injectCast(userBraceNode.getIndexNode(), scriptScope));
-            braceSubNode.setLocation(userBraceNode.getLocation());
-            braceSubNode.setExpressionType(scriptScope.getDecoration(userBraceNode, ValueType.class).getValueType());
-            irExpressionNode = braceSubNode;
+            LoadBraceNode loadBraceNode = new LoadBraceNode();
+            loadBraceNode.setChildNode(visitor.injectCast(userBraceNode.getIndexNode(), scriptScope));
+            loadBraceNode.setLocation(userBraceNode.getLocation());
+            loadBraceNode.setExpressionType(scriptScope.getDecoration(userBraceNode, ValueType.class).getValueType());
+            irExpressionNode = loadBraceNode;
         } else if (prefixValueType == def.class) {
-            BraceSubDefNode braceSubDefNode = new BraceSubDefNode();
-            braceSubDefNode.setChildNode((ExpressionNode)visitor.visit(userBraceNode.getIndexNode(), scriptScope));
-            braceSubDefNode.setLocation(userBraceNode.getLocation());
-            braceSubDefNode.setExpressionType(scriptScope.getDecoration(userBraceNode, ValueType.class).getValueType());
-            irExpressionNode = braceSubDefNode;
+            LoadBraceDefNode loadBraceDefNode = new LoadBraceDefNode();
+            loadBraceDefNode.setChildNode((ExpressionNode)visitor.visit(userBraceNode.getIndexNode(), scriptScope));
+            loadBraceDefNode.setLocation(userBraceNode.getLocation());
+            loadBraceDefNode.setExpressionType(scriptScope.getDecoration(userBraceNode, ValueType.class).getValueType());
+            irExpressionNode = loadBraceDefNode;
         } else if (scriptScope.getCondition(userBraceNode, MapShortcut.class)) {
-            MapSubShortcutNode mapSubShortcutNode = new MapSubShortcutNode();
-            mapSubShortcutNode.setChildNode(visitor.injectCast(userBraceNode.getIndexNode(), scriptScope));
-            mapSubShortcutNode.setLocation(userBraceNode.getLocation());
-            mapSubShortcutNode.setExpressionType(scriptScope.getDecoration(userBraceNode, ValueType.class).getValueType());
+            LoadMapShortcutNode loadMapShortcutNode = new LoadMapShortcutNode();
+            loadMapShortcutNode.setChildNode(visitor.injectCast(userBraceNode.getIndexNode(), scriptScope));
+            loadMapShortcutNode.setLocation(userBraceNode.getLocation());
+            loadMapShortcutNode.setExpressionType(scriptScope.getDecoration(userBraceNode, ValueType.class).getValueType());
 
             if (scriptScope.hasDecoration(userBraceNode, GetterPainlessMethod.class)) {
-                mapSubShortcutNode.setGetter(
+                loadMapShortcutNode.setGetter(
                         scriptScope.getDecoration(userBraceNode, GetterPainlessMethod.class).getGetterPainlessMethod());
             }
 
             if (scriptScope.hasDecoration(userBraceNode, SetterPainlessMethod.class)) {
-                mapSubShortcutNode.setSetter(
+                loadMapShortcutNode.setSetter(
                         scriptScope.getDecoration(userBraceNode, SetterPainlessMethod.class).getSetterPainlessMethod());
             }
 
-            irExpressionNode = mapSubShortcutNode;
+            irExpressionNode = loadMapShortcutNode;
         } else if (scriptScope.getCondition(userBraceNode, ListShortcut.class)) {
-            ListSubShortcutNode listSubShortcutNode = new ListSubShortcutNode();
-            listSubShortcutNode.setChildNode(visitor.injectCast(userBraceNode.getIndexNode(), scriptScope));
-            listSubShortcutNode.setLocation(userBraceNode.getLocation());
-            listSubShortcutNode.setExpressionType(scriptScope.getDecoration(userBraceNode, ValueType.class).getValueType());
+            LoadListShortcutNode loadListShortcutNode = new LoadListShortcutNode();
+            loadListShortcutNode.setChildNode(visitor.injectCast(userBraceNode.getIndexNode(), scriptScope));
+            loadListShortcutNode.setLocation(userBraceNode.getLocation());
+            loadListShortcutNode.setExpressionType(scriptScope.getDecoration(userBraceNode, ValueType.class).getValueType());
 
             if (scriptScope.hasDecoration(userBraceNode, GetterPainlessMethod.class)) {
-                listSubShortcutNode.setGetter(
+                loadListShortcutNode.setGetter(
                         scriptScope.getDecoration(userBraceNode, GetterPainlessMethod.class).getGetterPainlessMethod());
             }
 
             if (scriptScope.hasDecoration(userBraceNode, SetterPainlessMethod.class)) {
-                listSubShortcutNode.setSetter(
+                loadListShortcutNode.setSetter(
                         scriptScope.getDecoration(userBraceNode, SetterPainlessMethod.class).getSetterPainlessMethod());
             }
 
-            irExpressionNode = listSubShortcutNode;
+            irExpressionNode = loadListShortcutNode;
         } else {
             throw userBraceNode.createError(new IllegalStateException("illegal tree structure"));
         }
