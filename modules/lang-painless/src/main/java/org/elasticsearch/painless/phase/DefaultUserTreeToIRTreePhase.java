@@ -22,6 +22,7 @@ package org.elasticsearch.painless.phase;
 import org.elasticsearch.painless.DefBootstrap;
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.MethodWriter;
+import org.elasticsearch.painless.Operation;
 import org.elasticsearch.painless.ir.BinaryMathNode;
 import org.elasticsearch.painless.ir.BinaryNode;
 import org.elasticsearch.painless.ir.BlockNode;
@@ -90,6 +91,7 @@ import org.elasticsearch.painless.ir.StoreListShortcutNode;
 import org.elasticsearch.painless.ir.StoreMapShortcutNode;
 import org.elasticsearch.painless.ir.StoreNode;
 import org.elasticsearch.painless.ir.StoreVariableNode;
+import org.elasticsearch.painless.ir.StringConcatenateNode;
 import org.elasticsearch.painless.ir.ThrowNode;
 import org.elasticsearch.painless.ir.TryNode;
 import org.elasticsearch.painless.ir.TypedCaptureReferenceNode;
@@ -922,25 +924,55 @@ public class DefaultUserTreeToIRTreePhase implements UserTreeVisitor<ScriptScope
 
     @Override
     public void visitBinary(EBinary userBinaryNode, ScriptScope scriptScope) {
-        Class<?> shiftType = scriptScope.hasDecoration(userBinaryNode, ShiftType.class) ?
-                scriptScope.getDecoration(userBinaryNode, ShiftType.class).getShiftType() : null;
+        Operation operation = userBinaryNode.getOperation();
+        Class<?> type = scriptScope.getDecoration(userBinaryNode, ValueType.class).getValueType();
 
-        BinaryMathNode irBinaryMathNode = new BinaryMathNode();
-        irBinaryMathNode.setLocation(userBinaryNode.getLocation());
-        irBinaryMathNode.setExpressionType(scriptScope.getDecoration(userBinaryNode, ValueType.class).getValueType());
-        irBinaryMathNode.setBinaryType(scriptScope.getDecoration(userBinaryNode, BinaryType.class).getBinaryType());
-        irBinaryMathNode.setShiftType(shiftType);
-        irBinaryMathNode.setOperation(userBinaryNode.getOperation());
-        irBinaryMathNode.setCat(scriptScope.getCondition(userBinaryNode, Concatenate.class));
+        if (operation == Operation.ADD && type == String.class) {
+            StringConcatenateNode irStringConcatenateNode;
 
-        if (scriptScope.getCondition(userBinaryNode, Explicit.class)) {
-            irBinaryMathNode.setFlags(DefBootstrap.OPERATOR_EXPLICIT_CAST);
+            if (scriptScope.getCondition(userBinaryNode, Concatenate.class) == false) {
+                irStringConcatenateNode = new StringConcatenateNode();
+                irStringConcatenateNode.setLocation(userBinaryNode.getLocation());
+                irStringConcatenateNode.setExpressionType(String.class);
+                scriptScope.putDecoration(userBinaryNode, new IRNodeDecoration(irStringConcatenateNode));
+            } else {
+                irStringConcatenateNode =
+                        (StringConcatenateNode)scriptScope.getDecoration(userBinaryNode, IRNodeDecoration.class).getIRNode();
+            }
+
+            if (scriptScope.getCondition(userBinaryNode.getLeftNode(), Concatenate.class)) {
+                scriptScope.putDecoration(userBinaryNode.getLeftNode(), new IRNodeDecoration(irStringConcatenateNode));
+                visit(userBinaryNode.getLeftNode(), scriptScope);
+            } else {
+                irStringConcatenateNode.addArgumentNode((ExpressionNode)visit(userBinaryNode.getLeftNode(), scriptScope));
+            }
+
+            if (scriptScope.getCondition(userBinaryNode.getRightNode(), Concatenate.class)) {
+                scriptScope.putDecoration(userBinaryNode.getRightNode(), new IRNodeDecoration(irStringConcatenateNode));
+                visit(userBinaryNode.getLeftNode(), scriptScope);
+            } else {
+                irStringConcatenateNode.addArgumentNode((ExpressionNode)visit(userBinaryNode.getRightNode(), scriptScope));
+            }
+        } else {
+            Class<?> shiftType = scriptScope.hasDecoration(userBinaryNode, ShiftType.class) ?
+                    scriptScope.getDecoration(userBinaryNode, ShiftType.class).getShiftType() : null;
+
+            BinaryMathNode irBinaryMathNode = new BinaryMathNode();
+            irBinaryMathNode.setLocation(userBinaryNode.getLocation());
+            irBinaryMathNode.setExpressionType(type);
+            irBinaryMathNode.setBinaryType(scriptScope.getDecoration(userBinaryNode, BinaryType.class).getBinaryType());
+            irBinaryMathNode.setShiftType(shiftType);
+            irBinaryMathNode.setOperation(userBinaryNode.getOperation());
+
+            if (scriptScope.getCondition(userBinaryNode, Explicit.class)) {
+                irBinaryMathNode.setFlags(DefBootstrap.OPERATOR_EXPLICIT_CAST);
+            }
+
+            irBinaryMathNode.setLeftNode(injectCast(userBinaryNode.getLeftNode(), scriptScope));
+            irBinaryMathNode.setRightNode(injectCast(userBinaryNode.getRightNode(), scriptScope));
+
+            scriptScope.putDecoration(userBinaryNode, new IRNodeDecoration(irBinaryMathNode));
         }
-
-        irBinaryMathNode.setLeftNode(injectCast(userBinaryNode.getLeftNode(), scriptScope));
-        irBinaryMathNode.setRightNode(injectCast(userBinaryNode.getRightNode(), scriptScope));
-
-        scriptScope.putDecoration(userBinaryNode, new IRNodeDecoration(irBinaryMathNode));
     }
 
     @Override
