@@ -138,9 +138,9 @@ public final class MethodWriter extends GeneratorAdapter {
      */
     public void writeDebugInfo(Location location) {
         // TODO: maybe track these in bitsets too? this is trickier...
-        Label label = new Label();
-        visitLabel(label);
-        visitLineNumber(location.getOffset() + 1, label);
+        //Label label = new Label();
+        //visitLabel(label);
+        //visitLineNumber(location.getOffset() + 1, label);
     }
 
     public void writeLoopCounter(int slot, Location location) {

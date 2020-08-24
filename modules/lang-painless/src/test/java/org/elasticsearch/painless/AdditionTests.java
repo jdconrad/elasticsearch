@@ -19,9 +19,174 @@
 
 package org.elasticsearch.painless;
 
+import org.elasticsearch.common.hash.MessageDigests;
+
+import java.io.BufferedReader;
+import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 /** Tests for addition operator across all types */
 //TODO: NaN/Inf/overflow/...
 public class AdditionTests extends ScriptTestCase {
+
+    public void testDiff() throws Exception {
+        String info = "\n";
+
+        BufferedReader reader8 = new BufferedReader(new FileReader("/home/jdconrad/test8"));
+
+        Map<String, String> map8 = new HashMap<>();
+        String line8 = reader8.readLine();
+        StringBuilder builder8 = new StringBuilder();
+
+        while (line8 != null) {
+            if ("".equals(line8)) {
+                String test8 = builder8.toString();
+                String key8 = test8.substring(0, test8.indexOf("\n")) + ":" +
+                        MessageDigests.toHexString(MessageDigests.sha256().digest(test8.getBytes()));
+                map8.put(key8, test8);
+                builder8 = new StringBuilder();
+            } else {
+                if (line8.contains("IINC 1") == false) {
+                    builder8.append(line8).append("\n");
+                }
+            }
+            line8 = reader8.readLine();
+        }
+
+        BufferedReader reader7 = new BufferedReader(new FileReader("/home/jdconrad/test7"));
+
+        Map<String, String> map7 = new HashMap<>();
+        String line7 = reader7.readLine();
+        StringBuilder builder7 = new StringBuilder();
+
+        while (line7 != null) {
+            if ("".equals(line7)) {
+                String test7 = builder7.toString();
+                String key7 = test7.substring(0, test7.indexOf("\n")) + ":" +
+                        MessageDigests.toHexString(MessageDigests.sha256().digest(test7.getBytes()));
+                map7.put(key7, test7);
+                builder7 = new StringBuilder();
+            } else {
+                if (line7.contains("IINC 1") == false) {
+                    builder7.append(line7).append("\n");
+                }
+            }
+            line7 = reader7.readLine();
+        }
+
+        info += map8.keySet().size() + " - " + map7.keySet().size() + "\n";
+
+        List<String> remove = new ArrayList<>();
+
+        for (String key8 : map8.keySet()) {
+            if (map7.containsKey(key8)) {
+                remove.add(key8);
+            }
+        }
+
+        for (String rkey : remove) {
+            map8.remove(rkey);
+            map7.remove(rkey);
+        }
+
+        info += map8.keySet().size() + " - " + map7.keySet().size() + "\n";
+
+        // remove tests that don't exist in both
+
+        Set<String> names8 = new HashSet<>();
+
+        for (String key8 : map8.keySet()) {
+            names8.add(key8.substring(0, key8.indexOf(':')));
+        }
+
+        Set<String> names7 = new HashSet<>();
+
+        for (String key7 : map7.keySet()) {
+            names7.add(key7.substring(0, key7.indexOf(':')));
+        }
+
+        info += names8.size() + " - " + names7.size() + "\n";
+
+        Set<String> remove8 = new HashSet<>();
+
+        for (String name8 : names8) {
+            if (names7.contains(name8) == false) {
+                remove8.add(name8);
+            }
+        }
+
+        remove.clear();
+
+        for (String key8 : map8.keySet()) {
+            if (remove8.contains(key8.substring(0, key8.indexOf(':')))) {
+                remove.add(key8);
+            }
+        }
+
+        for (String rkey : remove) {
+            map8.remove(rkey);
+        }
+
+        Set<String> remove7 = new HashSet<>();
+
+        for (String name7 : names7) {
+            if (names8.contains(name7) == false) {
+                remove7.add(name7);
+            }
+        }
+
+        remove.clear();
+
+        for (String key7 : map7.keySet()) {
+            if (remove7.contains(key7.substring(0, key7.indexOf(':')))) {
+                remove.add(key7);
+            }
+        }
+
+        for (String rkey : remove) {
+            map7.remove(rkey);
+        }
+
+        info += map8.keySet().size() + " - " + map7.keySet().size() + "\n";
+
+        List<String> sort8 = new ArrayList<>(map8.keySet());
+        sort8.sort(String::compareTo);
+
+        List<String> sort7 = new ArrayList<>(map7.keySet());
+        sort7.sort(String::compareTo);
+
+        PrintWriter writer = new PrintWriter(new FileOutputStream("/home/jdconrad/test7o"));
+        writer.write(info + "7");
+        writer.write("\n\n");
+
+        for (String key7 : sort7) {
+            writer.write(map7.get(key7));
+            writer.write("\n\n");
+        }
+
+        writer.close();
+
+        writer = new PrintWriter(new FileOutputStream("/home/jdconrad/test8o"));
+        writer.write(info + "8");
+        writer.write("\n\n");
+
+        for (String key8 : sort8) {
+            writer.write(map8.get(key8));
+            writer.write("\n\n");
+        }
+
+        writer.close();
+
+        //throw new IllegalArgumentException(info + "\n" + builder8.toString() + "\n" + builder7.toString());
+    }
 
     public void testBasics() throws Exception {
         assertEquals(3.0, exec("double x = 1; byte y = 2; return x + y;"));
