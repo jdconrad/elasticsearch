@@ -54,7 +54,8 @@ public class AdditionTests extends ScriptTestCase {
                 map8.put(key8, test8);
                 builder8 = new StringBuilder();
             } else {
-                if (line8.contains("IINC 1") == false) {
+                if (line8.contains("IINC 1") == false &&
+                        line8.contains("INVOKEVIRTUAL org/elasticsearch/painless/PainlessScript$Script.getParams ()Ljava/util/Map;") == false) {
                     builder8.append(line8).append("\n");
                 }
             }
@@ -75,7 +76,8 @@ public class AdditionTests extends ScriptTestCase {
                 map7.put(key7, test7);
                 builder7 = new StringBuilder();
             } else {
-                if (line7.contains("IINC 1") == false) {
+                if (line7.contains("IINC 1") == false &&
+                        line7.contains("INVOKEVIRTUAL org/elasticsearch/painless/action/PainlessExecuteAction$PainlessTestScript.getParams ()Ljava/util/Map;") == false) {
                     builder7.append(line7).append("\n");
                 }
             }

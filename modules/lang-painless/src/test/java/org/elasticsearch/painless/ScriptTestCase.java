@@ -94,7 +94,7 @@ public abstract class ScriptTestCase extends ESTestCase {
 
     /** Compiles and returns the result of {@code script} with access to {@code vars} and compile-time parameters */
     public Object exec(String script, Map<String, Object> vars, Map<String,String> compileParams, boolean picky) {
-        try {
+        /*try {
             CompilerSettings settings = new CompilerSettings();
             settings.setRegexesEnabled(CompilerSettings.REGEX_ENABLED.get(scriptEngineSettings()));
             PrintWriter writer = new PrintWriter(new FileOutputStream("/home/jdconrad/test8", true));
@@ -112,10 +112,10 @@ public abstract class ScriptTestCase extends ESTestCase {
             writer.close();
         } catch (IOException ioe) {
             throw new RuntimeException(ioe);
-        }
+        }*/
 
         // test for ambiguity errors before running the actual script if picky is true
-        /*if (picky) {
+        if (picky) {
             CompilerSettings pickySettings = new CompilerSettings();
             pickySettings.setPicky(true);
             pickySettings.setRegexesEnabled(CompilerSettings.REGEX_ENABLED.get(scriptEngineSettings()));
@@ -124,8 +124,8 @@ public abstract class ScriptTestCase extends ESTestCase {
         // test actual script execution
         PainlessTestScript.Factory factory = scriptEngine.compile(null, script, PainlessTestScript.CONTEXT, compileParams);
         PainlessTestScript testScript = factory.newInstance(vars == null ? Collections.emptyMap() : vars);
-        return testScript.execute();*/
-        return null;
+        return testScript.execute();
+        //return null;
     }
 
     /**
