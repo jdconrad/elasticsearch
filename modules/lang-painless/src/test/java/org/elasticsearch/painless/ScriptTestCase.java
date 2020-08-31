@@ -20,6 +20,7 @@
 package org.elasticsearch.painless;
 
 import junit.framework.AssertionFailedError;
+import org.elasticsearch.common.hash.MessageDigests;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.painless.antlr.Walker;
 import org.elasticsearch.painless.spi.Whitelist;
@@ -29,6 +30,12 @@ import org.elasticsearch.script.ScriptException;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Before;
 
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -44,6 +51,7 @@ import static org.hamcrest.Matchers.hasSize;
  * Typically just asserts the output of {@code exec()}
  */
 public abstract class ScriptTestCase extends ESTestCase {
+
     protected PainlessScriptEngine scriptEngine;
 
     @Before
@@ -88,8 +96,26 @@ public abstract class ScriptTestCase extends ESTestCase {
 
     /** Compiles and returns the result of {@code script} with access to {@code vars} and compile-time parameters */
     public Object exec(String script, Map<String, Object> vars, Map<String,String> compileParams, boolean picky) {
+        try {
+            CompilerSettings settings = new CompilerSettings();
+            settings.setRegexesEnabled(CompilerSettings.REGEX_ENABLED.get(scriptEngineSettings()));
+            PrintWriter writer = new PrintWriter(new FileOutputStream("/home/jdconrad/test7", true));
+            String asm = Debugger.toString(PainlessTestScript.class, script, settings,
+                    scriptEngine.getContextsToLookups().get(PainlessTestScript.CONTEXT));
+            asm = asm.substring(asm.indexOf("public execute"));
+            asm = asm.substring(0, asm.lastIndexOf("RETURN") + 6);
+            asm = asm.substring(asm.indexOf("\n") + 1);
+            asm = asm.substring(asm.indexOf("\n") + 1);
+            asm = asm.substring(asm.indexOf("\n") + 1);
+            asm = asm.substring(asm.indexOf("\n") + 1);
+            writer.println(this.getClass().getSimpleName() + "-" + this.getTestName() + "\n" + asm + "\n");
+            writer.close();
+        } catch (Exception exception) {
+            // do nothing
+        }
+
         // test for ambiguity errors before running the actual script if picky is true
-        if (picky) {
+        /*if (picky) {
             ScriptClassInfo scriptClassInfo =
                     new ScriptClassInfo(scriptEngine.getContextsToLookups().get(PainlessTestScript.CONTEXT), PainlessTestScript.class);
             CompilerSettings pickySettings = new CompilerSettings();
@@ -101,7 +127,8 @@ public abstract class ScriptTestCase extends ESTestCase {
         // test actual script execution
         PainlessTestScript.Factory factory = scriptEngine.compile(null, script, PainlessTestScript.CONTEXT, compileParams);
         PainlessTestScript testScript = factory.newInstance(vars == null ? Collections.emptyMap() : vars);
-        return testScript.execute();
+        return testScript.execute();*/
+        return null;
     }
 
     /**
