@@ -226,7 +226,7 @@ final class Compiler {
         new PainlessUserTreeToIRTreePhase().visitClass(root, scriptScope);
         ClassNode classNode = (ClassNode)scriptScope.getDecoration(root, IRNodeDecoration.class).getIRNode();
         new DefaultStringConcatenationOptimizationPhase().visitClass(classNode, null);
-        new DefaultConstantFoldingOptimizationPhase().visitClass(classNode, null);
+        new DefaultConstantFoldingOptimizationPhase().transformClass(classNode, null);
         new DefaultIRTreeToASMBytesPhase().visitScript(classNode);
         byte[] bytes = classNode.getBytes();
 
@@ -262,7 +262,7 @@ final class Compiler {
         new PainlessUserTreeToIRTreePhase().visitClass(root, scriptScope);
         ClassNode classNode = (ClassNode)scriptScope.getDecoration(root, IRNodeDecoration.class).getIRNode();
         new DefaultStringConcatenationOptimizationPhase().visitClass(classNode, null);
-        new DefaultConstantFoldingOptimizationPhase().visitClass(classNode, null);
+        new DefaultConstantFoldingOptimizationPhase().transformClass(classNode, null);
         classNode.setDebugStream(debugStream);
         new DefaultIRTreeToASMBytesPhase().visitScript(classNode);
 

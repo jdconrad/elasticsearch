@@ -60,7 +60,7 @@ public class IfElseNode extends ConditionNode {
     public <Scope> void transformChildren(IRTreeTransformer<Scope> irTreeTransformer, Scope scope) {
         setConditionNode((ExpressionNode)getConditionNode().transform(irTreeTransformer, scope));
         setBlockNode((BlockNode)getBlockNode().transform(irTreeTransformer, scope));
-        setElseBlockNode((BlockNode)getBlockNode().transform(irTreeTransformer, scope));
+        setElseBlockNode((BlockNode)getElseBlockNode().transform(irTreeTransformer, scope));
     }
 
     /* ---- end visitor ---- */

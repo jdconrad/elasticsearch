@@ -60,7 +60,7 @@ public class ConditionalNode extends BinaryNode {
     public <Scope> void transformChildren(IRTreeTransformer<Scope> irTreeTransformer, Scope scope) {
         conditionNode = (ExpressionNode)conditionNode.transform(irTreeTransformer, scope);
         setLeftNode((ExpressionNode)getLeftNode().transform(irTreeTransformer, scope));
-        setRightNode((ExpressionNode)getLeftNode().transform(irTreeTransformer, scope));
+        setRightNode((ExpressionNode)getRightNode().transform(irTreeTransformer, scope));
     }
 
     /* ---- end visitor ---- */

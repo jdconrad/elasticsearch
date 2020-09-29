@@ -132,7 +132,7 @@ public class EqualsTests extends ScriptTestCase {
         assertEquals(1, exec("def a = 1; Number b = a; Number c = a; if (c === b) return 1; else return 0;"));
         assertEquals(0, exec("def a = 1; Object b = new HashMap(); if (a === (Object)b) return 1; else return 0;"));
     }
-    
+
     public void testEqualsDefAndPrimitive() {
         /* This test needs an Integer that isn't cached by Integer.valueOf so we draw one randomly. We can't use any fixed integer because
          * we can never be sure that the JVM hasn't configured itself to cache that Integer. It is sneaky like that. */
