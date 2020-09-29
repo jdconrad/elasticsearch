@@ -535,6 +535,10 @@ public class DefaultUserTreeToIRTreePhase implements UserTreeVisitor<ScriptScope
     public void visitClass(SClass userClassNode, ScriptScope scriptScope) {
         irClassNode = new ClassNode(userClassNode.getLocation());
 
+        BlockNode clinitBlockNode = new BlockNode(new Location("internal$clinit$blocknode", 0));
+        clinitBlockNode.attachCondition(IRCAllEscape.class);
+        irClassNode.setClinitBlockNode(clinitBlockNode);
+
         for (SFunction userFunctionNode : userClassNode.getFunctionNodes()) {
             irClassNode.addFunctionNode((FunctionNode)visit(userFunctionNode, scriptScope));
         }

@@ -20,6 +20,7 @@
 package org.elasticsearch.painless.ir;
 
 import org.elasticsearch.painless.Location;
+import org.elasticsearch.painless.phase.IRTreeTransformer;
 import org.elasticsearch.painless.phase.IRTreeVisitor;
 
 public class BinaryImplNode extends BinaryNode {
@@ -35,6 +36,17 @@ public class BinaryImplNode extends BinaryNode {
     public <Scope> void visitChildren(IRTreeVisitor<Scope> irTreeVisitor, Scope scope) {
         getLeftNode().visit(irTreeVisitor, scope);
         getRightNode().visit(irTreeVisitor, scope);
+    }
+
+    @Override
+    public <Scope> IRNode transform(IRTreeTransformer<Scope> irTreeTransformer, Scope scope) {
+        return irTreeTransformer.transformBinaryImpl(this, scope);
+    }
+
+    @Override
+    public <Scope> void transformChildren(IRTreeTransformer<Scope> irTreeTransformer, Scope scope) {
+        setLeftNode((ExpressionNode)getLeftNode().transform(irTreeTransformer, scope));
+        setRightNode((ExpressionNode)getLeftNode().transform(irTreeTransformer, scope));
     }
 
     /* ---- end visitor ---- */

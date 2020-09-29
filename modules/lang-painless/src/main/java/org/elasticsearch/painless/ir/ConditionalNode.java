@@ -20,6 +20,7 @@
 package org.elasticsearch.painless.ir;
 
 import org.elasticsearch.painless.Location;
+import org.elasticsearch.painless.phase.IRTreeTransformer;
 import org.elasticsearch.painless.phase.IRTreeVisitor;
 
 public class ConditionalNode extends BinaryNode {
@@ -48,6 +49,18 @@ public class ConditionalNode extends BinaryNode {
         conditionNode.visit(irTreeVisitor, scope);
         getLeftNode().visit(irTreeVisitor, scope);
         getRightNode().visit(irTreeVisitor, scope);
+    }
+
+    @Override
+    public <Scope> IRNode transform(IRTreeTransformer<Scope> irTreeTransformer, Scope scope) {
+        return irTreeTransformer.transformConditional(this, scope);
+    }
+
+    @Override
+    public <Scope> void transformChildren(IRTreeTransformer<Scope> irTreeTransformer, Scope scope) {
+        conditionNode = (ExpressionNode)conditionNode.transform(irTreeTransformer, scope);
+        setLeftNode((ExpressionNode)getLeftNode().transform(irTreeTransformer, scope));
+        setRightNode((ExpressionNode)getLeftNode().transform(irTreeTransformer, scope));
     }
 
     /* ---- end visitor ---- */

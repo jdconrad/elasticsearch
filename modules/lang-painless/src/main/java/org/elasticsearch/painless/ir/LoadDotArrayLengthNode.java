@@ -20,6 +20,7 @@
 package org.elasticsearch.painless.ir;
 
 import org.elasticsearch.painless.Location;
+import org.elasticsearch.painless.phase.IRTreeTransformer;
 import org.elasticsearch.painless.phase.IRTreeVisitor;
 
 public class LoadDotArrayLengthNode extends ExpressionNode {
@@ -33,6 +34,16 @@ public class LoadDotArrayLengthNode extends ExpressionNode {
 
     @Override
     public <Scope> void visitChildren(IRTreeVisitor<Scope> irTreeVisitor, Scope scope) {
+        // do nothing; terminal node
+    }
+
+    @Override
+    public <Scope> IRNode transform(IRTreeTransformer<Scope> irTreeTransformer, Scope scope) {
+        return irTreeTransformer.transformLoadDotArrayLengthNode(this, scope);
+    }
+
+    @Override
+    public <Scope> void transformChildren(IRTreeTransformer<Scope> irTreeTransformer, Scope scope) {
         // do nothing; terminal node
     }
 

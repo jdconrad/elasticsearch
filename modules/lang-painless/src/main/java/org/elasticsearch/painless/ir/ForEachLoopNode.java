@@ -20,6 +20,7 @@
 package org.elasticsearch.painless.ir;
 
 import org.elasticsearch.painless.Location;
+import org.elasticsearch.painless.phase.IRTreeTransformer;
 import org.elasticsearch.painless.phase.IRTreeVisitor;
 
 public class ForEachLoopNode extends StatementNode {
@@ -46,6 +47,16 @@ public class ForEachLoopNode extends StatementNode {
     @Override
     public <Scope> void visitChildren(IRTreeVisitor<Scope> irTreeVisitor, Scope scope) {
         conditionNode.visit(irTreeVisitor, scope);
+    }
+
+    @Override
+    public <Scope> IRNode transform(IRTreeTransformer<Scope> irTreeTransformer, Scope scope) {
+        return irTreeTransformer.transformForEachLoop(this, scope);
+    }
+
+    @Override
+    public <Scope> void transformChildren(IRTreeTransformer<Scope> irTreeTransformer, Scope scope) {
+        conditionNode = (ConditionNode)conditionNode.transform(irTreeTransformer, scope);
     }
 
     /* ---- end visitor ---- */

@@ -20,8 +20,8 @@
 package org.elasticsearch.painless.ir;
 
 import org.elasticsearch.painless.Location;
+import org.elasticsearch.painless.phase.IRTreeTransformer;
 import org.elasticsearch.painless.phase.IRTreeVisitor;
-import org.elasticsearch.painless.symbol.IRDecorations.IRCAllEscape;
 import org.elasticsearch.painless.symbol.ScriptScope;
 import org.objectweb.asm.util.Printer;
 
@@ -34,7 +34,7 @@ public class ClassNode extends IRNode {
 
     private final List<FieldNode> fieldNodes = new ArrayList<>();
     private final List<FunctionNode> functionNodes = new ArrayList<>();
-    private final BlockNode clinitBlockNode;
+    private BlockNode clinitBlockNode;
 
     public void addFieldNode(FieldNode fieldNode) {
         fieldNodes.add(fieldNode);
@@ -50,6 +50,10 @@ public class ClassNode extends IRNode {
 
     public List<FunctionNode> getFunctionsNodes() {
         return functionNodes;
+    }
+
+    public void setClinitBlockNode(BlockNode clinitBlockNode) {
+        this.clinitBlockNode = clinitBlockNode;
     }
 
     public BlockNode getClinitBlockNode() {
@@ -97,18 +101,37 @@ public class ClassNode extends IRNode {
     public <Scope> void visitChildren(IRTreeVisitor<Scope> irTreeVisitor, Scope scope) {
         clinitBlockNode.visit(irTreeVisitor, scope);
 
+        for (FieldNode fieldNode : fieldNodes) {
+            fieldNode.visit(irTreeVisitor, scope);
+        }
+
         for (FunctionNode functionNode : functionNodes) {
             functionNode.visit(irTreeVisitor, scope);
         }
     }
 
+    @Override
+    public <Scope> IRNode transform(IRTreeTransformer<Scope> irTreeTransformer, Scope scope) {
+        return irTreeTransformer.transformClass(this, scope);
+    }
+
+    public <Scope> void transformChildren(IRTreeTransformer<Scope> irTreeTransformer, Scope scope) {
+        clinitBlockNode = (BlockNode)clinitBlockNode.transform(irTreeTransformer, scope);
+
+        for (int i = 0; i < fieldNodes.size(); ++i) {
+            fieldNodes.set(i, (FieldNode)fieldNodes.get(i).transform(irTreeTransformer, scope));
+        }
+
+        for (int i = 0; i < functionNodes.size(); ++i) {
+            functionNodes.set(i, (FunctionNode)functionNodes.get(i).transform(irTreeTransformer, scope));
+        }
+    }
+
+
     /* ---- end visitor ---- */
 
     public ClassNode(Location location) {
         super(location);
-
-        clinitBlockNode = new BlockNode(new Location("internal$clinit$blocknode", 0));
-        clinitBlockNode.attachCondition(IRCAllEscape.class);
     }
 
 }

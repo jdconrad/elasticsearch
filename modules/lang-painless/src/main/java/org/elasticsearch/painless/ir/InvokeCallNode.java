@@ -21,7 +21,10 @@ package org.elasticsearch.painless.ir;
 
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.lookup.PainlessMethod;
+import org.elasticsearch.painless.phase.IRTreeTransformer;
 import org.elasticsearch.painless.phase.IRTreeVisitor;
+
+import java.util.List;
 
 public class InvokeCallNode extends ArgumentsNode {
 
@@ -57,6 +60,20 @@ public class InvokeCallNode extends ArgumentsNode {
     public <Scope> void visitChildren(IRTreeVisitor<Scope> irTreeVisitor, Scope scope) {
         for (ExpressionNode argumentNode : getArgumentNodes()) {
             argumentNode.visit(irTreeVisitor, scope);
+        }
+    }
+
+    @Override
+    public <Scope> IRNode transform(IRTreeTransformer<Scope> irTreeTransformer, Scope scope) {
+        return irTreeTransformer.transformInvokeCall(this, scope);
+    }
+
+    @Override
+    public <Scope> void transformChildren(IRTreeTransformer<Scope> irTreeTransformer, Scope scope) {
+        List<ExpressionNode> argumentNodes = getArgumentNodes();
+
+        for (int i = 0; i < argumentNodes.size(); ++i) {
+            argumentNodes.set(i, (ExpressionNode)argumentNodes.get(i).transform(irTreeTransformer, scope));
         }
     }
 

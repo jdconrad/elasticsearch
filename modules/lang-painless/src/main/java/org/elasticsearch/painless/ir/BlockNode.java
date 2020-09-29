@@ -20,6 +20,7 @@
 package org.elasticsearch.painless.ir;
 
 import org.elasticsearch.painless.Location;
+import org.elasticsearch.painless.phase.IRTreeTransformer;
 import org.elasticsearch.painless.phase.IRTreeVisitor;
 
 import java.util.ArrayList;
@@ -50,6 +51,20 @@ public class BlockNode extends StatementNode {
     public <Scope> void visitChildren(IRTreeVisitor<Scope> irTreeVisitor, Scope scope) {
         for (StatementNode statementNode : statementNodes) {
             statementNode.visit(irTreeVisitor, scope);
+        }
+    }
+
+    @Override
+    public <Scope> IRNode transform(IRTreeTransformer<Scope> irTreeTransformer, Scope scope) {
+        return irTreeTransformer.transformBlock(this, scope);
+    }
+
+    @Override
+    public <Scope> void transformChildren(IRTreeTransformer<Scope> irTreeTransformer, Scope scope) {
+        List<StatementNode> statementNodes = getStatementsNodes();
+
+        for (int i = 0; i < statementNodes.size(); ++i) {
+            statementNodes.set(i, (StatementNode)statementNodes.get(i).transform(irTreeTransformer, scope));
         }
     }
 

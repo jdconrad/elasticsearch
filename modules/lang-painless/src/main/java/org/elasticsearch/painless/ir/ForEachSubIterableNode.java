@@ -20,6 +20,7 @@
 package org.elasticsearch.painless.ir;
 
 import org.elasticsearch.painless.Location;
+import org.elasticsearch.painless.phase.IRTreeTransformer;
 import org.elasticsearch.painless.phase.IRTreeVisitor;
 
 /**
@@ -38,6 +39,17 @@ public class ForEachSubIterableNode extends ConditionNode {
     public <Scope> void visitChildren(IRTreeVisitor<Scope> irTreeVisitor, Scope scope) {
         getConditionNode().visit(irTreeVisitor, scope);
         getBlockNode().visit(irTreeVisitor, scope);
+    }
+
+    @Override
+    public <Scope> IRNode transform(IRTreeTransformer<Scope> irTreeTransformer, Scope scope) {
+        return irTreeTransformer.transformForEachSubIterableLoop(this, scope);
+    }
+
+    @Override
+    public <Scope> void transformChildren(IRTreeTransformer<Scope> irTreeTransformer, Scope scope) {
+        setConditionNode((ExpressionNode)getConditionNode().transform(irTreeTransformer, scope));
+        setBlockNode((BlockNode)getBlockNode().transform(irTreeTransformer, scope));
     }
 
     /* ---- end visitor ---- */

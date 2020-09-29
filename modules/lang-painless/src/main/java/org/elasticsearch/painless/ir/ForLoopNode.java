@@ -20,6 +20,7 @@
 package org.elasticsearch.painless.ir;
 
 import org.elasticsearch.painless.Location;
+import org.elasticsearch.painless.phase.IRTreeTransformer;
 import org.elasticsearch.painless.phase.IRTreeVisitor;
 
 public class ForLoopNode extends ConditionNode {
@@ -68,6 +69,30 @@ public class ForLoopNode extends ConditionNode {
 
         if (getBlockNode() != null) {
             getBlockNode().visit(irTreeVisitor, scope);
+        }
+    }
+
+    @Override
+    public <Scope> IRNode transform(IRTreeTransformer<Scope> irTreeTransformer, Scope scope) {
+        return irTreeTransformer.transformForLoop(this, scope);
+    }
+
+    @Override
+    public <Scope> void transformChildren(IRTreeTransformer<Scope> irTreeTransformer, Scope scope) {
+        if (initializerNode != null) {
+            initializerNode = initializerNode.transform(irTreeTransformer, scope);
+        }
+
+        if (getConditionNode() != null) {
+            setConditionNode((ExpressionNode)getConditionNode().transform(irTreeTransformer, scope));
+        }
+
+        if (afterthoughtNode != null) {
+            afterthoughtNode = (ExpressionNode)afterthoughtNode.transform(irTreeTransformer, scope);
+        }
+
+        if (getBlockNode() != null) {
+            setBlockNode((BlockNode)getBlockNode().transform(irTreeTransformer, scope));
         }
     }
 

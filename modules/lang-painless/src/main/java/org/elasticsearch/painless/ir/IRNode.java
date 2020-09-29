@@ -20,6 +20,7 @@
 package org.elasticsearch.painless.ir;
 
 import org.elasticsearch.painless.Location;
+import org.elasticsearch.painless.phase.IRTreeTransformer;
 import org.elasticsearch.painless.phase.IRTreeVisitor;
 
 import java.util.HashMap;
@@ -112,6 +113,9 @@ public abstract class IRNode {
 
     public abstract <Scope> void visit(IRTreeVisitor<Scope> irTreeVisitor, Scope scope);
     public abstract <Scope> void visitChildren(IRTreeVisitor<Scope> irTreeVisitor, Scope scope);
+
+    public abstract <Scope> IRNode transform(IRTreeTransformer<Scope> irTreeTransformer, Scope scope);
+    public abstract <Scope> void transformChildren(IRTreeTransformer<Scope> irTreeTransformer, Scope scope);
 
     /* ---- end visitor ---- */
 
