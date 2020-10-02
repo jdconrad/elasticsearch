@@ -20,6 +20,10 @@
 package org.elasticsearch.painless.node;
 
 import org.elasticsearch.painless.Location;
+import org.elasticsearch.painless.ir.BlockNode;
+import org.elasticsearch.painless.ir.ExpressionNode;
+import org.elasticsearch.painless.ir.IRNode;
+import org.elasticsearch.painless.ir.WhileLoopNode;
 import org.elasticsearch.painless.phase.UserTreeVisitor;
 
 import java.util.Objects;
@@ -59,5 +63,13 @@ public class SWhile extends AStatement {
         if (blockNode != null) {
             blockNode.visit(userTreeVisitor, scope);
         }
+    }
+
+    @Override
+    public IRNode toIRTree() {
+        WhileLoopNode irWhileNode = new WhileLoopNode(getLocation());
+        irWhileNode.setConditionNode((ExpressionNode)getConditionNode().toIRTree());
+        irWhileNode.setBlockNode((BlockNode)getBlockNode().toIRTree());
+        return irWhileNode;
     }
 }

@@ -20,6 +20,9 @@
 package org.elasticsearch.painless.node;
 
 import org.elasticsearch.painless.Location;
+import org.elasticsearch.painless.ir.ExpressionNode;
+import org.elasticsearch.painless.ir.IRNode;
+import org.elasticsearch.painless.ir.ReturnNode;
 import org.elasticsearch.painless.phase.UserTreeVisitor;
 
 /**
@@ -49,5 +52,12 @@ public class SReturn extends AStatement {
         if (valueNode != null) {
             valueNode.visit(userTreeVisitor, scope);
         }
+    }
+
+    @Override
+    public IRNode toIRTree() {
+        ReturnNode irReturnNode = new ReturnNode(getLocation());
+        irReturnNode.setExpressionNode((ExpressionNode)getValueNode().toIRTree());
+        return irReturnNode;
     }
 }

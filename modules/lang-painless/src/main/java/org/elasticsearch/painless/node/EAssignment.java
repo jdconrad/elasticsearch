@@ -21,6 +21,7 @@ package org.elasticsearch.painless.node;
 
 import org.elasticsearch.painless.Location;
 import org.elasticsearch.painless.Operation;
+import org.elasticsearch.painless.ir.IRNode;
 import org.elasticsearch.painless.phase.UserTreeVisitor;
 
 import java.util.Objects;
@@ -71,5 +72,10 @@ public class EAssignment extends AExpression {
     public <Scope> void visitChildren(UserTreeVisitor<Scope> userTreeVisitor, Scope scope) {
         leftNode.visit(userTreeVisitor, scope);
         rightNode.visit(userTreeVisitor, scope);
+    }
+
+    @Override
+    public IRNode toIRTree(ANode parent) {
+
     }
 }

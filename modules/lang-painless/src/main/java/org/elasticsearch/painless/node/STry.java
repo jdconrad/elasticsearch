@@ -20,6 +20,10 @@
 package org.elasticsearch.painless.node;
 
 import org.elasticsearch.painless.Location;
+import org.elasticsearch.painless.ir.BlockNode;
+import org.elasticsearch.painless.ir.CatchNode;
+import org.elasticsearch.painless.ir.IRNode;
+import org.elasticsearch.painless.ir.TryNode;
 import org.elasticsearch.painless.phase.UserTreeVisitor;
 
 import java.util.Collections;
@@ -63,5 +67,15 @@ public class STry extends AStatement {
         for (SCatch catchNode : catchNodes) {
             catchNode.visit(userTreeVisitor, scope);
         }
+    }
+
+    @Override
+    public IRNode toIRTree() {
+        TryNode irTryNode = new TryNode(getLocation());
+        irTryNode.setBlockNode((BlockNode)getBlockNode().toIRTree());
+        for (SCatch userCatchNode : getCatchNodes()) {
+            irTryNode.addCatchNode((CatchNode)userCatchNode.toIRTree());
+        }
+        return irTryNode;
     }
 }

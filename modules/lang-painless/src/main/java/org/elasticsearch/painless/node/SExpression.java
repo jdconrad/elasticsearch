@@ -20,6 +20,10 @@
 package org.elasticsearch.painless.node;
 
 import org.elasticsearch.painless.Location;
+import org.elasticsearch.painless.ir.ExpressionNode;
+import org.elasticsearch.painless.ir.IRNode;
+import org.elasticsearch.painless.ir.ReturnNode;
+import org.elasticsearch.painless.ir.StatementExpressionNode;
 import org.elasticsearch.painless.phase.UserTreeVisitor;
 
 import java.util.Objects;
@@ -49,5 +53,12 @@ public class SExpression extends AStatement {
     @Override
     public <Scope> void visitChildren(UserTreeVisitor<Scope> userTreeVisitor, Scope scope) {
         statementNode.visit(userTreeVisitor, scope);
+    }
+
+    @Override
+    public IRNode toIRTree() {
+        StatementExpressionNode irStatementExpressionNode = new StatementExpressionNode(getLocation());
+        irStatementExpressionNode.setExpressionNode((ExpressionNode)getStatementNode().toIRTree());
+        return irStatementExpressionNode;
     }
 }

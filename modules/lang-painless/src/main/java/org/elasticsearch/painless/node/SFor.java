@@ -20,6 +20,11 @@
 package org.elasticsearch.painless.node;
 
 import org.elasticsearch.painless.Location;
+import org.elasticsearch.painless.ir.BlockNode;
+import org.elasticsearch.painless.ir.ExpressionNode;
+import org.elasticsearch.painless.ir.ForLoopNode;
+import org.elasticsearch.painless.ir.IRNode;
+import org.elasticsearch.painless.ir.IfNode;
 import org.elasticsearch.painless.phase.UserTreeVisitor;
 
 /**
@@ -81,5 +86,15 @@ public class SFor extends AStatement {
         if (blockNode != null) {
             blockNode.visit(userTreeVisitor, scope);
         }
+    }
+
+    @Override
+    public IRNode toIRTree() {
+        ForLoopNode irForLoopNode = new ForLoopNode(getLocation());
+        irForLoopNode.setInitialzerNode(getInitializerNode().toIRTree());
+        irForLoopNode.setConditionNode((ExpressionNode)getConditionNode().toIRTree());
+        irForLoopNode.setAfterthoughtNode((ExpressionNode)getAfterthoughtNode().toIRTree());
+        irForLoopNode.setBlockNode((BlockNode)getBlockNode().toIRTree());
+        return irForLoopNode;
     }
 }

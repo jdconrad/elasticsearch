@@ -20,6 +20,11 @@
 package org.elasticsearch.painless.node;
 
 import org.elasticsearch.painless.Location;
+import org.elasticsearch.painless.ir.BlockNode;
+import org.elasticsearch.painless.ir.ExpressionNode;
+import org.elasticsearch.painless.ir.IRNode;
+import org.elasticsearch.painless.ir.IfElseNode;
+import org.elasticsearch.painless.ir.IfNode;
 import org.elasticsearch.painless.phase.UserTreeVisitor;
 
 import java.util.Objects;
@@ -59,5 +64,13 @@ public class SIf extends AStatement {
         if (ifBlockNode != null) {
             ifBlockNode.visit(userTreeVisitor, scope);
         }
+    }
+
+    @Override
+    public IRNode toIRTree() {
+        IfNode irIfNode = new IfNode(getLocation());
+        irIfNode.setConditionNode((ExpressionNode)getConditionNode().toIRTree());
+        irIfNode.setBlockNode((BlockNode)getIfBlockNode().toIRTree());
+        return irIfNode;
     }
 }

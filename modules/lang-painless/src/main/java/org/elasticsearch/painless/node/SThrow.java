@@ -20,6 +20,9 @@
 package org.elasticsearch.painless.node;
 
 import org.elasticsearch.painless.Location;
+import org.elasticsearch.painless.ir.ExpressionNode;
+import org.elasticsearch.painless.ir.IRNode;
+import org.elasticsearch.painless.ir.ThrowNode;
 import org.elasticsearch.painless.phase.UserTreeVisitor;
 
 import java.util.Objects;
@@ -49,5 +52,12 @@ public class SThrow extends AStatement {
     @Override
     public <Scope> void visitChildren(UserTreeVisitor<Scope> userTreeVisitor, Scope scope) {
         expressionNode.visit(userTreeVisitor, scope);
+    }
+
+    @Override
+    public IRNode toIRTree() {
+        ThrowNode irThrowNode = new ThrowNode(getLocation());
+        irThrowNode.setExpressionNode((ExpressionNode)getExpressionNode().toIRTree());
+        return irThrowNode;
     }
 }

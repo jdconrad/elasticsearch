@@ -401,4 +401,32 @@ public class IRDecorations {
             super(value);
         }
     }
+
+    public static class IRDCanonicalTypeName extends IRDecoration<String> {
+
+        public IRDCanonicalTypeName(String value) {
+            super(value);
+        }
+    }
+
+    public static class IRDCanonicalTypeNames extends IRDecoration<List<String>> {
+
+        public IRDCanonicalTypeNames(List<String> value) {
+            super(Collections.unmodifiableList(value));
+        }
+    }
+
+    public static class IRCInternal implements IRCondition {
+
+        private IRCInternal() {
+
+        }
+    }
+
+    public static class IRCAutoReturn implements IRCondition {
+
+        private IRCAutoReturn() {
+
+        }
+    }
 }

@@ -20,6 +20,9 @@
 package org.elasticsearch.painless.node;
 
 import org.elasticsearch.painless.Location;
+import org.elasticsearch.painless.ir.BlockNode;
+import org.elasticsearch.painless.ir.IRNode;
+import org.elasticsearch.painless.ir.StatementNode;
 import org.elasticsearch.painless.phase.UserTreeVisitor;
 
 import java.util.Collections;
@@ -53,5 +56,14 @@ public class SBlock extends AStatement {
         for (AStatement statementNode: statementNodes) {
             statementNode.visit(userTreeVisitor, scope);
         }
+    }
+
+    @Override
+    public IRNode toIRTree() {
+        BlockNode irBlockNode = new BlockNode(getLocation());
+        for (AStatement userStatementNode : getStatementNodes()) {
+            irBlockNode.addStatementNode((StatementNode)userStatementNode.toIRTree());
+        }
+        return irBlockNode;
     }
 }

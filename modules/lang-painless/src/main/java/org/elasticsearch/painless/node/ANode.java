@@ -20,6 +20,7 @@
 package org.elasticsearch.painless.node;
 
 import org.elasticsearch.painless.Location;
+import org.elasticsearch.painless.ir.IRNode;
 import org.elasticsearch.painless.phase.UserTreeVisitor;
 
 import java.util.Objects;
@@ -72,4 +73,9 @@ public abstract class ANode {
      * Visits all child user tree nodes for this user tree node.
      */
     public abstract <Scope> void visitChildren(UserTreeVisitor<Scope> userTreeVisitor, Scope scope);
+
+    /**
+     * Converts this user node to an ir tree node.
+     */
+    public abstract IRNode toIRTree();
 }

@@ -20,7 +20,19 @@
 package org.elasticsearch.painless.node;
 
 import org.elasticsearch.painless.Location;
+import org.elasticsearch.painless.ir.BlockNode;
+import org.elasticsearch.painless.ir.FunctionNode;
+import org.elasticsearch.painless.ir.IRNode;
 import org.elasticsearch.painless.phase.UserTreeVisitor;
+import org.elasticsearch.painless.symbol.IRDecorations;
+import org.elasticsearch.painless.symbol.IRDecorations.IRCAutoReturn;
+import org.elasticsearch.painless.symbol.IRDecorations.IRCInternal;
+import org.elasticsearch.painless.symbol.IRDecorations.IRCStatic;
+import org.elasticsearch.painless.symbol.IRDecorations.IRCSynthetic;
+import org.elasticsearch.painless.symbol.IRDecorations.IRDCanonicalTypeName;
+import org.elasticsearch.painless.symbol.IRDecorations.IRDCanonicalTypeNames;
+import org.elasticsearch.painless.symbol.IRDecorations.IRDName;
+import org.elasticsearch.painless.symbol.IRDecorations.IRDParameterNames;
 
 import java.util.Collections;
 import java.util.List;
@@ -107,5 +119,28 @@ public class SFunction extends ANode {
     @Override
     public <Scope> void visitChildren(UserTreeVisitor<Scope> userTreeVisitor, Scope scope) {
         blockNode.visit(userTreeVisitor, scope);
+    }
+
+    @Override
+    public IRNode toIRTree() {
+        FunctionNode irFunctionNode = new FunctionNode(getLocation());
+        irFunctionNode.attachDecoration(new IRDCanonicalTypeName(getReturnCanonicalTypeName()));
+        irFunctionNode.attachDecoration(new IRDName(getFunctionName()));
+        irFunctionNode.attachDecoration(new IRDCanonicalTypeNames(getCanonicalTypeNameParameters()));
+        irFunctionNode.attachDecoration(new IRDParameterNames(getParameterNames()));
+        if (isInternal()) {
+            irFunctionNode.attachCondition(IRCInternal.class);
+        }
+        if (isStatic()) {
+            irFunctionNode.attachCondition(IRCStatic.class);
+        }
+        if (isSynthetic()) {
+            irFunctionNode.attachCondition(IRCSynthetic.class);
+        }
+        if (isAutoReturnEnabled()) {
+            irFunctionNode.attachCondition(IRCAutoReturn.class);
+        }
+        irFunctionNode.setBlockNode((BlockNode)getBlockNode().toIRTree());
+        return irFunctionNode;
     }
 }

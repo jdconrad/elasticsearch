@@ -20,6 +20,9 @@
 package org.elasticsearch.painless.node;
 
 import org.elasticsearch.painless.Location;
+import org.elasticsearch.painless.ir.ClassNode;
+import org.elasticsearch.painless.ir.FunctionNode;
+import org.elasticsearch.painless.ir.IRNode;
 import org.elasticsearch.painless.phase.UserTreeVisitor;
 
 import java.util.Collections;
@@ -53,5 +56,14 @@ public class SClass extends ANode {
         for (SFunction functionNode : functionNodes) {
             functionNode.visit(userTreeVisitor, scope);
         }
+    }
+
+    @Override
+    public IRNode toIRTree() {
+        ClassNode irClassNode = new ClassNode(getLocation());
+        for (SFunction userFunctionNode : getFunctionNodes()) {
+            irClassNode.addFunctionNode((FunctionNode)userFunctionNode.toIRTree());
+        }
+        return irClassNode;
     }
 }
