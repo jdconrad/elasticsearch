@@ -19,12 +19,15 @@
 
 package org.elasticsearch.painless;
 
+import org.elasticsearch.painless.antlr.PrettyPrint;
+
 /** Tests for addition operator across all types */
 //TODO: NaN/Inf/overflow/...
 public class AdditionTests extends ScriptTestCase {
 
     public void testBasics() throws Exception {
-        assertEquals(3.0, exec("double x = 1; byte y = 2; return x + y;"));
+        throw new IllegalArgumentException(PrettyPrint.toPrettyTree("List y = []; y.+y.b; return y.0"));
+        //assertEquals(3.0, exec("double x = 1; byte y = 2; return x + y;"));
     }
 
     public void testInt() throws Exception {

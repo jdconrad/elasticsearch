@@ -165,7 +165,7 @@ chain
 
 primary
     : LP expression RP                    # precedence
-    | ( OCTAL | HEX | INTEGER | DECIMAL ) # numeric
+    | ( OCTAL | HEX | INTEGER | decimal ) # numeric
     | TRUE                                # true
     | FALSE                               # false
     | NULL                                # null
@@ -178,15 +178,21 @@ primary
     | NEW type arguments                  # newobject
     ;
 
+decimal
+    :
+    ;
+
 postfix
     : callinvoke
     | fieldaccess
     | braceaccess
+    | dotaccess
     ;
 
 postdot
     : callinvoke
     | fieldaccess
+    | dotaccess
     ;
 
 callinvoke
@@ -195,6 +201,10 @@ callinvoke
 
 fieldaccess
     : ( DOT | NSDOT ) ( DOTID | DOTINTEGER )
+    ;
+
+dotaccess
+    : ( DOT | NSDOT )
     ;
 
 braceaccess

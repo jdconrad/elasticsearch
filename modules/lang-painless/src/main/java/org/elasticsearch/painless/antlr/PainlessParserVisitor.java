@@ -446,6 +446,12 @@ interface PainlessParserVisitor<T> extends ParseTreeVisitor<T> {
    */
   T visitFieldaccess(PainlessParser.FieldaccessContext ctx);
   /**
+   * Visit a parse tree produced by {@link PainlessParser#dotaccess}.
+   * @param ctx the parse tree
+   * @return the visitor result
+   */
+  T visitDotaccess(PainlessParser.DotaccessContext ctx);
+  /**
    * Visit a parse tree produced by {@link PainlessParser#braceaccess}.
    * @param ctx the parse tree
    * @return the visitor result
