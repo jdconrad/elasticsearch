@@ -23,6 +23,10 @@ package org.elasticsearch.painless;
 //TODO: NaN/Inf/overflow/...
 public class AdditionTests extends ScriptTestCase {
 
+    public void testAuto() throws Exception {
+        exec("Map x = ['test', 'test']; x.;");
+    }
+
     public void testBasics() throws Exception {
         assertEquals(3.0, exec("double x = 1; byte y = 2; return x + y;"));
     }

@@ -85,6 +85,7 @@ import org.elasticsearch.painless.antlr.PainlessParser.NotContext;
 import org.elasticsearch.painless.antlr.PainlessParser.NotaddsubContext;
 import org.elasticsearch.painless.antlr.PainlessParser.NullContext;
 import org.elasticsearch.painless.antlr.PainlessParser.NumericContext;
+import org.elasticsearch.painless.antlr.PainlessParser.ParameterContext;
 import org.elasticsearch.painless.antlr.PainlessParser.ParametersContext;
 import org.elasticsearch.painless.antlr.PainlessParser.PostContext;
 import org.elasticsearch.painless.antlr.PainlessParser.PostdotContext;
@@ -192,7 +193,7 @@ public final class Walker extends PainlessParserBaseVisitor<ANode> {
 
     private SourceContext buildAntlrTree(String source) {
         ANTLRInputStream stream = new ANTLRInputStream(source);
-        PainlessLexer lexer = new EnhancedPainlessLexer(stream, sourceName);
+        PainlessLexer lexer = new EnhancedPainlessLexer(stream, sourceName, 27);
         PainlessParser parser = new PainlessParser(new CommonTokenStream(lexer));
         ParserErrorStrategy strategy = new ParserErrorStrategy(sourceName);
 
@@ -203,23 +204,26 @@ public final class Walker extends PainlessParserBaseVisitor<ANode> {
             setupPicky(parser);
         }
 
-        parser.setErrorHandler(strategy);
+        //parser.setErrorHandler(strategy);
 
-        return parser.source();
+        parser.source();
+        throw new IllegalArgumentException(parser.cursortype + " " + parser.cursorid);
+
+        //return parser.source();
     }
 
     private void setupPicky(PainlessParser parser) {
         // Diagnostic listener invokes syntaxError on other listeners for ambiguity issues,
-        parser.addErrorListener(new DiagnosticErrorListener(true));
-        // a second listener to fail the test when the above happens.
-        parser.addErrorListener(new BaseErrorListener() {
-            @Override
-            public void syntaxError(final Recognizer<?,?> recognizer, final Object offendingSymbol, final int line,
-                                    final int charPositionInLine, final String msg, final RecognitionException e) {
-                throw new AssertionError("line: " + line + ", offset: " + charPositionInLine +
-                    ", symbol:" + offendingSymbol + " " + msg);
-            }
-        });
+//        parser.addErrorListener(new DiagnosticErrorListener(true));
+//        // a second listener to fail the test when the above happens.
+//        parser.addErrorListener(new BaseErrorListener() {
+//            @Override
+//            public void syntaxError(final Recognizer<?,?> recognizer, final Object offendingSymbol, final int line,
+//                                    final int charPositionInLine, final String msg, final RecognitionException e) {
+//                throw new AssertionError("line: " + line + ", offset: " + charPositionInLine +
+//                    ", symbol:" + offendingSymbol + " " + msg);
+//            }
+//        });
 
         // Enable exact ambiguity detection (costly). we enable exact since its the default for
         // DiagnosticErrorListener, life is too short to think about what 'inexact ambiguity' might mean.
@@ -267,12 +271,9 @@ public final class Walker extends PainlessParserBaseVisitor<ANode> {
         List<String> paramNames = new ArrayList<>();
         List<AStatement> statements = new ArrayList<>();
 
-        for (DecltypeContext decltype : ctx.parameters().decltype()) {
-            paramTypes.add(decltype.getText());
-        }
-
-        for (TerminalNode id : ctx.parameters().ID()) {
-            paramNames.add(id.getText());
+        for (ParameterContext parameter : ctx.parameters().parameter()) {
+            paramTypes.add(parameter.decltype().getText());
+            paramNames.add(parameter.ID().getText());
         }
 
         for (StatementContext statement : ctx.block().statement()) {

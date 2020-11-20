@@ -1,5 +1,9 @@
 // ANTLR GENERATED CODE: DO NOT EDIT
 package org.elasticsearch.painless.antlr;
+
+import java.util.HashMap;
+import java.util.Map;
+
 import org.antlr.v4.runtime.tree.ParseTreeVisitor;
 
 /**
@@ -28,6 +32,12 @@ interface PainlessParserVisitor<T> extends ParseTreeVisitor<T> {
    * @return the visitor result
    */
   T visitParameters(PainlessParser.ParametersContext ctx);
+  /**
+   * Visit a parse tree produced by {@link PainlessParser#parameter}.
+   * @param ctx the parse tree
+   * @return the visitor result
+   */
+  T visitParameter(PainlessParser.ParameterContext ctx);
   /**
    * Visit a parse tree produced by {@link PainlessParser#statement}.
    * @param ctx the parse tree

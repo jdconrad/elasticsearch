@@ -22,6 +22,7 @@ package org.elasticsearch.painless.antlr;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.LexerNoViableAltException;
 import org.antlr.v4.runtime.Token;
+import org.antlr.v4.runtime.atn.ATN;
 import org.antlr.v4.runtime.misc.Interval;
 import org.elasticsearch.painless.Location;
 
@@ -38,21 +39,29 @@ import org.elasticsearch.painless.Location;
  */
 final class EnhancedPainlessLexer extends PainlessLexer {
     private final String sourceName;
+    private final int cursor;
     private Token current = null;
+    public ATN atn;
 
-    EnhancedPainlessLexer(CharStream charStream, String sourceName) {
+    EnhancedPainlessLexer(CharStream charStream, String sourceName, int cursor) {
         super(charStream);
         this.sourceName = sourceName;
+        this.cursor = cursor;
     }
 
     @Override
     public Token nextToken() {
         current = super.nextToken();
-        return current;
+        return new CursorToken(current, current.getStartIndex() >= cursor && current.getStopIndex() <= cursor);
     }
 
     @Override
     public void recover(final LexerNoViableAltException lnvae) {
+        //if (_mode != DEFAULT_MODE) {
+        //    _mode = DEFAULT_MODE;
+        //}
+
+        //super.recover(lnvae);
         final CharStream charStream = lnvae.getInputStream();
         final int startIndex = lnvae.getStartIndex();
         final String text = charStream.getText(Interval.of(startIndex, charStream.index()));

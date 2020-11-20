@@ -21,16 +21,71 @@ parser grammar PainlessParser;
 
 options { tokenVocab=PainlessLexer; }
 
+@header {
+import java.util.HashMap;
+import java.util.Map;
+}
+
+@members {
+public static class Scope {
+    public final Scope parent;
+    public final Map<String, String> variables;
+
+    public Scope(Scope parent) {
+        this.parent = null;
+        this.variables = new HashMap<>();
+    }
+
+    public void addVariable(String id, String type) {
+        variables.put(id, type);
+    }
+
+    public String getVariable(String id) {
+        String type = variables.get(id);
+
+        if (type == null && parent != null) {
+            return parent.getVariable(id);
+        }
+
+        return type;
+    }
+}
+
+public void pushScope() {
+    this.scope = new Scope(this.scope.parent);
+}
+
+public void popScope() {
+    this.scope = this.scope.parent;
+}
+
+public void addVariable(String id, String type) {
+    this.scope.addVariable(id, type);
+}
+
+public String getVariable(String id) {
+    return this.scope.getVariable(id);
+}
+
+public Scope scope = new Scope(null);
+public String cursorid = null;
+public String cursortype = null;
+}
+
 source
-    : function* statement* EOF
+    : function* { pushScope(); } statement* EOF { popScope(); }
     ;
 
 function
-    : decltype ID parameters block
+    : { pushScope(); } decltype ID parameters { pushScope(); } block { popScope(); popScope(); }
     ;
 
 parameters
-    : LP ( decltype ID ( COMMA decltype ID )* )? RP
+    : LP ( parameter ( COMMA parameter )* )? RP
+    ;
+
+parameter
+    : decltype ID { addVariable($ID.text, $decltype.text); }
     ;
 
 statement
@@ -42,22 +97,23 @@ statement
 // "dangling-else" ambiguity by forcing the 'else' token to be consumed
 // as soon as one is found.  See (https://en.wikipedia.org/wiki/Dangling_else).
 rstatement
-    : IF LP expression RP trailer ( ELSE trailer | { _input.LA(1) != ELSE }? )                 # if
-    | WHILE LP expression RP ( trailer | empty )                                               # while
-    | FOR LP initializer? SEMICOLON expression? SEMICOLON afterthought? RP ( trailer | empty ) # for
-    | FOR LP decltype ID COLON expression RP trailer                                           # each
-    | FOR LP ID IN expression RP trailer                                                       # ineach
-    | TRY block trap+                                                                          # try
+    : IF LP expression RP { pushScope(); } trailer { popScope(); }
+        ( ELSE { pushScope(); } trailer { popScope(); } | { _input.LA(1) != ELSE }? )                                           # if
+    | WHILE { pushScope(); } LP expression RP ( trailer | empty ) { popScope(); }                                               # while
+    | FOR { pushScope(); } LP initializer? SEMICOLON expression? SEMICOLON afterthought? RP ( trailer | empty ) { popScope(); } # for
+    | FOR { pushScope(); } LP decltype ID COLON expression RP trailer { popScope(); }                                           # each
+    | FOR { pushScope(); } LP ID IN expression RP trailer { popScope(); }                                                       # ineach
+    | TRY { pushScope(); } block { popScope(); } trap+                                                                          # try
     ;
 
 dstatement
-    : DO block WHILE LP expression RP # do
-    | declaration                     # decl
-    | CONTINUE                        # continue
-    | BREAK                           # break
-    | RETURN expression?              # return
-    | THROW expression                # throw
-    | expression                      # expr
+    : DO { pushScope(); } block WHILE LP expression RP { popScope(); } # do
+    | declaration                                                      # decl
+    | CONTINUE                                                         # continue
+    | BREAK                                                            # break
+    | RETURN expression?                                               # return
+    | THROW expression                                                 # throw
+    | expression                                                       # expr
     ;
 
 trailer
@@ -83,7 +139,7 @@ afterthought
     ;
 
 declaration
-    : decltype declvar (COMMA declvar)*
+    : decltype declvar[$decltype.text] (COMMA declvar[$decltype.text])*
     ;
 
 decltype
@@ -96,12 +152,12 @@ type
     | ID (DOT DOTID)*
     ;
 
-declvar
-    : ID ( ASSIGN expression )?
+declvar[String typename]
+    : ID ( ASSIGN expression )? { addVariable($ID.text, $typename); }
     ;
 
 trap
-    : CATCH LP type ID RP block
+    : CATCH { pushScope(); } LP type ID RP block { popScope(); }
     ;
 
 noncondexpression
@@ -173,7 +229,14 @@ primary
     | REGEX                               # regex
     | listinitializer                     # listinit
     | mapinitializer                      # mapinit
-    | ID                                  # variable
+    | ID
+    {
+    CursorToken next = (CursorToken)_input.LA(1);
+    if (next.isCursor() && _input.LA(1) == PainlessLexer.DOT) {
+        cursorid = $ID.text;
+        cursortype = scope.getVariable(cursorid);
+    }
+    }                                     # variable
     | ID arguments                        # calllocal
     | NEW type arguments                  # newobject
     ;
@@ -231,11 +294,11 @@ argument
     ;
 
 lambda
-    : ( lamtype | LP ( lamtype ( COMMA lamtype )* )? RP ) ARROW ( block | expression )
+    : { pushScope(); } ( lamtype | LP ( lamtype ( COMMA lamtype )* )? RP ) ARROW ( block | expression ) { popScope(); }
     ;
 
 lamtype
-    : decltype? ID
+    : decltype? ID { String typename = $decltype.text; addVariable($ID.text, typename == null ? "def" : typename); }
     ;
 
 funcref
