@@ -41,7 +41,7 @@ public class VersionFieldMapper extends MetadataFieldMapper {
         public static final VersionFieldType INSTANCE = new VersionFieldType();
 
         private VersionFieldType() {
-            super(NAME, false, false, true, TextSearchInfo.SIMPLE_MATCH_ONLY, Collections.emptyMap());
+            super(NAME, false, false, true, TextSearchInfo.NONE, Collections.emptyMap());
         }
 
         @Override
@@ -52,6 +52,11 @@ public class VersionFieldMapper extends MetadataFieldMapper {
         @Override
         public Query termQuery(Object value, QueryShardContext context) {
             throw new QueryShardException(context, "The _version field is not searchable");
+        }
+
+        @Override
+        public ValueFetcher valueFetcher(QueryShardContext context, String format) {
+            throw new UnsupportedOperationException("Cannot fetch values for internal field [" + name() + "].");
         }
     }
 

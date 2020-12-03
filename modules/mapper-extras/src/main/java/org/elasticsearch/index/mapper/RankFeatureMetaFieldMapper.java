@@ -51,6 +51,11 @@ public class RankFeatureMetaFieldMapper extends MetadataFieldMapper {
         }
 
         @Override
+        public ValueFetcher valueFetcher(QueryShardContext context, String format) {
+            throw new UnsupportedOperationException("Cannot fetch values for internal field [" + typeName() + "].");
+        }
+
+        @Override
         public Query existsQuery(QueryShardContext context) {
             throw new UnsupportedOperationException("Cannot run exists query on [_feature]");
         }

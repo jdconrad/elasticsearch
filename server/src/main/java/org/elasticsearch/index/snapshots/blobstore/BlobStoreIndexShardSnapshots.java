@@ -21,6 +21,7 @@ package org.elasticsearch.index.snapshots.blobstore;
 
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.common.ParseField;
+import org.elasticsearch.common.util.CollectionUtils;
 import org.elasticsearch.common.xcontent.ToXContentFragment;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
@@ -93,6 +94,28 @@ public class BlobStoreIndexShardSnapshots implements Iterable<SnapshotFiles>, To
             mapBuilder.put(entry.getKey(), List.copyOf(entry.getValue()));
         }
         this.physicalFiles = unmodifiableMap(mapBuilder);
+    }
+
+    /**
+     * Create a new instance that has a new snapshot by name {@code target} added which shares all files with the snapshot of name
+     * {@code source}.
+     *
+     * @param source source snapshot name
+     * @param target target snapshot name
+     * @return new instance with added cloned snapshot
+     */
+    public BlobStoreIndexShardSnapshots withClone(String source, String target) {
+        SnapshotFiles sourceFiles = null;
+        for (SnapshotFiles shardSnapshot : shardSnapshots) {
+            if (shardSnapshot.snapshot().equals(source)) {
+                sourceFiles = shardSnapshot;
+                break;
+            }
+        }
+        if (sourceFiles == null) {
+            throw new IllegalArgumentException("unknown source [" + source + "]");
+        }
+        return new BlobStoreIndexShardSnapshots(CollectionUtils.appendToCopy(shardSnapshots, sourceFiles.withSnapshotName(target)));
     }
 
     /**

@@ -74,6 +74,11 @@ public final class IgnoredFieldMapper extends MetadataFieldMapper {
             // field is bounded by the number of fields in the mappings.
             return new TermRangeQuery(name(), null, null, true, true);
         }
+
+        @Override
+        public ValueFetcher valueFetcher(QueryShardContext context, String format) {
+            throw new UnsupportedOperationException("Cannot fetch values for internal field [" + name() + "].");
+        }
     }
 
     private IgnoredFieldMapper() {

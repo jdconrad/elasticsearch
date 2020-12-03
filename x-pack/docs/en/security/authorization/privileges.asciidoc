@@ -16,6 +16,9 @@ settings update, rerouting, or managing users and roles.
 Privileges to create snapshots for existing repositories. Can also list and view
 details on existing repositories and snapshots.
 
+`grant_api_key`::
+Privileges to create {es} API keys on behalf of other users.
+
 `monitor_snapshot`::
 Privileges to list and view details on existing repositories and snapshots.
 
@@ -59,6 +62,9 @@ All operations on index templates.
 `manage_ingest_pipelines`::
 All operations on ingest node pipelines.
 
+`manage_logstash_pipelines`::
+All operations on logstash pipelines.
+
 `manage_ml`::
 All {ml} operations, such as creating and deleting {dfeeds}, jobs, and model
 snapshots.
@@ -88,9 +94,20 @@ authenticated user. The operations include
 `manage_pipeline`::
 All operations on ingest pipelines.
 
+ifdef::permanently-unreleased-branch[]
+
+`manage_rollup`::
+All rollup operations. Includes legacy rollup operations, such as creating,
+starting, stopping and deleting rollup jobs.
+
+endif::[]
+ifndef::permanently-unreleased-branch[]
+
 `manage_rollup`::
 All rollup operations, including creating, starting, stopping and deleting
 rollup jobs.
+
+endif::[]
 
 `manage_saml`::
 Enables the use of internal {es} APIs to initiate and manage SAML authentication
@@ -133,9 +150,20 @@ All read-only operations related to {transforms}.
 All read-only {ml} operations, such as getting information about {dfeeds}, jobs,
 model snapshots, or results.
 
+ifdef::permanently-unreleased-branch[]
+
+`monitor_rollup`::
+All read-only operations for legacy rollups, such as viewing the list of
+historical and currently running rollup jobs and their capabilities.
+
+endif::[]
+ifndef::permanently-unreleased-branch[]
+
 `monitor_rollup`::
 All read-only rollup operations, such as viewing the list of historical and
 currently running rollup jobs and their capabilities.
+
+endif::[]
 
 `monitor_watcher`::
 All read-only watcher operations, such as getting a watch and watcher stats.

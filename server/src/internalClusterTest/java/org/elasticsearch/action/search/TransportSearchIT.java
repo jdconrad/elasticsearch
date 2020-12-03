@@ -41,7 +41,6 @@ import org.elasticsearch.common.util.concurrent.AtomicArray;
 import org.elasticsearch.common.xcontent.ObjectParser;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.index.IndexSettings;
-import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.index.query.RangeQueryBuilder;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.indices.IndicesService;
@@ -63,11 +62,11 @@ import org.elasticsearch.search.aggregations.LeafBucketCollector;
 import org.elasticsearch.search.aggregations.bucket.terms.LongTerms;
 import org.elasticsearch.search.aggregations.bucket.terms.TermsAggregationBuilder;
 import org.elasticsearch.search.aggregations.metrics.InternalMax;
+import org.elasticsearch.search.aggregations.support.AggregationContext;
 import org.elasticsearch.search.aggregations.support.ValueType;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.search.fetch.FetchSubPhase;
 import org.elasticsearch.search.fetch.FetchSubPhaseProcessor;
-import org.elasticsearch.search.internal.SearchContext;
 import org.elasticsearch.test.ESIntegTestCase;
 
 import java.io.IOException;
@@ -499,16 +498,14 @@ public class TransportSearchIT extends ESIntegTestCase {
         }
 
         @Override
-        protected AggregatorFactory doBuild(QueryShardContext queryShardContext,
+        protected AggregatorFactory doBuild(AggregationContext context,
                                             AggregatorFactory parent,
                                             AggregatorFactories.Builder subFactoriesBuilder) throws IOException {
-            return new AggregatorFactory(name, queryShardContext, parent, subFactoriesBuilder, metadata) {
+            return new AggregatorFactory(name, context, parent, subFactoriesBuilder, metadata) {
                 @Override
-                protected Aggregator createInternal(SearchContext searchContext,
-                                                    Aggregator parent,
-                                                    CardinalityUpperBound cardinality,
-                                                    Map<String, Object> metadata) throws IOException {
-                    return new TestAggregator(name, parent, searchContext);
+                protected Aggregator createInternal(Aggregator parent, CardinalityUpperBound cardinality, Map<String, Object> metadata)
+                    throws IOException {
+                    return new TestAggregator(name, parent);
                 }
             };
         }
@@ -541,23 +538,16 @@ public class TransportSearchIT extends ESIntegTestCase {
     private static class TestAggregator extends Aggregator {
         private final String name;
         private final Aggregator parent;
-        private final SearchContext context;
 
-        private TestAggregator(String name, Aggregator parent, SearchContext context) {
+        private TestAggregator(String name, Aggregator parent) {
             this.name = name;
             this.parent = parent;
-            this.context = context;
         }
 
 
         @Override
         public String name() {
             return name;
-        }
-
-        @Override
-        public SearchContext context() {
-            return context;
         }
 
         @Override
@@ -599,6 +589,8 @@ public class TransportSearchIT extends ESIntegTestCase {
         public void preCollection() throws IOException {}
 
         @Override
-        public void postCollection() throws IOException {}
+        public Aggregator[] subAggregators() {
+            throw new UnsupportedOperationException();
+        }
     }
 }

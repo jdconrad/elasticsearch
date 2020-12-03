@@ -46,7 +46,7 @@ public class FieldNamesFieldMapper extends MetadataFieldMapper {
     public static final String CONTENT_TYPE = "_field_names";
 
     @Override
-    public ParametrizedFieldMapper.Builder getMergeBuilder() {
+    public FieldMapper.Builder getMergeBuilder() {
         return new Builder(indexVersionCreated).init(this);
     }
 
@@ -92,7 +92,7 @@ public class FieldNamesFieldMapper extends MetadataFieldMapper {
         }
 
         @Override
-        public FieldNamesFieldMapper build(BuilderContext context) {
+        public FieldNamesFieldMapper build() {
             if (enabled.getValue().explicit()) {
                 if (indexVersionCreated.onOrAfter(Version.V_8_0_0)) {
                     throw new MapperParsingException("The `enabled` setting for the `_field_names` field has been deprecated and "
@@ -127,6 +127,11 @@ public class FieldNamesFieldMapper extends MetadataFieldMapper {
 
         public boolean isEnabled() {
             return enabled;
+        }
+
+        @Override
+        public ValueFetcher valueFetcher(QueryShardContext context, String format) {
+            throw new UnsupportedOperationException("Cannot fetch values for internal field [" + name() + "].");
         }
 
         @Override

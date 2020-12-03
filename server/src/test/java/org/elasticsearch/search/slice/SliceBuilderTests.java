@@ -52,6 +52,7 @@ import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.fielddata.IndexNumericFieldData;
 import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.mapper.TextSearchInfo;
+import org.elasticsearch.index.mapper.ValueFetcher;
 import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.search.internal.ShardSearchRequest;
@@ -123,6 +124,11 @@ public class SliceBuilderTests extends ESTestCase {
             TextSearchInfo.NONE, Collections.emptyMap()) {
 
             @Override
+            public ValueFetcher valueFetcher(QueryShardContext context, String format) {
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
             public String typeName() {
                 return null;
             }
@@ -137,7 +143,7 @@ public class SliceBuilderTests extends ESTestCase {
             }
         };
         QueryShardContext context = mock(QueryShardContext.class);
-        when(context.fieldMapper(fieldName)).thenReturn(fieldType);
+        when(context.getFieldType(fieldName)).thenReturn(fieldType);
         when(context.getIndexReader()).thenReturn(reader);
         when(context.getShardId()).thenReturn(shardId);
         IndexSettings indexSettings = createIndexSettings(indexVersionCreated, numShards);

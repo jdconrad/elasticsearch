@@ -80,6 +80,7 @@ public class ModelSnapshot implements ToXContentObject, Writeable {
         return parser;
     }
 
+    private static String EMPTY_SNAPSHOT_ID = "empty";
 
     private final String jobId;
 
@@ -238,6 +239,10 @@ public class ModelSnapshot implements ToXContentObject, Writeable {
         return latestResultTimeStamp;
     }
 
+    public boolean isRetain() {
+        return retain;
+    }
+
     @Override
     public int hashCode() {
         return Objects.hash(jobId, minVersion, timestamp, description, snapshotId, quantiles, snapshotDocCount, modelSizeStats,
@@ -279,6 +284,14 @@ public class ModelSnapshot implements ToXContentObject, Writeable {
             stateDocumentIds.add(ModelState.documentId(jobId, snapshotId, i));
         }
         return stateDocumentIds;
+    }
+
+    public boolean isTheEmptySnapshot() {
+        return isTheEmptySnapshot(snapshotId);
+    }
+
+    public static boolean isTheEmptySnapshot(String snapshotId) {
+        return EMPTY_SNAPSHOT_ID.equals(snapshotId);
     }
 
     public static String documentIdPrefix(String jobId) {
@@ -430,5 +443,10 @@ public class ModelSnapshot implements ToXContentObject, Writeable {
             return new ModelSnapshot(jobId, minVersion, timestamp, description, snapshotId, snapshotDocCount, modelSizeStats,
                     latestRecordTimeStamp, latestResultTimeStamp, quantiles, retain);
         }
+    }
+
+    public static ModelSnapshot emptySnapshot(String jobId) {
+        return new ModelSnapshot(jobId, Version.CURRENT, new Date(), "empty snapshot", EMPTY_SNAPSHOT_ID, 0,
+            new ModelSizeStats.Builder(jobId).build(), null, null, null, false);
     }
 }

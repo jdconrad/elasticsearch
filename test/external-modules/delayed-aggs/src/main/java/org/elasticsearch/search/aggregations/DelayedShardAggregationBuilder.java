@@ -26,9 +26,8 @@ import org.elasticsearch.common.unit.TimeValue;
 import org.elasticsearch.common.xcontent.ConstructingObjectParser;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
-import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.search.aggregations.bucket.filter.FilterAggregationBuilder;
-import org.elasticsearch.search.internal.SearchContext;
+import org.elasticsearch.search.aggregations.support.AggregationContext;
 
 import java.io.IOException;
 import java.util.Map;
@@ -90,30 +89,26 @@ public class DelayedShardAggregationBuilder extends AbstractAggregationBuilder<D
     @Override
     @SuppressWarnings("unchecked")
     protected AggregatorFactory doBuild(
-        QueryShardContext queryShardContext,
+        AggregationContext context,
         AggregatorFactory parent,
         AggregatorFactories.Builder subfactoriesBuilder
     ) throws IOException {
 
         // Disable the request cache
-        queryShardContext.nowInMillis();
+        context.nowInMillis();
 
         final FilterAggregationBuilder filterAgg = new FilterAggregationBuilder(name, QueryBuilders.matchAllQuery()).subAggregations(
             subfactoriesBuilder
         );
-        final AggregatorFactory factory = filterAgg.build(queryShardContext, parent);
-        return new AggregatorFactory(name, queryShardContext, parent, subfactoriesBuilder, metadata) {
+        final AggregatorFactory factory = filterAgg.build(context, parent);
+        return new AggregatorFactory(name, context, parent, subfactoriesBuilder, metadata) {
             @Override
-            protected Aggregator createInternal(
-                SearchContext searchContext,
-                Aggregator parent,
-                CardinalityUpperBound cardinality,
-                Map<String, Object> metadata
-            ) throws IOException {
-                long start = searchContext.getRelativeTimeInMillis();
+            protected Aggregator createInternal(Aggregator parent, CardinalityUpperBound cardinality, Map<String, Object> metadata)
+                throws IOException {
+                long start = context.getRelativeTimeInMillis();
                 long sleepTime = Math.min(delay.getMillis(), 100);
                 do {
-                    if (searchContext.isCancelled()) {
+                    if (context.isCancelled()) {
                         break;
                     }
                     try {
@@ -121,8 +116,8 @@ public class DelayedShardAggregationBuilder extends AbstractAggregationBuilder<D
                     } catch (InterruptedException e) {
                         throw new IOException(e);
                     }
-                } while (searchContext.getRelativeTimeInMillis() - start < delay.getMillis());
-                return factory.create(searchContext, parent, cardinality);
+                } while (context.getRelativeTimeInMillis() - start < delay.getMillis());
+                return factory.create(parent, cardinality);
             }
         };
     }

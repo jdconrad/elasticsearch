@@ -14,8 +14,6 @@ import org.elasticsearch.script.ScriptContext;
 import org.elasticsearch.script.ScriptFactory;
 import org.elasticsearch.search.lookup.SearchLookup;
 
-import java.time.temporal.ChronoField;
-import java.time.temporal.TemporalAccessor;
 import java.util.List;
 import java.util.Map;
 
@@ -37,6 +35,27 @@ public abstract class DateFieldScript extends AbstractLongFieldScript {
         DateFieldScript newInstance(LeafReaderContext ctx);
     }
 
+    public static final Factory PARSE_FROM_SOURCE = (field, params, lookup, formatter) -> (LeafFactory) ctx -> new DateFieldScript(
+        field,
+        params,
+        lookup,
+        formatter,
+        ctx
+    ) {
+        @Override
+        public void execute() {
+            for (Object v : extractFromSource(field)) {
+                if (v instanceof String) {
+                    try {
+                        emit(formatter.parseMillis((String) v));
+                    } catch (Exception e) {
+                        // ignore
+                    }
+                }
+            }
+        }
+    };
+
     private final DateFormatter formatter;
 
     public DateFieldScript(
@@ -48,13 +67,6 @@ public abstract class DateFieldScript extends AbstractLongFieldScript {
     ) {
         super(fieldName, params, searchLookup, ctx);
         this.formatter = formatter;
-    }
-
-    public static long toEpochMilli(TemporalAccessor v) {
-        // TemporalAccessor is a nanos API so we have to convert.
-        long millis = Math.multiplyExact(v.getLong(ChronoField.INSTANT_SECONDS), 1000);
-        millis = Math.addExact(millis, v.get(ChronoField.NANO_OF_SECOND) / 1_000_000);
-        return millis;
     }
 
     public static class Emit {
@@ -69,6 +81,10 @@ public abstract class DateFieldScript extends AbstractLongFieldScript {
         }
     }
 
+    /**
+     * Temporary parse method that takes into account the date format. We'll
+     * remove this when we have "native" source parsing fields.
+     */
     public static class Parse {
         private final DateFieldScript script;
 
