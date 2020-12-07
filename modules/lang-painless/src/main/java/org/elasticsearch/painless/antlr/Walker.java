@@ -276,6 +276,7 @@ public final class Walker extends PainlessParserBaseVisitor<ANode> {
             states.add(Collections.unmodifiableList(edges));
 
             edges = new ArrayList<>();
+            edges.add(new Machine.Edge(PainlessLexer.LBRACE, 4));
             edges.add(new Machine.Edge(PainlessLexer.ID, 6));
             states.add(Collections.unmodifiableList(edges));
 
