@@ -26,6 +26,7 @@ import org.antlr.v4.runtime.DiagnosticErrorListener;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.RecognitionException;
 import org.antlr.v4.runtime.Recognizer;
+import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.atn.PredictionMode;
 import org.antlr.v4.runtime.tree.TerminalNode;
 import org.elasticsearch.painless.CompilerSettings;
@@ -157,7 +158,11 @@ import org.elasticsearch.painless.node.SWhile;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
 
 import static java.util.Collections.emptyList;
 
@@ -190,9 +195,148 @@ public final class Walker extends PainlessParserBaseVisitor<ANode> {
         return identifier++;
     }
 
+    private static class Tracker {
+
+        private static class Machine {
+
+            private static class Edge {
+
+                private final int match;
+                private final int target;
+
+                private Edge(int match, int target) {
+                    this.match = match;
+                    this.target = target;
+                }
+            }
+
+            private final List<List<Edge>> states;
+            private final int end;
+
+            private Machine(List<List<Edge>> states) {
+                this.states = Collections.unmodifiableList(states);
+                this.end = states.size();
+            }
+
+            private int match(List<? extends Token> tokens, int current) {
+                List<Edge> edges = states.get(0);
+
+                while (current < tokens.size()) {
+                    int type = tokens.get(current++).getType();
+                    int target = -1;
+
+                    for (Edge edge : edges) {
+                        if (type == edge.match) {
+                            target = edge.target;
+                            break;
+                        }
+                    }
+
+                    if (target == end) {
+                        return current;
+                    } else if (target == -1) {
+                        return -1;
+                    }
+
+                    edges = states.get(target);
+                }
+
+                return -1;
+            }
+        }
+
+        private static final Machine declaration;
+
+        static {
+            List<List<Machine.Edge>> states = new ArrayList<>();
+
+            List<Machine.Edge> edges = new ArrayList<>();
+            edges.add(new Machine.Edge(PainlessLexer.ID, 1));
+            edges.add(new Machine.Edge(PainlessLexer.DEF, 3));
+            edges.add(new Machine.Edge(PainlessLexer.PRIMITIVE, 3));
+            states.add(Collections.unmodifiableList(edges));
+
+            edges = new ArrayList<>();
+            edges.add(new Machine.Edge(PainlessLexer.DOT, 2));
+            edges.add(new Machine.Edge(PainlessLexer.LBRACE, 4));
+            edges.add(new Machine.Edge(PainlessLexer.ID, 6));
+            states.add(Collections.unmodifiableList(edges));
+
+            edges = new ArrayList<>();
+            edges.add(new Machine.Edge(PainlessLexer.DOTID, 1));
+            states.add(Collections.unmodifiableList(edges));
+
+            edges = new ArrayList<>();
+            edges.add(new Machine.Edge(PainlessLexer.LBRACE, 4));
+            edges.add(new Machine.Edge(PainlessLexer.ID, 6));
+            states.add(Collections.unmodifiableList(edges));
+
+            edges = new ArrayList<>();
+            edges.add(new Machine.Edge(PainlessLexer.RBRACE, 5));
+            states.add(Collections.unmodifiableList(edges));
+
+            edges = new ArrayList<>();
+            edges.add(new Machine.Edge(PainlessLexer.ID, 6));
+            states.add(Collections.unmodifiableList(edges));
+
+            declaration = new Machine(states);
+        }
+
+        private static List<String> track(List<? extends Token> tokens) {
+            return new Tracker(tokens).track();
+        }
+
+        private final List<? extends Token> tokens;
+        private final List<String> suggestions;
+
+        private Tracker(List<? extends Token> tokens) {
+            this.tokens = Collections.unmodifiableList(tokens);
+            this.suggestions = new ArrayList<>();
+        }
+
+        private List<String> track() {
+            int current = 0;
+
+            while (current < tokens.size()) {
+                int type = tokens.get(current).getType();
+
+                if (type == PainlessLexer.ID || type == PainlessLexer.DEF || type == PainlessLexer.PRIMITIVE) {
+                    int matched = declaration.match(tokens, current);
+
+                    if (matched == -1) {
+                        ++current;
+                    } else {
+                        StringBuilder suggestion = new StringBuilder();
+
+                        while (current < matched) {
+                            Token token = tokens.get(current++);
+                            suggestion.append(token.getText());
+
+                            if (current == matched - 1) {
+                                suggestion.append(" ");
+                            }
+                        }
+
+                        suggestions.add(suggestion.toString());
+                    }
+                } else {
+                    ++current;
+                }
+            }
+
+            if (true) throw new RuntimeException(suggestions.toString());
+                    //tokens.stream().map(t -> PainlessLexer.ruleNames[t.getType()] + ":" + t.getText()).collect(Collectors.toList())
+                    //        .toString()
+            //);
+
+            return suggestions;
+        }
+    }
+
     private SourceContext buildAntlrTree(String source) {
         ANTLRInputStream stream = new ANTLRInputStream(source);
         PainlessLexer lexer = new EnhancedPainlessLexer(stream, sourceName);
+        List<String> suggestions = Tracker.track(lexer.getAllTokens());
         PainlessParser parser = new PainlessParser(new CommonTokenStream(lexer));
         ParserErrorStrategy strategy = new ParserErrorStrategy(sourceName);
 
