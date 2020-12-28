@@ -24,6 +24,7 @@ import org.antlr.v4.runtime.LexerNoViableAltException;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.misc.Interval;
 import org.elasticsearch.painless.Location;
+import org.elasticsearch.painless.lookup.PainlessLookup;
 
 /**
  * A lexer that is customized for painless. It:
@@ -37,12 +38,12 @@ import org.elasticsearch.painless.Location;
  * </ul>
  */
 final class EnhancedPainlessLexer extends PainlessLexer {
-    private final String sourceName;
     private Token current = null;
+    private final PainlessLookup painlessLookup;
 
-    EnhancedPainlessLexer(CharStream charStream, String sourceName) {
+    EnhancedPainlessLexer(CharStream charStream, PainlessLookup painlessLookup) {
         super(charStream);
-        this.sourceName = sourceName;
+        this.painlessLookup = painlessLookup;
     }
 
     @Override
@@ -53,20 +54,11 @@ final class EnhancedPainlessLexer extends PainlessLexer {
 
     @Override
     public void recover(final LexerNoViableAltException lnvae) {
-        final CharStream charStream = lnvae.getInputStream();
-        final int startIndex = lnvae.getStartIndex();
-        final String text = charStream.getText(Interval.of(startIndex, charStream.index()));
-
-        Location location = new Location(sourceName, _tokenStartCharIndex);
-        String message = "unexpected character [" + getErrorDisplay(text) + "].";
-        char firstChar = text.charAt(0);
-        if ((firstChar == '\'' || firstChar == '"') && text.length() - 2 > 0 && text.charAt(text.length() - 2) == '\\') {
-            /* Use a simple heuristic to guess if the unrecognized characters were trying to be a string but has a broken escape sequence.
-             * If it was add an extra message about valid string escape sequences. */
-            message += " The only valid escape sequences in strings starting with [" + firstChar + "] are [\\\\] and [\\"
-                    + firstChar + "].";
+        if (this._mode != PainlessLexer.DEFAULT_MODE) {
+            this._mode = DEFAULT_MODE;
+        } else {
+            throw new IllegalStateException("unexpected token [" + lnvae.getOffendingToken().getText() + "]", lnvae);
         }
-        throw location.createError(new IllegalArgumentException(message, lnvae));
     }
 
     @Override
@@ -89,5 +81,10 @@ final class EnhancedPainlessLexer extends PainlessLexer {
         default:
             return true;
         }
+    }
+
+    @Override
+    protected boolean isType(String text) {
+        return painlessLookup.isValidCanonicalClassName(text);
     }
 }

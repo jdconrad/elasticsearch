@@ -185,13 +185,6 @@ class PainlessParserBaseVisitor<T> extends AbstractParseTreeVisitor<T> implement
    * <p>The default implementation returns the result of calling
    * {@link #visitChildren} on {@code ctx}.</p>
    */
-  @Override public T visitType(PainlessParser.TypeContext ctx) { return visitChildren(ctx); }
-  /**
-   * {@inheritDoc}
-   *
-   * <p>The default implementation returns the result of calling
-   * {@link #visitChildren} on {@code ctx}.</p>
-   */
   @Override public T visitDeclvar(PainlessParser.DeclvarContext ctx) { return visitChildren(ctx); }
   /**
    * {@inheritDoc}
@@ -276,14 +269,7 @@ class PainlessParserBaseVisitor<T> extends AbstractParseTreeVisitor<T> implement
    * <p>The default implementation returns the result of calling
    * {@link #visitChildren} on {@code ctx}.</p>
    */
-  @Override public T visitAddsub(PainlessParser.AddsubContext ctx) { return visitChildren(ctx); }
-  /**
-   * {@inheritDoc}
-   *
-   * <p>The default implementation returns the result of calling
-   * {@link #visitChildren} on {@code ctx}.</p>
-   */
-  @Override public T visitNotaddsub(PainlessParser.NotaddsubContext ctx) { return visitChildren(ctx); }
+  @Override public T visitPost(PainlessParser.PostContext ctx) { return visitChildren(ctx); }
   /**
    * {@inheritDoc}
    *
@@ -297,14 +283,7 @@ class PainlessParserBaseVisitor<T> extends AbstractParseTreeVisitor<T> implement
    * <p>The default implementation returns the result of calling
    * {@link #visitChildren} on {@code ctx}.</p>
    */
-  @Override public T visitPost(PainlessParser.PostContext ctx) { return visitChildren(ctx); }
-  /**
-   * {@inheritDoc}
-   *
-   * <p>The default implementation returns the result of calling
-   * {@link #visitChildren} on {@code ctx}.</p>
-   */
-  @Override public T visitNot(PainlessParser.NotContext ctx) { return visitChildren(ctx); }
+  @Override public T visitOperator(PainlessParser.OperatorContext ctx) { return visitChildren(ctx); }
   /**
    * {@inheritDoc}
    *
@@ -312,34 +291,6 @@ class PainlessParserBaseVisitor<T> extends AbstractParseTreeVisitor<T> implement
    * {@link #visitChildren} on {@code ctx}.</p>
    */
   @Override public T visitCast(PainlessParser.CastContext ctx) { return visitChildren(ctx); }
-  /**
-   * {@inheritDoc}
-   *
-   * <p>The default implementation returns the result of calling
-   * {@link #visitChildren} on {@code ctx}.</p>
-   */
-  @Override public T visitPrimordefcast(PainlessParser.PrimordefcastContext ctx) { return visitChildren(ctx); }
-  /**
-   * {@inheritDoc}
-   *
-   * <p>The default implementation returns the result of calling
-   * {@link #visitChildren} on {@code ctx}.</p>
-   */
-  @Override public T visitRefcast(PainlessParser.RefcastContext ctx) { return visitChildren(ctx); }
-  /**
-   * {@inheritDoc}
-   *
-   * <p>The default implementation returns the result of calling
-   * {@link #visitChildren} on {@code ctx}.</p>
-   */
-  @Override public T visitPrimordefcasttype(PainlessParser.PrimordefcasttypeContext ctx) { return visitChildren(ctx); }
-  /**
-   * {@inheritDoc}
-   *
-   * <p>The default implementation returns the result of calling
-   * {@link #visitChildren} on {@code ctx}.</p>
-   */
-  @Override public T visitRefcasttype(PainlessParser.RefcasttypeContext ctx) { return visitChildren(ctx); }
   /**
    * {@inheritDoc}
    *

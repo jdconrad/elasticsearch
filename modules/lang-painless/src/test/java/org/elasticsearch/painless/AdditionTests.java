@@ -24,7 +24,8 @@ package org.elasticsearch.painless;
 public class AdditionTests extends ScriptTestCase {
 
     public void testBasics() throws Exception {
-        assertEquals(3.0, exec("org.type.blah blah x = 1; byte[] y = 2; def z def[] e a[].b b return x + y;"));
+        exec("int $;");
+        //assertEquals(3.0, exec("org.type.blah blah x = 1; byte[] y = 2; def z def[] e a[].b b return x + y;"));
     }
 
     public void testInt() throws Exception {

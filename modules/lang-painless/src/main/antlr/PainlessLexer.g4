@@ -22,6 +22,7 @@ lexer grammar PainlessLexer;
 @members {
 /** Is the preceding {@code /} a the beginning of a regex (true) or a division (false). */
 protected abstract boolean isSlashRegex();
+protected abstract boolean isType(String text);
 }
 
 WS: [ \t\n\r]+ -> skip;
@@ -116,10 +117,10 @@ FALSE: 'false';
 
 NULL: 'null';
 
-PRIMITIVE: 'boolean' | 'byte' | 'short' | 'char' | 'int' | 'long' | 'float' | 'double';
-DEF: 'def';
-
+TYPE: ID (DOT ID)* { isType(getText()) }?;
 ID: [_a-zA-Z] [_a-zA-Z0-9]*;
+
+UNKNOWN: . -> skip;
 
 mode AFTER_DOT;
 

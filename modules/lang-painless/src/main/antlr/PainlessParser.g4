@@ -87,13 +87,7 @@ declaration
     ;
 
 decltype
-    : type (LBRACE RBRACE)*
-    ;
-
-type
-    : DEF
-    | PRIMITIVE
-    | ID (DOT DOTID)*
+    : TYPE (LBRACE RBRACE)*
     ;
 
 declvar
@@ -101,7 +95,7 @@ declvar
     ;
 
 trap
-    : CATCH LP type ID RP block
+    : CATCH LP TYPE ID RP block
     ;
 
 noncondexpression
@@ -130,32 +124,11 @@ expression
     ;
 
 unary
-    : ( INCR | DECR ) chain # pre
-    | ( ADD | SUB ) unary   # addsub
-    | unarynotaddsub        # notaddsub
-    ;
-
-unarynotaddsub
-    : chain                     # read
-    | chain (INCR | DECR )      # post
-    | ( BOOLNOT | BWNOT ) unary # not
-    | castexpression            # cast
-    ;
-
-castexpression
-    : LP primordefcasttype RP unary    # primordefcast
-    | LP refcasttype RP unarynotaddsub # refcast
-    ;
-
-primordefcasttype
-    : DEF
-    | PRIMITIVE
-    ;
-
-refcasttype
-    : DEF (LBRACE RBRACE)+
-    | PRIMITIVE (LBRACE RBRACE)+
-    | ID (DOT DOTID)* (LBRACE RBRACE)*
+    :  ( INCR | DECR ) chain                 # pre
+    |  chain (INCR | DECR )                  # post
+    |  chain                                 # read
+    |  ( BOOLNOT | BWNOT | ADD | SUB ) unary # operator
+    |  LP decltype RP unary                  # cast
     ;
 
 chain
@@ -175,7 +148,7 @@ primary
     | mapinitializer                      # mapinit
     | ID                                  # variable
     | ID arguments                        # calllocal
-    | NEW type arguments                  # newobject
+    | NEW TYPE arguments                  # newobject
     ;
 
 postfix
@@ -202,8 +175,8 @@ braceaccess
     ;
 
 arrayinitializer
-    : NEW type ( LBRACE expression RBRACE )+ ( postdot postfix* )?                        # newstandardarray
-    | NEW type LBRACE RBRACE LBRACK ( expression ( COMMA expression )* )? RBRACK postfix* # newinitializedarray
+    : NEW TYPE ( LBRACE expression RBRACE )+ ( postdot postfix* )?                        # newstandardarray
+    | NEW TYPE LBRACE RBRACE LBRACK ( expression ( COMMA expression )* )? RBRACK postfix* # newinitializedarray
     ;
 
 listinitializer
