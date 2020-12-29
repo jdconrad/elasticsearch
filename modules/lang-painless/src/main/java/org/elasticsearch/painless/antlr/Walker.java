@@ -118,86 +118,120 @@ public final class Walker {
                 states.add(ws -> {
                     Token token = ws.tokens.get(ws.current);
                     if (token.getType() == PainlessLexer.ATYPE || token.getType() == PainlessLexer.TYPE) {
+                        // VALID: possible return type for function
                         ws.returnType = token.getText();
                         return 1;
                     }
+                    // VALID: not a function
                     return 0;
                 });
                 // 1
                 states.add(ws -> {
                     Token token = ws.tokens.get(ws.current);
                     if (token.getType() == PainlessLexer.ID) {
+                        // VALID: possible function name
                         ws.functionName = token.getText();
                         return 2;
                     }
+                    // VALID: not a function
                     return 0;
                 });
                 // 2
                 states.add(ws -> {
                     Token token = ws.tokens.get(ws.current);
                     if (token.getType() == PainlessLexer.LP) {
+                        // VALID: found a function, record return type and function name
                         ws.functionState = new FunctionState();
                         ws.functionState.returnType = ws.returnType;
                         ws.functionState.functionName = ws.functionName;
                         ws.functions.add(ws.functionState);
                         return 3;
                     }
+                    // VALID: not a function
                     return 0;
                 });
                 // 3
                 states.add(ws -> {
                     Token token = ws.tokens.get(ws.current);
                     if (token.getType() == PainlessLexer.ATYPE || token.getType() == PainlessLexer.TYPE) {
+                        // VALID: found a parameter type
                         ws.parameterType = token.getText();
                         return 6;
                     } else if (token.getType() == PainlessLexer.RP) {
+                        // VALID: end of function header
                         return 4;
+                    } else if (token.getType() == PainlessLexer.LBRACK) {
+                        // ERROR (process): missing right parenthesis, but found start of function body
+                        ws.brackets = 1;
+                        ws.functionState.bodyStartToken = ws.current + 1;
+                        return 5;
                     }
-                    return 0; // TODO: error state
+                    // ERROR (ignore): unexpected token, keep looking for a sentinel
+                    return 3;
                 });
                 // 4
                 states.add(ws -> {
                     Token token = ws.tokens.get(ws.current);
                     if (token.getType() == PainlessLexer.LBRACK) {
+                        // VALID: found start of function body
                         ws.brackets = 1;
                         ws.functionState.bodyStartToken = ws.current + 1;
                         return 5;
                     }
-                    return 0; // TODO: error state
+                    // ERROR (ignore): unexpected token, keep looking for a sentinel
+                    return 4;
                 });
                 // 5
                 states.add(ws -> {
                     Token token = ws.tokens.get(ws.current);
                     if (token.getType() == PainlessLexer.LBRACK) {
+                        // VALID: increase scope
                         ++ws.brackets;
                     } else if (token.getType() == PainlessLexer.RBRACK) {
+                        // VALID: decrease scope
                         --ws.brackets;
                         if (ws.brackets == 0) {
+                            // VALID: end of function body
                             ws.functionState.bodyEndToken = ws.current - 1;
                             return 0;
                         }
                     }
+                    // VALID: keep looking for end of function body
                     return 5;
                 });
                 // 6
                 states.add(ws -> {
                     Token token = ws.tokens.get(ws.current);
                     if (token.getType() == PainlessLexer.ID) {
+                        // VALID: found a parameter name, record parameter type and name
                         ws.functionState.parameterTypes.add(ws.parameterType);
                         ws.functionState.parameterNames.add(token.getText());
                         return 7;
+                    } else if (token.getType() == PainlessLexer.RP) {
+                        // ERROR (process): missing parameter name, but found end of function header
+                        return 4;
+                    } else if (token.getType() == PainlessLexer.LBRACK) {
+                        // ERROR (process): missing parameter name, but found start of function body
+                        return 5;
                     }
-                    return 0; // TODO: error state
+                    // ERROR (ignore): unexpected token, keep looking for a sentinel
+                    return 6;
                 });
                 // 7
                 states.add(ws -> {
                     Token token = ws.tokens.get(ws.current);
                     if (token.getType() == PainlessLexer.COMMA) {
+                        // VALID: found comma, look for another parameter
                         return 8;
                     } else if (token.getType() == PainlessLexer.RP) {
+                        // VALID: end of function header
                         return 4;
+                    } else if (token.getType() == PainlessLexer.LBRACK) {
+                        // ERROR (process): missing comma or right parenthesis, but found start of function body
+                        return 5;
                     }
-                    return 0; // TODO: error state
+                    // ERROR (ignore): unexpected token, keep looking for a sentinel
+                    return 7;
                 });
                 // 8
                 states.add(ws -> {
@@ -205,8 +239,15 @@ public final class Walker {
                     if (token.getType() == PainlessLexer.ATYPE || token.getType() == PainlessLexer.TYPE) {
                         ws.parameterType = token.getText();
                         return 6;
+                    } else if (token.getType() == PainlessLexer.RP) {
+                        // ERROR (process): missing parameter type, but found end of function header
+                        return 4;
+                    } else if (token.getType() == PainlessLexer.LBRACK) {
+                        // ERROR (process): missing parameter type, but found start of function body
+                        return 5;
                     }
-                    return 0; // TODO: error state
+                    // ERROR (ignore): unexpected token, keep looking for a sentinel
+                    return 8;
                 });
             }
 
