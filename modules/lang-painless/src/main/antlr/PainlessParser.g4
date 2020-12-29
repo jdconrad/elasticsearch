@@ -87,7 +87,8 @@ declaration
     ;
 
 decltype
-    : TYPE (LBRACE RBRACE)*
+    : ATYPE
+    | TYPE
     ;
 
 declvar
@@ -132,8 +133,9 @@ unary
     ;
 
 chain
-    : primary postfix* # dynamic
-    | arrayinitializer # newarray
+    : primary postfix*          # dynamic
+    | decltype postdot postfix* # static
+    | arrayinitializer          # newarray
     ;
 
 primary

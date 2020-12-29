@@ -285,6 +285,13 @@ interface PainlessParserVisitor<T> extends ParseTreeVisitor<T> {
    */
   T visitDynamic(PainlessParser.DynamicContext ctx);
   /**
+   * Visit a parse tree produced by the {@code static}
+   * labeled alternative in {@link PainlessParser#chain}.
+   * @param ctx the parse tree
+   * @return the visitor result
+   */
+  T visitStatic(PainlessParser.StaticContext ctx);
+  /**
    * Visit a parse tree produced by the {@code newarray}
    * labeled alternative in {@link PainlessParser#chain}.
    * @param ctx the parse tree

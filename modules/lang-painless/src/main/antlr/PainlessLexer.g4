@@ -117,6 +117,7 @@ FALSE: 'false';
 
 NULL: 'null';
 
+ATYPE: TYPE (LBRACE RBRACE)+;
 TYPE: ID (DOT ID)* { isType(getText()) }?;
 ID: [_a-zA-Z] [_a-zA-Z0-9]*;
 
