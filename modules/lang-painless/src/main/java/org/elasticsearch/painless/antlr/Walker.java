@@ -103,7 +103,6 @@ public final class Walker {
                 private String returnType;
                 private String functionName;
                 private String parameterType;
-                private String parameterName;
                 private FunctionState functionState;
 
                 private final List<FunctionState> functions = new ArrayList<>();
@@ -140,6 +139,7 @@ public final class Walker {
                         ws.functionState = new FunctionState();
                         ws.functionState.returnType = ws.returnType;
                         ws.functionState.functionName = ws.functionName;
+                        ws.functions.add(ws.functionState);
                         return 3;
                     }
                     return 0;
@@ -147,7 +147,10 @@ public final class Walker {
                 // 3
                 states.add(ws -> {
                     Token token = ws.tokens.get(ws.current);
-                    if (token.getType() == PainlessLexer.RP) {
+                    if (token.getType() == PainlessLexer.ATYPE || token.getType() == PainlessLexer.TYPE) {
+                        ws.parameterType = token.getText();
+                        return 6;
+                    } else if (token.getType() == PainlessLexer.RP) {
                         return 4;
                     }
                     return 0; // TODO: error state
@@ -167,14 +170,41 @@ public final class Walker {
                     Token token = ws.tokens.get(ws.current);
                     if (token.getType() == PainlessLexer.LBRACK) {
                         ++ws.brackets;
-                        return 5;
                     } else if (token.getType() == PainlessLexer.RBRACK) {
                         --ws.brackets;
                         if (ws.brackets == 0) {
                             ws.functionState.bodyEndToken = ws.current - 1;
-                            ws.functions.add(ws.functionState);
                             return 0;
                         }
+                    }
+                    return 5;
+                });
+                // 6
+                states.add(ws -> {
+                    Token token = ws.tokens.get(ws.current);
+                    if (token.getType() == PainlessLexer.ID) {
+                        ws.functionState.parameterTypes.add(ws.parameterType);
+                        ws.functionState.parameterNames.add(token.getText());
+                        return 7;
+                    }
+                    return 0; // TODO: error state
+                });
+                // 7
+                states.add(ws -> {
+                    Token token = ws.tokens.get(ws.current);
+                    if (token.getType() == PainlessLexer.COMMA) {
+                        return 8;
+                    } else if (token.getType() == PainlessLexer.RP) {
+                        return 4;
+                    }
+                    return 0; // TODO: error state
+                });
+                // 8
+                states.add(ws -> {
+                    Token token = ws.tokens.get(ws.current);
+                    if (token.getType() == PainlessLexer.ATYPE || token.getType() == PainlessLexer.TYPE) {
+                        ws.parameterType = token.getText();
+                        return 6;
                     }
                     return 0; // TODO: error state
                 });
