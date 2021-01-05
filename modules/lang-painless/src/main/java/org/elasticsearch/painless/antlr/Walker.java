@@ -262,6 +262,10 @@ public final class Walker {
             private FunctionMachine() {}
         }
 
+        private static class ExpressionMachine {
+
+        }
+
         private static List<String> track(List<? extends Token> tokens) {
             return new Tracker(tokens).track();
         }
