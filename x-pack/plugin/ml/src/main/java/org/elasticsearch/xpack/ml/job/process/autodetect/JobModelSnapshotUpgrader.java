@@ -189,7 +189,13 @@ public final class JobModelSnapshotUpgrader {
                     fieldIndexes.put(field, index++);
                 }
             }
-            fieldIndexes.put(LengthEncodedWriter.CONTROL_FIELD_NAME, index);
+            // field for categorization tokens
+            if (MachineLearning.CATEGORIZATION_TOKENIZATION_IN_JAVA && job.getAnalysisConfig().getCategorizationFieldName() != null) {
+                fieldIndexes.put(LengthEncodedWriter.PRETOKENISED_TOKEN_FIELD, index++);
+            }
+
+            // control field
+            fieldIndexes.put(LengthEncodedWriter.CONTROL_FIELD_NAME, index++);
             return fieldIndexes;
         }
 
@@ -233,9 +239,10 @@ public final class JobModelSnapshotUpgrader {
                 return;
             }
             submitOperation(() -> {
+                writeHeader();
                 String flushId = process.flushJob(FlushJobParams.builder().waitForNormalization(false).build());
                 return waitFlushToCompletion(flushId);
-            }, (aVoid, e) -> {
+            }, (flushAcknowledgement, e) -> {
                 Runnable nextStep;
                 if (e != null) {
                     logger.error(
@@ -250,6 +257,12 @@ public final class JobModelSnapshotUpgrader {
                         ActionListener.wrap(t -> shutdown(e), f -> shutdown(e))
                     );
                 } else {
+                    logger.debug(() -> new ParameterizedMessage(
+                        "[{}] [{}] flush [{}] acknowledged requesting state write",
+                        jobId,
+                        snapshotId,
+                        flushAcknowledgement.getId()
+                    ));
                     nextStep = this::requestStateWrite;
                 }
                 threadPool.executor(UTILITY_THREAD_POOL_NAME).execute(nextStep);
@@ -267,7 +280,6 @@ public final class JobModelSnapshotUpgrader {
                         }
                         submitOperation(
                             () -> {
-                                writeHeader();
                                 process.persistState(
                                     params.modelSnapshot().getTimestamp().getTime(),
                                     params.modelSnapshot().getSnapshotId(),

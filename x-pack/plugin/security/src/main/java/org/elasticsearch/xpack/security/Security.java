@@ -218,7 +218,6 @@ import org.elasticsearch.xpack.security.operator.OperatorOnlyRegistry;
 import org.elasticsearch.xpack.security.operator.OperatorPrivileges;
 import org.elasticsearch.xpack.security.operator.OperatorPrivileges.OperatorPrivilegesService;
 import org.elasticsearch.xpack.security.operator.FileOperatorUsersStore;
-import org.elasticsearch.xpack.security.operator.OperatorPrivilegesInfoTransportAction;
 import org.elasticsearch.xpack.security.rest.SecurityRestFilter;
 import org.elasticsearch.xpack.security.rest.action.RestAuthenticateAction;
 import org.elasticsearch.xpack.security.rest.action.apikey.RestClearApiKeyCacheAction;
@@ -522,7 +521,7 @@ public class Security extends Plugin implements SystemIndexPlugin, IngestPlugin,
         securityInterceptor.set(new SecurityServerTransportInterceptor(settings, threadPool, authcService.get(),
                 authzService, getLicenseState(), getSslService(), securityContext.get(), destructiveOperations, clusterService));
 
-        securityActionFilter.set(new SecurityActionFilter(authcService.get(), authzService, getLicenseState(),
+        securityActionFilter.set(new SecurityActionFilter(authcService.get(), authzService, auditTrailService, getLicenseState(),
             threadPool, securityContext.get(), destructiveOperations));
 
         components.add(new SecurityUsageServices(realms, allRolesStore, nativeRoleMappingStore, ipFilter.get()));
@@ -731,6 +730,7 @@ public class Security extends Plugin implements SystemIndexPlugin, IngestPlugin,
                 module.setReaderWrapper(indexService ->
                         new SecurityIndexReaderWrapper(
                                 shardId -> indexService.newQueryShardContext(shardId.id(),
+                                0,
                                 // we pass a null index reader, which is legal and will disable rewrite optimizations
                                 // based on index statistics, which is probably safer...
                                 null,
@@ -771,9 +771,8 @@ public class Security extends Plugin implements SystemIndexPlugin, IngestPlugin,
     public List<ActionHandler<? extends ActionRequest, ? extends ActionResponse>> getActions() {
         var usageAction = new ActionHandler<>(XPackUsageFeatureAction.SECURITY, SecurityUsageTransportAction.class);
         var infoAction = new ActionHandler<>(XPackInfoFeatureAction.SECURITY, SecurityInfoTransportAction.class);
-        var opInfoAction = new ActionHandler<>(XPackInfoFeatureAction.OPERATOR_PRIVILEGES, OperatorPrivilegesInfoTransportAction.class);
         if (enabled == false) {
-            return Arrays.asList(usageAction, infoAction, opInfoAction);
+            return Arrays.asList(usageAction, infoAction);
         }
         return Arrays.asList(
                 new ActionHandler<>(ClearRealmCacheAction.INSTANCE, TransportClearRealmCacheAction.class),
@@ -818,8 +817,7 @@ public class Security extends Plugin implements SystemIndexPlugin, IngestPlugin,
                 new ActionHandler<>(GetApiKeyAction.INSTANCE, TransportGetApiKeyAction.class),
                 new ActionHandler<>(DelegatePkiAuthenticationAction.INSTANCE, TransportDelegatePkiAuthenticationAction.class),
                 usageAction,
-                infoAction,
-                opInfoAction);
+                infoAction);
     }
 
     @Override

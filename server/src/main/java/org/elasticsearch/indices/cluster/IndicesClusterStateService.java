@@ -655,7 +655,7 @@ public class IndicesClusterStateService extends AbstractLifecycleComponent imple
                         primaryTerm,
                         "master " + nodes.getMasterNode() + " marked shard as initializing, but shard state is [" + state +
                                 "], mark shard as started",
-                        shard.getTimestampMillisRange(),
+                        shard.getTimestampRange(),
                         SHARD_STATE_ACTION_LISTENER,
                         clusterState);
             }
@@ -810,11 +810,11 @@ public class IndicesClusterStateService extends AbstractLifecycleComponent imple
         RecoveryState recoveryState();
 
         /**
-         * @return the range of the {@code @timestamp} field for this shard, in milliseconds since the epoch, or {@link
-         * ShardLongFieldRange#EMPTY} if this field is not found, or {@link ShardLongFieldRange#UNKNOWN} if its range is not fixed.
+         * @return the range of the {@code @timestamp} field for this shard, or {@link ShardLongFieldRange#EMPTY} if this field is not
+         * found, or {@link ShardLongFieldRange#UNKNOWN} if its range is not fixed.
          */
         @Nullable
-        ShardLongFieldRange getTimestampMillisRange();
+        ShardLongFieldRange getTimestampRange();
 
         /**
          * Updates the shard state based on an incoming cluster state:
@@ -964,6 +964,7 @@ public class IndicesClusterStateService extends AbstractLifecycleComponent imple
              * like the shards files, state and transaction logs are kept around in the case of a disaster recovery.
              */
             NO_LONGER_ASSIGNED,
+
             /**
              * The index is deleted. Persistent parts of the index  like the shards files, state and transaction logs are removed once
              * all resources are released.
@@ -988,6 +989,13 @@ public class IndicesClusterStateService extends AbstractLifecycleComponent imple
              * like the shards files, state and transaction logs are kept around in the case of a disaster recovery.
              */
             REOPENED,
+
+            /**
+             * The index is closed as part of the node shutdown process. The index should be removed and all associated resources released.
+             * Persistent parts of the index like the shards files, state and transaction logs should be kept around in the case the node
+             * restarts.
+             */
+            SHUTDOWN,
         }
     }
 }
