@@ -26,19 +26,20 @@ import org.antlr.v4.runtime.DiagnosticErrorListener;
 import org.antlr.v4.runtime.RecognitionException;
 import org.antlr.v4.runtime.Recognizer;
 import org.antlr.v4.runtime.Token;
-import org.antlr.v4.runtime.atn.ATN;
-import org.antlr.v4.runtime.atn.ATNState;
 import org.antlr.v4.runtime.atn.PredictionMode;
-import org.antlr.v4.runtime.atn.Transition;
-import org.antlr.v4.runtime.misc.IntervalSet;
 import org.elasticsearch.painless.CompilerSettings;
 import org.elasticsearch.painless.antlr.PainlessParser.SourceContext;
+import org.elasticsearch.painless.antlr.Walker.Tracker.ExpressionMachine.WalkState.EndState;
 import org.elasticsearch.painless.lookup.PainlessLookup;
 import org.elasticsearch.painless.node.SClass;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.Stack;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -91,6 +92,7 @@ public final class Walker {
             }
 
             private static class WalkState {
+
                 private final List<? extends Token> tokens;
 
                 private WalkState(List<? extends Token> tokens) {
@@ -114,7 +116,7 @@ public final class Walker {
 
             static {
                 states = new ArrayList<>();
-                // 0
+                // 0 - possible start of function
                 states.add(ws -> {
                     Token token = ws.tokens.get(ws.current);
                     if (token.getType() == PainlessLexer.ATYPE || token.getType() == PainlessLexer.TYPE) {
@@ -125,7 +127,7 @@ public final class Walker {
                     // VALID: not a function
                     return 0;
                 });
-                // 1
+                // 1 - possible function name
                 states.add(ws -> {
                     Token token = ws.tokens.get(ws.current);
                     if (token.getType() == PainlessLexer.ID) {
@@ -136,7 +138,7 @@ public final class Walker {
                     // VALID: not a function
                     return 0;
                 });
-                // 2
+                // 2 - start of parameters
                 states.add(ws -> {
                     Token token = ws.tokens.get(ws.current);
                     if (token.getType() == PainlessLexer.LP) {
@@ -150,7 +152,7 @@ public final class Walker {
                     // VALID: not a function
                     return 0;
                 });
-                // 3
+                // 3 - start of a parameter or end of parameters
                 states.add(ws -> {
                     Token token = ws.tokens.get(ws.current);
                     if (token.getType() == PainlessLexer.ATYPE || token.getType() == PainlessLexer.TYPE) {
@@ -169,7 +171,7 @@ public final class Walker {
                     // ERROR (ignore): unexpected token, keep looking for a sentinel
                     return 3;
                 });
-                // 4
+                // 4 - start of function body
                 states.add(ws -> {
                     Token token = ws.tokens.get(ws.current);
                     if (token.getType() == PainlessLexer.LBRACK) {
@@ -181,7 +183,7 @@ public final class Walker {
                     // ERROR (ignore): unexpected token, keep looking for a sentinel
                     return 4;
                 });
-                // 5
+                // 5 - possible end of function body
                 states.add(ws -> {
                     Token token = ws.tokens.get(ws.current);
                     if (token.getType() == PainlessLexer.LBRACK) {
@@ -199,7 +201,7 @@ public final class Walker {
                     // VALID: keep looking for end of function body
                     return 5;
                 });
-                // 6
+                // 6 - parameter name
                 states.add(ws -> {
                     Token token = ws.tokens.get(ws.current);
                     if (token.getType() == PainlessLexer.ID) {
@@ -217,7 +219,7 @@ public final class Walker {
                     // ERROR (ignore): unexpected token, keep looking for a sentinel
                     return 6;
                 });
-                // 7
+                // 7 - start of another parameter or end of parameters
                 states.add(ws -> {
                     Token token = ws.tokens.get(ws.current);
                     if (token.getType() == PainlessLexer.COMMA) {
@@ -233,10 +235,11 @@ public final class Walker {
                     // ERROR (ignore): unexpected token, keep looking for a sentinel
                     return 7;
                 });
-                // 8
+                // 8 - start of another parameter
                 states.add(ws -> {
                     Token token = ws.tokens.get(ws.current);
                     if (token.getType() == PainlessLexer.ATYPE || token.getType() == PainlessLexer.TYPE) {
+                        // VALID: found a parameter type
                         ws.parameterType = token.getText();
                         return 6;
                     } else if (token.getType() == PainlessLexer.RP) {
@@ -259,11 +262,156 @@ public final class Walker {
                 }
             }
 
-            private FunctionMachine() {}
+            private FunctionMachine() {
+
+            }
         }
 
         private static class ExpressionMachine {
 
+            private static class WalkState {
+
+                private final List<? extends Token> tokens;
+
+                private WalkState(List<? extends Token> tokens) {
+                    this.tokens = Collections.unmodifiableList(tokens);
+                }
+
+                private int current = 0;
+                private int target = 0;
+
+                private static class EndState {
+                    private final int type;
+                    private final int state;
+
+                    private EndState(int type, int state) {
+                        this.type = type;
+                        this.state = state;
+                    }
+                }
+
+                private List<EndState> endStates = new LinkedList<>();
+            }
+
+            private static final List<Function<WalkState, Integer>> states;
+
+            static {
+                states = new ArrayList<>();
+                // 0 - start of a statement
+                states.add(ws -> {
+                    Token token = ws.tokens.get(ws.current);
+                    if (    PainlessLexer.LBRACE == token.getType() ||
+                            PainlessLexer.LP == token.getType() ||
+                            PainlessLexer.NEW == token.getType() ||
+                            PainlessLexer.BOOLNOT == token.getType() ||
+                            PainlessLexer.BWNOT == token.getType() ||
+                            PainlessLexer.ADD == token.getType() ||
+                            PainlessLexer.SUB == token.getType() ||
+                            PainlessLexer.INCR == token.getType() ||
+                            PainlessLexer.DECR == token.getType() ||
+                            PainlessLexer.OCTAL == token.getType() ||
+                            PainlessLexer.HEX == token.getType() ||
+                            PainlessLexer.INTEGER == token.getType() ||
+                            PainlessLexer.DECIMAL == token.getType() ||
+                            PainlessLexer.STRING == token.getType() ||
+                            PainlessLexer.REGEX == token.getType() ||
+                            PainlessLexer.TRUE == token.getType() ||
+                            PainlessLexer.FALSE == token.getType() ||
+                            PainlessLexer.NULL == token.getType() ||
+                            PainlessLexer.ID == token.getType()
+                    ) {
+                        // VALID: found start of an expression
+                        ws.current--;
+                        ws.endStates.add(new EndState(PainlessLexer.SEMICOLON, 0));
+                        return 1;
+                    } else if (token.getType() == PainlessLexer.ATYPE || token.getType() == PainlessLexer.TYPE) {
+                        // VALID: found start of a declaration or start of an expression
+                        return 2;
+                    } else if (token.getType() == PainlessLexer.IF || token.getType() == PainlessLexer.WHILE) {
+                        // VALID: found start of if statement or start of a while loop
+                        return 3;
+                    } else if (token.getType() == PainlessLexer.DO) {
+                        // VALID: found start of a do statement
+                        return 4;
+                    } else if (token.getType() == PainlessLexer.FOR) {
+                        // VALID: found start of a for statement
+                        return 5;
+                    } else if (token.getType() == PainlessLexer.CONTINUE || token.getType() == PainlessLexer.BREAK) {
+                        // VALID: found a continue statement or a break statement
+                        return 6;
+                    } else if (token.getType() == PainlessLexer.RETURN) {
+                        // VALID: found start a return statement
+                        return 7;
+                    } else if (token.getType() == PainlessLexer.TRY) {
+                        // VALID: found start a return statement
+                        return 8;
+                    } else if (token.getType() == PainlessLexer.THROW) {
+                        // VALID: found start a return statement
+                        return 9;
+                    }
+                    // ERROR (ignore): unexpected token, keep looking for a sentinel
+                    return 0;
+                });
+                // 1 - start of an expression
+                states.add(ws -> {
+                    // ERROR (ignore): unexpected token, keep looking for a sentinel
+                    return 1;
+                });
+                // 2 - start of a declaration or start of an expression
+                states.add(ws -> {
+                    // ERROR (ignore): unexpected token, start over looking for a statement
+                    return 0;
+                });
+                // 3 - start of an if statement or state of a while loop
+                states.add(ws -> {
+                    // ERROR (ignore): unexpected token, start over looking for a statement
+                    return 0;
+                });
+                // 4 - start of a do statement
+                states.add(ws -> {
+                    // ERROR (ignore): unexpected token, start over looking for a statement
+                    return 0;
+                });
+                // 5 - start of a do statement
+                states.add(ws -> {
+                    // ERROR (ignore): unexpected token, start over looking for a statement
+                    return 0;
+                });
+                // 6 - a continue statement or a break statement
+                states.add(ws -> {
+                    // ERROR (ignore): unexpected token, start over looking for a statement
+                    return 0;
+                });
+                // 7 - start of a return statement
+                states.add(ws -> {
+                    // ERROR (ignore): unexpected token, start over looking for a statement
+                    return 0;
+                });
+                // 8 - start of a try statement
+                states.add(ws -> {
+                    // ERROR (ignore): unexpected token, start over looking for a statement
+                    return 0;
+                });
+                // 9 - start of throw statement
+                states.add(ws -> {
+                    // ERROR (ignore): unexpected token, start over looking for a statement
+                    return 0;
+                });
+            }
+
+
+
+            private static void walk(WalkState ws) {
+                while (ws.current < ws.tokens.size()) {
+                    Function<WalkState, Integer> state = states.get(ws.target);
+                    ws.target = state.apply(ws);
+                    ++ws.current;
+                }
+            }
+
+            private ExpressionMachine() {
+
+            }
         }
 
         private static List<String> track(List<? extends Token> tokens) {
