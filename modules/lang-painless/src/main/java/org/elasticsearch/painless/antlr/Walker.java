@@ -30,6 +30,7 @@ import org.antlr.v4.runtime.atn.PredictionMode;
 import org.elasticsearch.painless.CompilerSettings;
 import org.elasticsearch.painless.antlr.PainlessParser.SourceContext;
 import org.elasticsearch.painless.antlr.Walker.Tracker.ExpressionMachine.WalkState.EndState;
+import org.elasticsearch.painless.antlr.Walker.Tracker.FunctionMachine.WalkState;
 import org.elasticsearch.painless.lookup.PainlessLookup;
 import org.elasticsearch.painless.node.SClass;
 
@@ -39,9 +40,8 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Stack;
+import java.util.Objects;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 /**
  * Converts the ANTLR tree to a Painless tree.
@@ -267,36 +267,43 @@ public final class Walker {
             }
         }
 
-        private static class ExpressionMachine {
+        private static class BlockMachine {
 
             private static class WalkState {
 
                 private final List<? extends Token> tokens;
+                //private final PainlessLookup lookup;
 
-                private WalkState(List<? extends Token> tokens) {
+                private WalkState(List<? extends Token> tokens) { //}, PainlessLookup lookup) {
                     this.tokens = Collections.unmodifiableList(tokens);
+                    //this.lookup = Objects.requireNonNull(lookup);
                 }
 
                 private int current = 0;
                 private int target = 0;
 
-                private static class EndState {
-                    private final int type;
-                    private final int state;
+                private static class WalkScope {
 
-                    private EndState(int type, int state) {
-                        this.type = type;
-                        this.state = state;
+                    private final WalkScope parent;
+
+                    public WalkScope(WalkScope parent) {
+                        this.parent = parent;
                     }
+
+                    Map<String, String> variables = new HashMap();
                 }
 
-                private List<EndState> endStates = new LinkedList<>();
+                private WalkScope scope = new WalkScope(null);
             }
 
             private static final List<Function<WalkState, Integer>> states;
 
             static {
                 states = new ArrayList<>();
+                // 0 - start of a function block (including "execute")
+                states.add(ws -> {
+
+                });
                 // 0 - start of a statement
                 states.add(ws -> {
                     Token token = ws.tokens.get(ws.current);
@@ -321,11 +328,12 @@ public final class Walker {
                             PainlessLexer.ID == token.getType()
                     ) {
                         // VALID: found start of an expression
-                        ws.current--;
-                        ws.endStates.add(new EndState(PainlessLexer.SEMICOLON, 0));
-                        return 1;
+                        ws.target = 1;
+                        walk(ws);
+                        return -1;
                     } else if (token.getType() == PainlessLexer.ATYPE || token.getType() == PainlessLexer.TYPE) {
                         // VALID: found start of a declaration or start of an expression
+                        ws.type = token.getText();
                         return 2;
                     } else if (token.getType() == PainlessLexer.IF || token.getType() == PainlessLexer.WHILE) {
                         // VALID: found start of if statement or start of a while loop
@@ -359,6 +367,15 @@ public final class Walker {
                 });
                 // 2 - start of a declaration or start of an expression
                 states.add(ws -> {
+                    Token token = ws.tokens.get(ws.current);
+                    if (token.getType() == PainlessLexer.ID) {
+                        // VALID: found a declaration
+                        ws.variables.get(0).put(ws.type, token.getText());
+                        // TODO: new state
+                    } else if (token.getType() == PainlessLexer.DOT) {
+                        // VALID: found a static type dot access
+                        // TODO: new state
+                    }
                     // ERROR (ignore): unexpected token, start over looking for a statement
                     return 0;
                 });
@@ -397,11 +414,12 @@ public final class Walker {
                     // ERROR (ignore): unexpected token, start over looking for a statement
                     return 0;
                 });
+                // 10 - check for assignment or additional declaration
             }
 
 
 
-            private static void walk(WalkState ws) {
+            private static void walk(FunctionMachine.WalkState ws) {
                 while (ws.current < ws.tokens.size()) {
                     Function<WalkState, Integer> state = states.get(ws.target);
                     ws.target = state.apply(ws);
@@ -409,7 +427,7 @@ public final class Walker {
                 }
             }
 
-            private ExpressionMachine() {
+            private BlockMachine() {
 
             }
         }
