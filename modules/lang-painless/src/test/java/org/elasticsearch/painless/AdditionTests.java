@@ -24,7 +24,7 @@ package org.elasticsearch.painless;
 public class AdditionTests extends ScriptTestCase {
 
     public void testBasics() throws Exception {
-        assertEquals(3.0, exec("int myfunc(int x, def y, List[] z) {} int myfunc2() {} Map[] myfunc3(def x) " +
+        assertEquals(3.0, exec(" " +
                 "java.util.List blah x = 1; byte[] y = 2; def z def[] e a[].b b return x + y;"));
     }
 
