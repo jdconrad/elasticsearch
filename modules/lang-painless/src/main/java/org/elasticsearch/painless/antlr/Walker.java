@@ -29,14 +29,13 @@ import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.atn.PredictionMode;
 import org.elasticsearch.painless.CompilerSettings;
 import org.elasticsearch.painless.antlr.PainlessParser.SourceContext;
+import org.elasticsearch.painless.antlr.Walker.Tracker.BlockMachine.BlockState;
 import org.elasticsearch.painless.lookup.PainlessLookup;
 import org.elasticsearch.painless.node.SClass;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Function;
 
 /**
@@ -63,9 +62,20 @@ public final class Walker {
 
     private static class Tracker {
 
+        private static class WalkState {
+
+            private final List<? extends Token> tokens;
+
+            private WalkState(List<? extends Token> tokens) {
+                this.tokens = Collections.unmodifiableList(tokens);
+            }
+
+            private int current = 0;
+        }
+
         private static class FunctionMachine {
 
-            private static class FunctionState {
+            private static class FunctionData {
                 private String returnType = "";
                 private String functionName = "";
                 private final List<String> parameterTypes = new ArrayList<>();
@@ -87,110 +97,109 @@ public final class Walker {
                 }
             }
 
-            private static class WalkState {
+            private static class FunctionState {
 
-                private final List<? extends Token> tokens;
+                private final WalkState ws;
 
-                private WalkState(List<? extends Token> tokens) {
-                    this.tokens = Collections.unmodifiableList(tokens);
+                private FunctionState(WalkState ws) {
+                    this.ws = ws;
                 }
 
-                private int current = 0;
                 private int target = 0;
 
                 private String returnType;
                 private String functionName;
                 private String parameterType;
-                private FunctionState functionState;
+                private FunctionData functionData;
 
-                private final List<FunctionState> functions = new ArrayList<>();
+                private final List<FunctionData> functions = new ArrayList<>();
 
                 private int brackets;
             }
 
-            private static final List<Function<WalkState, Integer>> states;
+            private static final List<Function<FunctionState, Integer>> fstates;
 
             static {
-                states = new ArrayList<>();
+                fstates = new ArrayList<>();
                 // 0 - possible start of function
-                states.add(ws -> {
-                    Token token = ws.tokens.get(ws.current);
+                fstates.add(fs -> {
+                    Token token = fs.ws.tokens.get(fs.ws.current);
                     if (token.getType() == PainlessLexer.ATYPE || token.getType() == PainlessLexer.TYPE) {
                         // VALID: possible return type for function
-                        ws.returnType = token.getText();
+                        fs.returnType = token.getText();
                         return 1;
                     }
                     // VALID: not a function
                     return 0;
                 });
                 // 1 - possible function name
-                states.add(ws -> {
-                    Token token = ws.tokens.get(ws.current);
+                fstates.add(fs -> {
+                    Token token = fs.ws.tokens.get(fs.ws.current);
                     if (token.getType() == PainlessLexer.ID) {
                         // VALID: possible function name
-                        ws.functionName = token.getText();
+                        fs.functionName = token.getText();
                         return 2;
                     }
                     // VALID: not a function
                     return 0;
                 });
                 // 2 - start of parameters
-                states.add(ws -> {
-                    Token token = ws.tokens.get(ws.current);
+                fstates.add(fs -> {
+                    Token token = fs.ws.tokens.get(fs.ws.current);
                     if (token.getType() == PainlessLexer.LP) {
                         // VALID: found a function, record return type and function name
-                        ws.functionState = new FunctionState();
-                        ws.functionState.returnType = ws.returnType;
-                        ws.functionState.functionName = ws.functionName;
-                        ws.functions.add(ws.functionState);
+                        fs.functionData = new FunctionData();
+                        fs.functionData.returnType = fs.returnType;
+                        fs.functionData.functionName = fs.functionName;
+                        fs.functions.add(fs.functionData);
                         return 3;
                     }
                     // VALID: not a function
                     return 0;
                 });
                 // 3 - start of a parameter or end of parameters
-                states.add(ws -> {
-                    Token token = ws.tokens.get(ws.current);
+                fstates.add(fs -> {
+                    Token token = fs.ws.tokens.get(fs.ws.current);
                     if (token.getType() == PainlessLexer.ATYPE || token.getType() == PainlessLexer.TYPE) {
                         // VALID: found a parameter type
-                        ws.parameterType = token.getText();
+                        fs.parameterType = token.getText();
                         return 6;
                     } else if (token.getType() == PainlessLexer.RP) {
                         // VALID: end of function header
                         return 4;
                     } else if (token.getType() == PainlessLexer.LBRACK) {
                         // ERROR (process): missing right parenthesis, but found start of function body
-                        ws.brackets = 1;
-                        ws.functionState.bodyStartToken = ws.current + 1;
+                        fs.brackets = 1;
+                        fs.functionData.bodyStartToken = fs.ws.current + 1;
                         return 5;
                     }
                     // ERROR (ignore): unexpected token, keep looking for a sentinel
                     return 3;
                 });
                 // 4 - start of function body
-                states.add(ws -> {
-                    Token token = ws.tokens.get(ws.current);
+                fstates.add(fs -> {
+                    Token token = fs.ws.tokens.get(fs.ws.current);
                     if (token.getType() == PainlessLexer.LBRACK) {
                         // VALID: found start of function body
-                        ws.brackets = 1;
-                        ws.functionState.bodyStartToken = ws.current + 1;
+                        fs.brackets = 1;
+                        fs.functionData.bodyStartToken = fs.ws.current + 1;
                         return 5;
                     }
                     // ERROR (ignore): unexpected token, keep looking for a sentinel
                     return 4;
                 });
                 // 5 - possible end of function body
-                states.add(ws -> {
-                    Token token = ws.tokens.get(ws.current);
+                fstates.add(fs -> {
+                    Token token = fs.ws.tokens.get(fs.ws.current);
                     if (token.getType() == PainlessLexer.LBRACK) {
                         // VALID: increase scope
-                        ++ws.brackets;
+                        ++fs.brackets;
                     } else if (token.getType() == PainlessLexer.RBRACK) {
                         // VALID: decrease scope
-                        --ws.brackets;
-                        if (ws.brackets == 0) {
+                        --fs.brackets;
+                        if (fs.brackets == 0) {
                             // VALID: end of function body
-                            ws.functionState.bodyEndToken = ws.current - 1;
+                            fs.functionData.bodyEndToken = fs.ws.current - 1;
                             return 0;
                         }
                     }
@@ -198,12 +207,12 @@ public final class Walker {
                     return 5;
                 });
                 // 6 - parameter name
-                states.add(ws -> {
-                    Token token = ws.tokens.get(ws.current);
+                fstates.add(fs -> {
+                    Token token = fs.ws.tokens.get(fs.ws.current);
                     if (token.getType() == PainlessLexer.ID) {
                         // VALID: found a parameter name, record parameter type and name
-                        ws.functionState.parameterTypes.add(ws.parameterType);
-                        ws.functionState.parameterNames.add(token.getText());
+                        fs.functionData.parameterTypes.add(fs.parameterType);
+                        fs.functionData.parameterNames.add(token.getText());
                         return 7;
                     } else if (token.getType() == PainlessLexer.RP) {
                         // ERROR (process): missing parameter name, but found end of function header
@@ -216,8 +225,8 @@ public final class Walker {
                     return 6;
                 });
                 // 7 - start of another parameter or end of parameters
-                states.add(ws -> {
-                    Token token = ws.tokens.get(ws.current);
+                fstates.add(fs -> {
+                    Token token = fs.ws.tokens.get(fs.ws.current);
                     if (token.getType() == PainlessLexer.COMMA) {
                         // VALID: found comma, look for another parameter
                         return 8;
@@ -232,11 +241,11 @@ public final class Walker {
                     return 7;
                 });
                 // 8 - start of another parameter
-                states.add(ws -> {
-                    Token token = ws.tokens.get(ws.current);
+                fstates.add(fs -> {
+                    Token token = fs.ws.tokens.get(fs.ws.current);
                     if (token.getType() == PainlessLexer.ATYPE || token.getType() == PainlessLexer.TYPE) {
                         // VALID: found a parameter type
-                        ws.parameterType = token.getText();
+                        fs.parameterType = token.getText();
                         return 6;
                     } else if (token.getType() == PainlessLexer.RP) {
                         // ERROR (process): missing parameter type, but found end of function header
@@ -250,10 +259,12 @@ public final class Walker {
                 });
             }
 
-            private static void walk(WalkState ws) {
+            private static void walk(FunctionState fs) {
+                WalkState ws = fs.ws;
+
                 while (ws.current < ws.tokens.size()) {
-                    Function<WalkState, Integer> state = states.get(ws.target);
-                    ws.target = state.apply(ws);
+                    Function<FunctionState, Integer> state = fstates.get(fs.target);
+                    fs.target = state.apply(fs);
                     ++ws.current;
                 }
             }
@@ -265,48 +276,57 @@ public final class Walker {
 
         private static class BlockMachine {
 
-            private static class WalkState {
-
-                private final List<? extends Token> tokens;
-                //private final PainlessLookup lookup;
-
-                private WalkState(List<? extends Token> tokens) { //}, PainlessLookup lookup) {
-                    this.tokens = Collections.unmodifiableList(tokens);
-                    //this.lookup = Objects.requireNonNull(lookup);
-                }
-
-                private int current = 0;
-                private int target = 0;
+            private static class BlockState {
 
                 private static class WalkScope {
 
                     private final WalkScope parent;
 
-                    private WalkScope(WalkScope parent) {
+                    private int type;
+                    private int sentinel;
+                    private boolean pop = false;
+
+                    private int parens = 0;
+                    private int braces = 0;
+
+                    private WalkScope(WalkScope parent, int type, int sentinel) {
                         this.parent = parent;
+                        this.type = type;
+                        this.sentinel = sentinel;
                     }
-
-                    private Map<String, String> variables = new HashMap();
-
-                    private String type = null;
-                    private int braceDepth;
-                    private int parenDepth;
                 }
 
-                private WalkScope scope = new WalkScope(null);
+                //private final PainlessLookup lookup;
+                private final WalkState ws;
+
+                private int target = 0;
+                private WalkScope scope = new WalkScope(null, PainlessLexer.EOF, PainlessLexer.EOF);
+
+                private BlockState(/*PainlessLookup lookup, */WalkState ws) {
+                    this.ws = ws;
+                    //this.lookup = Objects.requireNonNull(lookup);
+                }
             }
 
-            private static final List<Function<WalkState, Integer>> states;
+            private static final List<Function<BlockState, Integer>> states;
 
             static {
                 states = new ArrayList<>();
 
+                states.add(bs -> {
+                    return 0;
+                });
+/*
                 // 0
                 states.add(ws -> {
                     Token token = ws.tokens.get(ws.current);
                     if (token.getType() == PainlessLexer.ATYPE || token.getType() == PainlessLexer.TYPE) {
                         ws.scope.type = token.getText();
                         return 1;
+                    } else if (token.getType() == PainlessLexer.LBRACK) {
+                        ws.scope = new WalkState.WalkScope(ws.scope);
+                    } else if (token.getType() == PainlessLexer.RBRACK && ws.scope.parent != null) {
+                        ws.scope = ws.scope.parent;
                     }
                     return 0;
                 });
@@ -319,8 +339,10 @@ public final class Walker {
                     } else if (token.getType() == PainlessLexer.ID) {
                         ws.scope.variables.put(token.getText(), ws.scope.type);
                         return 2;
-                    } else if (token.getType() == PainlessLexer.DOT) {
-                        // TODO: handle fields/method for static types
+                    } else if (token.getType() == PainlessLexer.LBRACK) {
+                        ws.scope = new WalkState.WalkScope(ws.scope);
+                    } else if (token.getType() == PainlessLexer.RBRACK && ws.scope.parent != null) {
+                        ws.scope = ws.scope.parent;
                     }
                     return 0;
                 });
@@ -334,8 +356,10 @@ public final class Walker {
                     } else if (token.getType() == PainlessLexer.ATYPE || token.getType() == PainlessLexer.TYPE) {
                         ws.scope.type = token.getText();
                         return 1;
-                    } else if (token.getType() == PainlessLexer.ID) {
-                        // TODO: handle id
+                    } else if (token.getType() == PainlessLexer.LBRACK) {
+                        ws.scope = new WalkState.WalkScope(ws.scope);
+                    } else if (token.getType() == PainlessLexer.RBRACK && ws.scope.parent != null) {
+                        ws.scope = ws.scope.parent;
                     }
                     return 0;
                 });
@@ -363,14 +387,167 @@ public final class Walker {
                     }
                     return 3;
                 });
+ */
             }
 
-            private static void walk(WalkState ws) {
+            private static void walk(BlockState bs, StringBuilder builder) {
+                WalkState ws = bs.ws;
+
+                int event = 0;
+
                 while (ws.current < ws.tokens.size()) {
-                    Function<WalkState, Integer> state = states.get(ws.target);
-                    ws.target = state.apply(ws);
+                    int token = ws.tokens.get(ws.current).getType();
+                    int prev = ws.current > 0 ? ws.tokens.get(ws.current - 1).getType() : PainlessLexer.EOF;
+
+                    if (bs.scope.pop) {
+                        ++event;
+                        if (token == PainlessLexer.CATCH && (bs.scope.type == PainlessLexer.TRY || bs.scope.type == PainlessLexer.CATCH)) {
+                            // TODO: remove
+                            builder.append("[");
+                            builder.append(event);
+                            builder.append("] popping: ");
+                            builder.append(bs.scope.type);
+                            builder.append("\n");
+                            // TODO: end remove
+                            bs.scope = bs.scope.parent;
+                        } else if (token == PainlessLexer.ELSE) {
+                            while (bs.scope.type != PainlessLexer.IF && bs.scope.sentinel == PainlessLexer.SEMICOLON) {
+                                // TODO: remove
+                                builder.append("[");
+                                builder.append(event);
+                                builder.append("] popping: ");
+                                builder.append(bs.scope.type);
+                                builder.append("\n");
+                                // TODO: end remove
+                                bs.scope = bs.scope.parent;
+                            }
+
+                            if (bs.scope.type == PainlessLexer.IF) {
+                                // TODO: remove
+                                builder.append("[");
+                                builder.append(event);
+                                builder.append("] popping: ");
+                                builder.append(bs.scope.type);
+                                builder.append("\n");
+                                // TODO: end remove
+                                bs.scope = bs.scope.parent;
+                            }
+                        } else {
+                            // TODO: remove
+                            builder.append("[");
+                            builder.append(event);
+                            builder.append("] popping: ");
+                            builder.append(bs.scope.type);
+                            builder.append("\n");
+                            // TODO: end remove
+                            bs.scope = bs.scope.parent;
+
+                            while (bs.scope.sentinel == PainlessLexer.SEMICOLON) {
+                                // TODO: remove
+                                builder.append("[");
+                                builder.append(event);
+                                builder.append("] popping: ");
+                                builder.append(bs.scope.type);
+                                builder.append("\n");
+                                // TODO: end remove
+                                bs.scope = bs.scope.parent;
+                            }
+                        }
+                    }
+
+                    if (token == PainlessLexer.WHILE || token == PainlessLexer.IF || token == PainlessLexer.ELSE) {
+                        if (prev == PainlessLexer.ELSE && token == PainlessLexer.IF) {
+                            bs.scope.type = PainlessLexer.IF;
+                            // TODO: remove
+                            builder.append("[");
+                            builder.append(event);
+                            builder.append("] switch else to if: ");
+                            builder.append(bs.scope.type);
+                            builder.append("\n");
+                            // TODO: end remove
+                        } else {
+                            bs.scope = new BlockState.WalkScope(bs.scope, token, PainlessLexer.SEMICOLON);
+                            // TODO: remove
+                            builder.append("[");
+                            builder.append(event++);
+                            builder.append("] pushing: ");
+                            builder.append(bs.scope.type);
+                            builder.append("\n");
+                            // TODO: end remove
+                        }
+                    } else if (token == PainlessLexer.FOR) {
+                        bs.scope = new BlockState.WalkScope(bs.scope, token, PainlessLexer.RP);
+                        // TODO: remove
+                        builder.append("[");
+                        builder.append(event++);
+                        builder.append("] pushing: ");
+                        builder.append(bs.scope.type);
+                        builder.append("\n");
+                        // TODO: end remove
+                    } else if (token == PainlessLexer.DO || token == PainlessLexer.TRY || token == PainlessLexer.CATCH) {
+                        bs.scope = new BlockState.WalkScope(bs.scope, token, PainlessLexer.RBRACK);
+                        // TODO: remove
+                        builder.append("[");
+                        builder.append(event++);
+                        builder.append("] pushing: ");
+                        builder.append(bs.scope.type);
+                        builder.append("\n");
+                        // TODO: end remove
+                    } else if (token == PainlessLexer.LBRACK) {
+                        if (bs.scope.sentinel == PainlessLexer.SEMICOLON || bs.scope.sentinel == PainlessLexer.RP) {
+                            bs.scope.sentinel = PainlessLexer.RBRACK;
+                            // TODO: remove
+                            builder.append("[");
+                            builder.append(event);
+                            builder.append("] changing sentinel to bracket: ");
+                            builder.append(bs.scope.type);
+                            builder.append("\n");
+                            // TODO: end remove
+                        }
+                    } else if (token == PainlessLexer.LP) {
+                        ++bs.scope.parens;
+                    } else if (token == PainlessLexer.RP) {
+                        bs.scope.parens = Math.max(0, bs.scope.parens - 1);
+
+                        if (bs.scope.sentinel == PainlessLexer.RP && bs.scope.parens == 0) {
+                            bs.scope.sentinel = PainlessLexer.SEMICOLON;
+                        }
+                    } else if (token == PainlessLexer.LBRACE) {
+                        ++bs.scope.braces;
+                    } else if (token == PainlessLexer.RBRACE) {
+                        bs.scope.braces = Math.max(0, bs.scope.braces - 1);
+                    }
+
+                    if (token == bs.scope.sentinel) {
+                        if (bs.scope.type == PainlessLexer.DO) {
+                            bs.scope.type = PainlessLexer.WHILE;
+                            bs.scope.sentinel = PainlessLexer.SEMICOLON;
+                            // TODO: remove
+                            builder.append("[");
+                            builder.append(event);
+                            builder.append("] changing type: ");
+                            builder.append(bs.scope.type);
+                            builder.append("\n");
+                            // TODO: end remove
+                        } else if (bs.scope.type == PainlessLexer.ARROW) {
+                            // TODO: remove
+                            builder.append("[");
+                            builder.append(++event);
+                            builder.append("] pushing: ");
+                            builder.append(bs.scope.type);
+                            builder.append("\n");
+                            // TODO: end remove
+                            bs.scope = bs.scope.parent;
+                        } else {
+                            bs.scope.pop = true;
+                        }
+                    }
+
+                    Function<BlockState, Integer> state = states.get(bs.target);
+                    bs.target = state.apply(bs);
                     ++ws.current;
                 }
+
             }
 
             private BlockMachine() {
@@ -389,17 +566,18 @@ public final class Walker {
         }
 
         private List<String> track() {
-            FunctionMachine.WalkState fws = new FunctionMachine.WalkState(tokens);
-            FunctionMachine.walk(fws);
+            //FunctionState fws = new FunctionState(tokens);
+            //FunctionMachine.walk(fws);
 
-            BlockMachine.WalkState bws = new BlockMachine.WalkState(tokens);
-            BlockMachine.walk(bws);
+            StringBuilder builder = new StringBuilder();
+            BlockState bws = new BlockState(new WalkState(tokens));
+            BlockMachine.walk(bws, builder);
 
             //for (FunctionMachine.FunctionState functionState = ws.functions) {
 
             //}
 
-            if (true) throw new RuntimeException(bws.scope.variables.toString());
+            if (true) throw new RuntimeException(builder.toString());
                     //tokens.stream().map(t -> PainlessLexer.ruleNames[t.getType()] + ":" + t.getText()).collect(Collectors.toList())
                     //        .toString()
             //);
