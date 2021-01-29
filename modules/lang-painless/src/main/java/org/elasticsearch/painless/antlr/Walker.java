@@ -34,7 +34,9 @@ import org.elasticsearch.painless.node.SClass;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Function;
 
 /**
@@ -284,9 +286,14 @@ public final class Walker {
                     private int type;
                     private int sentinel;
                     private boolean pop = false;
-
                     private int parens = 0;
                     private int braces = 0;
+
+                    private Map<String, String> variables = new HashMap<>();
+                    private int decltarget = 0;
+                    private String decltype = null;
+                    private int declparens = 0;
+                    private int declbraces = 0;
 
                     private WalkScope(WalkScope parent, int type, int sentinel) {
                         this.parent = parent;
@@ -300,6 +307,8 @@ public final class Walker {
                         builder.append(type == -1 ? "EOF" : PainlessLexer.ruleNames[type - 1]);
                         builder.append(" : ");
                         builder.append(sentinel == -1 ? "EOF" : PainlessLexer.ruleNames[sentinel - 1]);
+                        builder.append(" : ");
+                        builder.append(variables);
                         builder.append("]");
 
                         if (parent != null) {
@@ -314,7 +323,6 @@ public final class Walker {
                 //private final PainlessLookup lookup;
                 private final WalkState ws;
 
-                private int decltarget = 0;
                 private WalkScope scope = new WalkScope(null, PainlessLexer.EOF, PainlessLexer.EOF);
 
                 private BlockState(/*PainlessLookup lookup, */WalkState ws) {
@@ -328,81 +336,61 @@ public final class Walker {
             static {
                 declstates = new ArrayList<>();
 
-                declstates.add(bs -> {
-                    return 0;
-                });
-/*
                 // 0
-                states.add(ws -> {
-                    Token token = ws.tokens.get(ws.current);
+                declstates.add(bs -> {
+                    Token token = bs.ws.tokens.get(bs.ws.current);
                     if (token.getType() == PainlessLexer.ATYPE || token.getType() == PainlessLexer.TYPE) {
-                        ws.scope.type = token.getText();
+                        bs.scope.decltype = token.getText();
                         return 1;
-                    } else if (token.getType() == PainlessLexer.LBRACK) {
-                        ws.scope = new WalkState.WalkScope(ws.scope);
-                    } else if (token.getType() == PainlessLexer.RBRACK && ws.scope.parent != null) {
-                        ws.scope = ws.scope.parent;
                     }
                     return 0;
                 });
                 // 1
-                states.add(ws -> {
-                    Token token = ws.tokens.get(ws.current);
+                declstates.add(bs -> {
+                    Token token = bs.ws.tokens.get(bs.ws.current);
                     if (token.getType() == PainlessLexer.ATYPE || token.getType() == PainlessLexer.TYPE) {
-                        ws.scope.type = token.getText();
+                        bs.scope.decltype = token.getText();
                         return 1;
                     } else if (token.getType() == PainlessLexer.ID) {
-                        ws.scope.variables.put(token.getText(), ws.scope.type);
+                        bs.scope.variables.put(token.getText(), bs.scope.decltype);
                         return 2;
-                    } else if (token.getType() == PainlessLexer.LBRACK) {
-                        ws.scope = new WalkState.WalkScope(ws.scope);
-                    } else if (token.getType() == PainlessLexer.RBRACK && ws.scope.parent != null) {
-                        ws.scope = ws.scope.parent;
                     }
                     return 0;
                 });
                 // 2
-                states.add(ws -> {
-                    Token token = ws.tokens.get(ws.current);
+                declstates.add(bs -> {
+                    Token token = bs.ws.tokens.get(bs.ws.current);
                     if (token.getType() == PainlessLexer.COMMA) {
                         return 1;
                     } else if (token.getType() == PainlessLexer.ASSIGN) {
                         return 3;
                     } else if (token.getType() == PainlessLexer.ATYPE || token.getType() == PainlessLexer.TYPE) {
-                        ws.scope.type = token.getText();
+                        bs.scope.decltype = token.getText();
                         return 1;
-                    } else if (token.getType() == PainlessLexer.LBRACK) {
-                        ws.scope = new WalkState.WalkScope(ws.scope);
-                    } else if (token.getType() == PainlessLexer.RBRACK && ws.scope.parent != null) {
-                        ws.scope = ws.scope.parent;
                     }
                     return 0;
                 });
                 // 3
-                states.add(ws -> {
-                    Token token = ws.tokens.get(ws.current);
-                    if (token.getType() == PainlessLexer.COMMA && ws.scope.parenDepth == 0 && ws.scope.braceDepth == 0) {
+                declstates.add(bs -> {
+                    Token token = bs.ws.tokens.get(bs.ws.current);
+                    if (token.getType() == PainlessLexer.COMMA && bs.scope.declparens == 0 && bs.scope.declbraces == 0) {
                         return 1;
                     } else if (token.getType() == PainlessLexer.LP) {
-                        ++ws.scope.parenDepth;
+                        ++bs.scope.declparens;
                         return 3;
                     } else if (token.getType() == PainlessLexer.RP) {
-                        --ws.scope.parenDepth;
+                        --bs.scope.declparens;
                         return 3;
                     } else if (token.getType() == PainlessLexer.LBRACE) {
-                        ++ws.scope.braceDepth;
+                        ++bs.scope.declbraces;
                         return 3;
                     } else if (token.getType() == PainlessLexer.RBRACE) {
-                        --ws.scope.braceDepth;
-                    } else if (token.getType() == PainlessLexer.ID) {
-                        // TODO: handle id
+                        --bs.scope.declbraces;
                     } else if (token.getType() == PainlessLexer.SEMICOLON) {
-                        // TODO: handle id
                         return 0;
                     }
                     return 3;
                 });
- */
             }
 
             private static void scope(BlockState bs, StringBuilder builder) {
@@ -493,8 +481,8 @@ public final class Walker {
                     }
                     // END DEBUG
 
-                    Function<BlockState, Integer> declstate = declstates.get(bs.decltarget);
-                    bs.decltarget = declstate.apply(bs);
+                    Function<BlockState, Integer> declstate = declstates.get(bs.scope.decltarget);
+                    bs.scope.decltarget = declstate.apply(bs);
                     ++ws.current;
                 }
             }
