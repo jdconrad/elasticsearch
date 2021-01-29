@@ -435,7 +435,7 @@ public final class Walker {
                     private int parens = 0;
                     private int braces = 0;
 
-                    private Map<String, String> variables = new HashMap<>();
+                    private final Map<String, String> variables = new HashMap<>();
                     private int decltarget = 0;
                     private String decltype = null;
                     private int declparens = 0;
@@ -468,12 +468,14 @@ public final class Walker {
 
                 //private final PainlessLookup lookup;
                 private final WalkState ws;
+                private final Map<Integer, LambdaMachine.LambdaData> mld;
 
                 private BlockScope scope = new BlockScope(null, PainlessLexer.EOF, PainlessLexer.EOF);
 
-                private BlockState(/*PainlessLookup lookup, */WalkState ws) {
-                    this.ws = ws;
+                private BlockState(/*PainlessLookup lookup, */WalkState ws, Map<Integer, LambdaMachine.LambdaData> mld) {
                     //this.lookup = Objects.requireNonNull(lookup);
+                    this.ws = ws;
+                    this.mld = mld;
                 }
             }
 
@@ -571,7 +573,18 @@ public final class Walker {
                     }
                 }
 
-                if (token == PainlessLexer.WHILE || token == PainlessLexer.IF || token == PainlessLexer.ELSE) {
+                LambdaMachine.LambdaData ld = bs.mld.get(ws.current);
+
+                if (ld != null) {
+                    bs.scope = new BlockState.BlockScope(bs.scope, PainlessLexer.ARROW, PainlessLexer.EOF);
+
+                    for (int param = 0; param < ld.parameterTypes.size(); ++param) {
+                        bs.scope.variables.put(ld.parameterNames.get(param), ld.parameterTypes.get(param));
+                    }
+
+                    ws.current = ld.headerEndToken;
+                    token = PainlessLexer.ARROW;
+                } else if (token == PainlessLexer.WHILE || token == PainlessLexer.IF || token == PainlessLexer.ELSE) {
                     if (prev == PainlessLexer.ELSE && token == PainlessLexer.IF) {
                         bs.scope.type = PainlessLexer.IF;
                     } else {
@@ -599,12 +612,14 @@ public final class Walker {
                     bs.scope.braces = Math.max(0, bs.scope.braces - 1);
                 }
 
-                if (token == bs.scope.sentinel) {
+                if (bs.scope.type == PainlessLexer.ARROW) {
+                    if (token == PainlessLexer.COMMA || token == PainlessLexer.RP && bs.scope.parens == 0 && bs.scope.braces == 0) {
+                        bs.scope = bs.scope.parent;
+                    }
+                } else if (token == bs.scope.sentinel) {
                     if (bs.scope.type == PainlessLexer.DO) {
                         bs.scope.type = PainlessLexer.WHILE;
                         bs.scope.sentinel = PainlessLexer.SEMICOLON;
-                    } else if (bs.scope.type == PainlessLexer.ARROW) {
-                        bs.scope = bs.scope.parent;
                     } else {
                         bs.scope.pop = true;
                     }
@@ -661,15 +676,21 @@ public final class Walker {
             LambdaMachine.LambdaState ls = new LambdaMachine.LambdaState(new WalkState(tokens));
             LambdaMachine.walk(ls);
 
-            //StringBuilder builder = new StringBuilder();
-            //BlockMachine.BlockState bws = new BlockMachine.BlockState(new WalkState(tokens));
-            //BlockMachine.walk(bws, builder);
+            Map<Integer, LambdaMachine.LambdaData> mld = new HashMap<>();
+
+            for (LambdaMachine.LambdaData ld : ls.lambdas) {
+                mld.put(ld.headerStartToken, ld);
+            }
+
+            StringBuilder builder = new StringBuilder();
+            BlockMachine.BlockState bws = new BlockMachine.BlockState(new WalkState(tokens), mld);
+            BlockMachine.walk(bws, builder);
 
             //for (FunctionMachine.FunctionState functionState = ws.functions) {
 
             //}
 
-            if (true) throw new RuntimeException("\n\n" + ls.lambdas);
+            if (true) throw new RuntimeException("\n\n" + builder);
             //if (true) throw new RuntimeException("\n\n" + builder.toString());
                     //tokens.stream().map(t -> PainlessLexer.ruleNames[t.getType()] + ":" + t.getText()).collect(Collectors.toList())
                     //        .toString()
