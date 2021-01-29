@@ -29,6 +29,7 @@ import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.atn.PredictionMode;
 import org.elasticsearch.painless.CompilerSettings;
 import org.elasticsearch.painless.antlr.PainlessParser.SourceContext;
+import org.elasticsearch.painless.antlr.Walker.Tracker.BlockMachine.BlockState.BlockScope;
 import org.elasticsearch.painless.lookup.PainlessLookup;
 import org.elasticsearch.painless.node.SClass;
 
@@ -279,9 +280,9 @@ public final class Walker {
 
             private static class BlockState {
 
-                private static class WalkScope {
+                private static class BlockScope {
 
-                    private final WalkScope parent;
+                    private final BlockScope parent;
 
                     private int type;
                     private int sentinel;
@@ -295,7 +296,7 @@ public final class Walker {
                     private int declparens = 0;
                     private int declbraces = 0;
 
-                    private WalkScope(WalkScope parent, int type, int sentinel) {
+                    private BlockScope(BlockScope parent, int type, int sentinel) {
                         this.parent = parent;
                         this.type = type;
                         this.sentinel = sentinel;
@@ -323,7 +324,7 @@ public final class Walker {
                 //private final PainlessLookup lookup;
                 private final WalkState ws;
 
-                private WalkScope scope = new WalkScope(null, PainlessLexer.EOF, PainlessLexer.EOF);
+                private BlockScope scope = new BlockScope(null, PainlessLexer.EOF, PainlessLexer.EOF);
 
                 private BlockState(/*PainlessLookup lookup, */WalkState ws) {
                     this.ws = ws;
@@ -423,12 +424,12 @@ public final class Walker {
                     if (prev == PainlessLexer.ELSE && token == PainlessLexer.IF) {
                         bs.scope.type = PainlessLexer.IF;
                     } else {
-                        bs.scope = new BlockState.WalkScope(bs.scope, token, PainlessLexer.SEMICOLON);
+                        bs.scope = new BlockScope(bs.scope, token, PainlessLexer.SEMICOLON);
                     }
                 } else if (token == PainlessLexer.FOR) {
-                    bs.scope = new BlockState.WalkScope(bs.scope, token, PainlessLexer.RP);
+                    bs.scope = new BlockScope(bs.scope, token, PainlessLexer.RP);
                 } else if (token == PainlessLexer.DO || token == PainlessLexer.TRY || token == PainlessLexer.CATCH) {
-                    bs.scope = new BlockState.WalkScope(bs.scope, token, PainlessLexer.RBRACK);
+                    bs.scope = new BlockScope(bs.scope, token, PainlessLexer.RBRACK);
                 } else if (token == PainlessLexer.LBRACK) {
                     if (bs.scope.sentinel == PainlessLexer.SEMICOLON || bs.scope.sentinel == PainlessLexer.RP) {
                         bs.scope.sentinel = PainlessLexer.RBRACK;
