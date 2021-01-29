@@ -29,7 +29,6 @@ import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.atn.PredictionMode;
 import org.elasticsearch.painless.CompilerSettings;
 import org.elasticsearch.painless.antlr.PainlessParser.SourceContext;
-import org.elasticsearch.painless.antlr.Walker.Tracker.BlockMachine.BlockState.BlockScope;
 import org.elasticsearch.painless.lookup.PainlessLookup;
 import org.elasticsearch.painless.node.SClass;
 
@@ -276,6 +275,152 @@ public final class Walker {
             }
         }
 
+        private static class LambdaMachine {
+
+            private static class LambdaData {
+                private final List<String> parameterTypes = new ArrayList<>();
+                private final List<String> parameterNames = new ArrayList<>();
+
+                private int headerStartToken = -1;
+                private int headerEndToken = -1;
+
+                @Override
+                public String toString() {
+                    return "LambdaData{" +
+                            "parameterTypes=" + parameterTypes +
+                            ", parameterNames=" + parameterNames +
+                            ", headerStartToken=" + headerStartToken +
+                            ", headerEndToken=" + headerEndToken +
+                            '}';
+                }
+            }
+
+            private static class LambdaState {
+
+                private final WalkState ws;
+
+                private LambdaState(WalkState ws) {
+                    this.ws = ws;
+                }
+
+                private int target = 0;
+
+                private LambdaData lambdaData;
+
+                private final List<LambdaMachine.LambdaData> lambdas = new ArrayList<>();
+            }
+
+            private static final List<Function<LambdaMachine.LambdaState, Integer>> lstates;
+
+            static {
+                lstates = new ArrayList<>();
+
+                // 0
+                lstates.add(ls -> {
+                    Token token = ls.ws.tokens.get(ls.ws.current);
+                    if (token.getType() == PainlessLexer.ARROW) {
+                        ls.lambdaData = new LambdaData();
+                        ls.lambdas.add(ls.lambdaData);
+                        ls.lambdaData.headerStartToken = ls.ws.current;
+                        ls.lambdaData.headerEndToken = ls.ws.current;
+                        return 1;
+                    }
+                    return 0;
+                });
+                // 1
+                lstates.add(ls -> {
+                    Token token = ls.ws.tokens.get(ls.ws.current);
+                    if (token.getType() == PainlessLexer.ID) {
+                        ls.lambdaData.headerStartToken = ls.ws.current;
+                        ls.lambdaData.parameterTypes.add("def");
+                        ls.lambdaData.parameterNames.add(token.getText());
+                    } else if (token.getType() == PainlessLexer.ARROW) {
+                        ls.lambdaData = new LambdaData();
+                        ls.lambdas.add(ls.lambdaData);
+                        ls.lambdaData.headerStartToken = ls.ws.current;
+                        ls.lambdaData.headerEndToken = ls.ws.current;
+                        return 1;
+                    } else if (token.getType() == PainlessLexer.RP) {
+                        return 2;
+                    }
+                    return 0;
+                });
+                // 2
+                lstates.add(ls -> {
+                    Token token = ls.ws.tokens.get(ls.ws.current);
+                    if (token.getType() == PainlessLexer.LP) {
+                        ls.lambdaData.headerStartToken = ls.ws.current;
+                        return 0;
+                    } else if (token.getType() == PainlessLexer.ID) {
+                        ls.lambdaData.headerStartToken = ls.ws.current;
+                        ls.lambdaData.parameterTypes.add("def");
+                        ls.lambdaData.parameterNames.add(token.getText());
+                        return 3;
+                    } else if (token.getType() == PainlessLexer.ARROW) {
+                        ls.lambdaData = new LambdaData();
+                        ls.lambdas.add(ls.lambdaData);
+                        ls.lambdaData.headerStartToken = ls.ws.current;
+                        ls.lambdaData.headerEndToken = ls.ws.current;
+                        return 1;
+                    }
+                    return 0;
+                });
+                // 3
+                lstates.add(ls -> {
+                    Token token = ls.ws.tokens.get(ls.ws.current);
+                    if (token.getType() == PainlessLexer.LP) {
+                        ls.lambdaData.headerStartToken = ls.ws.current;
+                        return 0;
+                    } else if (token.getType() == PainlessLexer.ATYPE || token.getType() == PainlessLexer.TYPE) {
+                        ls.lambdaData.headerStartToken = ls.ws.current;
+                        ls.lambdaData.parameterTypes.set(ls.lambdaData.parameterTypes.size() - 1, token.getText());
+                        return 4;
+                    } else if (token.getType() == PainlessLexer.COMMA) {
+                        return 2;
+                    } else if (token.getType() == PainlessLexer.ARROW) {
+                        ls.lambdaData = new LambdaData();
+                        ls.lambdas.add(ls.lambdaData);
+                        ls.lambdaData.headerStartToken = ls.ws.current;
+                        ls.lambdaData.headerEndToken = ls.ws.current;
+                        return 1;
+                    }
+                    return 0;
+                });
+                // 4
+                lstates.add(ls -> {
+                    Token token = ls.ws.tokens.get(ls.ws.current);
+                    if (token.getType() == PainlessLexer.LP) {
+                        ls.lambdaData.headerStartToken = ls.ws.current;
+                        return 0;
+                    } if (token.getType() == PainlessLexer.COMMA) {
+                        return 2;
+                    } else if (token.getType() == PainlessLexer.ARROW) {
+                        ls.lambdaData = new LambdaData();
+                        ls.lambdas.add(ls.lambdaData);
+                        ls.lambdaData.headerStartToken = ls.ws.current;
+                        ls.lambdaData.headerEndToken = ls.ws.current;
+                        return 1;
+                    }
+                    return 0;
+                });
+            }
+
+            private static void walk(LambdaMachine.LambdaState ls) {
+                WalkState ws = ls.ws;
+                ws.current = ws.tokens.size() - 1;
+
+                while (ws.current >= 0) {
+                    Function<LambdaMachine.LambdaState, Integer> state = lstates.get(ls.target);
+                    ls.target = state.apply(ls);
+                    --ws.current;
+                }
+            }
+
+            private LambdaMachine() {
+
+            }
+        }
+
         private static class BlockMachine {
 
             private static class BlockState {
@@ -343,6 +488,12 @@ public final class Walker {
                     if (token.getType() == PainlessLexer.ATYPE || token.getType() == PainlessLexer.TYPE) {
                         bs.scope.decltype = token.getText();
                         return 1;
+                    } else if (token.getType() == PainlessLexer.IN) {
+                        Token prev = bs.ws.current > 0 ? bs.ws.tokens.get(bs.ws.current - 1) : null;
+
+                        if (prev != null && prev.getType() == PainlessLexer.ID) {
+                            bs.scope.variables.put(prev.getText(), "def");
+                        }
                     }
                     return 0;
                 });
@@ -424,12 +575,12 @@ public final class Walker {
                     if (prev == PainlessLexer.ELSE && token == PainlessLexer.IF) {
                         bs.scope.type = PainlessLexer.IF;
                     } else {
-                        bs.scope = new BlockScope(bs.scope, token, PainlessLexer.SEMICOLON);
+                        bs.scope = new BlockState.BlockScope(bs.scope, token, PainlessLexer.SEMICOLON);
                     }
                 } else if (token == PainlessLexer.FOR) {
-                    bs.scope = new BlockScope(bs.scope, token, PainlessLexer.RP);
+                    bs.scope = new BlockState.BlockScope(bs.scope, token, PainlessLexer.RP);
                 } else if (token == PainlessLexer.DO || token == PainlessLexer.TRY || token == PainlessLexer.CATCH) {
-                    bs.scope = new BlockScope(bs.scope, token, PainlessLexer.RBRACK);
+                    bs.scope = new BlockState.BlockScope(bs.scope, token, PainlessLexer.RBRACK);
                 } else if (token == PainlessLexer.LBRACK) {
                     if (bs.scope.sentinel == PainlessLexer.SEMICOLON || bs.scope.sentinel == PainlessLexer.RP) {
                         bs.scope.sentinel = PainlessLexer.RBRACK;
@@ -504,18 +655,22 @@ public final class Walker {
         }
 
         private List<String> track() {
-            //FunctionState fws = new FunctionState(tokens);
-            //FunctionMachine.walk(fws);
+            //FunctionState fs = new FunctionState(tokens);
+            //FunctionMachine.walk(fs);
 
-            StringBuilder builder = new StringBuilder();
-            BlockMachine.BlockState bws = new BlockMachine.BlockState(new WalkState(tokens));
-            BlockMachine.walk(bws, builder);
+            LambdaMachine.LambdaState ls = new LambdaMachine.LambdaState(new WalkState(tokens));
+            LambdaMachine.walk(ls);
+
+            //StringBuilder builder = new StringBuilder();
+            //BlockMachine.BlockState bws = new BlockMachine.BlockState(new WalkState(tokens));
+            //BlockMachine.walk(bws, builder);
 
             //for (FunctionMachine.FunctionState functionState = ws.functions) {
 
             //}
 
-            if (true) throw new RuntimeException("\n\n" + builder.toString());
+            if (true) throw new RuntimeException("\n\n" + ls.lambdas);
+            //if (true) throw new RuntimeException("\n\n" + builder.toString());
                     //tokens.stream().map(t -> PainlessLexer.ruleNames[t.getType()] + ":" + t.getText()).collect(Collectors.toList())
                     //        .toString()
             //);
