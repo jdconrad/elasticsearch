@@ -1022,7 +1022,7 @@ public abstract class ESRestTestCase extends ESTestCase {
                 throw new IllegalStateException(TRUSTSTORE_PATH + " is provided but not " + TRUSTSTORE_PASSWORD);
             }
             Path path = PathUtils.get(keystorePath);
-            if (!Files.exists(path)) {
+            if (Files.exists(path) == false) {
                 throw new IllegalStateException(TRUSTSTORE_PATH + " is set but points to a non-existing file");
             }
             try {
@@ -1040,7 +1040,7 @@ public abstract class ESRestTestCase extends ESTestCase {
         }
         if (certificateAuthorities != null) {
             Path path = PathUtils.get(certificateAuthorities);
-            if (!Files.exists(path)) {
+            if (Files.exists(path) == false) {
                 throw new IllegalStateException(CERTIFICATE_AUTHORITIES + " is set but points to a non-existing file");
             }
             try {
@@ -1086,7 +1086,7 @@ public abstract class ESRestTestCase extends ESTestCase {
         return runningTasks;
     }
 
-    protected static void assertOK(Response response) {
+    public static void assertOK(Response response) {
         assertThat(response.getStatusLine().getStatusCode(), anyOf(equalTo(200), equalTo(201)));
     }
 

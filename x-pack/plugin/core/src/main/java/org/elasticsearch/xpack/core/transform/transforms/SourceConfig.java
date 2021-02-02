@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import static java.util.stream.Collectors.toMap;
 import static org.elasticsearch.common.xcontent.ConstructingObjectParser.constructorArg;
 import static org.elasticsearch.common.xcontent.ConstructingObjectParser.optionalConstructorArg;
 
@@ -97,7 +98,7 @@ public class SourceConfig implements Writeable, ToXContentObject {
     public SourceConfig(final StreamInput in) throws IOException {
         index = in.readStringArray();
         queryConfig = new QueryConfig(in);
-        if (in.getVersion().onOrAfter(Version.V_8_0_0)) {
+        if (in.getVersion().onOrAfter(Version.V_7_12_0)) {
             runtimeMappings = in.readMap();
         } else {
             runtimeMappings = Collections.emptyMap();
@@ -116,6 +117,12 @@ public class SourceConfig implements Writeable, ToXContentObject {
         return runtimeMappings;
     }
 
+    public Map<String, Object> getScriptBasedRuntimeMappings() {
+        return getRuntimeMappings().entrySet().stream()
+            .filter(e -> e.getValue() instanceof Map<?, ?> && ((Map<?, ?>) e.getValue()).containsKey("script"))
+            .collect(toMap(Map.Entry::getKey, Map.Entry::getValue));
+    }
+
     public boolean isValid() {
         return queryConfig.isValid();
     }
@@ -128,7 +135,7 @@ public class SourceConfig implements Writeable, ToXContentObject {
     public void writeTo(StreamOutput out) throws IOException {
         out.writeStringArray(index);
         queryConfig.writeTo(out);
-        if (out.getVersion().onOrAfter(Version.V_8_0_0)) {
+        if (out.getVersion().onOrAfter(Version.V_7_12_0)) {
             out.writeMap(runtimeMappings);
         }
     }

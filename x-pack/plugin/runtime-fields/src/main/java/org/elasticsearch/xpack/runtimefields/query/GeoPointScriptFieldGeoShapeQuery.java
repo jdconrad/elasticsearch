@@ -52,7 +52,7 @@ public class GeoPointScriptFieldGeoShapeQuery extends AbstractGeoPointScriptFiel
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        if (!super.equals(o)) return false;
+        if (super.equals(o) == false) return false;
         GeoPointScriptFieldGeoShapeQuery that = (GeoPointScriptFieldGeoShapeQuery) o;
         return relation == that.relation && Arrays.equals(geometries, that.geometries);
     }
@@ -98,7 +98,8 @@ public class GeoPointScriptFieldGeoShapeQuery extends AbstractGeoPointScriptFiel
                             return false;
                         }
                     }
-                    return true;
+                    // return true iff there is at least one point
+                    return count > 0;
                 };
             }
             case WITHIN: {
@@ -114,7 +115,8 @@ public class GeoPointScriptFieldGeoShapeQuery extends AbstractGeoPointScriptFiel
                             return false;
                         }
                     }
-                    return true;
+                    // return true iff there is at least one point
+                    return count > 0;
                 };
             }
             case CONTAINS: {
