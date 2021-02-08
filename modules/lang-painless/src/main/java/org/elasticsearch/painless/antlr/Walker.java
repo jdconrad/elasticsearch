@@ -648,6 +648,92 @@ public final class Walker {
             }
         }
 
+        private static class AccessMachine {
+
+            private static class Segment {
+
+                private static final int ID = 1;
+
+                private Segment child;
+                private int type;
+                private String id;
+                private int arity;
+
+                private Segment(Segment child, int type, String id, int arity) {
+                    this.child = child;
+                    this.type = type;
+                    this.id = id;
+                    this.arity = arity;
+                }
+
+                @Override
+                public String toString() {
+                    return "Segment{" +
+                            "child=" + child +
+                            ", type=" + type +
+                            ", id='" + id + '\'' +
+                            ", arity=" + arity +
+                            '}';
+                }
+            }
+
+            private static class AccessState {
+
+                private final WalkState ws;
+
+                private AccessState(WalkState ws) {
+                    this.ws = ws;
+                }
+
+                private int target = 0;
+                Segment segment;
+            }
+
+            private static final List<Function<AccessState, Integer>> astates;
+
+            static {
+                astates = new ArrayList<>();
+
+                // 0
+                astates.add(as -> {
+                    Token token = as.ws.tokens.get(as.ws.current);
+                    if (token.getType() == PainlessLexer.ID) {
+                        as.segment = new Segment(null, Segment.ID, token.getText(), -1);
+                        return 1;
+                    }
+                    return -1;
+                });
+                // 1
+                astates.add(as -> {
+                    Token token = as.ws.tokens.get(as.ws.current);
+                    if (token.getType() == PainlessLexer.TYPE || token.getType() == PainlessLexer.ATYPE) {
+                        return -1;
+                    }
+                    return -2;
+                });
+            }
+
+            private static void walk(AccessMachine.AccessState as) {
+                WalkState ws = as.ws;
+                ws.current = ws.tokens.size() - 1;
+
+                while (ws.current >= 0) {
+                    Function<AccessMachine.AccessState, Integer> state = astates.get(as.target);
+                    as.target = state.apply(as);
+
+                    if (as.target < 0) {
+                        break;
+                    }
+
+                    --ws.current;
+                }
+            }
+
+            private AccessMachine() {
+
+            }
+        }
+
         private static List<String> track(List<? extends Token> tokens) {
             return new Tracker(tokens).track();
         }
@@ -672,8 +758,15 @@ public final class Walker {
             }
 
             StringBuilder builder = new StringBuilder();
-            BlockMachine.BlockState bws = new BlockMachine.BlockState(new WalkState(tokens), mld);
-            BlockMachine.walk(bws, builder);
+            BlockMachine.BlockState bs = new BlockMachine.BlockState(new WalkState(tokens), mld);
+            BlockMachine.walk(bs, builder);
+
+            AccessMachine.AccessState as = new AccessMachine.AccessState(new WalkState(tokens));
+            AccessMachine.walk(as);
+
+            if (as.target == -2) {
+                builder.append(as.segment);
+            }
 
             //for (FunctionMachine.FunctionState functionState = ws.functions) {
 
