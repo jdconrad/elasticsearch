@@ -652,7 +652,16 @@ public final class Walker {
 
             private static class Segment {
 
-                private static final int ID = 1;
+                private static final int NEW = 1;
+                private static final int ID = 2;
+                private static final int TYPE = 3;
+                private static final int OPEN = 4;
+                private static final int FIELD = 5;
+                private static final int CALL = 6;
+                private static final int CONSTRUCTOR = 7;
+                private static final int INDEX = 7;
+                private static final int NUMBER = 8;
+                private static final int DOT = 9;
 
                 private Segment child;
                 private int type;
@@ -687,6 +696,10 @@ public final class Walker {
 
                 private int target = 0;
                 Segment segment;
+
+                int brackets = 0;
+                int parens = 0;
+                int braces = 0;
             }
 
             private static final List<Function<AccessState, Integer>> astates;
@@ -697,9 +710,21 @@ public final class Walker {
                 // 0
                 astates.add(as -> {
                     Token token = as.ws.tokens.get(as.ws.current);
-                    if (token.getType() == PainlessLexer.ID) {
+                    if (token.getType() == PainlessLexer.ID || token.getType() == PainlessLexer.TYPE) {
                         as.segment = new Segment(null, Segment.ID, token.getText(), -1);
-                        return 1;
+                        return as.ws.current == 0 ? -2 : 1;
+                    } else if (token.getType() == PainlessLexer.LP) {
+                        as.segment = new Segment(null, Segment.OPEN, null, -1);
+                        return 2;
+                    } else if (token.getType() == PainlessLexer.DOT || token.getType() == PainlessLexer.NSDOT) {
+                        as.segment = new Segment(null, Segment.DOT, token.getText(), -1);
+                        return 4;
+                    } else if (token.getType() == PainlessLexer.DOTID) {
+                        as.segment = new Segment(null, Segment.FIELD, token.getText(), -1);
+                        return 3;
+                    } else if (token.getType() == PainlessLexer.DOTINTEGER) {
+                        as.segment = new Segment(null, Segment.NUMBER, token.getText(), -1);
+                        return 3;
                     }
                     return -1;
                 });
@@ -708,8 +733,158 @@ public final class Walker {
                     Token token = as.ws.tokens.get(as.ws.current);
                     if (token.getType() == PainlessLexer.TYPE || token.getType() == PainlessLexer.ATYPE) {
                         return -1;
+                    } else if (token.getType() == PainlessLexer.NEW) {
+                        as.segment.type = Segment.NEW;
                     }
                     return -2;
+                });
+                // 2
+                astates.add(as -> {
+                    Token token = as.ws.tokens.get(as.ws.current);
+                    if (token.getType() == PainlessLexer.TYPE || token.getType() == PainlessLexer.ID) {
+                        as.segment.id = token.getText();
+                        return -2;
+                    } else if (token.getType() == PainlessLexer.DOTID) {
+                        as.segment.id = token.getText();
+                        return 3;
+                    }
+                    return -1;
+                });
+                // 3
+                astates.add(as -> {
+                    Token token = as.ws.tokens.get(as.ws.current);
+                    if (token.getType() == PainlessLexer.DOT || token.getType() == PainlessLexer.NSDOT) {
+                        return 4;
+                    }
+                    return -1;
+                });
+                // 4
+                astates.add(as -> {
+                    Token token = as.ws.tokens.get(as.ws.current);
+                    if (token.getType() == PainlessLexer.ID) {
+                        as.segment = new Segment(as.segment, Segment.ID, token.getText(), -1);
+                        return -2;
+                    } else if (token.getType() == PainlessLexer.TYPE || token.getType() == PainlessLexer.ATYPE) {
+                        as.segment = new Segment(as.segment, Segment.TYPE, token.getText(), -1);
+                        return -2;
+                    } else if (token.getType() == PainlessLexer.DOTID) {
+                        as.segment = new Segment(as.segment, Segment.FIELD, token.getText(), -1);
+                        return 3;
+                    } else if (token.getType() == PainlessLexer.DOTINTEGER) {
+                        as.segment = new Segment(as.segment, Segment.NUMBER, token.getText(), -1);
+                        return 3;
+                    } else if (token.getType() == PainlessLexer.RBRACE) {
+                        as.segment = new Segment(as.segment, Segment.INDEX, null, -1);
+                        return 5;
+                    } else if (token.getType() == PainlessLexer.RP) {
+                        as.segment = new Segment(as.segment, Segment.CALL, null, 0);
+                        return 7;
+                    }
+                    return -1;
+                });
+                // 5
+                astates.add(as -> {
+                    Token token = as.ws.tokens.get(as.ws.current);
+                    if (token.getType() == PainlessLexer.LBRACE) {
+                        if (as.brackets == 0 && as.parens == 0 && as.braces == 0) {
+                            return 6;
+                        } else {
+                            --as.braces;
+                        }
+                    } else if (token.getType() == PainlessLexer.RBRACE) {
+                        ++as.braces;
+                    } else if (token.getType() == PainlessLexer.LP) {
+                        --as.parens;
+                    } else if (token.getType() == PainlessLexer.RP) {
+                        ++as.parens;
+                    } else if (token.getType() == PainlessLexer.LBRACK) {
+                        --as.brackets;
+                    } else if (token.getType() == PainlessLexer.RBRACK) {
+                        ++as.brackets;
+                    }
+
+                    if (as.brackets < 0 || as.parens < 0 || as.braces < 0) {
+                        return -1;
+                    }
+
+                    return 5;
+                });
+                // 6
+                astates.add(as -> {
+                    Token token = as.ws.tokens.get(as.ws.current);
+                    if (token.getType() == PainlessLexer.ID) {
+                        as.segment = new Segment(as.segment, Segment.ID, token.getText(), -1);
+                        return -2;
+                    } else if (token.getType() == PainlessLexer.DOTID) {
+                        as.segment = new Segment(as.segment, Segment.FIELD, token.getText(), -1);
+                        return 3;
+                    } else if (token.getType() == PainlessLexer.RBRACE) {
+                        as.segment = new Segment(as.segment, Segment.INDEX, null, -1);
+                        return 5;
+                    } else if (token.getType() == PainlessLexer.RP) {
+                        as.segment = new Segment(as.segment, Segment.CALL, null, 0);
+                        return 7;
+                    }
+                    return -1;
+                });
+                // 7
+                astates.add(as -> {
+                    Token token = as.ws.tokens.get(as.ws.current);
+                    if (token.getType() == PainlessLexer.LP) {
+                        if (as.brackets == 0 && as.parens == 0 && as.braces == 0) {
+                            return 8;
+                        } else {
+                            --as.parens;
+                        }
+                    } else if (token.getType() == PainlessLexer.COMMA) {
+                        if (as.brackets == 0 && as.parens == 0 && as.braces == 0) {
+                            ++as.segment.arity;
+                        }
+                    } else if (token.getType() == PainlessLexer.RP) {
+                        ++as.parens;
+                    } else if (token.getType() == PainlessLexer.LBRACE) {
+                        --as.braces;
+                    } else if (token.getType() == PainlessLexer.RBRACE) {
+                        ++as.braces;
+                    } else if (token.getType() == PainlessLexer.LBRACK) {
+                        --as.brackets;
+                    } else if (token.getType() == PainlessLexer.RBRACK) {
+                        ++as.brackets;
+                    }
+
+                    if (as.brackets < 0 || as.parens < 0 || as.braces < 0) {
+                        return -1;
+                    }
+
+                    if (as.segment.arity == 0) {
+                        as.segment.arity = 1;
+                    }
+
+                    return 7;
+                });
+                // 8
+                astates.add(as -> {
+                    Token token = as.ws.tokens.get(as.ws.current);
+                    if (token.getType() == PainlessLexer.ID) {
+                        as.segment.id = token.getText();
+                        return -2;
+                    } else if (token.getType() == PainlessLexer.DOTID) {
+                        as.segment.id = token.getText();
+                        return 3;
+                    } else if (token.getType() == PainlessLexer.TYPE) {
+                        as.segment.type = Segment.CONSTRUCTOR;
+                        as.segment.id = token.getText();
+                        return 9;
+                    }
+                    return -1;
+                });
+                // 9
+                astates.add(as -> {
+                    Token token = as.ws.tokens.get(as.ws.current);
+                    if (token.getType() == PainlessLexer.NEW) {
+                        return -2;
+                    }
+                    return -1;
                 });
             }
 

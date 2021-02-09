@@ -16,7 +16,7 @@ import java.util.List;
 public class AdditionTests extends ScriptTestCase {
 
     public void testBasics() throws Exception {
-        exec("if { if while ; else if () ; while () if () for () ; else if {} else if {} else ;} return tes");
+        exec("if { if while ; else if () ; while () if () for () ; else if {} else if {} else ;} return test.call(blah, blah).test2[x].b");
 
         //assertEquals(3.0, exec(" " +
         //        "java.util.List blah x = 1; byte[] y = 2; def z def[] e a[].b b return x + y;"));
