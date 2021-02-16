@@ -8,9 +8,6 @@
 
 package org.elasticsearch.painless;
 
-import java.util.ArrayList;
-import java.util.List;
-
 /** Tests for addition operator across all types */
 //TODO: NaN/Inf/overflow/...
 public class AdditionTests extends ScriptTestCase {
