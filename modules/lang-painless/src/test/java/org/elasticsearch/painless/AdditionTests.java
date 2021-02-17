@@ -13,10 +13,7 @@ package org.elasticsearch.painless;
 public class AdditionTests extends ScriptTestCase {
 
     public void testBasics() throws Exception {
-        exec("(2 + 2).toS)");
-
-        //assertEquals(3.0, exec(" " +
-        //        "java.util.List blah x = 1; byte[] y = 2; def z def[] e a[].b b return x + y;"));
+        exec("List list = [1, 2, 3]; if (list.size() > 3) {int value = 3; list. ");
     }
 
     public void testInt() throws Exception {
