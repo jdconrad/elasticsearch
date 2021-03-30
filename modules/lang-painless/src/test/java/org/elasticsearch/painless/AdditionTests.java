@@ -648,11 +648,13 @@ public class AdditionTests extends ScriptTestCase {
     }
 
     public void testReplace() throws Exception {
-        throw new RuntimeException(replaceReturnWithEmit(//"return doc['my_field'] + doc['my_field2'] /* test time */ ; // test time"));
+        String original =
                 "int get(/* blah */){return 5;}" +
                 "org.elastic.type [] method() {   //test\n }  " +
                 "if (x) {return 1} else return 2; " +
-                "return /*hello hello*/ get(x -> x, () -> {return 9;}); // comment"));
+                "return /*hello hello*/ get(x -> x, () -> {return 9;}); // comment";
+        throw new RuntimeException("\n" + original + "\n\n" + replaceReturnWithEmit(//"return doc['my_field'] + doc['my_field2'] /* test time */ ; // test time"));
+                original));
     }
 
     public void testBasics() throws Exception {
