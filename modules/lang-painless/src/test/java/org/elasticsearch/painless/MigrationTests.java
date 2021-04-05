@@ -460,7 +460,9 @@ public class MigrationTests extends ESTestCase {
                     // the last one
                     // we don't yet break as we have to ensure this isn't a false
                     // positive of an array initializer
-                    start = i + 1;
+                    if (braceCount == 0) {
+                        start = i + 1;
+                    }
                     braceCount++;
                 } else if (current == '{') {
                     braceCount--;
@@ -519,7 +521,7 @@ public class MigrationTests extends ESTestCase {
         braceCount = 0;
         parenCount = 0;
         boolean closebrace = false;
-        boolean rtn = false;
+        int rtn = -1;
 
         // replace return(s) with emit(s)
         for (int i = function + 1; i < start; ++i) {
@@ -580,7 +582,7 @@ public class MigrationTests extends ESTestCase {
                 if (endReturn && isIdChar == false) {
                     // we found a return to replace
                     i += 6;
-                    rtn = true;
+                    rtn = braceCount;
                     // check to see if its in a block
                     // if its not we have to add additional braces as
                     // replace a single statement with multiple statements
@@ -606,22 +608,21 @@ public class MigrationTests extends ESTestCase {
                     ++braceCount;
                     emits.append(current);
                 } else if (current == '}') {
-                    --braceCount;
-
-                    if (braceCount == 0 && rtn) {
+                    if (rtn == braceCount) {
                         // close the emit method call if
                         // a closing brace is found as part of the return
                         // statement
-                        rtn = false;
+                        rtn = -1;
                         emits.append("); return;");
                     }
 
+                    --braceCount;
                     emits.append(current);
-                } else if (rtn && current == ';') {
+                } else if (rtn != -1 && current == ';') {
                     // close the emit method call if
                     // a semicolon is found as part of the return
                     // statement
-                    rtn = false;
+                    rtn = -1;
                     emits.append("); return;");
                     if (closebrace) {
                         // add a closing brace if an opening
@@ -670,7 +671,8 @@ public class MigrationTests extends ESTestCase {
     }
 
     public void testReplace() throws Exception {
-        //if (true) throw new RuntimeException(replaceReturnWithEmit("int value = doc['my_field'].value; while (value < 0) {return ++value} 3"));
+        //if (true) throw new RuntimeException(replaceReturnWithEmit("def values = doc['my_field']; int total = 0; " +
+        //                        "for (def value : values) {if (value > 10) {return value} else {total += value}} (total + 1) / 2"));
 
         // 1. basic return
         assertEquals(
@@ -1016,12 +1018,135 @@ public class MigrationTests extends ESTestCase {
                         "if (value) {boolean v2 = value; emit(v2); return;} else {boolean v2 = value} emit(!value)"
         );
 
-        // TODO: for block tests
+        // 56. check loose for block
+        assertEquals(
+                replaceReturnWithEmit("int value = doc['my_field'].value; for (int x = 0; x < value; ++x) --value; 3"),
+                "int value = doc['my_field'].value; for (int x = 0; x < value; ++x) --value; emit(3)"
+        );
+
+        // 57. check for block
+        assertEquals(
+                replaceReturnWithEmit("int value = doc['my_field'].value; for (int x = 0; x < value; ++x) {--value;} 3"),
+                "int value = doc['my_field'].value; for (int x = 0; x < value; ++x) {--value;} emit(3)"
+        );
+
+        // 58. check loose for block w/ return
+        assertEquals(
+                replaceReturnWithEmit("int value = doc['my_field'].value; for (int x = 0; x < value; x += 2) return ++value; 3"),
+                "int value = doc['my_field'].value; for (int x = 0; x < value; x += 2) {emit(++value); return;} emit(3)"
+        );
+
+        // 59. check for block w/ return
+        assertEquals(
+                replaceReturnWithEmit("int value = doc['my_field'].value; for (int x = 0; x < value; x += 2) {return ++value;} 3"),
+                "int value = doc['my_field'].value; for (int x = 0; x < value; x += 2) {emit(++value); return;} emit(3)"
+        );
+
+        // 60. check for block w/ multiple statements
+        assertEquals(
+                replaceReturnWithEmit("int value = doc['my_field'].value; for (int x = 0; x < value; x += 2) {int y = 1; x + value;} 3"),
+                "int value = doc['my_field'].value; for (int x = 0; x < value; x += 2) {int y = 1; x + value;} emit(3)"
+        );
+
+        // 61. check for block w/ multiple statements w/ return
+        assertEquals(
+                replaceReturnWithEmit("int value = doc['my_field'].value; " +
+                        "for (int x = 0; x < value; x += 2) {int x = 1; return x + value;} 3"),
+                "int value = doc['my_field'].value; " +
+                        "for (int x = 0; x < value; x += 2) {int x = 1; emit(x + value); return;} emit(3)"
+        );
+
+        // 62. check for block w/ no semicolon
+        assertEquals(
+                replaceReturnWithEmit("int value = doc['my_field'].value; for (int x = 0; x < value; x += 2) {++value} 3"),
+                "int value = doc['my_field'].value; for (int x = 0; x < value; x += 2) {++value} emit(3)"
+        );
+
+        // 63. check for block w/ return w/ no semicolon
+        assertEquals(
+                replaceReturnWithEmit("int value = doc['my_field'].value; for (int x = 0; x < value; x += 2) {return ++value} 3"),
+                "int value = doc['my_field'].value; for (int x = 0; x < value; x += 2) {emit(++value); return;} emit(3)"
+        );
+
+        // 64. check for block w/ multiple statements w/ no semicolon
+        assertEquals(
+                replaceReturnWithEmit("int value = doc['my_field'].value; for (int x = 0; x < value; x += 2) {int x = 1; x + value} 3"),
+                "int value = doc['my_field'].value; for (int x = 0; x < value; x += 2) {int x = 1; x + value} emit(3)"
+        );
+
+        // 65. check for block w/ return w/ no semicolon
+        assertEquals(
+                replaceReturnWithEmit("int value = doc['my_field'].value; " +
+                        "for (int x = 0; x < value; x += 2) {int x = 1; return x + value} 3"),
+                "int value = doc['my_field'].value; " +
+                        "for (int x = 0; x < value; x += 2) {int x = 1; emit(x + value); return;} emit(3)"
+        );
+
+        // 66. check loose for each block
+        assertEquals(
+                replaceReturnWithEmit("def values = doc['my_field']; int total = 0; " +
+                        "for (def value : values) total += value; (total + 1) / 2"),
+                "def values = doc['my_field']; int total = 0; " +
+                        "for (def value : values) total += value; emit((total + 1) / 2)"
+        );
+
+        // 67. check for each block
+        assertEquals(
+                replaceReturnWithEmit("def values = doc['my_field']; int total = 0; " +
+                        "for (def value : values) {total += value;} (total + 1) / 2"),
+                "def values = doc['my_field']; int total = 0; " +
+                        "for (def value : values) {total += value;} emit((total + 1) / 2)"
+        );
+
+        // 68. check loose for each block w/ return
+        assertEquals(
+                replaceReturnWithEmit("def values = doc['my_field']; int total = 0; " +
+                        "for (def value : values) return value; (total + 1) / 2"),
+                "def values = doc['my_field']; int total = 0; " +
+                        "for (def value : values) {emit(value); return;} emit((total + 1) / 2)"
+        );
+
+        // 69. check for each block w/ return
+        assertEquals(
+                replaceReturnWithEmit("def values = doc['my_field']; int total = 0; " +
+                        "for (def value : values) {return value;} (total + 1) / 2"),
+                "def values = doc['my_field']; int total = 0; " +
+                        "for (def value : values) {emit(value); return;} emit((total + 1) / 2)"
+        );
+
+        // 70. check for each block w/ multiple statements
+        assertEquals(
+                replaceReturnWithEmit("def values = doc['my_field']; int total = 0; " +
+                        "for (def value : values) {if (value > 10) {value = 10;} else total += value;} (total + 1) / 2"),
+                "def values = doc['my_field']; int total = 0; " +
+                        "for (def value : values) {if (value > 10) {value = 10;} else total += value;} emit((total + 1) / 2)"
+        );
+
+        // 71. check for each block w/ multiple statements w/ return
+        assertEquals(
+                replaceReturnWithEmit("def values = doc['my_field']; int total = 0; " +
+                        "for (def value : values) {if (value > 10) {return value;} else total += value;} (total + 1) / 2"),
+                "def values = doc['my_field']; int total = 0; " +
+                        "for (def value : values) {if (value > 10) {emit(value); return;} else total += value;} emit((total + 1) / 2)"
+        );
+
+        // 72. check for each block w/ no semicolon
+        assertEquals(
+                replaceReturnWithEmit("def values = doc['my_field']; int total = 0; " +
+                        "for (def value : values) {if (value > 10) {return value} total += value} (total + 1) / 2"),
+                "def values = doc['my_field']; int total = 0; " +
+                        "for (def value : values) {if (value > 10) {emit(value); return;} total += value} emit((total + 1) / 2)"
+        );
+
+        // TODO: add for each w/ in tests
         // TODO: do while block tests
         // TODO: try/catch block tests
         // TODO: return as variable tests
         // TODO: multi block main method tests
         // TODO: tests with user-defined functions
+        // TODO: multi level block tests
+        // TODO: multi level lambda tests
+        // TODO: array initializer tests
     }
 
 }
