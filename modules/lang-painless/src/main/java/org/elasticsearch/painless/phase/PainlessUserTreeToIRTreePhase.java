@@ -282,7 +282,7 @@ public class PainlessUserTreeToIRTreePhase extends DefaultUserTreeToIRTreePhase 
                 InvokeCallMemberNode irInvokeCallMemberNode = new InvokeCallMemberNode(internalLocation);
                 irInvokeCallMemberNode.attachDecoration(new IRDExpressionType(returnType));
                 irInvokeCallMemberNode.attachDecoration(new IRDFunction(new LocalFunction(
-                        getMethod.getName(), returnType, Collections.emptyList(), true, false)));
+                        getMethod.getName(), "", returnType, Collections.emptyList(), true, false)));
                 irDeclarationNode.setExpressionNode(irInvokeCallMemberNode);
             }
         }
@@ -361,6 +361,7 @@ public class PainlessUserTreeToIRTreePhase extends DefaultUserTreeToIRTreePhase 
             irInvokeCallMemberNode.attachDecoration(new IRDFunction(
                     new LocalFunction(
                             "convertToScriptException",
+                            "",
                             ScriptException.class,
                             Arrays.asList(Throwable.class, Map.class),
                             true,
@@ -439,6 +440,7 @@ public class PainlessUserTreeToIRTreePhase extends DefaultUserTreeToIRTreePhase 
                 irInvokeCallMemberNode.attachDecoration(new IRDFunction(
                         new LocalFunction(
                                 "convertToScriptException",
+                                "",
                                 ScriptException.class,
                                 Arrays.asList(Throwable.class, Map.class),
                                 true,

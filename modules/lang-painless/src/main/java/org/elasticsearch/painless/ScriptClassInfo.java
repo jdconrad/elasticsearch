@@ -96,11 +96,12 @@ public class ScriptClassInfo {
                         throw new IllegalStateException("convertFromDef must take a single Object as an argument, " +
                             "not [" + m.getParameterTypes()[0] + "]");
                     }
-                    defConverter = new FunctionTable.LocalFunction(m.getName(), m.getReturnType(), Arrays.asList(m.getParameterTypes()),
-                                                                   true, true);
+                    defConverter = new FunctionTable.LocalFunction(m.getName(), "",
+                            m.getReturnType(), Arrays.asList(m.getParameterTypes()), true, true);
                 } else {
                     converters.add(
-                        new FunctionTable.LocalFunction(m.getName(), m.getReturnType(), Arrays.asList(m.getParameterTypes()), true, true)
+                        new FunctionTable.LocalFunction(m.getName(), "",
+                                m.getReturnType(), Arrays.asList(m.getParameterTypes()), true, true)
                     );
                 }
             }

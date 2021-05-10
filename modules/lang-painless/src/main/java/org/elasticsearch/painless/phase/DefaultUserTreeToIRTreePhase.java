@@ -608,7 +608,8 @@ public class DefaultUserTreeToIRTreePhase implements UserTreeVisitor<ScriptScope
 
         FunctionNode irFunctionNode = new FunctionNode(userFunctionNode.getLocation());
         irFunctionNode.setBlockNode(irBlockNode);
-        irFunctionNode.attachDecoration(new IRDName(userFunctionNode.getFunctionName()));
+        irFunctionNode.attachDecoration(new IRDName(scriptScope.getFunctionTable().getFunction(
+                userFunctionNode.getFunctionName(), userFunctionNode.getCanonicalTypeNameParameters().size()).getMangledName()));
         irFunctionNode.attachDecoration(new IRDReturnType(returnType));
         irFunctionNode.attachDecoration(new IRDTypeParameters(new ArrayList<>(localFunction.getTypeParameters())));
         irFunctionNode.attachDecoration(new IRDParameterNames(new ArrayList<>(userFunctionNode.getParameterNames())));

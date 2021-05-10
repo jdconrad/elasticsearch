@@ -41,7 +41,7 @@ public class PainlessSemanticHeaderPhase extends DefaultSemanticHeaderPhase {
                 typeParameters.add(methodArgument.getClazz());
             }
 
-            functionTable.addFunction(functionName, returnType, typeParameters, true, false);
+            functionTable.addFunction(functionName, "", returnType, typeParameters, true, false);
         } else {
             super.visitFunction(userFunctionNode, scriptScope);
         }

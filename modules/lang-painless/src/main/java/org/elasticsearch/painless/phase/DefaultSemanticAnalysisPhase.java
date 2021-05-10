@@ -2213,7 +2213,7 @@ public class DefaultSemanticAnalysisPhase extends UserTreeBaseVisitor<SemanticSc
 
         // desugar lambda body into a synthetic method
         String name = scriptScope.getNextSyntheticName("lambda");
-        scriptScope.getFunctionTable().addFunction(name, returnType, typeParametersWithCaptures, true, true);
+        scriptScope.getFunctionTable().addFunction(name, "", returnType, typeParametersWithCaptures, true, true);
 
         Class<?> valueType;
         // setup method reference to synthetic method
@@ -2347,7 +2347,7 @@ public class DefaultSemanticAnalysisPhase extends UserTreeBaseVisitor<SemanticSc
         }
 
         String name = scriptScope.getNextSyntheticName("newarray");
-        scriptScope.getFunctionTable().addFunction(name, clazz, Collections.singletonList(int.class), true, true);
+        scriptScope.getFunctionTable().addFunction(name, "", clazz, Collections.singletonList(int.class), true, true);
         semanticScope.putDecoration(userNewArrayFunctionRefNode, new MethodNameDecoration(name));
 
         if (targetType == null) {
