@@ -10,6 +10,7 @@ package org.elasticsearch.painless.phase;
 
 import org.elasticsearch.painless.ir.BinaryImplNode;
 import org.elasticsearch.painless.ir.BinaryMathNode;
+import org.elasticsearch.painless.ir.BinaryRegexNode;
 import org.elasticsearch.painless.ir.BlockNode;
 import org.elasticsearch.painless.ir.BooleanNode;
 import org.elasticsearch.painless.ir.BreakNode;
@@ -105,6 +106,7 @@ public interface IRTreeVisitor<Scope> {
     void visitBinaryImpl(BinaryImplNode irBinaryImplNode, Scope scope);
     void visitUnaryMath(UnaryMathNode irUnaryMathNode, Scope scope);
     void visitBinaryMath(BinaryMathNode irBinaryMathNode, Scope scope);
+    void visitBinaryRegex(BinaryRegexNode irBinaryRegexNode, Scope scope);
     void visitStringConcatenation(StringConcatenationNode irStringConcatenationNode, Scope scope);
     void visitBoolean(BooleanNode irBooleanNode, Scope scope);
     void visitComparison(ComparisonNode irComparisonNode, Scope scope);

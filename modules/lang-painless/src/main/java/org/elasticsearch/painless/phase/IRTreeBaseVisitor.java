@@ -10,6 +10,7 @@ package org.elasticsearch.painless.phase;
 
 import org.elasticsearch.painless.ir.BinaryImplNode;
 import org.elasticsearch.painless.ir.BinaryMathNode;
+import org.elasticsearch.painless.ir.BinaryRegexNode;
 import org.elasticsearch.painless.ir.BlockNode;
 import org.elasticsearch.painless.ir.BooleanNode;
 import org.elasticsearch.painless.ir.BreakNode;
@@ -197,6 +198,11 @@ public class IRTreeBaseVisitor<Scope> implements IRTreeVisitor<Scope> {
     @Override
     public void visitBinaryMath(BinaryMathNode irBinaryMathNode, Scope scope) {
         irBinaryMathNode.visitChildren(this, scope);
+    }
+
+    @Override
+    public void visitBinaryRegex(BinaryRegexNode irBinaryRegexNode, Scope scope) {
+        irBinaryRegexNode.visitChildren(this, scope);
     }
 
     @Override

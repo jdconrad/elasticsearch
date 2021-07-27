@@ -18,6 +18,7 @@ import org.elasticsearch.painless.WriterConstants;
 import org.elasticsearch.painless.api.Augmentation;
 import org.elasticsearch.painless.ir.BinaryImplNode;
 import org.elasticsearch.painless.ir.BinaryMathNode;
+import org.elasticsearch.painless.ir.BinaryRegexNode;
 import org.elasticsearch.painless.ir.BlockNode;
 import org.elasticsearch.painless.ir.BooleanNode;
 import org.elasticsearch.painless.ir.BreakNode;
@@ -134,7 +135,6 @@ import org.elasticsearch.painless.symbol.IRDecorations.IRDName;
 import org.elasticsearch.painless.symbol.IRDecorations.IRDOperation;
 import org.elasticsearch.painless.symbol.IRDecorations.IRDParameterNames;
 import org.elasticsearch.painless.symbol.IRDecorations.IRDReference;
-import org.elasticsearch.painless.symbol.IRDecorations.IRDRegexLimit;
 import org.elasticsearch.painless.symbol.IRDecorations.IRDReturnType;
 import org.elasticsearch.painless.symbol.IRDecorations.IRDShiftType;
 import org.elasticsearch.painless.symbol.IRDecorations.IRDStoreType;
@@ -793,39 +793,47 @@ public class DefaultIRTreeToASMBytesPhase implements IRTreeVisitor<WriteScope> {
         ExpressionNode irLeftNode = irBinaryMathNode.getLeftNode();
         ExpressionNode irRightNode = irBinaryMathNode.getRightNode();
 
-        if (operation == Operation.FIND || operation == Operation.MATCH) {
-            visit(irRightNode, writeScope);
-            methodWriter.push(irBinaryMathNode.getDecorationValue(IRDRegexLimit.class));
-            visit(irLeftNode, writeScope);
-            methodWriter.invokeStatic(Type.getType(Augmentation.class), WriterConstants.PATTERN_MATCHER);
+        visit(irLeftNode, writeScope);
+        visit(irRightNode, writeScope);
 
-            if (operation == Operation.FIND) {
-                methodWriter.invokeVirtual(Type.getType(Matcher.class), WriterConstants.MATCHER_FIND);
-            } else if (operation == Operation.MATCH) {
-                methodWriter.invokeVirtual(Type.getType(Matcher.class), WriterConstants.MATCHER_MATCHES);
-            } else {
-                throw new IllegalStateException("unexpected binary math operation [" + operation + "] " +
-                        "for type [" + irBinaryMathNode.getCanonicalExpressionTypeName() + "]");
-            }
+        Class<?> expressionType = irBinaryMathNode.getExpressionType();
+
+        if (irBinaryMathNode.getDecorationValue(IRDBinaryType.class) == def.class ||
+                (irBinaryMathNode.getDecoration(IRDShiftType.class) != null &&
+                        irBinaryMathNode.getDecorationValue(IRDShiftType.class) == def.class)) {
+            methodWriter.writeDynamicBinaryInstruction(
+                    irBinaryMathNode.getLocation(),
+                    expressionType,
+                    irLeftNode.getExpressionType(),
+                    irRightNode.getExpressionType(),
+                    operation,
+                    irBinaryMathNode.getDecorationValueOrDefault(IRDFlags.class, 0));
         } else {
-            visit(irLeftNode, writeScope);
-            visit(irRightNode, writeScope);
+            methodWriter.writeBinaryInstruction(irBinaryMathNode.getLocation(), expressionType, operation);
+        }
+    }
 
-            Class<?> expressionType = irBinaryMathNode.getExpressionType();
+    @Override
+    public void visitBinaryRegex(BinaryRegexNode irBinaryRegexNode, WriteScope writeScope) {
+        MethodWriter methodWriter = writeScope.getMethodWriter();
+        methodWriter.writeDebugInfo(irBinaryRegexNode.getLocation());
 
-            if (irBinaryMathNode.getDecorationValue(IRDBinaryType.class) == def.class ||
-                    (irBinaryMathNode.getDecoration(IRDShiftType.class) != null &&
-                            irBinaryMathNode.getDecorationValue(IRDShiftType.class) == def.class)) {
-                methodWriter.writeDynamicBinaryInstruction(
-                        irBinaryMathNode.getLocation(),
-                        expressionType,
-                        irLeftNode.getExpressionType(),
-                        irRightNode.getExpressionType(),
-                        operation,
-                        irBinaryMathNode.getDecorationValueOrDefault(IRDFlags.class, 0));
-            } else {
-                methodWriter.writeBinaryInstruction(irBinaryMathNode.getLocation(), expressionType, operation);
-            }
+        Operation operation = irBinaryRegexNode.getDecorationValue(IRDOperation.class);
+        ExpressionNode irLeftNode = irBinaryRegexNode.getLeftNode();
+        ExpressionNode irRightNode = irBinaryRegexNode.getRightNode();
+
+        visit(irRightNode, writeScope);
+        methodWriter.push(irBinaryRegexNode.getRegexLimit());
+        visit(irLeftNode, writeScope);
+        methodWriter.invokeStatic(Type.getType(Augmentation.class), WriterConstants.PATTERN_MATCHER);
+
+        if (operation == Operation.FIND) {
+            methodWriter.invokeVirtual(Type.getType(Matcher.class), WriterConstants.MATCHER_FIND);
+        } else if (operation == Operation.MATCH) {
+            methodWriter.invokeVirtual(Type.getType(Matcher.class), WriterConstants.MATCHER_MATCHES);
+        } else {
+            throw new IllegalStateException("unexpected binary math operation [" + operation + "] " +
+                    "for type [" + irBinaryRegexNode.getCanonicalExpressionTypeName() + "]");
         }
     }
 

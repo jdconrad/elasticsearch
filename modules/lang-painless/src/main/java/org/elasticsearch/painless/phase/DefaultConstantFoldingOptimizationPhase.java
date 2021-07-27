@@ -12,6 +12,7 @@ import org.elasticsearch.painless.AnalyzerCaster;
 import org.elasticsearch.painless.Operation;
 import org.elasticsearch.painless.ir.BinaryImplNode;
 import org.elasticsearch.painless.ir.BinaryMathNode;
+import org.elasticsearch.painless.ir.BinaryRegexNode;
 import org.elasticsearch.painless.ir.BooleanNode;
 import org.elasticsearch.painless.ir.CastNode;
 import org.elasticsearch.painless.ir.ComparisonNode;
@@ -429,6 +430,12 @@ public class DefaultConstantFoldingOptimizationPhase extends IRTreeBaseVisitor<C
                 scope.accept(irLeftConstantNode);
             }
         }
+    }
+
+    @Override
+    public void visitBinaryRegex(BinaryRegexNode irBinaryRegexNode, Consumer<ExpressionNode> scope) {
+        irBinaryRegexNode.getLeftNode().visit(this, irBinaryRegexNode::setLeftNode);
+        irBinaryRegexNode.getRightNode().visit(this, irBinaryRegexNode::setRightNode);
     }
 
     @Override

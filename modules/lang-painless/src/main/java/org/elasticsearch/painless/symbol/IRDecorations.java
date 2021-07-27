@@ -447,11 +447,4 @@ public class IRDecorations {
         }
     }
 
-    /** describes the limit of operations performed on a regex */
-    public static class IRDRegexLimit extends IRDecoration<Integer> {
-
-        public IRDRegexLimit(Integer value) {
-            super(value);
-        }
-    }
 }
