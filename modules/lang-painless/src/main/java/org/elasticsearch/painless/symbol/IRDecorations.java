@@ -173,22 +173,6 @@ public class IRDecorations {
         }
     }
 
-    /** describes the size of a dup instruction */
-    public static class IRDSize extends IRDecoration<Integer> {
-
-        public IRDSize(Integer value) {
-            super(value);
-        }
-    }
-
-    /** describes the depth of a dup instruction */
-    public static class IRDDepth extends IRDecoration<Integer> {
-
-        public IRDDepth(Integer value) {
-            super(value);
-        }
-    }
-
     /** describes modifiers on a class, method, or field; depends on node type */
     public static class IRDModifiers extends IRDecoration<Integer> {
 

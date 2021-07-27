@@ -115,7 +115,6 @@ import org.elasticsearch.painless.symbol.IRDecorations.IRDConstantFieldName;
 import org.elasticsearch.painless.symbol.IRDecorations.IRDConstructor;
 import org.elasticsearch.painless.symbol.IRDecorations.IRDDeclarationType;
 import org.elasticsearch.painless.symbol.IRDecorations.IRDDefReferenceEncoding;
-import org.elasticsearch.painless.symbol.IRDecorations.IRDDepth;
 import org.elasticsearch.painless.symbol.IRDecorations.IRDExceptionType;
 import org.elasticsearch.painless.symbol.IRDecorations.IRDExpressionType;
 import org.elasticsearch.painless.symbol.IRDecorations.IRDField;
@@ -139,7 +138,6 @@ import org.elasticsearch.painless.symbol.IRDecorations.IRDReference;
 import org.elasticsearch.painless.symbol.IRDecorations.IRDRegexLimit;
 import org.elasticsearch.painless.symbol.IRDecorations.IRDReturnType;
 import org.elasticsearch.painless.symbol.IRDecorations.IRDShiftType;
-import org.elasticsearch.painless.symbol.IRDecorations.IRDSize;
 import org.elasticsearch.painless.symbol.IRDecorations.IRDStoreType;
 import org.elasticsearch.painless.symbol.IRDecorations.IRDSymbol;
 import org.elasticsearch.painless.symbol.IRDecorations.IRDTypeParameters;
@@ -1779,10 +1777,7 @@ public class DefaultIRTreeToASMBytesPhase implements IRTreeVisitor<WriteScope> {
         MethodWriter methodWriter = writeScope.getMethodWriter();
         visit(irDupNode.getChildNode(), writeScope);
 
-        int size = irDupNode.getDecorationValueOrDefault(IRDSize.class, 0);
-        int depth = irDupNode.getDecorationValueOrDefault(IRDDepth.class, 0);
-
-        methodWriter.writeDup(size, depth);
+        methodWriter.writeDup(irDupNode.getSize(), irDupNode.getDepth());
     }
 
     // placeholder class referring to the script instance
