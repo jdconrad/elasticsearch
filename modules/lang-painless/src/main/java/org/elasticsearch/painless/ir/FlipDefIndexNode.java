@@ -27,8 +27,8 @@ public class FlipDefIndexNode extends UnaryNode {
 
     /* ---- end visitor ---- */
 
-    public FlipDefIndexNode(Location location) {
-        super(location);
+    public FlipDefIndexNode(Location location, Class<?> expressionType) {
+        super(location, expressionType);
     }
 
 }

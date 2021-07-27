@@ -31,8 +31,8 @@ public class LoadFieldMemberNode extends ExpressionNode {
 
     /* ---- end visitor ---- */
 
-    public LoadFieldMemberNode(Location location) {
-        super(location);
+    public LoadFieldMemberNode(Location location, Class<?> expressionType) {
+        super(location, expressionType);
     }
 
 }

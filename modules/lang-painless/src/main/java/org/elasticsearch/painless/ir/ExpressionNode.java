@@ -9,11 +9,30 @@
 package org.elasticsearch.painless.ir;
 
 import org.elasticsearch.painless.Location;
+import org.elasticsearch.painless.lookup.PainlessLookupUtility;
+
+import java.util.Objects;
 
 public abstract class ExpressionNode extends IRNode {
 
-    public ExpressionNode(Location location) {
+    /* ---- begin node data ---- */
+
+    private final Class<?> expressionType;
+
+    public Class<?> getExpressionType() {
+        return expressionType;
+    }
+
+    public String getCanonicalExpressionTypeName() {
+        return PainlessLookupUtility.typeToCanonicalTypeName(expressionType);
+    }
+
+    /* ---- end node data ---- */
+
+    public ExpressionNode(Location location, Class<?> expressionType) {
         super(location);
+
+        this.expressionType = Objects.requireNonNull(expressionType);
     }
 
 }

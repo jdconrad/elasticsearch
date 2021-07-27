@@ -27,8 +27,8 @@ public class StoreVariableNode extends UnaryNode {
 
     /* ---- end visitor ---- */
 
-    public StoreVariableNode(Location location) {
-        super(location);
+    public StoreVariableNode(Location location, Class<?> expressionType) {
+        super(location, expressionType);
     }
 
 }

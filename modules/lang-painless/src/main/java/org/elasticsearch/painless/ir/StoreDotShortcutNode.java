@@ -27,8 +27,8 @@ public class StoreDotShortcutNode extends UnaryNode {
 
     /* ---- end visitor ---- */
 
-    public StoreDotShortcutNode(Location location) {
-        super(location);
+    public StoreDotShortcutNode(Location location, Class<?> expressionType) {
+        super(location, expressionType);
     }
 
 }

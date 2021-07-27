@@ -27,8 +27,8 @@ public class LoadBraceDefNode extends ExpressionNode {
 
     /* ---- end visitor ---- */
 
-    public LoadBraceDefNode(Location location) {
-        super(location);
+    public LoadBraceDefNode(Location location, Class<?> expressionType) {
+        super(location, expressionType);
     }
 
 }

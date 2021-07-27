@@ -28,8 +28,8 @@ public class ElvisNode extends BinaryNode {
 
     /* ---- end visitor ---- */
 
-    public ElvisNode(Location location) {
-        super(location);
+    public ElvisNode(Location location, Class<?> expressionType) {
+        super(location, expressionType);
     }
 
 }

@@ -27,8 +27,8 @@ public class CastNode extends UnaryNode {
 
     /* ---- end visitor ---- */
 
-    public CastNode(Location location) {
-        super(location);
+    public CastNode(Location location, Class<?> expressionType) {
+        super(location, expressionType);
     }
 
 }

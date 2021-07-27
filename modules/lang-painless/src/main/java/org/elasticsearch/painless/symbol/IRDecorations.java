@@ -40,14 +40,6 @@ public class IRDecorations {
         }
     }
 
-    /** all expressions are decorated with a type based on the result */
-    public static class IRDExpressionType extends IRDType {
-
-        public IRDExpressionType(Class<?> value) {
-            super(value);
-        }
-    }
-
     /** binary type is used as an optimization for binary math */
     public static class IRDBinaryType extends IRDType {
 

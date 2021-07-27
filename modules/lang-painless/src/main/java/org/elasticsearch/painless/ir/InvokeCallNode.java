@@ -51,8 +51,8 @@ public class InvokeCallNode extends ArgumentsNode {
 
     /* ---- end visitor ---- */
 
-    public InvokeCallNode(Location location) {
-        super(location);
+    public InvokeCallNode(Location location, Class<?> expressionType) {
+        super(location, expressionType);
     }
 
 }

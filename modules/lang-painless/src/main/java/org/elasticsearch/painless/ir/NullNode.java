@@ -27,8 +27,8 @@ public class NullNode extends ExpressionNode {
 
     /* ---- end visitor ---- */
 
-    public NullNode(Location location) {
-        super(location);
+    public NullNode(Location location, Class<?> expressionType) {
+        super(location, expressionType);
     }
 
 }

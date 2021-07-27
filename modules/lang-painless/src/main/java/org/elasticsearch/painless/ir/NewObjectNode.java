@@ -29,8 +29,8 @@ public class NewObjectNode extends ArgumentsNode {
 
     /* ---- end visitor ---- */
 
-    public NewObjectNode(Location location) {
-        super(location);
+    public NewObjectNode(Location location, Class<?> expressionType) {
+        super(location, expressionType);
     }
 
 }

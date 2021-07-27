@@ -28,8 +28,8 @@ public class ComparisonNode extends BinaryNode {
 
     /* ---- end visitor ---- */
 
-    public ComparisonNode(Location location) {
-        super(location);
+    public ComparisonNode(Location location, Class<?> expressionType) {
+        super(location, expressionType);
     }
 
 }

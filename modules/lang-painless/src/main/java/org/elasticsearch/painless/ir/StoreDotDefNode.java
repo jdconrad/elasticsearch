@@ -27,8 +27,8 @@ public class StoreDotDefNode extends UnaryNode {
 
     /* ---- end visitor ---- */
 
-    public StoreDotDefNode(Location location) {
-        super(location);
+    public StoreDotDefNode(Location location, Class<?> expressionType) {
+        super(location, expressionType);
     }
 
 }

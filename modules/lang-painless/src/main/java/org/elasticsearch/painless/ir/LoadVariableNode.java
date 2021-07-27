@@ -27,8 +27,8 @@ public class LoadVariableNode extends ExpressionNode {
 
     /* ---- end visitor ---- */
 
-    public LoadVariableNode(Location location) {
-        super(location);
+    public LoadVariableNode(Location location, Class<?> expressionType) {
+        super(location, expressionType);
     }
 
 }

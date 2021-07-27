@@ -41,8 +41,8 @@ public class ConditionalNode extends BinaryNode {
 
     /* ---- end visitor ---- */
 
-    public ConditionalNode(Location location) {
-        super(location);
+    public ConditionalNode(Location location, Class<?> expressionType) {
+        super(location, expressionType);
     }
 
 }

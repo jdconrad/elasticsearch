@@ -35,8 +35,8 @@ public abstract class BinaryNode extends ExpressionNode {
 
     /* ---- end tree structure ---- */
 
-    public BinaryNode(Location location) {
-        super(location);
+    public BinaryNode(Location location, Class<?> expressionType) {
+        super(location, expressionType);
     }
 
 }

@@ -28,8 +28,8 @@ public class BooleanNode extends BinaryNode {
 
     /* ---- end visitor ---- */
 
-    public BooleanNode(Location location) {
-        super(location);
+    public BooleanNode(Location location, Class<?> expressionType) {
+        super(location, expressionType);
     }
 
 }

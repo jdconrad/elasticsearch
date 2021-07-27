@@ -28,8 +28,8 @@ public class BinaryMathNode extends BinaryNode {
 
     /* ---- end visitor ---- */
 
-    public BinaryMathNode(Location location) {
-        super(location);
+    public BinaryMathNode(Location location, Class<?> expressionType) {
+        super(location, expressionType);
     }
 
 }

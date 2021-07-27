@@ -25,7 +25,7 @@ public class DupNode extends UnaryNode {
         getChildNode().visit(irTreeVisitor, scope);
     }
 
-    /* ---- end visitor, begin data ---- */
+    /* ---- end visitor, begin node data ---- */
 
     private final int size;
     private final int depth;
@@ -38,10 +38,10 @@ public class DupNode extends UnaryNode {
         return depth;
     }
 
-    /* ---- end data ---- */
+    /* ---- end node data ---- */
 
-    public DupNode(Location location, int size, int depth) {
-        super(location);
+    public DupNode(Location location, Class<?> expressionType, int size, int depth) {
+        super(location, expressionType);
 
         this.depth = depth;
         this.size = size;

@@ -29,8 +29,8 @@ public class NewArrayNode extends ArgumentsNode {
 
     /* ---- end visitor ---- */
 
-    public NewArrayNode(Location location) {
-        super(location);
+    public NewArrayNode(Location location, Class<?> expressionType) {
+        super(location, expressionType);
     }
 
 }

@@ -27,8 +27,8 @@ public class TypedInterfaceReferenceNode extends ExpressionNode {
 
     /* ---- end visitor ---- */
 
-    public TypedInterfaceReferenceNode(Location location) {
-        super(location);
+    public TypedInterfaceReferenceNode(Location location, Class<?> expressionType) {
+        super(location, expressionType);
     }
 
 }

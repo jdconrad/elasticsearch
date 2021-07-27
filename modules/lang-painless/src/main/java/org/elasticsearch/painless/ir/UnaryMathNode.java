@@ -27,8 +27,8 @@ public class UnaryMathNode extends UnaryNode {
 
     /* ---- end visitor ---- */
 
-    public UnaryMathNode(Location location) {
-        super(location);
+    public UnaryMathNode(Location location, Class<?> expressionType) {
+        super(location, expressionType);
     }
 
 }

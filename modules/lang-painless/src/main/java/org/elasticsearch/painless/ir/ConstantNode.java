@@ -27,8 +27,8 @@ public class ConstantNode extends ExpressionNode {
 
     /* ---- end visitor ---- */
 
-    public ConstantNode(Location location) {
-        super(location);
+    public ConstantNode(Location location, Class<?> expressionType) {
+        super(location, expressionType);
     }
 
 }

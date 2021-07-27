@@ -27,8 +27,8 @@ public class FlipArrayIndexNode extends UnaryNode {
 
     /* ---- end visitor ---- */
 
-    public FlipArrayIndexNode(Location location) {
-        super(location);
+    public FlipArrayIndexNode(Location location, Class<?> expressionType) {
+        super(location, expressionType);
     }
 
 }

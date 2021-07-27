@@ -27,8 +27,8 @@ public class LoadMapShortcutNode extends ExpressionNode {
 
     /* ---- end visitor ---- */
 
-    public LoadMapShortcutNode(Location location) {
-        super(location);
+    public LoadMapShortcutNode(Location location, Class<?> expressionType) {
+        super(location, expressionType);
     }
 
 }

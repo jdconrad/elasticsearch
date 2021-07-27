@@ -27,8 +27,8 @@ public class StoreBraceNode extends UnaryNode {
 
     /* ---- end visitor ---- */
 
-    public StoreBraceNode(Location location) {
-        super(location);
+    public StoreBraceNode(Location location, Class<?> expressionType) {
+        super(location, expressionType);
     }
 
 }

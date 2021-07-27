@@ -32,8 +32,8 @@ public class StoreFieldMemberNode extends UnaryNode {
 
     /* ---- end visitor ---- */
 
-    public StoreFieldMemberNode(Location location) {
-        super(location);
+    public StoreFieldMemberNode(Location location, Class<?> expressionType) {
+        super(location, expressionType);
     }
 
 }

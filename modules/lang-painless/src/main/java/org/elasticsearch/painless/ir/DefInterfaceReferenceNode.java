@@ -27,8 +27,8 @@ public class DefInterfaceReferenceNode extends ExpressionNode {
 
     /* ---- end visitor ---- */
 
-    public DefInterfaceReferenceNode(Location location) {
-        super(location);
+    public DefInterfaceReferenceNode(Location location, Class<?> expressionType) {
+        super(location, expressionType);
     }
 
 }

@@ -26,8 +26,8 @@ public abstract class UnaryNode extends ExpressionNode {
 
     /* ---- end tree structure ---- */
 
-    public UnaryNode(Location location) {
-        super(location);
+    public UnaryNode(Location location, Class<?> expressionType) {
+        super(location, expressionType);
     }
 
 }

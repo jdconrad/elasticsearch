@@ -27,8 +27,8 @@ public class StringConcatenationNode extends ArgumentsNode {
 
     /* ---- end visitor ---- */
 
-    public StringConcatenationNode(Location location) {
-        super(location);
+    public StringConcatenationNode(Location location, Class<?> expressionType) {
+        super(location, expressionType);
     }
 
 }

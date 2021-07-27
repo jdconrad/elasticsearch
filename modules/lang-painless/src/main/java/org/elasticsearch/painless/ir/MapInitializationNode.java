@@ -66,8 +66,8 @@ public class MapInitializationNode extends ExpressionNode {
 
     /* ---- end visitor ---- */
 
-    public MapInitializationNode(Location location) {
-        super(location);
+    public MapInitializationNode(Location location, Class<?> expressionType) {
+        super(location, expressionType);
     }
 
 }

@@ -27,8 +27,8 @@ public class TypedCaptureReferenceNode extends ExpressionNode {
 
     /* ---- end visitor ---- */
 
-    public TypedCaptureReferenceNode(Location location) {
-        super(location);
+    public TypedCaptureReferenceNode(Location location, Class<?> expressionType) {
+        super(location, expressionType);
     }
 
 }

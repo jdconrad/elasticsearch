@@ -27,8 +27,8 @@ public class LoadDotNode extends ExpressionNode {
 
     /* ---- end visitor ---- */
 
-    public LoadDotNode(Location location) {
-        super(location);
+    public LoadDotNode(Location location, Class<?> expressionType) {
+        super(location, expressionType);
     }
 
 }

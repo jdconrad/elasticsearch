@@ -27,8 +27,8 @@ public class LoadDotArrayLengthNode extends ExpressionNode {
 
     /* ---- end visitor ---- */
 
-    public LoadDotArrayLengthNode(Location location) {
-        super(location);
+    public LoadDotArrayLengthNode(Location location, Class<?> expressionType) {
+        super(location, expressionType);
     }
 
 }

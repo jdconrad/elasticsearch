@@ -27,8 +27,8 @@ public class NullSafeSubNode extends UnaryNode {
 
     /* ---- end visitor ---- */
 
-    public NullSafeSubNode(Location location) {
-        super(location);
+    public NullSafeSubNode(Location location, Class<?> expressionType) {
+        super(location, expressionType);
     }
 
 }

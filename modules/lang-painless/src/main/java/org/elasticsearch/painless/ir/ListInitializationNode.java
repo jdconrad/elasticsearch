@@ -29,8 +29,8 @@ public class ListInitializationNode extends ArgumentsNode {
 
     /* ---- end visitor ---- */
 
-    public ListInitializationNode(Location location) {
-        super(location);
+    public ListInitializationNode(Location location, Class<?> expressionType) {
+        super(location, expressionType);
     }
 
 }

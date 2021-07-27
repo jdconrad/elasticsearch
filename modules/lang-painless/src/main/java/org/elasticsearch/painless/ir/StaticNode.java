@@ -27,8 +27,8 @@ public class StaticNode extends ExpressionNode {
 
     /* ---- end visitor ---- */
 
-    public StaticNode(Location location) {
-        super(location);
+    public StaticNode(Location location, Class<?> expressionType) {
+        super(location, expressionType);
     }
 
 }

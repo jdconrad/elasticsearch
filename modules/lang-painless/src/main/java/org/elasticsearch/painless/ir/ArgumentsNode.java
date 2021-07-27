@@ -29,8 +29,8 @@ public abstract class ArgumentsNode extends ExpressionNode {
 
     /* ---- end tree structure ---- */
 
-    public ArgumentsNode(Location location) {
-        super(location);
+    public ArgumentsNode(Location location, Class<?> expressionType) {
+        super(location, expressionType);
     }
 
 }

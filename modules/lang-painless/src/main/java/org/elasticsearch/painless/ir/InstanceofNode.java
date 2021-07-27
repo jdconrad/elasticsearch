@@ -27,8 +27,8 @@ public class InstanceofNode extends UnaryNode {
 
     /* ---- end visitor ---- */
 
-    public InstanceofNode(Location location) {
-        super(location);
+    public InstanceofNode(Location location, Class<?> expressionType) {
+        super(location, expressionType);
     }
 
 }
