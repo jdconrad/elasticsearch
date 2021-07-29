@@ -11,7 +11,6 @@ package org.elasticsearch.painless.phase;
 import org.elasticsearch.painless.ir.ClassNode;
 import org.elasticsearch.painless.ir.ConstantNode;
 import org.elasticsearch.painless.ir.FieldNode;
-import org.elasticsearch.painless.symbol.IRDecorations.IRDConstant;
 import org.elasticsearch.painless.symbol.IRDecorations.IRDConstantFieldName;
 import org.elasticsearch.painless.symbol.IRDecorations.IRDFieldType;
 import org.elasticsearch.painless.symbol.IRDecorations.IRDModifiers;
@@ -37,7 +36,7 @@ public class DefaultStaticConstantExtractionPhase extends IRTreeBaseVisitor<Scri
     @Override
     public void visitConstant(ConstantNode irConstantNode, ScriptScope scope) {
         super.visitConstant(irConstantNode, scope);
-        Object constant = irConstantNode.getDecorationValue(IRDConstant.class);
+        Object constant = irConstantNode.getConstantValue();
         if (constant instanceof String
             || constant instanceof Double
             || constant instanceof Float
@@ -63,7 +62,6 @@ public class DefaultStaticConstantExtractionPhase extends IRTreeBaseVisitor<Scri
 
         FieldNode constantField = new FieldNode(irConstantNode.getLocation());
         constantField.attachDecoration(new IRDModifiers(Modifier.PUBLIC | Modifier.STATIC));
-        constantField.attachDecoration(irConstantNode.getDecoration(IRDConstant.class));
         Class<?> type = irConstantNode.getExpressionType();
         constantField.attachDecoration(new IRDFieldType(type));
         constantField.attachDecoration(new IRDName(fieldName));

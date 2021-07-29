@@ -121,16 +121,6 @@ public class IRDecorations {
     }
 
     /**
-     * describes a constant for a node; what the constant is depends on the node
-     */
-    public static class IRDConstant extends IRDecoration<Object> {
-
-        public IRDConstant(Object value) {
-            super(value);
-        }
-    }
-
-    /**
      * describes the field name holding a constant value.
      */
     public static class IRDConstantFieldName extends IRDecoration<String> {

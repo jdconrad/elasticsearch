@@ -25,10 +25,20 @@ public class ConstantNode extends ExpressionNode {
         // do nothing; terminal node
     }
 
-    /* ---- end visitor ---- */
+    /* ---- end visitor, begin node data ---- */
 
-    public ConstantNode(Location location, Class<?> expressionType) {
+    private final Object constantValue;
+
+    public Object getConstantValue() {
+        return constantValue;
+    }
+
+    /* ---- end node data ---- */
+
+    public ConstantNode(Location location, Class<?> expressionType, Object constantValue) {
         super(location, expressionType);
+
+        this.constantValue = constantValue;
     }
 
 }

@@ -44,7 +44,6 @@ import org.elasticsearch.painless.symbol.FunctionTable.LocalFunction;
 import org.elasticsearch.painless.symbol.IRDecorations.IRCAllEscape;
 import org.elasticsearch.painless.symbol.IRDecorations.IRCStatic;
 import org.elasticsearch.painless.symbol.IRDecorations.IRCSynthetic;
-import org.elasticsearch.painless.symbol.IRDecorations.IRDConstant;
 import org.elasticsearch.painless.symbol.IRDecorations.IRDDeclarationType;
 import org.elasticsearch.painless.symbol.IRDecorations.IRDExceptionType;
 import org.elasticsearch.painless.symbol.IRDecorations.IRDFieldType;
@@ -95,21 +94,21 @@ public class PainlessUserTreeToIRTreePhase extends DefaultUserTreeToIRTreePhase 
                     irExpressionNode = null;
                 } else {
                     if (returnType.isPrimitive()) {
-                        ConstantNode irConstantNode = new ConstantNode(userFunctionNode.getLocation(), returnType);
+                        ConstantNode irConstantNode;
 
                         if (returnType == boolean.class) {
-                            irConstantNode.attachDecoration(new IRDConstant(false));
+                            irConstantNode = new ConstantNode(userFunctionNode.getLocation(), returnType, false);
                         } else if (returnType == byte.class
                                 || returnType == char.class
                                 || returnType == short.class
                                 || returnType == int.class) {
-                            irConstantNode.attachDecoration(new IRDConstant(0));
+                            irConstantNode = new ConstantNode(userFunctionNode.getLocation(), returnType, 0);
                         } else if (returnType == long.class) {
-                            irConstantNode.attachDecoration(new IRDConstant(0L));
+                            irConstantNode = new ConstantNode(userFunctionNode.getLocation(), returnType, 0L);
                         } else if (returnType == float.class) {
-                            irConstantNode.attachDecoration(new IRDConstant(0f));
+                            irConstantNode = new ConstantNode(userFunctionNode.getLocation(), returnType, 0F);
                         } else if (returnType == double.class) {
-                            irConstantNode.attachDecoration(new IRDConstant(0d));
+                            irConstantNode = new ConstantNode(userFunctionNode.getLocation(), returnType, 0D);
                         } else {
                             throw userFunctionNode.createError(new IllegalStateException("illegal tree structure"));
                         }
@@ -309,8 +308,7 @@ public class PainlessUserTreeToIRTreePhase extends DefaultUserTreeToIRTreePhase 
 
             irBlockNode.addStatementNode(irReturnNode);
 
-            ConstantNode irConstantNode = new ConstantNode(internalLocation, boolean.class);
-            irConstantNode.attachDecoration(new IRDConstant(scriptScope.getUsedVariables().contains(name)));
+            ConstantNode irConstantNode = new ConstantNode(internalLocation, boolean.class, scriptScope.getUsedVariables().contains(name));
 
             irReturnNode.setExpressionNode(irConstantNode);
         }

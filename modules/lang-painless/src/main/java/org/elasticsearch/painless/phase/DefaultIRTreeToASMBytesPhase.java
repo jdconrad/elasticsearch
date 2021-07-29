@@ -111,7 +111,6 @@ import org.elasticsearch.painless.symbol.IRDecorations.IRDCaptureNames;
 import org.elasticsearch.painless.symbol.IRDecorations.IRDCast;
 import org.elasticsearch.painless.symbol.IRDecorations.IRDClassBinding;
 import org.elasticsearch.painless.symbol.IRDecorations.IRDComparisonType;
-import org.elasticsearch.painless.symbol.IRDecorations.IRDConstant;
 import org.elasticsearch.painless.symbol.IRDecorations.IRDConstantFieldName;
 import org.elasticsearch.painless.symbol.IRDecorations.IRDConstructor;
 import org.elasticsearch.painless.symbol.IRDecorations.IRDDeclarationType;
@@ -1191,7 +1190,7 @@ public class DefaultIRTreeToASMBytesPhase implements IRTreeVisitor<WriteScope> {
     @Override
     public void visitConstant(ConstantNode irConstantNode, WriteScope writeScope) {
         MethodWriter methodWriter = writeScope.getMethodWriter();
-        Object constant = irConstantNode.getDecorationValue(IRDConstant.class);
+        Object constant = irConstantNode.getConstantValue();
 
         if      (constant instanceof String)    methodWriter.push((String)constant);
         else if (constant instanceof Double)    methodWriter.push((double)constant);
