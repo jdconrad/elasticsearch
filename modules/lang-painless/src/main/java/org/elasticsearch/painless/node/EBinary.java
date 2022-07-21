@@ -13,22 +13,102 @@ import org.elasticsearch.painless.Operation;
 import org.elasticsearch.painless.phase.UserTreeVisitor;
 
 import java.util.Objects;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 /**
  * Represents a binary math expression.
  */
 public class EBinary extends AExpression {
 
+    public static class Builder implements Supplier<EBinary> {
+
+        protected int identifier;
+        protected Location location;
+        protected Operation operation;
+        protected AExpression left;
+        protected AExpression right;
+
+        public Builder withIdentifier(int identifier) {
+            this.identifier = identifier;
+            return this;
+        }
+
+        public Builder withIdentifier(Supplier<Integer> identifier) {
+            this.identifier = identifier.get();
+            return this;
+        }
+
+        public Builder withLocation(Location location) {
+            this.location = location;
+            return this;
+        }
+
+        public Builder withLocation(Supplier<Location> location) {
+            this.location = location.get();
+            return this;
+        }
+
+        public Builder withOperation(Operation operation) {
+            this.operation = operation;
+            return this;
+        }
+
+        public Builder withOperation(Supplier<Operation> operation) {
+            this.operation = operation.get();
+            return this;
+        }
+
+        public Builder withLeft(AExpression left) {
+            this.left = left;
+            return this;
+        }
+
+        public Builder withLeft(Supplier<AExpression> left) {
+            this.left = left.get();
+            return this;
+        }
+
+        public Builder withRight(AExpression expression) {
+            this.right = expression;
+            return this;
+        }
+
+        public Builder withRight(Supplier<AExpression> right) {
+            this.right = right.get();
+            return this;
+        }
+
+        public EBinary build() {
+            return get();
+        }
+
+        @Override
+        public EBinary get() {
+            return new EBinary(identifier, location, operation, left, right);
+        }
+    }
+
+    public static Builder builder(Consumer<Builder> consumer) {
+        Builder builder = new Builder();
+        consumer.accept(builder);
+        return builder;
+    }
+
+    private final Operation operation;
     private final AExpression leftNode;
     private final AExpression rightNode;
-    private final Operation operation;
 
-    public EBinary(int identifier, Location location, AExpression leftNode, AExpression rightNode, Operation operation) {
+    protected EBinary(int identifier, Location location, Operation operation, AExpression leftNode, AExpression rightNode) {
         super(identifier, location);
 
         this.operation = Objects.requireNonNull(operation);
         this.leftNode = Objects.requireNonNull(leftNode);
         this.rightNode = Objects.requireNonNull(rightNode);
+    }
+
+    public Operation getOperation() {
+        return operation;
     }
 
     public AExpression getLeftNode() {
@@ -37,10 +117,6 @@ public class EBinary extends AExpression {
 
     public AExpression getRightNode() {
         return rightNode;
-    }
-
-    public Operation getOperation() {
-        return operation;
     }
 
     @Override

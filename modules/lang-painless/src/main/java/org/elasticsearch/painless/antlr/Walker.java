@@ -543,41 +543,38 @@ public final class Walker extends PainlessParserBaseVisitor<ANode> {
 
     @Override
     public ANode visitBinary(BinaryContext ctx) {
-        AExpression left = (AExpression) visit(ctx.noncondexpression(0));
-        AExpression right = (AExpression) visit(ctx.noncondexpression(1));
-        final Operation operation;
+        return EBinary.builder(builder -> builder.withIdentifier(nextIdentifier()).withLocation(location(ctx)).withOperation(() -> {
+            if (ctx.MUL() != null) {
+                return Operation.MUL;
+            } else if (ctx.DIV() != null) {
+                return Operation.DIV;
+            } else if (ctx.REM() != null) {
+                return Operation.REM;
+            } else if (ctx.ADD() != null) {
+                return Operation.ADD;
+            } else if (ctx.SUB() != null) {
+                return Operation.SUB;
+            } else if (ctx.FIND() != null) {
+                return Operation.FIND;
+            } else if (ctx.MATCH() != null) {
+                return Operation.MATCH;
+            } else if (ctx.LSH() != null) {
+                return Operation.LSH;
+            } else if (ctx.RSH() != null) {
+                return Operation.RSH;
+            } else if (ctx.USH() != null) {
+                return Operation.USH;
+            } else if (ctx.BWAND() != null) {
+                return Operation.BWAND;
+            } else if (ctx.XOR() != null) {
+                return Operation.XOR;
+            } else if (ctx.BWOR() != null) {
+                return Operation.BWOR;
+            }
 
-        if (ctx.MUL() != null) {
-            operation = Operation.MUL;
-        } else if (ctx.DIV() != null) {
-            operation = Operation.DIV;
-        } else if (ctx.REM() != null) {
-            operation = Operation.REM;
-        } else if (ctx.ADD() != null) {
-            operation = Operation.ADD;
-        } else if (ctx.SUB() != null) {
-            operation = Operation.SUB;
-        } else if (ctx.FIND() != null) {
-            operation = Operation.FIND;
-        } else if (ctx.MATCH() != null) {
-            operation = Operation.MATCH;
-        } else if (ctx.LSH() != null) {
-            operation = Operation.LSH;
-        } else if (ctx.RSH() != null) {
-            operation = Operation.RSH;
-        } else if (ctx.USH() != null) {
-            operation = Operation.USH;
-        } else if (ctx.BWAND() != null) {
-            operation = Operation.BWAND;
-        } else if (ctx.XOR() != null) {
-            operation = Operation.XOR;
-        } else if (ctx.BWOR() != null) {
-            operation = Operation.BWOR;
-        } else {
             throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
-        }
-
-        return new EBinary(nextIdentifier(), location(ctx), left, right, operation);
+        }).withLeft(() -> (AExpression) visit(ctx.noncondexpression(0))).withRight(() -> (AExpression) visit(ctx.noncondexpression(1))))
+            .build();
     }
 
     @Override
