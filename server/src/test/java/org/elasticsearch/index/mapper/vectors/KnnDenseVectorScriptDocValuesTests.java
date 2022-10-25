@@ -10,6 +10,7 @@ package org.elasticsearch.index.mapper.vectors;
 
 import org.apache.lucene.index.VectorValues;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.index.mapper.vectors.DenseVectorFieldMapper.ElementType;
 import org.elasticsearch.script.field.vectors.DenseVector;
 import org.elasticsearch.script.field.vectors.DenseVectorDocValuesField;
 import org.elasticsearch.script.field.vectors.KnnDenseVectorDocValuesField;
@@ -26,7 +27,7 @@ public class KnnDenseVectorScriptDocValuesTests extends ESTestCase {
         float[][] vectors = { { 1, 1, 1 }, { 1, 1, 2 }, { 1, 1, 3 } };
         float[] expectedMagnitudes = { 1.7320f, 2.4495f, 3.3166f };
 
-        DenseVectorDocValuesField field = new KnnDenseVectorDocValuesField(wrap(vectors), "test", dims);
+        DenseVectorDocValuesField field = new KnnDenseVectorDocValuesField(wrap(vectors), "test", ElementType.FLOAT, dims);
         DenseVectorScriptDocValues scriptDocValues = field.toScriptDocValues();
         for (int i = 0; i < vectors.length; i++) {
             field.setNextDocId(i);
@@ -40,7 +41,7 @@ public class KnnDenseVectorScriptDocValuesTests extends ESTestCase {
     public void testMetadataAndIterator() throws IOException {
         int dims = 3;
         float[][] vectors = fill(new float[randomIntBetween(1, 5)][dims]);
-        KnnDenseVectorDocValuesField field = new KnnDenseVectorDocValuesField(wrap(vectors), "test", dims);
+        KnnDenseVectorDocValuesField field = new KnnDenseVectorDocValuesField(wrap(vectors), "test", ElementType.FLOAT, dims);
         for (int i = 0; i < vectors.length; i++) {
             field.setNextDocId(i);
             DenseVector dv = field.get();
@@ -68,7 +69,7 @@ public class KnnDenseVectorScriptDocValuesTests extends ESTestCase {
     public void testMissingValues() throws IOException {
         int dims = 3;
         float[][] vectors = { { 1, 1, 1 }, { 1, 1, 2 }, { 1, 1, 3 } };
-        DenseVectorDocValuesField field = new KnnDenseVectorDocValuesField(wrap(vectors), "test", dims);
+        DenseVectorDocValuesField field = new KnnDenseVectorDocValuesField(wrap(vectors), "test", ElementType.FLOAT, dims);
         DenseVectorScriptDocValues scriptDocValues = field.toScriptDocValues();
 
         field.setNextDocId(3);
@@ -82,7 +83,7 @@ public class KnnDenseVectorScriptDocValuesTests extends ESTestCase {
     public void testGetFunctionIsNotAccessible() throws IOException {
         int dims = 3;
         float[][] vectors = { { 1, 1, 1 }, { 1, 1, 2 }, { 1, 1, 3 } };
-        DenseVectorDocValuesField field = new KnnDenseVectorDocValuesField(wrap(vectors), "test", dims);
+        DenseVectorDocValuesField field = new KnnDenseVectorDocValuesField(wrap(vectors), "test", ElementType.FLOAT, dims);
         DenseVectorScriptDocValues scriptDocValues = field.toScriptDocValues();
 
         field.setNextDocId(0);
@@ -100,7 +101,12 @@ public class KnnDenseVectorScriptDocValuesTests extends ESTestCase {
         float[] docVector = new float[] { 230.0f, 300.33f, -34.8988f, 15.555f, -200.0f };
         float[] queryVector = new float[] { 0.5f, 111.3f, -13.0f, 14.8f, -156.0f };
 
-        DenseVectorDocValuesField field = new KnnDenseVectorDocValuesField(wrap(new float[][] { docVector }), "test", dims);
+        DenseVectorDocValuesField field = new KnnDenseVectorDocValuesField(
+            wrap(new float[][] { docVector }),
+            "test",
+            ElementType.FLOAT,
+            dims
+        );
         DenseVectorScriptDocValues scriptDocValues = field.toScriptDocValues();
         field.setNextDocId(0);
 
@@ -111,7 +117,7 @@ public class KnnDenseVectorScriptDocValuesTests extends ESTestCase {
 
     public void testMissingVectorValues() throws IOException {
         int dims = 7;
-        KnnDenseVectorDocValuesField emptyKnn = new KnnDenseVectorDocValuesField(null, "test", dims);
+        KnnDenseVectorDocValuesField emptyKnn = new KnnDenseVectorDocValuesField(null, "test", ElementType.FLOAT, dims);
 
         emptyKnn.setNextDocId(0);
         assertEquals(0, emptyKnn.toScriptDocValues().size());

@@ -15,6 +15,7 @@ import org.apache.lucene.index.VectorValues;
 import org.elasticsearch.Version;
 import org.elasticsearch.index.fielddata.LeafFieldData;
 import org.elasticsearch.index.fielddata.SortedBinaryDocValues;
+import org.elasticsearch.index.mapper.vectors.DenseVectorFieldMapper.ElementType;
 import org.elasticsearch.script.field.DocValuesScriptFieldFactory;
 import org.elasticsearch.script.field.vectors.BinaryDenseVectorDocValuesField;
 import org.elasticsearch.script.field.vectors.KnnDenseVectorDocValuesField;
@@ -26,13 +27,15 @@ final class VectorDVLeafFieldData implements LeafFieldData {
     private final LeafReader reader;
     private final String field;
     private final Version indexVersion;
+    private final ElementType elementType;
     private final int dims;
     private final boolean indexed;
 
-    VectorDVLeafFieldData(LeafReader reader, String field, Version indexVersion, int dims, boolean indexed) {
+    VectorDVLeafFieldData(LeafReader reader, String field, Version indexVersion, ElementType elementType, int dims, boolean indexed) {
         this.reader = reader;
         this.field = field;
         this.indexVersion = indexVersion;
+        this.elementType = elementType;
         this.dims = dims;
         this.indexed = indexed;
     }
@@ -57,10 +60,10 @@ final class VectorDVLeafFieldData implements LeafFieldData {
                     // values that can be iterated through. Since VectorValues.EMPTY throws on docID(), pass a null instead.
                     values = null;
                 }
-                return new KnnDenseVectorDocValuesField(values, name, dims);
+                return new KnnDenseVectorDocValuesField(values, name, elementType, dims);
             } else {
                 BinaryDocValues values = DocValues.getBinary(reader, field);
-                return new BinaryDenseVectorDocValuesField(values, name, dims, indexVersion);
+                return new BinaryDenseVectorDocValuesField(values, name, elementType, dims, indexVersion);
             }
         } catch (IOException e) {
             throw new IllegalStateException("Cannot load doc values for vector field!", e);

@@ -14,6 +14,7 @@ import java.util.Arrays;
 import java.util.List;
 
 public class KnnDenseVector implements DenseVector {
+
     protected final float[] docVector;
 
     public KnnDenseVector(float[] docVector) {

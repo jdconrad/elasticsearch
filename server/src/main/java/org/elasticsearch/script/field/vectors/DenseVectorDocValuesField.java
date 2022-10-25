@@ -9,6 +9,7 @@
 package org.elasticsearch.script.field.vectors;
 
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.index.mapper.vectors.DenseVectorFieldMapper.ElementType;
 import org.elasticsearch.index.mapper.vectors.DenseVectorScriptDocValues;
 import org.elasticsearch.script.field.AbstractScriptFieldFactory;
 import org.elasticsearch.script.field.DocValuesScriptFieldFactory;
@@ -21,15 +22,22 @@ public abstract class DenseVectorDocValuesField extends AbstractScriptFieldFacto
         Field<DenseVector>,
         DocValuesScriptFieldFactory,
         DenseVectorScriptDocValues.DenseVectorSupplier {
-    protected final String name;
 
-    public DenseVectorDocValuesField(String name) {
+    protected final String name;
+    protected final ElementType elementType;
+
+    public DenseVectorDocValuesField(String name, ElementType elementType) {
         this.name = name;
+        this.elementType = elementType;
     }
 
     @Override
     public String getName() {
         return name;
+    }
+
+    public ElementType getElementType() {
+        return elementType;
     }
 
     @Override

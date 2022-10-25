@@ -46,6 +46,7 @@ public class VectorScoreScriptUtils {
                 queryMagnitude += value * value;
             }
             queryMagnitude = Math.sqrt(queryMagnitude);
+            field.getElementType().checkVectorBounds(this.queryVector);
 
             if (normalizeQuery) {
                 for (int dim = 0; dim < this.queryVector.length; dim++) {

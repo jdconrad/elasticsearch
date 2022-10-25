@@ -10,6 +10,7 @@ package org.elasticsearch.script;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.index.mapper.vectors.BinaryDenseVectorScriptDocValuesTests;
+import org.elasticsearch.index.mapper.vectors.DenseVectorFieldMapper.ElementType;
 import org.elasticsearch.index.mapper.vectors.KnnDenseVectorScriptDocValuesTests;
 import org.elasticsearch.script.VectorScoreScriptUtils.CosineSimilarity;
 import org.elasticsearch.script.VectorScoreScriptUtils.DotProduct;
@@ -31,7 +32,7 @@ import static org.mockito.Mockito.when;
 
 public class VectorScoreScriptUtilsTests extends ESTestCase {
 
-    public void testVectorClassBindings() throws IOException {
+    public void testFloatVectorClassBindings() throws IOException {
         String fieldName = "vector";
         int dims = 5;
         float[] docVector = new float[] { 230.0f, 300.33f, -34.8988f, 15.555f, -200.0f };
@@ -40,18 +41,25 @@ public class VectorScoreScriptUtilsTests extends ESTestCase {
 
         List<DenseVectorDocValuesField> fields = List.of(
             new BinaryDenseVectorDocValuesField(
-                BinaryDenseVectorScriptDocValuesTests.wrap(new float[][] { docVector }, Version.V_7_4_0),
+                BinaryDenseVectorScriptDocValuesTests.wrap(new float[][] { docVector }, Version.V_7_4_0, ElementType.FLOAT),
                 "test",
+                ElementType.FLOAT,
                 dims,
                 Version.V_7_4_0
             ),
             new BinaryDenseVectorDocValuesField(
-                BinaryDenseVectorScriptDocValuesTests.wrap(new float[][] { docVector }, Version.CURRENT),
+                BinaryDenseVectorScriptDocValuesTests.wrap(new float[][] { docVector }, Version.CURRENT, ElementType.FLOAT),
                 "test",
+                ElementType.FLOAT,
                 dims,
                 Version.CURRENT
             ),
-            new KnnDenseVectorDocValuesField(KnnDenseVectorScriptDocValuesTests.wrap(new float[][] { docVector }), "test", dims)
+            new KnnDenseVectorDocValuesField(
+                KnnDenseVectorScriptDocValuesTests.wrap(new float[][] { docVector }),
+                "test",
+                ElementType.FLOAT,
+                dims
+            )
         );
         for (DenseVectorDocValuesField field : fields) {
             field.setNextDocId(0);
@@ -96,7 +104,73 @@ public class VectorScoreScriptUtilsTests extends ESTestCase {
             IllegalArgumentException e = expectThrows(IllegalArgumentException.class, dotProduct::dotProduct);
             assertEquals("A document doesn't have a value for a vector field!", e.getMessage());
         }
+    }
 
+    public void testByteVectorClassBindings() throws IOException {
+        String fieldName = "vector";
+        int dims = 5;
+        float[] docVector = new float[] { 1, 0, -1, 17, -124 };
+        List<Number> queryVector = Arrays.asList(2, 5, 7, 34, -25);
+        List<Number> invalidQueryVector = Arrays.asList(1, 2);
+
+        List<DenseVectorDocValuesField> fields = List.of(
+            new BinaryDenseVectorDocValuesField(
+                BinaryDenseVectorScriptDocValuesTests.wrap(new float[][] { docVector }, Version.CURRENT, ElementType.BYTE),
+                "test",
+                ElementType.BYTE,
+                dims,
+                Version.CURRENT
+            ),
+            new KnnDenseVectorDocValuesField(
+                KnnDenseVectorScriptDocValuesTests.wrap(new float[][] { docVector }),
+                "test",
+                ElementType.BYTE,
+                dims
+            )
+        );
+        for (DenseVectorDocValuesField field : fields) {
+            field.setNextDocId(0);
+
+            ScoreScript scoreScript = mock(ScoreScript.class);
+            when(scoreScript.field("vector")).thenAnswer(mock -> field);
+
+            // Test cosine similarity explicitly, as it must perform special logic on top of the doc values
+            CosineSimilarity function = new CosineSimilarity(scoreScript, queryVector, fieldName);
+            float cosineSimilarityExpected = 0.680f;
+            assertEquals(
+                "cosineSimilarity result is not equal to the expected value!",
+                cosineSimilarityExpected,
+                function.cosineSimilarity(),
+                0.001
+            );
+
+            // Test normalization for cosineSimilarity
+            float[] queryVectorArray = new float[queryVector.size()];
+            for (int i = 0; i < queryVectorArray.length; i++) {
+                queryVectorArray[i] = queryVector.get(i).floatValue();
+            }
+            assertEquals(
+                "cosineSimilarity result is not equal to the expected value!",
+                cosineSimilarityExpected,
+                field.getInternal().cosineSimilarity(queryVectorArray, true),
+                0.001
+            );
+
+            // Check each function rejects query vectors with the wrong dimension
+            assertDimensionMismatch(() -> new DotProduct(scoreScript, invalidQueryVector, fieldName));
+            assertDimensionMismatch(() -> new CosineSimilarity(scoreScript, invalidQueryVector, fieldName));
+            assertDimensionMismatch(() -> new L1Norm(scoreScript, invalidQueryVector, fieldName));
+            assertDimensionMismatch(() -> new L2Norm(scoreScript, invalidQueryVector, fieldName));
+
+            // Check scripting infrastructure integration
+            DotProduct dotProduct = new DotProduct(scoreScript, queryVector, fieldName);
+            assertEquals(3673.0, dotProduct.dotProduct(), 0.001);
+            assertEquals(130.0, new L1Norm(scoreScript, queryVector, fieldName).l1norm(), 0.001);
+            assertEquals(100.8959, new L2Norm(scoreScript, queryVector, fieldName).l2norm(), 0.001);
+            when(scoreScript._getDocId()).thenReturn(1);
+            IllegalArgumentException e = expectThrows(IllegalArgumentException.class, dotProduct::dotProduct);
+            assertEquals("A document doesn't have a value for a vector field!", e.getMessage());
+        }
     }
 
     private void assertDimensionMismatch(Supplier<VectorScoreScriptUtils.DenseVectorFunction> supplier) {

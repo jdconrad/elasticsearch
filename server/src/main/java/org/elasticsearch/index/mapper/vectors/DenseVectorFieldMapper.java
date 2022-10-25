@@ -61,7 +61,7 @@ public class DenseVectorFieldMapper extends FieldMapper {
 
     public static final String CONTENT_TYPE = "dense_vector";
     public static short MAX_DIMS_COUNT = 2048; // maximum allowed number of dimensions
-    private static final int MAGNITUDE_BYTES = 4;
+    public static final int MAGNITUDE_BYTES = 4;
 
     private static DenseVectorFieldMapper toType(FieldMapper in) {
         return (DenseVectorFieldMapper) in;
@@ -69,7 +69,14 @@ public class DenseVectorFieldMapper extends FieldMapper {
 
     public static class Builder extends FieldMapper.Builder {
 
-        private final Parameter<ElementType> elementType;
+        private final Parameter<ElementType> elementType = new Parameter<>("element_type", false, () -> ElementType.FLOAT, (n, c, o) -> {
+            ElementType elementType = namesToElementType.get((String) o);
+            if (elementType == null) {
+                throw new MapperParsingException("invalid element_type [" + o + "]; available types are " + namesToElementType.keySet());
+            }
+            return elementType;
+        }, m -> toType(m).elementType, XContentBuilder::field, Objects::toString);
+
         private final Parameter<Integer> dims = new Parameter<>(
             "dims",
             false,
@@ -124,20 +131,6 @@ public class DenseVectorFieldMapper extends FieldMapper {
             this.similarity.requiresParameter(indexed);
             this.indexOptions.requiresParameter(indexed);
             this.indexOptions.setSerializerCheck((id, ic, v) -> v != null);
-
-            this.elementType = new Parameter<>("element_type", false, () -> ElementType.FLOAT, (n, c, o) -> {
-                ElementType elementType = namesToElementType.get((String) o);
-                if (elementType == null) {
-                    throw new MapperParsingException(
-                        "invalid element_type [" + o + "]; available types are " + namesToElementType.keySet()
-                    );
-                }
-                return elementType;
-            }, m -> toType(m).elementType, XContentBuilder::field, Objects::toString).addValidator(e -> {
-                if (e == ElementType.BYTE && indexed.getValue() == false) {
-                    throw new IllegalArgumentException("index must be [true] when element_type is [" + e + "]");
-                }
-            });
         }
 
         @Override
@@ -170,7 +163,7 @@ public class DenseVectorFieldMapper extends FieldMapper {
         }
     }
 
-    enum ElementType {
+    public enum ElementType {
 
         BYTE(1) {
 
@@ -190,24 +183,14 @@ public class DenseVectorFieldMapper extends FieldMapper {
                     denseVectorFieldType.name(),
                     CoreValuesSourceType.KEYWORD,
                     denseVectorFieldType.indexVersionCreated,
+                    this,
                     denseVectorFieldType.dims,
                     denseVectorFieldType.indexed
                 );
-
-                /*throw new IllegalArgumentException(
-                    "Fielddata is not supported on field ["
-                        + name()
-                        + "] of type ["
-                        + denseVectorFieldType.typeName()
-                        + "] "
-                        + "with element_type ["
-                        + this
-                        + "]"
-                );*/
             }
 
             @Override
-            void checkVectorBounds(float[] vector) {
+            public void checkVectorBounds(float[] vector) {
                 checkNanAndInfinite(vector);
 
                 StringBuilder errorBuilder = null;
@@ -265,6 +248,16 @@ public class DenseVectorFieldMapper extends FieldMapper {
                     throw new IllegalArgumentException(appendErrorElements(errorBuilder, vector).toString());
                 }
             }
+
+            @Override
+            public void putValue(ByteBuffer byteBuffer, float value) {
+                byteBuffer.put((byte) value);
+            }
+
+            @Override
+            public float getValue(ByteBuffer byteBuffer) {
+                return byteBuffer.get();
+            }
         },
 
         FLOAT(4) {
@@ -285,13 +278,14 @@ public class DenseVectorFieldMapper extends FieldMapper {
                     denseVectorFieldType.name(),
                     CoreValuesSourceType.KEYWORD,
                     denseVectorFieldType.indexVersionCreated,
+                    this,
                     denseVectorFieldType.dims,
                     denseVectorFieldType.indexed
                 );
             }
 
             @Override
-            void checkVectorBounds(float[] vector) {
+            public void checkVectorBounds(float[] vector) {
                 checkNanAndInfinite(vector);
             }
 
@@ -313,9 +307,19 @@ public class DenseVectorFieldMapper extends FieldMapper {
                     throw new IllegalArgumentException(appendErrorElements(errorBuilder, vector).toString());
                 }
             }
+
+            @Override
+            public void putValue(ByteBuffer byteBuffer, float value) {
+                byteBuffer.putFloat(value);
+            }
+
+            @Override
+            public float getValue(ByteBuffer byteBuffer) {
+                return byteBuffer.getFloat();
+            }
         };
 
-        final int elementBytes;
+        public final int elementBytes;
 
         ElementType(int elementBytes) {
             this.elementBytes = elementBytes;
@@ -325,7 +329,7 @@ public class DenseVectorFieldMapper extends FieldMapper {
 
         abstract IndexFieldData.Builder fielddataBuilder(DenseVectorFieldType denseVectorFieldType, FieldDataContext fieldDataContext);
 
-        abstract void checkVectorBounds(float[] vector);
+        public abstract void checkVectorBounds(float[] vector);
 
         abstract void checkVectorMagnitude(VectorSimilarity similarity, float[] vector, float squaredMagnitude);
 
@@ -376,6 +380,10 @@ public class DenseVectorFieldMapper extends FieldMapper {
             errorBuilder.append("]");
             return errorBuilder;
         }
+
+        public abstract void putValue(ByteBuffer byteBuffer, float value);
+
+        public abstract float getValue(ByteBuffer byteBuffer);
     }
 
     static final Map<String, ElementType> namesToElementType = Map.of(
@@ -633,10 +641,6 @@ public class DenseVectorFieldMapper extends FieldMapper {
     }
 
     private Field parseBinaryDocValuesVector(DocumentParserContext context) throws IOException {
-        // ensure byte vectors are always indexed
-        // (should be caught during mapping creation)
-        assert elementType != ElementType.BYTE;
-
         // encode array of floats as array of integers and store into buf
         // this code is here and not int the VectorEncoderDecoder so not to create extra arrays
         byte[] bytes = indexCreatedVersion.onOrAfter(Version.V_7_5_0)
@@ -647,15 +651,18 @@ public class DenseVectorFieldMapper extends FieldMapper {
         double dotProduct = 0f;
 
         int index = 0;
+        float[] vector = new float[dims];
         for (Token token = context.parser().nextToken(); token != Token.END_ARRAY; token = context.parser().nextToken()) {
             checkDimensionExceeded(index, context);
             ensureExpectedToken(Token.VALUE_NUMBER, token, context.parser());
             float value = context.parser().floatValue(true);
-            byteBuffer.putFloat(value);
+            vector[index] = value;
+            elementType.putValue(byteBuffer, value);
             dotProduct += value * value;
             index++;
         }
         checkDimensionMatches(index, context);
+        elementType.checkVectorBounds(vector);
 
         if (indexCreatedVersion.onOrAfter(Version.V_7_5_0)) {
             // encode vector magnitude at the end
@@ -838,7 +845,7 @@ public class DenseVectorFieldMapper extends FieldMapper {
             BytesRef ref = values.binaryValue();
             ByteBuffer byteBuffer = ByteBuffer.wrap(ref.bytes, ref.offset, ref.length);
             for (int dim = 0; dim < dims; dim++) {
-                b.value(byteBuffer.getFloat());
+                b.value(elementType.getValue(byteBuffer));
             }
             b.endArray();
         }

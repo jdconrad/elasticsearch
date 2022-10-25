@@ -11,6 +11,7 @@ package org.elasticsearch.script.field.vectors;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.Version;
 import org.elasticsearch.index.mapper.vectors.BinaryDenseVectorScriptDocValuesTests;
+import org.elasticsearch.index.mapper.vectors.DenseVectorFieldMapper.ElementType;
 import org.elasticsearch.test.ESTestCase;
 
 import java.util.ArrayList;
@@ -66,8 +67,8 @@ public class DenseVectorTests extends ESTestCase {
         assertEquals(knn.cosineSimilarity((Object) listQV), knn.cosineSimilarity((Object) arrayQV), 0.001f);
 
         for (Version indexVersion : Arrays.asList(Version.V_7_4_0, Version.CURRENT)) {
-            BytesRef value = BinaryDenseVectorScriptDocValuesTests.mockEncodeDenseVector(docVector, indexVersion);
-            BinaryDenseVector bdv = new BinaryDenseVector(value, dims, indexVersion);
+            BytesRef value = BinaryDenseVectorScriptDocValuesTests.mockEncodeDenseVector(docVector, indexVersion, ElementType.FLOAT);
+            BinaryDenseVector bdv = new BinaryDenseVector(value, ElementType.FLOAT, dims, indexVersion);
 
             assertEquals(bdv.dotProduct(arrayQV), bdv.dotProduct(listQV), 0.001f);
             assertEquals(bdv.dotProduct((Object) listQV), bdv.dotProduct((Object) arrayQV), 0.001f);
