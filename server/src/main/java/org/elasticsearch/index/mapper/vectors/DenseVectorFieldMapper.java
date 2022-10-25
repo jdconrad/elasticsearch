@@ -186,7 +186,15 @@ public class DenseVectorFieldMapper extends FieldMapper {
 
             @Override
             IndexFieldData.Builder fielddataBuilder(DenseVectorFieldType denseVectorFieldType, FieldDataContext fieldDataContext) {
-                throw new IllegalArgumentException(
+                return new VectorIndexFieldData.Builder(
+                    denseVectorFieldType.name(),
+                    CoreValuesSourceType.KEYWORD,
+                    denseVectorFieldType.indexVersionCreated,
+                    denseVectorFieldType.dims,
+                    denseVectorFieldType.indexed
+                );
+
+                /*throw new IllegalArgumentException(
                     "Fielddata is not supported on field ["
                         + name()
                         + "] of type ["
@@ -195,7 +203,7 @@ public class DenseVectorFieldMapper extends FieldMapper {
                         + "with element_type ["
                         + this
                         + "]"
-                );
+                );*/
             }
 
             @Override
