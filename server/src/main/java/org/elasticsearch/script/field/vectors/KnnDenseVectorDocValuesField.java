@@ -38,7 +38,6 @@ public class KnnDenseVectorDocValuesField extends DenseVectorDocValuesField {
             vector = null;
         } else if (docId == currentDoc) {
             vector = input.vectorValue();
-            input.binaryValue();
         } else {
             currentDoc = input.advance(docId);
             if (currentDoc == docId) {
