@@ -250,3 +250,7 @@ tasks.named("licenseHeaders").configure {
 }
 
 tasks.withType(Checkstyle.class).configureEach { t -> t.getMaxHeapSize().set("2g") }
+
+project.getTasks().withType(JavaCompile.class).configureEach(compileTask -> {
+  compileTask.getOptions().getCompilerArgs().add("--add-modules=jdk.incubator.vector")
+})
