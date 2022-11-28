@@ -13,6 +13,7 @@ module org.elasticsearch.server {
     requires java.sql;
     requires java.management;
     requires jdk.unsupported;
+    requires jdk.incubator.vector;
 
     requires org.elasticsearch.cli;
     requires org.elasticsearch.base;
@@ -48,7 +49,6 @@ module org.elasticsearch.server {
     requires org.apache.lucene.queryparser;
     requires org.apache.lucene.sandbox;
     requires org.apache.lucene.suggest;
-    requires jdk.incubator.vector;
 
     exports org.elasticsearch;
     exports org.elasticsearch.action;

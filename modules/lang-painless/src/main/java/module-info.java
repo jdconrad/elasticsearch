@@ -7,6 +7,8 @@
  */
 
 module org.elasticsearch.painless {
+    requires jdk.incubator.vector;
+
     requires org.elasticsearch.base;
     requires org.elasticsearch.geo;
     requires org.elasticsearch.painless.spi;

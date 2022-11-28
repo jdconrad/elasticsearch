@@ -8,6 +8,9 @@
 
 package org.elasticsearch.script.field.vectors;
 
+import jdk.incubator.vector.FloatVector;
+import jdk.incubator.vector.VectorSpecies;
+
 import org.apache.lucene.util.VectorUtil;
 
 import java.util.Arrays;
@@ -38,9 +41,30 @@ public class KnnDenseVector implements DenseVector {
         throw new UnsupportedOperationException("use [double dotProduct(float[] queryVector)] instead");
     }
 
+    private static final VectorSpecies<Float> SPECIES = FloatVector.SPECIES_PREFERRED;
+
     @Override
     public double dotProduct(float[] queryVector) {
-        return VectorUtil.dotProduct(docVector, queryVector);
+        int bound = SPECIES.loopBound(queryVector.length);
+        float[] result = new float[queryVector.length];
+        int index = 0;
+
+        for (; index < bound; index += SPECIES.length()) {
+            FloatVector qv = FloatVector.fromArray(SPECIES, queryVector, index);
+            FloatVector dv = FloatVector.fromArray(SPECIES, docVector, index);
+            dv.mul(qv).intoArray(result, index);
+        }
+        for (; index < queryVector.length; ++index) {
+            result[index] = docVector[index] * queryVector[index];
+        }
+
+        double sum = 0.0;
+        for (index = 0; index < result.length; ++index) {
+            sum += result[index];
+        }
+
+        return sum;
+        //return VectorUtil.dotProduct(docVector, queryVector);
     }
 
     @Override

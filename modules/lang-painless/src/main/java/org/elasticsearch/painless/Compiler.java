@@ -8,7 +8,6 @@
 
 package org.elasticsearch.painless;
 
-import org.elasticsearch.bootstrap.BootstrapInfo;
 import org.elasticsearch.painless.antlr.Walker;
 import org.elasticsearch.painless.ir.ClassNode;
 import org.elasticsearch.painless.lookup.PainlessLookup;
@@ -60,7 +59,7 @@ final class Compiler {
     static {
         try {
             // Setup the code privileges.
-            CODESOURCE = new CodeSource(new URL("file:" + BootstrapInfo.UNTRUSTED_CODEBASE), (Certificate[]) null);
+            CODESOURCE = new CodeSource(new URL("file:"), (Certificate[]) null);
         } catch (MalformedURLException impossible) {
             throw new RuntimeException(impossible);
         }

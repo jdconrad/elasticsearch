@@ -224,7 +224,7 @@ public class ServerProcess {
         command.add("--module-path");
         command.add(esHome.resolve("lib").toString());
         command.add("--add-modules=jdk.net"); // very special circumstance; explicit modules should typically not be added here
-        command.add("--add-modules=jdk.incubator.vectors");
+        command.add("--add-modules=jdk.incubator.vector");
         command.add("-m");
         command.add("org.elasticsearch.server/org.elasticsearch.bootstrap.Elasticsearch");
 

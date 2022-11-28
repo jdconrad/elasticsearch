@@ -330,3 +330,7 @@ tasks.register("regenSuggest") {
         }
     }
 }
+
+project.getTasks().withType(JavaCompile.class).configureEach(compileTask -> {
+  compileTask.getOptions().getCompilerArgs().add("--add-modules=jdk.incubator.vector")
+})
