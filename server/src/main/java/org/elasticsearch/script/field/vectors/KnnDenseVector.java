@@ -45,26 +45,29 @@ public class KnnDenseVector implements DenseVector {
 
     @Override
     public double dotProduct(float[] queryVector) {
+        return VectorUtil.dotProduct(docVector, queryVector);
+    }
+
+    @Override
+    public double dotProduct(float[] queryVector, float[] resultVector) {
         int bound = SPECIES.loopBound(queryVector.length);
-        float[] result = new float[queryVector.length];
         int index = 0;
 
         for (; index < bound; index += SPECIES.length()) {
             FloatVector qv = FloatVector.fromArray(SPECIES, queryVector, index);
             FloatVector dv = FloatVector.fromArray(SPECIES, docVector, index);
-            dv.mul(qv).intoArray(result, index);
+            dv.mul(qv).intoArray(resultVector, index);
         }
         for (; index < queryVector.length; ++index) {
-            result[index] = docVector[index] * queryVector[index];
+            resultVector[index] = docVector[index] * queryVector[index];
         }
 
         double sum = 0.0;
-        for (index = 0; index < result.length; ++index) {
-            sum += result[index];
+        for (index = 0; index < resultVector.length; ++index) {
+            sum += resultVector[index];
         }
 
         return sum;
-        //return VectorUtil.dotProduct(docVector, queryVector);
     }
 
     @Override
@@ -136,6 +139,15 @@ public class KnnDenseVector implements DenseVector {
     @Override
     public double cosineSimilarity(List<Number> queryVector) {
         return dotProduct(queryVector) / (DenseVector.getMagnitude(queryVector) * getMagnitude());
+    }
+
+    @Override
+    public double cosineSimilarity(float[] queryVector, boolean normalizeQueryVector, float[] resultVector) {
+        if (normalizeQueryVector) {
+            return dotProduct(queryVector, resultVector) / (DenseVector.getMagnitude(queryVector) * getMagnitude());
+        }
+
+        return dotProduct(queryVector, resultVector) / getMagnitude();
     }
 
     @Override
