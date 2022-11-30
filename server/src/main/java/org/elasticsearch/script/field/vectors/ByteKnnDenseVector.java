@@ -9,14 +9,14 @@
 package org.elasticsearch.script.field.vectors;
 
 import jdk.incubator.vector.ByteVector;
-import jdk.incubator.vector.FloatVector;
-
 import jdk.incubator.vector.VectorSpecies;
 
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.core.SuppressForbidden;
 
 import java.util.List;
+
+import static jdk.incubator.vector.VectorOperators.ADD;
 
 public class ByteKnnDenseVector implements DenseVector {
 
@@ -59,24 +59,19 @@ public class ByteKnnDenseVector implements DenseVector {
 
     @Override
     public int dotProduct(byte[] queryVector) {
-        ByteVector sum = ByteVector.zero(SPECIES);
         int bound = SPECIES.loopBound(queryVector.length);
         int index = 0;
         int offset = docVector.offset;
+        int result = 0;
 
         for (; index < bound; index += SPECIES.length(), offset += SPECIES.length()) {
             ByteVector qv = ByteVector.fromArray(SPECIES, queryVector, index);
             ByteVector dv = ByteVector.fromArray(SPECIES, docVector.bytes, offset);
-            sum = dv.mul(qv).add(sum);
+            result += dv.mul(qv).reduceLanes(ADD);
         }
 
-        int result = 0;
         for (; index < queryVector.length; ++index, ++offset) {
             result += docVector.bytes[offset] * queryVector[index];
-        }
-
-        for (int lane = 0; lane < SPECIES.length(); ++lane) {
-            result += sum.lane(lane);
         }
 
         return result;
