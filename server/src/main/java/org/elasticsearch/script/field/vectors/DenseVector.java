@@ -52,10 +52,6 @@ public interface DenseVector {
         throw new IllegalArgumentException(badQueryVectorType(queryVector));
     }
 
-    default double dotProduct(float[] queryVector, float[] resultVector) {
-        throw new UnsupportedOperationException();
-    }
-
     int l1Norm(byte[] queryVector);
 
     double l1Norm(float[] queryVector);
@@ -148,10 +144,6 @@ public interface DenseVector {
         }
 
         throw new IllegalArgumentException(badQueryVectorType(queryVector));
-    }
-
-    default double cosineSimilarity(float[] queryVector, boolean normalizeQueryVector, float[] resultVector) {
-        throw new UnsupportedOperationException();
     }
 
     boolean isEmpty();
