@@ -8,6 +8,11 @@
 
 package org.elasticsearch.script.field.vectors;
 
+import jdk.incubator.vector.ByteVector;
+import jdk.incubator.vector.FloatVector;
+
+import jdk.incubator.vector.VectorSpecies;
+
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.core.SuppressForbidden;
 
@@ -50,14 +55,30 @@ public class ByteKnnDenseVector implements DenseVector {
         return magnitude;
     }
 
+    private static final VectorSpecies<Byte> SPECIES = ByteVector.SPECIES_PREFERRED;
+
     @Override
     public int dotProduct(byte[] queryVector) {
-        int result = 0;
-        int i = 0;
-        int j = docVector.offset;
-        while (i < docVector.length) {
-            result += docVector.bytes[j++] * queryVector[i++];
+        ByteVector sum = ByteVector.zero(SPECIES);
+        int bound = SPECIES.loopBound(queryVector.length);
+        int index = 0;
+        int offset = docVector.offset;
+
+        for (; index < bound; index += SPECIES.length(), offset += SPECIES.length()) {
+            ByteVector qv = ByteVector.fromArray(SPECIES, queryVector, index);
+            ByteVector dv = ByteVector.fromArray(SPECIES, docVector.bytes, offset);
+            sum = dv.mul(qv).add(sum);
         }
+
+        int result = 0;
+        for (; index < queryVector.length; ++index, ++offset) {
+            result += docVector.bytes[offset] * queryVector[index];
+        }
+
+        for (int lane = 0; lane < SPECIES.length(); ++lane) {
+            result += sum.lane(lane);
+        }
+
         return result;
     }
 
