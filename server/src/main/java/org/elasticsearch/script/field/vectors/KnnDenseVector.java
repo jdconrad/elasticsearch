@@ -47,17 +47,36 @@ public class KnnDenseVector implements DenseVector {
 
     @Override
     public double dotProduct(float[] queryVector) {
-        FloatVector sum = FloatVector.zero(SPECIES);
+        FloatVector sum0 = FloatVector.zero(SPECIES);
+        FloatVector sum1 = FloatVector.zero(SPECIES);
+        FloatVector sum2 = FloatVector.zero(SPECIES);
+        FloatVector sum3 = FloatVector.zero(SPECIES);
         int bound = SPECIES.loopBound(queryVector.length);
         int index = 0;
+        double result = 0.0;
 
-        for (; index < bound; index += SPECIES.length()) {
-            FloatVector qv = FloatVector.fromArray(SPECIES, queryVector, index);
-            FloatVector dv = FloatVector.fromArray(SPECIES, docVector, index);
-            sum = dv.fma(qv, sum);
+        if (queryVector.length < SPECIES.length()*4) {
+            for (; index < bound; index += SPECIES.length() * 4) {
+                FloatVector qv0 = FloatVector.fromArray(SPECIES, queryVector, index);
+                FloatVector dv0 = FloatVector.fromArray(SPECIES, docVector, index);
+                sum0 = sum0.add(qv0.mul(dv0));
+
+                FloatVector qv1 = FloatVector.fromArray(SPECIES, queryVector, index + SPECIES.length());
+                FloatVector dv1 = FloatVector.fromArray(SPECIES, docVector, index + SPECIES.length());
+                sum1 = sum1.add(qv1.mul(dv1));
+
+                FloatVector qv2 = FloatVector.fromArray(SPECIES, queryVector, index + SPECIES.length()*2);
+                FloatVector dv2 = FloatVector.fromArray(SPECIES, docVector, index + SPECIES.length()*2);
+                sum2 = sum2.add(qv2.mul(dv2));
+
+                FloatVector qv3 = FloatVector.fromArray(SPECIES, queryVector, index + SPECIES.length()*3);
+                FloatVector dv3 = FloatVector.fromArray(SPECIES, docVector, index + SPECIES.length()*3);
+                sum3 = sum3.add(qv3.mul(dv3));
+            }
+
+            result = sum0.reduceLanes(ADD) + sum1.reduceLanes(ADD) + sum2.reduceLanes(ADD) + sum3.reduceLanes(ADD);
         }
 
-        double result = sum.reduceLanes(ADD);
         for (; index < queryVector.length; ++index) {
             result += docVector[index] * queryVector[index];
         }
