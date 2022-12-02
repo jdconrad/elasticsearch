@@ -9,6 +9,8 @@
 package org.elasticsearch.script.field.vectors;
 
 import jdk.incubator.vector.ByteVector;
+import jdk.incubator.vector.IntVector;
+import jdk.incubator.vector.ShortVector;
 import jdk.incubator.vector.VectorSpecies;
 
 import org.apache.lucene.util.BytesRef;
@@ -55,19 +57,34 @@ public class ByteKnnDenseVector implements DenseVector {
         return magnitude;
     }
 
-    private static final VectorSpecies<Byte> SPECIES = ByteVector.SPECIES_PREFERRED;
+    private static final VectorSpecies<Byte> BYTE_SPECIES = ByteVector.SPECIES_PREFERRED;
+    private static final VectorSpecies<Short> SHORT_SPECIES = ShortVector.SPECIES_PREFERRED;
 
     @Override
     public int dotProduct(byte[] queryVector) {
-        int bound = SPECIES.loopBound(queryVector.length);
+        /*int result = 0;
+        int i = 0;
+        int j = docVector.offset;
+        while (i < docVector.length) {
+            result += docVector.bytes[j++] * queryVector[i++];
+        }
+        return result;*/
+
+        int bound = BYTE_SPECIES.loopBound(queryVector.length);
         int index = 0;
         int offset = docVector.offset;
         int result = 0;
 
-        for (; index < bound; index += SPECIES.length(), offset += SPECIES.length()) {
-            ByteVector qv = ByteVector.fromArray(SPECIES, queryVector, index);
-            ByteVector dv = ByteVector.fromArray(SPECIES, docVector.bytes, offset);
-            result += dv.mul(qv).reduceLanes(ADD);
+        if (queryVector.length > BYTE_SPECIES.length()) {
+            for (; index < bound; index += BYTE_SPECIES.length(), offset += BYTE_SPECIES.length()) {
+                ByteVector qvb = ByteVector.fromArray(BYTE_SPECIES, queryVector, index);
+                ByteVector dvb = ByteVector.fromArray(BYTE_SPECIES, docVector.bytes, offset);
+                ShortVector qvi0 = (ShortVector)qvb.castShape(SHORT_SPECIES, 0);
+                ShortVector dvi0 = (ShortVector)dvb.castShape(SHORT_SPECIES, 0);
+                ShortVector qvi1 = (ShortVector)qvb.castShape(SHORT_SPECIES, 1);
+                ShortVector dvi1 = (ShortVector)dvb.castShape(SHORT_SPECIES, 1);
+                result += (qvi0.mul(dvi0).add(qvi1.mul(dvi1))).reduceLanes(ADD);
+            }
         }
 
         for (; index < queryVector.length; ++index, ++offset) {

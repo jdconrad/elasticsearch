@@ -47,31 +47,30 @@ public class KnnDenseVector implements DenseVector {
 
     @Override
     public double dotProduct(float[] queryVector) {
-        FloatVector sum0 = FloatVector.zero(SPECIES);
-        FloatVector sum1 = FloatVector.zero(SPECIES);
+        return VectorUtil.dotProduct(queryVector, docVector);
+        /*FloatVector sum = FloatVector.zero(SPECIES);
         int bound = SPECIES.loopBound(queryVector.length);
         int index = 0;
         double result = 0.0;
 
-        if (queryVector.length < SPECIES.length()*4) {
+        if (queryVector.length > SPECIES.length() * 2) {
             for (; index < bound; index += SPECIES.length() * 2) {
                 FloatVector qv0 = FloatVector.fromArray(SPECIES, queryVector, index);
                 FloatVector dv0 = FloatVector.fromArray(SPECIES, docVector, index);
-                sum0 = sum0.add(qv0.mul(dv0));
-
-                FloatVector qv1 = FloatVector.fromArray(SPECIES, queryVector, index + SPECIES.length());
-                FloatVector dv1 = FloatVector.fromArray(SPECIES, docVector, index + SPECIES.length());
-                sum1 = sum1.add(qv1.mul(dv1));
+                sum = sum.add(qv0.mul(dv0));
+                FloatVector qv1 = FloatVector.fromArray(SPECIES, queryVector, index);
+                FloatVector dv1 = FloatVector.fromArray(SPECIES, docVector, index);
+                sum = sum.add(qv1.mul(dv1));
             }
 
-            result = sum0.reduceLanes(ADD) + sum1.reduceLanes(ADD);
+            result = sum.reduceLanes(ADD);
         }
 
         for (; index < queryVector.length; ++index) {
             result += docVector[index] * queryVector[index];
         }
 
-        return result;
+        return result;*/
     }
 
     @Override
