@@ -262,11 +262,11 @@ public class VectorScoreScriptUtils {
 
     public static class FloatCosineSimilarity extends FloatDenseVectorFunction implements CosineSimilarityInterface {
 
-        //private final float[] resultVector;
+        // private final float[] resultVector;
 
         public FloatCosineSimilarity(ScoreScript scoreScript, DenseVectorDocValuesField field, List<Number> queryVector) {
             super(scoreScript, field, queryVector, true);
-            //resultVector = new float[queryVector.size()];
+            // resultVector = new float[queryVector.size()];
         }
 
         public double cosineSimilarity() {

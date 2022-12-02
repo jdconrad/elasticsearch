@@ -8,8 +8,6 @@
 
 package org.elasticsearch.benchmark.vector;
 
-import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.script.field.vectors.ByteKnnDenseVector;
 import org.elasticsearch.script.field.vectors.KnnDenseVector;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -35,32 +33,21 @@ import java.util.concurrent.TimeUnit;
 @State(Scope.Benchmark)
 public class DotProductBenchmark {
 
-    float[] docVector = new float[515];
-    float[] queryVector = new float[515];
-
-    byte[] byteDocVector = new byte[96];
-    byte[] byteQueryVector = new byte[96];
+    float[] docVector = new float[98];
+    float[] queryVector = new float[98];
 
     @Setup
     public void build() {
-        for (int i = 0; i < 96; ++i) {
-            docVector[i] = 96 - i;
+        for (int i = 0; i < 98; ++i) {
+            docVector[i] = 98 - i;
             queryVector[i] = i;
         }
-
-        for (int i = 0; i < 96; ++i) {
-            byteDocVector[i] = (byte)(96 - i);
-            byteQueryVector[i] = (byte)i;
-        }
-
-
     }
 
     @Benchmark
     public void benchmark() throws IOException {
         for (int i = 0; i < 1000000; ++i) {
             new KnnDenseVector(docVector).dotProduct(queryVector);
-            //new ByteKnnDenseVector(new BytesRef(byteDocVector)).dotProduct(byteQueryVector);
         }
     }
 }

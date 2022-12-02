@@ -9,7 +9,6 @@
 package org.elasticsearch.script.field.vectors;
 
 import jdk.incubator.vector.ByteVector;
-import jdk.incubator.vector.IntVector;
 import jdk.incubator.vector.ShortVector;
 import jdk.incubator.vector.VectorSpecies;
 
@@ -79,10 +78,10 @@ public class ByteKnnDenseVector implements DenseVector {
             for (; index < bound; index += BYTE_SPECIES.length(), offset += BYTE_SPECIES.length()) {
                 ByteVector qvb = ByteVector.fromArray(BYTE_SPECIES, queryVector, index);
                 ByteVector dvb = ByteVector.fromArray(BYTE_SPECIES, docVector.bytes, offset);
-                ShortVector qvi0 = (ShortVector)qvb.castShape(SHORT_SPECIES, 0);
-                ShortVector dvi0 = (ShortVector)dvb.castShape(SHORT_SPECIES, 0);
-                ShortVector qvi1 = (ShortVector)qvb.castShape(SHORT_SPECIES, 1);
-                ShortVector dvi1 = (ShortVector)dvb.castShape(SHORT_SPECIES, 1);
+                ShortVector qvi0 = (ShortVector) qvb.castShape(SHORT_SPECIES, 0);
+                ShortVector dvi0 = (ShortVector) dvb.castShape(SHORT_SPECIES, 0);
+                ShortVector qvi1 = (ShortVector) qvb.castShape(SHORT_SPECIES, 1);
+                ShortVector dvi1 = (ShortVector) dvb.castShape(SHORT_SPECIES, 1);
                 result += (qvi0.mul(dvi0).add(qvi1.mul(dvi1))).reduceLanes(ADD);
             }
         }

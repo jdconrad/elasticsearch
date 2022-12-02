@@ -47,8 +47,8 @@ public class KnnDenseVector implements DenseVector {
 
     @Override
     public double dotProduct(float[] queryVector) {
-        return VectorUtil.dotProduct(queryVector, docVector);
-        /*FloatVector sum = FloatVector.zero(SPECIES);
+        // return VectorUtil.dotProduct(queryVector, docVector);
+        FloatVector sum = FloatVector.zero(SPECIES);
         int bound = SPECIES.loopBound(queryVector.length);
         int index = 0;
         double result = 0.0;
@@ -70,7 +70,7 @@ public class KnnDenseVector implements DenseVector {
             result += docVector[index] * queryVector[index];
         }
 
-        return result;*/
+        return result;
     }
 
     @Override
