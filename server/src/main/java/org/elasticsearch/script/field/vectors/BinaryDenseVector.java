@@ -9,6 +9,7 @@
 package org.elasticsearch.script.field.vectors;
 
 import org.apache.lucene.util.BytesRef;
+import org.apache.lucene.util.VectorUtil;
 import org.elasticsearch.Version;
 import org.elasticsearch.index.mapper.vectors.VectorEncoderDecoder;
 
@@ -52,10 +53,35 @@ public class BinaryDenseVector implements DenseVector {
     public double dotProduct(float[] queryVector) {
         ByteBuffer byteBuffer = wrap(docVector);
 
-        double dotProduct = 0;
-        for (float v : queryVector) {
-            dotProduct += byteBuffer.getFloat() * v;
+        double dotProduct = 0d;
+        int i;
+
+        for (i = 0; i < queryVector.length % 16; ++i) {
+            dotProduct += byteBuffer.getFloat() * queryVector[i];
         }
+
+        for (; i + 16 < queryVector.length; i += 16) {
+            dotProduct +=
+                byteBuffer.getFloat() * queryVector[i]
+                    + byteBuffer.getFloat() * queryVector[i + 1]
+                    + byteBuffer.getFloat() * queryVector[i + 2]
+                    + byteBuffer.getFloat() * queryVector[i + 3]
+                    + byteBuffer.getFloat() * queryVector[i + 4]
+                    + byteBuffer.getFloat() * queryVector[i + 5]
+                    + byteBuffer.getFloat() * queryVector[i + 6]
+                    + byteBuffer.getFloat() * queryVector[i + 7];
+
+            dotProduct +=
+                byteBuffer.getFloat() * queryVector[i + 8]
+                    + byteBuffer.getFloat() * queryVector[i + 9]
+                    + byteBuffer.getFloat() * queryVector[i + 10]
+                    + byteBuffer.getFloat() * queryVector[i + 11]
+                    + byteBuffer.getFloat() * queryVector[i + 12]
+                    + byteBuffer.getFloat() * queryVector[i + 13]
+                    + byteBuffer.getFloat() * queryVector[i + 14]
+                    + byteBuffer.getFloat() * queryVector[i + 15];
+        }
+
         return dotProduct;
     }
 
