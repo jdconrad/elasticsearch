@@ -1231,7 +1231,7 @@ public class SearchService extends AbstractLifecycleComponent implements IndexEv
                  * the filter for nested documents or slicing so we have to
                  * delay reading it until the aggs ask for it.
                  */
-                () -> context.rewrittenQuery() == null ? new MatchAllDocsQuery() : context.rewrittenQuery(),
+                () -> context.toAggregationQuery() == null ? new MatchAllDocsQuery() : context.toAggregationQuery(),
                 context.getProfilers() == null ? null : context.getProfilers().getAggregationProfiler(),
                 multiBucketConsumerService.create(),
                 () -> new SubSearchContext(context).parsedQuery(context.parsedQuery()).fetchFieldsContext(context.fetchFieldsContext()),

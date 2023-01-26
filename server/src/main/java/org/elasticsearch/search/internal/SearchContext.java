@@ -7,6 +7,8 @@
  */
 package org.elasticsearch.search.internal;
 
+import org.apache.lucene.search.BooleanClause;
+import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.Collector;
 import org.apache.lucene.search.FieldDoc;
 import org.apache.lucene.search.Query;
@@ -18,6 +20,7 @@ import org.elasticsearch.core.Releasables;
 import org.elasticsearch.core.TimeValue;
 import org.elasticsearch.index.cache.bitset.BitsetFilterCache;
 import org.elasticsearch.index.mapper.SourceLoader;
+import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.ParsedQuery;
 import org.elasticsearch.index.query.QueryShardException;
 import org.elasticsearch.index.query.SearchExecutionContext;
@@ -277,6 +280,24 @@ public abstract class SearchContext implements Releasable {
                 }
         }
         return rewriteQueries;
+    }
+
+    public final Query toAggregationQuery() {
+        if (rewriteQueries.isEmpty()) {
+            return null;
+        } else if (rewriteQueries.size() == 1) {
+            return rewriteQueries.get(0);
+        }
+
+        BooleanQuery.Builder booleanQueryBuilder = new BooleanQuery.Builder();
+        for (Query rewriteQuery : rewriteQueries) {
+            booleanQueryBuilder.add(rewriteQuery, BooleanClause.Occur.SHOULD);
+        }
+        try {
+            return searcher().rewrite(booleanQueryBuilder.build());
+        } catch (IOException exc) {
+            throw new QueryShardException(getSearchExecutionContext(), "rewrite failed", exc);
+        }
     }
 
     public abstract int from();
