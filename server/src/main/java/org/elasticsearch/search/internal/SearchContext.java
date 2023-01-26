@@ -44,6 +44,7 @@ import org.elasticsearch.search.sort.SortAndFormats;
 import org.elasticsearch.search.suggest.SuggestionSearchContext;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -67,7 +68,7 @@ public abstract class SearchContext implements Releasable {
     private final AtomicBoolean closed = new AtomicBoolean(false);
     private InnerHitsContext innerHitsContext;
 
-    private Query rewriteQuery;
+    private List<Query> rewriteQueries;
 
     protected SearchContext() {}
 
@@ -250,30 +251,32 @@ public abstract class SearchContext implements Releasable {
 
     public abstract ParsedQuery parsedPostFilter();
 
-    public abstract SearchContext parsedQuery(ParsedQuery query);
+    public abstract SearchContext parsedQueries(List<ParsedQuery> query);
 
-    public abstract ParsedQuery parsedQuery();
+    public abstract List<ParsedQuery> parsedQueries();
 
     /**
      * The query to execute, not rewritten.
      */
-    public abstract Query query();
+    public abstract List<Query> queries();
 
     /**
      * The query to execute in its rewritten form.
      */
-    public final Query rewrittenQuery() {
-        if (query() == null) {
+    public final List<Query> rewrittenQueries() {
+        if (queries() == null) {
             throw new IllegalStateException("preProcess must be called first");
         }
-        if (rewriteQuery == null) {
-            try {
-                this.rewriteQuery = searcher().rewrite(query());
-            } catch (IOException exc) {
-                throw new QueryShardException(getSearchExecutionContext(), "rewrite failed", exc);
-            }
+        if (rewriteQueries == null) {
+            rewriteQueries = new ArrayList<>(queries().size());
+            for (Query query : queries())
+                try {
+                    this.rewriteQueries.add(searcher().rewrite(query));
+                } catch (IOException exc) {
+                    throw new QueryShardException(getSearchExecutionContext(), "rewrite failed", exc);
+                }
         }
-        return rewriteQuery;
+        return rewriteQueries;
     }
 
     public abstract int from();
@@ -364,7 +367,7 @@ public abstract class SearchContext implements Releasable {
                 result.append("scroll=[null]");
             }
         }
-        result.append(" query=[").append(query()).append("]");
+        result.append(" query=").append(queries());
         return result.toString();
     }
 

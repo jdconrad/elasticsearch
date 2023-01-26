@@ -9,6 +9,7 @@
 package org.elasticsearch.search.builder;
 
 import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.TransportVersion;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.ParsingException;
 import org.elasticsearch.common.Strings;
@@ -129,7 +130,7 @@ public final class SearchSourceBuilder implements Writeable, ToXContentObject, R
         return new HighlightBuilder();
     }
 
-    private QueryBuilder queryBuilder;
+    private List<QueryBuilder> queryBuilders = List.of();
 
     private QueryBuilder postQueryBuilder;
 
@@ -214,7 +215,12 @@ public final class SearchSourceBuilder implements Writeable, ToXContentObject, R
         indexBoosts = in.readList(IndexBoost::new);
         minScore = in.readOptionalFloat();
         postQueryBuilder = in.readOptionalNamedWriteable(QueryBuilder.class);
-        queryBuilder = in.readOptionalNamedWriteable(QueryBuilder.class);
+        if (in.getTransportVersion().onOrAfter(TransportVersion.V_8_7_0)) {
+            queryBuilders = in.readNamedWriteableList(QueryBuilder.class);
+        } else {
+            QueryBuilder queryBuilder = in.readOptionalNamedWriteable(QueryBuilder.class);
+            queryBuilders = queryBuilder == null ? List.of() : List.of(queryBuilder);
+        }
         if (in.readBoolean()) {
             rescoreBuilders = in.readNamedWriteableList(RescorerBuilder.class);
         }
@@ -281,7 +287,11 @@ public final class SearchSourceBuilder implements Writeable, ToXContentObject, R
         out.writeList(indexBoosts);
         out.writeOptionalFloat(minScore);
         out.writeOptionalNamedWriteable(postQueryBuilder);
-        out.writeOptionalNamedWriteable(queryBuilder);
+        if (out.getTransportVersion().onOrAfter(TransportVersion.V_8_7_0)) {
+            out.writeNamedWriteableList(queryBuilders);
+        } else {
+            out.writeOptionalNamedWriteable(queryBuilders.isEmpty() ? null : queryBuilders.get(1));
+        }
         boolean hasRescoreBuilders = rescoreBuilders != null;
         out.writeBoolean(hasRescoreBuilders);
         if (hasRescoreBuilders) {
@@ -351,20 +361,20 @@ public final class SearchSourceBuilder implements Writeable, ToXContentObject, R
     }
 
     /**
-     * Sets the search query for this request.
+     * Sets the search queries for this request.
      *
      * @see org.elasticsearch.index.query.QueryBuilders
      */
-    public SearchSourceBuilder query(QueryBuilder query) {
-        this.queryBuilder = query;
+    public SearchSourceBuilder queries(List<QueryBuilder> queryBuilders) {
+        this.queryBuilders = queryBuilders;
         return this;
     }
 
     /**
-     * Gets the query for this request
+     * Gets the queries for this request
      */
-    public QueryBuilder query() {
-        return queryBuilder;
+    public List<QueryBuilder> queries() {
+        return queryBuilders;
     }
 
     /**
@@ -1022,7 +1032,7 @@ public final class SearchSourceBuilder implements Writeable, ToXContentObject, R
      * @return true if the source only has suggest
      */
     public boolean isSuggestOnly() {
-        return suggestBuilder != null && queryBuilder == null && knnSearch.isEmpty() && aggregations == null;
+        return suggestBuilder != null && queryBuilders.isEmpty() && knnSearch.isEmpty() && aggregations == null;
     }
 
     /**
@@ -1065,11 +1075,16 @@ public final class SearchSourceBuilder implements Writeable, ToXContentObject, R
     @SuppressWarnings({ "unchecked", "rawtypes" })
     public SearchSourceBuilder rewrite(QueryRewriteContext context) throws IOException {
         assert (this.equals(
-            shallowCopy(queryBuilder, postQueryBuilder, knnSearch, aggregations, sliceBuilder, sorts, rescoreBuilders, highlightBuilder)
+            shallowCopy(queryBuilders, postQueryBuilder, knnSearch, aggregations, sliceBuilder, sorts, rescoreBuilders, highlightBuilder)
         ));
-        QueryBuilder queryBuilder = null;
-        if (this.queryBuilder != null) {
-            queryBuilder = this.queryBuilder.rewrite(context);
+        boolean queryBuildersChanged = false;
+        for (int qbIndex = 0; qbIndex < queryBuilders.size(); ++qbIndex) {
+            QueryBuilder queryBuilder = queryBuilders.get(qbIndex);
+            QueryBuilder rewrittenQueryBuilder = queryBuilder.rewrite(context);
+            if (queryBuilder != rewrittenQueryBuilder) {
+                queryBuildersChanged = true;
+                queryBuilders.set(qbIndex, rewrittenQueryBuilder);
+            }
         }
         QueryBuilder postQueryBuilder = null;
         if (this.postQueryBuilder != null) {
@@ -1088,7 +1103,7 @@ public final class SearchSourceBuilder implements Writeable, ToXContentObject, R
             highlightBuilder = this.highlightBuilder.rewrite(context);
         }
 
-        boolean rewritten = queryBuilder != this.queryBuilder
+        boolean rewritten = queryBuildersChanged
             || postQueryBuilder != this.postQueryBuilder
             || knnSearch != this.knnSearch
             || aggregations != this.aggregations
@@ -1097,7 +1112,7 @@ public final class SearchSourceBuilder implements Writeable, ToXContentObject, R
             || this.highlightBuilder != highlightBuilder;
         if (rewritten) {
             return shallowCopy(
-                queryBuilder,
+                queryBuilders,
                 postQueryBuilder,
                 knnSearch,
                 aggregations,
@@ -1114,16 +1129,16 @@ public final class SearchSourceBuilder implements Writeable, ToXContentObject, R
      * Create a shallow copy of this builder with a new slice configuration.
      */
     public SearchSourceBuilder shallowCopy() {
-        return shallowCopy(queryBuilder, postQueryBuilder, knnSearch, aggregations, sliceBuilder, sorts, rescoreBuilders, highlightBuilder);
+        return shallowCopy(queryBuilders, postQueryBuilder, knnSearch, aggregations, sliceBuilder, sorts, rescoreBuilders, highlightBuilder);
     }
 
     /**
-     * Create a shallow copy of this source replaced {@link #queryBuilder}, {@link #postQueryBuilder}, and {@link #sliceBuilder}. Used by
+     * Create a shallow copy of this source replaced {@link #queryBuilders}, {@link #postQueryBuilder}, and {@link #sliceBuilder}. Used by
      * {@link #rewrite(QueryRewriteContext)}}.
      */
     @SuppressWarnings("rawtypes")
     private SearchSourceBuilder shallowCopy(
-        QueryBuilder queryBuilder,
+        List<QueryBuilder> queryBuilders,
         QueryBuilder postQueryBuilder,
         List<KnnSearchBuilder> knnSearch,
         AggregatorFactories.Builder aggregations,
@@ -1148,7 +1163,7 @@ public final class SearchSourceBuilder implements Writeable, ToXContentObject, R
         rewrittenBuilder.knnSearch = knnSearch;
         rewrittenBuilder.rerankBuilder = rerankBuilder;
         rewrittenBuilder.profile = profile;
-        rewrittenBuilder.queryBuilder = queryBuilder;
+        rewrittenBuilder.queryBuilders = queryBuilders;
         rewrittenBuilder.rescoreBuilders = rescoreBuilders;
         rewrittenBuilder.scriptFields = scriptFields;
         rewrittenBuilder.searchAfterBuilder = searchAfterBuilder;
@@ -1271,7 +1286,7 @@ public final class SearchSourceBuilder implements Writeable, ToXContentObject, R
                 }
             } else if (token == XContentParser.Token.START_OBJECT) {
                 if (QUERY_FIELD.match(currentFieldName, parser.getDeprecationHandler())) {
-                    queryBuilder = parseTopLevelQuery(parser, searchUsage::trackQueryUsage);
+                    queryBuilders = List.of(parseTopLevelQuery(parser, searchUsage::trackQueryUsage));
                     searchUsage.trackSectionUsage(QUERY_FIELD.getPreferredName());
                 } else if (POST_FILTER_FIELD.match(currentFieldName, parser.getDeprecationHandler())) {
                     postQueryBuilder = parseTopLevelQuery(parser, searchUsage::trackQueryUsage);
@@ -1510,8 +1525,12 @@ public final class SearchSourceBuilder implements Writeable, ToXContentObject, R
             builder.field(TERMINATE_AFTER_FIELD.getPreferredName(), terminateAfter);
         }
 
-        if (queryBuilder != null) {
-            builder.field(QUERY_FIELD.getPreferredName(), queryBuilder);
+        if (queryBuilders.isEmpty() == false) {
+            if (queryBuilders.size() == 1) {
+                builder.field(QUERY_FIELD.getPreferredName(), queryBuilders.get(0));
+            } else {
+                builder.field(QUERY_FIELD.getPreferredName(), queryBuilders);
+            }
         }
 
         if (postQueryBuilder != null) {
@@ -1902,7 +1921,7 @@ public final class SearchSourceBuilder implements Writeable, ToXContentObject, R
             indexBoosts,
             minScore,
             postQueryBuilder,
-            queryBuilder,
+            queryBuilders,
             knnSearch,
             rerankBuilder,
             rescoreBuilders,
@@ -1947,7 +1966,7 @@ public final class SearchSourceBuilder implements Writeable, ToXContentObject, R
             && Objects.equals(indexBoosts, other.indexBoosts)
             && Objects.equals(minScore, other.minScore)
             && Objects.equals(postQueryBuilder, other.postQueryBuilder)
-            && Objects.equals(queryBuilder, other.queryBuilder)
+            && Objects.equals(queryBuilders, other.queryBuilders)
             && Objects.equals(knnSearch, other.knnSearch)
             && Objects.equals(rerankBuilder, other.rerankBuilder)
             && Objects.equals(rescoreBuilders, other.rescoreBuilders)

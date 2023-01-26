@@ -53,6 +53,7 @@ import org.elasticsearch.transport.TransportRequest;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -585,7 +586,7 @@ public class ShardSearchRequest extends TransportRequest implements IndicesReque
                 newSource = newSource.shallowCopy();
                 int trackTotalHitsUpTo = SearchRequest.resolveTrackTotalHitsUpTo(request.scroll, request.source);
                 if (trackTotalHitsUpTo == TRACK_TOTAL_HITS_DISABLED && newSource.suggest() == null && newSource.aggregations() == null) {
-                    newSource.query(new MatchNoneQueryBuilder());
+                    newSource.queries(List.of(new MatchNoneQueryBuilder()));
                 } else {
                     newSource.size(0);
                 }

@@ -108,12 +108,12 @@ final class DefaultSearchContext extends SearchContext {
      * applied. Putting things in here leaks them into highlighting so don't add
      * things like the type filter or alias filters.
      */
-    private ParsedQuery originalQuery;
+    private List<ParsedQuery> originalQueries;
 
     /**
      * The query to actually execute.
      */
-    private Query query;
+    private List<Query> queries;
     private ParsedQuery postFilter;
     private Query aliasFilter;
     private int[] docIdsToLoad;
@@ -255,13 +255,21 @@ final class DefaultSearchContext extends SearchContext {
             throw new UncheckedIOException(e);
         }
 
-        if (query == null) {
-            parsedQuery(ParsedQuery.parsedMatchAllQuery());
+        if (queries == null) {
+            parsedQueries(List.of(ParsedQuery.parsedMatchAllQuery()));
         }
         if (queryBoost != AbstractQueryBuilder.DEFAULT_BOOST) {
-            parsedQuery(new ParsedQuery(new BoostQuery(query, queryBoost), parsedQuery()));
+            List<ParsedQuery> boostedParsedQueries = new ArrayList<>(parsedQueries().size());
+            for (int pqIndex = 0; pqIndex < parsedQueries().size(); ++pqIndex) {
+                boostedParsedQueries.add(new ParsedQuery(new BoostQuery(queries.get(pqIndex), queryBoost), parsedQueries().get(pqIndex)));
+            }
+            parsedQueries(boostedParsedQueries);
         }
-        this.query = buildFilteredQuery(query);
+        List<Query> filteredQueries = new ArrayList<>(queries.size());
+        for (Query query : queries) {
+            filteredQueries.add(buildFilteredQuery(query));
+        }
+        queries = filteredQueries;
         if (lowLevelCancellation) {
             searcher().addQueryCancellation(() -> {
                 final SearchShardTask task = getTask();
@@ -584,20 +592,23 @@ final class DefaultSearchContext extends SearchContext {
     }
 
     @Override
-    public SearchContext parsedQuery(ParsedQuery query) {
-        this.originalQuery = query;
-        this.query = query.query();
+    public SearchContext parsedQueries(List<ParsedQuery> parsedQueries) {
+        this.originalQueries = parsedQueries;
+        this.queries = new ArrayList<>(parsedQueries.size());
+        for (ParsedQuery parsedQuery : parsedQueries) {
+            this.queries.add(parsedQuery.query());
+        }
         return this;
     }
 
     @Override
-    public ParsedQuery parsedQuery() {
-        return this.originalQuery;
+    public List<ParsedQuery> parsedQueries() {
+        return this.originalQueries;
     }
 
     @Override
-    public Query query() {
-        return this.query;
+    public List<Query> queries() {
+        return this.queries;
     }
 
     @Override

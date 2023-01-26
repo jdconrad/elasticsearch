@@ -173,7 +173,7 @@ public class KnnSearchRequestParser {
             queryBuilder.addFilterQueries(this.filters);
         }
 
-        sourceBuilder.query(queryBuilder);
+        sourceBuilder.queries(List.of(queryBuilder));
         sourceBuilder.size(knnSearch.k);
 
         sourceBuilder.fetchSource(fetchSource);

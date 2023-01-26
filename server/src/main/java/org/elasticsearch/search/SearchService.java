@@ -53,6 +53,7 @@ import org.elasticsearch.index.query.CoordinatorRewriteContextProvider;
 import org.elasticsearch.index.query.InnerHitContextBuilder;
 import org.elasticsearch.index.query.MatchAllQueryBuilder;
 import org.elasticsearch.index.query.MatchNoneQueryBuilder;
+import org.elasticsearch.index.query.ParsedQuery;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryRewriteContext;
 import org.elasticsearch.index.query.Rewriteable;
@@ -1169,9 +1170,13 @@ public class SearchService extends AbstractLifecycleComponent implements IndexEv
         context.from(source.from());
         context.size(source.size());
         Map<String, InnerHitContextBuilder> innerHitBuilders = new HashMap<>();
-        if (source.query() != null) {
-            InnerHitContextBuilder.extractInnerHits(source.query(), innerHitBuilders);
-            context.parsedQuery(searchExecutionContext.toQuery(source.query()));
+        if (source.queries().isEmpty() == false) {
+            List<ParsedQuery> parsedQueries = new ArrayList<>(source.queries().size());
+            for (QueryBuilder queryBuilder : source.queries()) {
+                InnerHitContextBuilder.extractInnerHits(queryBuilder, innerHitBuilders);
+                parsedQueries.add(searchExecutionContext.toQuery(queryBuilder));
+            }
+            context.parsedQueries(parsedQueries);
         }
         if (source.postFilter() != null) {
             InnerHitContextBuilder.extractInnerHits(source.postFilter(), innerHitBuilders);
@@ -1572,7 +1577,7 @@ public class SearchService extends AbstractLifecycleComponent implements IndexEv
      * a global aggregation is part of this request or if there is a suggest builder present.
      */
     public static boolean canRewriteToMatchNone(SearchSourceBuilder source) {
-        if (source == null || source.query() == null || source.query() instanceof MatchAllQueryBuilder || source.suggest() != null) {
+        if (source == null || source.queries() == null || source.queries().size() == 1 && source.queries().get(0) instanceof MatchAllQueryBuilder || source.suggest() != null) {
             return false;
         }
         AggregatorFactories.Builder aggregations = source.aggregations();

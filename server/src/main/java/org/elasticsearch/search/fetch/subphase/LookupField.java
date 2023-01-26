@@ -40,7 +40,7 @@ public record LookupField(String targetIndex, QueryBuilder query, List<FieldAndF
     }
 
     public SearchRequest toSearchRequest(String clusterAlias) {
-        final SearchSourceBuilder source = new SearchSourceBuilder().query(query).trackScores(false).size(size).fetchSource(false);
+        final SearchSourceBuilder source = new SearchSourceBuilder().queries(List.of(query)).trackScores(false).size(size).fetchSource(false);
         fetchFields.forEach(source::fetchField);
         return new SearchRequest().source(source).indices(RemoteClusterAware.buildRemoteIndexName(clusterAlias, targetIndex));
     }

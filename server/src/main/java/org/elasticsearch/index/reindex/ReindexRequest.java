@@ -110,7 +110,7 @@ public class ReindexRequest extends AbstractBulkIndexByScrollRequest<ReindexRequ
             }
         }
         if (getRemoteInfo() != null) {
-            if (getSearchRequest().source().query() != null) {
+            if (getSearchRequest().source().queries().isEmpty()) {
                 e = addValidationError("reindex from remote sources should use RemoteInfo's query instead of source's query", e);
             }
             if (getSlices() == AbstractBulkByScrollRequest.AUTO_SLICES || getSlices() > 1) {
@@ -153,7 +153,7 @@ public class ReindexRequest extends AbstractBulkIndexByScrollRequest<ReindexRequ
      */
     public ReindexRequest setSourceQuery(QueryBuilder queryBuilder) {
         if (queryBuilder != null) {
-            this.getSearchRequest().source().query(queryBuilder);
+            this.getSearchRequest().source().queries(List.of(queryBuilder));
         }
         return this;
     }
