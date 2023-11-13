@@ -8,20 +8,27 @@
 
 package org.elasticsearch.search.retriever;
 
+import org.apache.lucene.search.FieldDoc;
 import org.elasticsearch.TransportVersion;
 import org.elasticsearch.TransportVersions;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.index.query.AbstractQueryBuilder;
+import org.elasticsearch.index.query.InnerHitContextBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryRewriteContext;
 import org.elasticsearch.index.query.Rewriteable;
+import org.elasticsearch.index.query.SearchExecutionContext;
+import org.elasticsearch.search.SearchException;
+import org.elasticsearch.search.SearchShardTarget;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.search.builder.SubSearchSourceBuilder;
 import org.elasticsearch.search.collapse.CollapseBuilder;
+import org.elasticsearch.search.collapse.CollapseContext;
 import org.elasticsearch.search.internal.SearchContext;
 import org.elasticsearch.search.rescore.RescorerBuilder;
 import org.elasticsearch.search.searchafter.SearchAfterBuilder;
+import org.elasticsearch.search.sort.SortAndFormats;
 import org.elasticsearch.search.sort.SortBuilder;
 import org.elasticsearch.xcontent.ObjectParser;
 import org.elasticsearch.xcontent.ParseField;
@@ -30,8 +37,11 @@ import org.elasticsearch.xcontent.XContentParser;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 public final class ClassicRetrieverBuilder extends RetrieverBuilder<ClassicRetrieverBuilder> {
 
@@ -363,6 +373,40 @@ public final class ClassicRetrieverBuilder extends RetrieverBuilder<ClassicRetri
         return this;
     }
 
+    public void doValidate(SearchSourceBuilder searchSourceBuilder) {
+        if (searchSourceBuilder.query() != null) {
+            throw new IllegalStateException("[query] cannot be declared as a retriever value and as a global value");
+        }
+
+        if (searchSourceBuilder.searchAfter() != null) {
+            throw new IllegalStateException("[search_after] cannot be declared as a retriever value and as a global value");
+        }
+
+        if (searchSourceBuilder.terminateAfter() != SearchContext.DEFAULT_TERMINATE_AFTER) {
+            throw new IllegalStateException("[terminate_after] cannot be declared as a retriever value and as a global value");
+        }
+
+        if (searchSourceBuilder.sorts() != null) {
+            throw new IllegalStateException("[sort] cannot be declared as a retriever value and as a global value");
+        }
+
+        if (searchSourceBuilder.minScore() != null) {
+            throw new IllegalStateException("[min_score] cannot be declared as a retriever value and as a global value");
+        }
+
+        if (searchSourceBuilder.postFilter() != null) {
+            throw new IllegalStateException("[post_filter] cannot be declared as a retriever value and as a global value");
+        }
+
+        if (searchSourceBuilder.rescores() != null) {
+            throw new IllegalStateException("[rescore] cannot be declared as a retriever value and as a global value");
+        }
+
+        if (searchSourceBuilder.collapse() != null) {
+            throw new IllegalStateException("[collapse] cannot be declared as a retriever value and as a global value");
+        }
+    }
+
     public void doExtractToSearchSourceBuilder(SearchSourceBuilder searchSourceBuilder) {
         if (queryBuilder != null) {
             searchSourceBuilder.subSearches().add(new SubSearchSourceBuilder(queryBuilder));
@@ -421,5 +465,81 @@ public final class ClassicRetrieverBuilder extends RetrieverBuilder<ClassicRetri
         } else {
             throw new IllegalStateException("[collapse] cannot be declared as a retriever value and as a global value");
         }
+    }
+
+    @Override
+    public SearchContext doBuildSearchContext(SearchContext searchContext) {
+        SearchShardTarget shardTarget = searchContext.shardTarget();
+        SearchExecutionContext searchExecutionContext = searchContext.getSearchExecutionContext();
+        Map<String, InnerHitContextBuilder> innerHitBuilders = new HashMap<>();
+        if (queryBuilder != null) {
+            InnerHitContextBuilder.extractInnerHits(queryBuilder, innerHitBuilders);
+            searchExecutionContext.setAliasFilter(searchContext.request().getAliasFilter().getQueryBuilder());
+            searchContext.parsedQuery(searchExecutionContext.toQuery(queryBuilder));
+        }
+        if (postFilterQueryBuilder != null) {
+            InnerHitContextBuilder.extractInnerHits(postFilterQueryBuilder, innerHitBuilders);
+            searchContext.parsedPostFilter(searchExecutionContext.toQuery(postFilterQueryBuilder));
+        }
+        if (innerHitBuilders.isEmpty() == false) {
+            for (Map.Entry<String, InnerHitContextBuilder> entry : innerHitBuilders.entrySet()) {
+                try {
+                    entry.getValue().build(searchContext, searchContext.innerHits());
+                } catch (IOException e) {
+                    throw new SearchException(shardTarget, "failed to build inner_hits", e);
+                }
+            }
+        }
+        if (sortBuilders != null) {
+            try {
+                Optional<SortAndFormats> optionalSort = SortBuilder.buildSort(sortBuilders, searchExecutionContext);
+                if (optionalSort.isPresent()) {
+                    searchContext.sort(optionalSort.get());
+                }
+            } catch (IOException e) {
+                throw new SearchException(shardTarget, "failed to create sort elements", e);
+            }
+        }
+        if (minScore != null) {
+            searchContext.minimumScore(minScore);
+        }
+        searchContext.terminateAfter(terminateAfter);
+        if (rescorerBuilders != null) {
+            try {
+                for (RescorerBuilder<?> rescore : rescorerBuilders) {
+                    searchContext.addRescore(rescore.buildContext(searchExecutionContext));
+                }
+            } catch (IOException e) {
+                throw new SearchException(shardTarget, "failed to create RescoreSearchContext", e);
+            }
+        }
+        if (collapseBuilder != null) {
+            if (searchContext.scrollContext() != null) {
+                throw new SearchException(shardTarget, "cannot use `collapse` in a scroll context");
+            }
+            if (searchContext.rescore() != null && searchContext.rescore().isEmpty() == false) {
+                throw new SearchException(shardTarget, "cannot use `collapse` in conjunction with `rescore`");
+            }
+            final CollapseContext collapseContext = collapseBuilder.build(searchExecutionContext);
+            searchContext.collapse(collapseContext);
+        }
+        if (searchAfterBuilder != null) {
+            if (searchAfterBuilder == null) {
+                return null;
+            }
+            Object[] searchAfterValues = searchAfterBuilder.getSortValues();
+            if (searchContext.scrollContext() != null) {
+                throw new SearchException(shardTarget, "`search_after` cannot be used in a scroll context.");
+            }
+            if (searchContext.from() > 0) {
+                throw new SearchException(shardTarget, "`from` parameter must be set to 0 when `search_after` is used.");
+            }
+
+            String collapseField = collapseBuilder != null ? collapseBuilder.getField() : null;
+            FieldDoc fieldDoc = SearchAfterBuilder.buildFieldDoc(searchContext.sort(), searchAfterValues, collapseField);
+            searchContext.searchAfter(fieldDoc);
+        }
+
+        return searchContext;
     }
 }

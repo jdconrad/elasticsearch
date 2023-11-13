@@ -12,6 +12,7 @@ import org.elasticsearch.TransportVersions;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
+import org.elasticsearch.search.internal.SearchContext;
 import org.elasticsearch.search.retriever.RetrieverBuilder;
 import org.elasticsearch.search.retriever.RetrieverParserContext;
 import org.elasticsearch.xcontent.ObjectParser;
@@ -110,6 +111,11 @@ public final class RRFRetrieverBuilder extends RetrieverBuilder<RRFRetrieverBuil
     }
 
     @Override
+    public void doValidate(SearchSourceBuilder searchSourceBuilder) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public void doExtractToSearchSourceBuilder(SearchSourceBuilder searchSourceBuilder) {
         for (RetrieverBuilder<?> retrieverBuilder : retrieverBuilders) {
             retrieverBuilder.doExtractToSearchSourceBuilder(searchSourceBuilder);
@@ -120,5 +126,10 @@ public final class RRFRetrieverBuilder extends RetrieverBuilder<RRFRetrieverBuil
         } else {
             throw new IllegalStateException("[rank] cannot be declared as a retriever value and as a global value");
         }
+    }
+
+    @Override
+    public SearchContext doBuildSearchContext(SearchContext searchContext) {
+        throw new UnsupportedOperationException();
     }
 }

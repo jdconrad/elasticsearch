@@ -38,6 +38,7 @@ import org.elasticsearch.search.fetch.subphase.highlight.HighlightBuilder;
 import org.elasticsearch.search.internal.SearchContext;
 import org.elasticsearch.search.rank.RankBuilder;
 import org.elasticsearch.search.rescore.RescorerBuilder;
+import org.elasticsearch.search.retriever.ClassicRetrieverBuilder;
 import org.elasticsearch.search.retriever.RetrieverBuilder;
 import org.elasticsearch.search.retriever.RetrieverParserContext;
 import org.elasticsearch.search.searchafter.SearchAfterBuilder;
@@ -118,7 +119,7 @@ public final class SearchSourceBuilder implements Writeable, ToXContentObject, R
     public static final ParseField SLICE = new ParseField("slice"); // global
     public static final ParseField POINT_IN_TIME = new ParseField("pit"); // global
     public static final ParseField RUNTIME_MAPPINGS_FIELD = new ParseField("runtime_mappings"); // global
-    public static final ParseField RETRIEVER = new ParseField("retriever"); // global
+    public static final ParseField RETRIEVER_FIELD = new ParseField("retriever"); // global
 
     private static final boolean RANK_SUPPORTED = Booleans.parseBoolean(System.getProperty("es.search.rank_supported"), true);
 
@@ -135,6 +136,8 @@ public final class SearchSourceBuilder implements Writeable, ToXContentObject, R
     public static HighlightBuilder highlight() {
         return new HighlightBuilder();
     }
+
+    private RetrieverBuilder<?> retrieverBuilder;
 
     private List<SubSearchSourceBuilder> subSearchSourceBuilders = new ArrayList<>();
 
@@ -207,6 +210,9 @@ public final class SearchSourceBuilder implements Writeable, ToXContentObject, R
      * Read from a stream.
      */
     public SearchSourceBuilder(StreamInput in) throws IOException {
+        if (in.getTransportVersion().onOrAfter(TransportVersions.RETRIEVERS_ADDED)) {
+            retrieverBuilder = in.readOptionalNamedWriteable(RetrieverBuilder.class);
+        }
         aggregations = in.readOptionalWriteable(AggregatorFactories.Builder::new);
         explain = in.readOptionalBoolean();
         fetchSourceContext = in.readOptionalWriteable(FetchSourceContext::readFrom);
@@ -282,6 +288,9 @@ public final class SearchSourceBuilder implements Writeable, ToXContentObject, R
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
+        if (out.getTransportVersion().onOrAfter(TransportVersions.RETRIEVERS_ADDED)) {
+            out.writeOptionalNamedWriteable(retrieverBuilder);
+        }
         out.writeOptionalWriteable(aggregations);
         out.writeOptionalBoolean(explain);
         out.writeOptionalWriteable(fetchSourceContext);
@@ -370,6 +379,21 @@ public final class SearchSourceBuilder implements Writeable, ToXContentObject, R
         } else if (rankBuilder != null) {
             throw new IllegalArgumentException("cannot serialize [rank] to version [" + out.getTransportVersion() + "]");
         }
+    }
+
+    /**
+     * Sets the {@link RetrieverBuilder} for this request.
+     */
+    public SearchSourceBuilder retrieverBuilder(RetrieverBuilder<?> retrieverBuilder) {
+        this.retrieverBuilder = retrieverBuilder;
+        return this;
+    }
+
+    /**
+     * Gets the {@link RetrieverBuilder} for this request.
+     */
+    public RetrieverBuilder<?> retrieverbuilder() {
+        return retrieverBuilder;
     }
 
     /**
@@ -1275,7 +1299,6 @@ public final class SearchSourceBuilder implements Writeable, ToXContentObject, R
             );
         }
 
-        RetrieverBuilder<?> retrieverBuilder = null;
         SearchUsage searchUsage = new SearchUsage();
         while ((token = parser.nextToken()) != XContentParser.Token.END_OBJECT) {
             if (token == XContentParser.Token.FIELD_NAME) {
@@ -1341,7 +1364,7 @@ public final class SearchSourceBuilder implements Writeable, ToXContentObject, R
                     );
                 }
             } else if (token == XContentParser.Token.START_OBJECT) {
-                if (RETRIEVER.match(currentFieldName, parser.getDeprecationHandler())) {
+                if (RETRIEVER_FIELD.match(currentFieldName, parser.getDeprecationHandler())) {
                     retrieverBuilder = RetrieverBuilder.parseTopLevelRetrieverBuilder(
                         parser,
                         new RetrieverParserContext(searchUsage::trackSectionUsage, searchUsage::trackQueryUsage)
@@ -1602,7 +1625,12 @@ public final class SearchSourceBuilder implements Writeable, ToXContentObject, R
             }
         }
         if (retrieverBuilder != null) {
-            retrieverBuilder.extractToSearchSourceBuilder(this);
+            if (retrieverBuilder instanceof ClassicRetrieverBuilder) {
+                retrieverBuilder.validate(this);
+            } else {
+                retrieverBuilder.extractToSearchSourceBuilder(this);
+                retrieverBuilder = null;
+            }
         }
         searchUsageConsumer.accept(searchUsage);
         return this;
@@ -1631,6 +1659,10 @@ public final class SearchSourceBuilder implements Writeable, ToXContentObject, R
 
         if (terminateAfter != SearchContext.DEFAULT_TERMINATE_AFTER) {
             builder.field(TERMINATE_AFTER_FIELD.getPreferredName(), terminateAfter);
+        }
+
+        if (retrieverBuilder != null) {
+            builder.field(RETRIEVER_FIELD.getPreferredName(), retrieverBuilder);
         }
 
         if (subSearchSourceBuilders.isEmpty() == false) {

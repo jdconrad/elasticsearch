@@ -18,6 +18,7 @@ import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryRewriteContext;
 import org.elasticsearch.index.query.Rewriteable;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
+import org.elasticsearch.search.internal.SearchContext;
 import org.elasticsearch.xcontent.AbstractObjectParser;
 import org.elasticsearch.xcontent.FilterXContentParserWrapper;
 import org.elasticsearch.xcontent.NamedObjectNotFoundException;
@@ -252,6 +253,12 @@ public abstract class RetrieverBuilder<RB extends RetrieverBuilder<RB>>
         return (RB) this;
     }
 
+    public final void validate(SearchSourceBuilder searchSourceBuilder) {
+        doValidate(searchSourceBuilder);
+    }
+
+    public abstract void doValidate(SearchSourceBuilder searchSourceBuilder);
+
     public final void extractToSearchSourceBuilder(SearchSourceBuilder searchSourceBuilder) {
         doExtractToSearchSourceBuilder(searchSourceBuilder);
 
@@ -265,4 +272,10 @@ public abstract class RetrieverBuilder<RB extends RetrieverBuilder<RB>>
     }
 
     public abstract void doExtractToSearchSourceBuilder(SearchSourceBuilder searchSourceBuilder);
+
+    public SearchContext buildSearchContext(SearchContext searchContext) {
+        return doBuildSearchContext(searchContext);
+    }
+
+    public abstract SearchContext doBuildSearchContext(SearchContext searchContext);
 }
