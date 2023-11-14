@@ -82,8 +82,8 @@ import static org.elasticsearch.search.internal.SearchContext.TRACK_TOTAL_HITS_D
 public final class SearchSourceBuilder implements Writeable, ToXContentObject, Rewriteable<SearchSourceBuilder> {
     private static final DeprecationLogger deprecationLogger = DeprecationLogger.getLogger(SearchSourceBuilder.class);
 
-    public static final ParseField FROM_FIELD = new ParseField("from"); // base
-    public static final ParseField SIZE_FIELD = new ParseField("size"); // base
+    public static final ParseField FROM_FIELD = new ParseField("from"); // global
+    public static final ParseField SIZE_FIELD = new ParseField("size"); // global
     public static final ParseField TIMEOUT_FIELD = new ParseField("timeout"); // global
     public static final ParseField TERMINATE_AFTER_FIELD = new ParseField("terminate_after"); // retriever specific
     public static final ParseField QUERY_FIELD = new ParseField("query"); // retriever specific

@@ -14,6 +14,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.search.SearchService;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
+import org.elasticsearch.search.internal.SearchContext;
 import org.elasticsearch.xcontent.ObjectParser;
 import org.elasticsearch.xcontent.ParseField;
 import org.elasticsearch.xcontent.XContentBuilder;
@@ -107,9 +108,19 @@ public final class LinearCombinationRetrieverBuilder extends RetrieverBuilder<Li
     }
 
     @Override
+    public void doValidate(SearchSourceBuilder searchSourceBuilder) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public void doExtractToSearchSourceBuilder(SearchSourceBuilder searchSourceBuilder) {
         for (RetrieverBuilder<?> retrieverBuilder : retrieverBuilders) {
             retrieverBuilder.doExtractToSearchSourceBuilder(searchSourceBuilder);
         }
+    }
+
+    @Override
+    public SearchContext doBuildSearchContext(SearchContext searchContext) {
+        throw new UnsupportedOperationException();
     }
 }
