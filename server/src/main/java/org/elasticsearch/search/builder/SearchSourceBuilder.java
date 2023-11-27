@@ -66,6 +66,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
+import java.util.function.ToLongFunction;
 
 import static java.util.Collections.emptyMap;
 import static org.elasticsearch.index.query.AbstractQueryBuilder.parseTopLevelQuery;
@@ -2147,7 +2148,7 @@ public final class SearchSourceBuilder implements Writeable, ToXContentObject, R
         }
     }
 
-    public boolean supportsParallelCollection() {
+    public boolean supportsParallelCollection(ToLongFunction<String> fieldCardinality) {
         if (profile) return false;
 
         if (sorts != null) {
@@ -2157,6 +2158,6 @@ public final class SearchSourceBuilder implements Writeable, ToXContentObject, R
             }
         }
 
-        return collapse == null && (aggregations == null || aggregations.supportsParallelCollection());
+        return collapse == null && (aggregations == null || aggregations.supportsParallelCollection(fieldCardinality));
     }
 }
