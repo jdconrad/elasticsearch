@@ -18,6 +18,8 @@ import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryRewriteContext;
 import org.elasticsearch.index.query.Rewriteable;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
+import org.elasticsearch.search.dfs.DfsPhase;
+import org.elasticsearch.search.fetch.FetchPhase;
 import org.elasticsearch.search.internal.SearchContext;
 import org.elasticsearch.xcontent.AbstractObjectParser;
 import org.elasticsearch.xcontent.FilterXContentParserWrapper;
@@ -273,9 +275,5 @@ public abstract class RetrieverBuilder<RB extends RetrieverBuilder<RB>>
 
     public abstract void doExtractToSearchSourceBuilder(SearchSourceBuilder searchSourceBuilder);
 
-    public SearchContext buildSearchContext(SearchContext searchContext) {
-        return doBuildSearchContext(searchContext);
-    }
-
-    public abstract SearchContext doBuildSearchContext(SearchContext searchContext);
+    public abstract ShardRetriever buildShardRetrieverTree(SearchContext searchContext, DfsPhase dfsPhase, FetchPhase fetchPhase);
 }

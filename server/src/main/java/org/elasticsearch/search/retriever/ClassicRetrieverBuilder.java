@@ -25,6 +25,8 @@ import org.elasticsearch.search.builder.SearchSourceBuilder;
 import org.elasticsearch.search.builder.SubSearchSourceBuilder;
 import org.elasticsearch.search.collapse.CollapseBuilder;
 import org.elasticsearch.search.collapse.CollapseContext;
+import org.elasticsearch.search.dfs.DfsPhase;
+import org.elasticsearch.search.fetch.FetchPhase;
 import org.elasticsearch.search.internal.SearchContext;
 import org.elasticsearch.search.rescore.RescorerBuilder;
 import org.elasticsearch.search.searchafter.SearchAfterBuilder;
@@ -468,7 +470,7 @@ public final class ClassicRetrieverBuilder extends RetrieverBuilder<ClassicRetri
     }
 
     @Override
-    public SearchContext doBuildSearchContext(SearchContext searchContext) {
+    public ShardRetriever buildShardRetrieverTree(SearchContext searchContext, DfsPhase dfsPhase, FetchPhase fetchPhase) {
         SearchShardTarget shardTarget = searchContext.shardTarget();
         SearchExecutionContext searchExecutionContext = searchContext.getSearchExecutionContext();
         Map<String, InnerHitContextBuilder> innerHitBuilders = new HashMap<>();
@@ -540,6 +542,6 @@ public final class ClassicRetrieverBuilder extends RetrieverBuilder<ClassicRetri
             searchContext.searchAfter(fieldDoc);
         }
 
-        return searchContext;
+        return new ClassicShardRetriever(searchContext, dfsPhase, fetchPhase);
     }
 }

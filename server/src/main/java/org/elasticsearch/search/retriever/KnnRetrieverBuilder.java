@@ -15,6 +15,8 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.index.query.QueryRewriteContext;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
+import org.elasticsearch.search.dfs.DfsPhase;
+import org.elasticsearch.search.fetch.FetchPhase;
 import org.elasticsearch.search.internal.SearchContext;
 import org.elasticsearch.search.vectors.KnnSearchBuilder;
 import org.elasticsearch.search.vectors.QueryVectorBuilder;
@@ -279,7 +281,7 @@ public final class KnnRetrieverBuilder extends RetrieverBuilder<KnnRetrieverBuil
     }
 
     @Override
-    public SearchContext doBuildSearchContext(SearchContext searchContext) {
+    public ShardRetriever buildShardRetrieverTree(SearchContext searchContext, DfsPhase dfsPhase, FetchPhase fetchPhase) {
         throw new UnsupportedOperationException();
     }
 
