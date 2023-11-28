@@ -470,78 +470,89 @@ public final class ClassicRetrieverBuilder extends RetrieverBuilder<ClassicRetri
     }
 
     @Override
-    public ShardRetriever buildShardRetrieverTree(SearchContext searchContext, DfsPhase dfsPhase, FetchPhase fetchPhase) {
-        SearchShardTarget shardTarget = searchContext.shardTarget();
-        SearchExecutionContext searchExecutionContext = searchContext.getSearchExecutionContext();
+    public ShardRetriever buildShardRetrieverTree(SearchContext parentSearchContext, DfsPhase dfsPhase, FetchPhase fetchPhase) {
+        ClassicShardRetriever classicShardRetriever = new ClassicShardRetriever(parentSearchContext, dfsPhase, fetchPhase);
+
+        SearchShardTarget shardTarget = classicShardRetriever.shardTarget();
+        SearchExecutionContext searchExecutionContext = classicShardRetriever.getSearchExecutionContext();
         Map<String, InnerHitContextBuilder> innerHitBuilders = new HashMap<>();
+
         if (queryBuilder != null) {
             InnerHitContextBuilder.extractInnerHits(queryBuilder, innerHitBuilders);
-            searchExecutionContext.setAliasFilter(searchContext.request().getAliasFilter().getQueryBuilder());
-            searchContext.parsedQuery(searchExecutionContext.toQuery(queryBuilder));
+            searchExecutionContext.setAliasFilter(classicShardRetriever.request().getAliasFilter().getQueryBuilder());
+            classicShardRetriever.parsedQuery(searchExecutionContext.toQuery(queryBuilder));
         }
+
         if (postFilterQueryBuilder != null) {
             InnerHitContextBuilder.extractInnerHits(postFilterQueryBuilder, innerHitBuilders);
-            searchContext.parsedPostFilter(searchExecutionContext.toQuery(postFilterQueryBuilder));
+            classicShardRetriever.parsedPostFilter(searchExecutionContext.toQuery(postFilterQueryBuilder));
         }
+
         if (innerHitBuilders.isEmpty() == false) {
             for (Map.Entry<String, InnerHitContextBuilder> entry : innerHitBuilders.entrySet()) {
                 try {
-                    entry.getValue().build(searchContext, searchContext.innerHits());
+                    entry.getValue().build(classicShardRetriever, classicShardRetriever.innerHits());
                 } catch (IOException e) {
                     throw new SearchException(shardTarget, "failed to build inner_hits", e);
                 }
             }
         }
+
         if (sortBuilders != null) {
             try {
                 Optional<SortAndFormats> optionalSort = SortBuilder.buildSort(sortBuilders, searchExecutionContext);
                 if (optionalSort.isPresent()) {
-                    searchContext.sort(optionalSort.get());
+                    classicShardRetriever.sort(optionalSort.get());
                 }
             } catch (IOException e) {
                 throw new SearchException(shardTarget, "failed to create sort elements", e);
             }
         }
         if (minScore != null) {
-            searchContext.minimumScore(minScore);
+            classicShardRetriever.minimumScore(minScore);
         }
-        searchContext.terminateAfter(terminateAfter);
+
+        classicShardRetriever.terminateAfter(terminateAfter);
+
         if (rescorerBuilders != null) {
             try {
                 for (RescorerBuilder<?> rescore : rescorerBuilders) {
-                    searchContext.addRescore(rescore.buildContext(searchExecutionContext));
+                    classicShardRetriever.addRescore(rescore.buildContext(searchExecutionContext));
                 }
             } catch (IOException e) {
                 throw new SearchException(shardTarget, "failed to create RescoreSearchContext", e);
             }
         }
+
         if (collapseBuilder != null) {
-            if (searchContext.scrollContext() != null) {
+            if (classicShardRetriever.scrollContext() != null) {
                 throw new SearchException(shardTarget, "cannot use `collapse` in a scroll context");
             }
-            if (searchContext.rescore() != null && searchContext.rescore().isEmpty() == false) {
+
+            if (classicShardRetriever.rescore() != null && classicShardRetriever.rescore().isEmpty() == false) {
                 throw new SearchException(shardTarget, "cannot use `collapse` in conjunction with `rescore`");
             }
+
             final CollapseContext collapseContext = collapseBuilder.build(searchExecutionContext);
-            searchContext.collapse(collapseContext);
+            classicShardRetriever.collapse(collapseContext);
         }
+
         if (searchAfterBuilder != null) {
-            if (searchAfterBuilder == null) {
-                return null;
-            }
             Object[] searchAfterValues = searchAfterBuilder.getSortValues();
-            if (searchContext.scrollContext() != null) {
+
+            if (classicShardRetriever.scrollContext() != null) {
                 throw new SearchException(shardTarget, "`search_after` cannot be used in a scroll context.");
             }
-            if (searchContext.from() > 0) {
+
+            if (classicShardRetriever.from() > 0) {
                 throw new SearchException(shardTarget, "`from` parameter must be set to 0 when `search_after` is used.");
             }
 
             String collapseField = collapseBuilder != null ? collapseBuilder.getField() : null;
-            FieldDoc fieldDoc = SearchAfterBuilder.buildFieldDoc(searchContext.sort(), searchAfterValues, collapseField);
-            searchContext.searchAfter(fieldDoc);
+            FieldDoc fieldDoc = SearchAfterBuilder.buildFieldDoc(parentSearchContext.sort(), searchAfterValues, collapseField);
+            classicShardRetriever.searchAfter(fieldDoc);
         }
 
-        return new ClassicShardRetriever(searchContext, dfsPhase, fetchPhase);
+        return classicShardRetriever;
     }
 }

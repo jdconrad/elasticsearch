@@ -275,5 +275,5 @@ public abstract class RetrieverBuilder<RB extends RetrieverBuilder<RB>>
 
     public abstract void doExtractToSearchSourceBuilder(SearchSourceBuilder searchSourceBuilder);
 
-    public abstract ShardRetriever buildShardRetrieverTree(SearchContext searchContext, DfsPhase dfsPhase, FetchPhase fetchPhase);
+    public abstract ShardRetriever buildShardRetrieverTree(SearchContext parentSearchContext, DfsPhase dfsPhase, FetchPhase fetchPhase);
 }

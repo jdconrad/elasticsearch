@@ -281,7 +281,7 @@ public final class KnnRetrieverBuilder extends RetrieverBuilder<KnnRetrieverBuil
     }
 
     @Override
-    public ShardRetriever buildShardRetrieverTree(SearchContext searchContext, DfsPhase dfsPhase, FetchPhase fetchPhase) {
+    public ShardRetriever buildShardRetrieverTree(SearchContext parentSearchContext, DfsPhase dfsPhase, FetchPhase fetchPhase) {
         throw new UnsupportedOperationException();
     }
 

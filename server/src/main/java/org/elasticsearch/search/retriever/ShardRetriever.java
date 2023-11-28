@@ -12,20 +12,16 @@ import org.elasticsearch.search.dfs.DfsPhase;
 import org.elasticsearch.search.fetch.FetchPhase;
 import org.elasticsearch.search.internal.SearchContext;
 
-public abstract class ShardRetriever {
+public abstract class ShardRetriever extends SearchContext {
 
-    protected final SearchContext searchContext;
+    protected final SearchContext parentSearchContext;
     protected final DfsPhase dfsPhase;
     protected final FetchPhase fetchPhase;
 
-    public ShardRetriever(SearchContext searchContext, DfsPhase dfsPhase, FetchPhase fetchPhase) {
-        this.searchContext = searchContext;
+    public ShardRetriever(SearchContext parentSearchContext, DfsPhase dfsPhase, FetchPhase fetchPhase) {
+        this.parentSearchContext = parentSearchContext;
         this.dfsPhase = dfsPhase;
         this.fetchPhase = fetchPhase;
-    }
-
-    public SearchContext getSearchContext() {
-        return searchContext;
     }
 
     public abstract void executeDfsPhase();

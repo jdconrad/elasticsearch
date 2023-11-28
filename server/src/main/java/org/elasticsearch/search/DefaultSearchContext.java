@@ -79,7 +79,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.function.LongSupplier;
 import java.util.function.ToLongFunction;
 
-final class DefaultSearchContext extends SearchContext {
+public final class DefaultSearchContext extends SearchContext {
 
     private final ReaderContext readerContext;
     private final ShardSearchRequest request;

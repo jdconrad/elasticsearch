@@ -122,7 +122,7 @@ public final class LinearCombinationRetrieverBuilder extends RetrieverBuilder<Li
     }
 
     @Override
-    public ShardRetriever buildShardRetrieverTree(SearchContext searchContext, DfsPhase dfsPhase, FetchPhase fetchPhase) {
+    public ShardRetriever buildShardRetrieverTree(SearchContext parentSearchContext, DfsPhase dfsPhase, FetchPhase fetchPhase) {
         throw new UnsupportedOperationException();
     }
 }
