@@ -63,6 +63,7 @@ import org.elasticsearch.search.internal.ShardSearchContextId;
 import org.elasticsearch.search.internal.ShardSearchRequest;
 import org.elasticsearch.search.profile.Profilers;
 import org.elasticsearch.search.query.QuerySearchResult;
+import org.elasticsearch.search.query.SingleQuerySearchResult;
 import org.elasticsearch.search.rank.RankShardContext;
 import org.elasticsearch.search.rescore.RescoreContext;
 import org.elasticsearch.search.slice.SliceBuilder;
@@ -92,6 +93,7 @@ final class DefaultSearchContext extends SearchContext {
     private final ContextIndexSearcher searcher;
     private DfsSearchResult dfsResult;
     private QuerySearchResult queryResult;
+    private SingleQuerySearchResult singleQuerySearchResult;
     private FetchSearchResult fetchResult;
     private final float queryBoost;
     private final boolean lowLevelCancellation;
@@ -299,6 +301,7 @@ final class DefaultSearchContext extends SearchContext {
     @Override
     public void addQueryResult() {
         this.queryResult = new QuerySearchResult(this.readerContext.id(), this.shardTarget, this.request);
+        this.singleQuerySearchResult = this.queryResult.addSingleQueryResult();
         addReleasable(queryResult::decRef);
     }
 
@@ -829,22 +832,27 @@ final class DefaultSearchContext extends SearchContext {
         return queryResult;
     }
 
+    @Override
+    public SingleQuerySearchResult singleQuerySearchResult() {
+        return null;
+    }
+
     public void addQuerySearchResultReleasable(Releasable releasable) {
         queryResult.addReleasable(releasable);
     }
 
     @Override
     public TotalHits getTotalHits() {
-        if (queryResult != null) {
-            return queryResult.getTotalHits();
+        if (singleQuerySearchResult != null) {
+            return singleQuerySearchResult.getTotalHits();
         }
         return null;
     }
 
     @Override
     public float getMaxScore() {
-        if (queryResult != null) {
-            return queryResult.getMaxScore();
+        if (singleQuerySearchResult != null) {
+            return singleQuerySearchResult.getMaxScore();
         }
         return Float.NaN;
     }

@@ -76,7 +76,7 @@ public class QueryPhase {
             searchContext.size(0);
             QueryPhase.executeQuery(searchContext);
         } else {
-            searchContext.queryResult()
+            searchContext.singleQuerySearchResult()
                 .topDocs(
                     new TopDocsAndMaxScore(new TopDocs(new TotalHits(0, TotalHits.Relation.EQUAL_TO), Lucene.EMPTY_SCORE_DOCS), Float.NaN),
                     new DocValueFormat[0]

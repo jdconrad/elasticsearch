@@ -179,8 +179,8 @@ public class QueryPhaseTimeoutTests extends IndexShardTestCase {
             try (SearchContext context = createSearchContext(query, size)) {
                 QueryPhase.executeQuery(context);
                 assertFalse(context.queryResult().searchTimedOut());
-                assertEquals(numDocs, context.queryResult().topDocs().topDocs.totalHits.value);
-                assertEquals(size, context.queryResult().topDocs().topDocs.scoreDocs.length);
+                assertEquals(numDocs, context.singleQuerySearchResult().topDocs().topDocs.totalHits.value);
+                assertEquals(size, context.singleQuerySearchResult().topDocs().topDocs.scoreDocs.length);
             }
         }
         {
@@ -189,8 +189,8 @@ public class QueryPhaseTimeoutTests extends IndexShardTestCase {
                 QueryPhase.executeQuery(context);
                 assertTrue(context.queryResult().searchTimedOut());
                 int firstSegmentMaxDoc = reader.leaves().get(0).reader().maxDoc();
-                assertEquals(Math.min(2048, firstSegmentMaxDoc), context.queryResult().topDocs().topDocs.totalHits.value);
-                assertEquals(Math.min(size, firstSegmentMaxDoc), context.queryResult().topDocs().topDocs.scoreDocs.length);
+                assertEquals(Math.min(2048, firstSegmentMaxDoc), context.singleQuerySearchResult().topDocs().topDocs.totalHits.value);
+                assertEquals(Math.min(size, firstSegmentMaxDoc), context.singleQuerySearchResult().topDocs().topDocs.scoreDocs.length);
             }
         }
     }

@@ -21,6 +21,7 @@ import org.elasticsearch.search.fetch.subphase.FetchSourceContext;
 import org.elasticsearch.search.fetch.subphase.ScriptFieldsContext;
 import org.elasticsearch.search.fetch.subphase.highlight.SearchHighlightContext;
 import org.elasticsearch.search.query.QuerySearchResult;
+import org.elasticsearch.search.query.SingleQuerySearchResult;
 import org.elasticsearch.search.sort.SortAndFormats;
 import org.elasticsearch.search.suggest.SuggestionSearchContext;
 
@@ -40,6 +41,7 @@ public class SubSearchContext extends FilteredSearchContext {
 
     private final FetchSearchResult fetchSearchResult;
     private final QuerySearchResult querySearchResult;
+    private final SingleQuerySearchResult singleQuerySearchResult;
 
     private StoredFieldsContext storedFields;
     private ScriptFieldsContext scriptFields;
@@ -60,6 +62,7 @@ public class SubSearchContext extends FilteredSearchContext {
         this.fetchSearchResult = new FetchSearchResult();
         addReleasable(fetchSearchResult::decRef);
         this.querySearchResult = new QuerySearchResult();
+        this.singleQuerySearchResult = this.querySearchResult.addSingleQueryResult();
     }
 
     @Override
@@ -286,6 +289,11 @@ public class SubSearchContext extends FilteredSearchContext {
     }
 
     @Override
+    public SingleQuerySearchResult singleQuerySearchResult() {
+        return singleQuerySearchResult;
+    }
+
+    @Override
     public FetchSearchResult fetchResult() {
         return fetchSearchResult;
     }
@@ -297,11 +305,11 @@ public class SubSearchContext extends FilteredSearchContext {
 
     @Override
     public TotalHits getTotalHits() {
-        return querySearchResult.getTotalHits();
+        return singleQuerySearchResult.getTotalHits();
     }
 
     @Override
     public float getMaxScore() {
-        return querySearchResult.getMaxScore();
+        return singleQuerySearchResult.getMaxScore();
     }
 }

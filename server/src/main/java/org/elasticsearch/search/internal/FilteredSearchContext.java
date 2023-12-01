@@ -34,6 +34,7 @@ import org.elasticsearch.search.fetch.subphase.ScriptFieldsContext;
 import org.elasticsearch.search.fetch.subphase.highlight.SearchHighlightContext;
 import org.elasticsearch.search.profile.Profilers;
 import org.elasticsearch.search.query.QuerySearchResult;
+import org.elasticsearch.search.query.SingleQuerySearchResult;
 import org.elasticsearch.search.rank.RankShardContext;
 import org.elasticsearch.search.rescore.RescoreContext;
 import org.elasticsearch.search.sort.SortAndFormats;
@@ -372,6 +373,11 @@ public abstract class FilteredSearchContext extends SearchContext {
     @Override
     public QuerySearchResult queryResult() {
         return in.queryResult();
+    }
+
+    @Override
+    public SingleQuerySearchResult singleQuerySearchResult() {
+        return in.singleQuerySearchResult();
     }
 
     @Override

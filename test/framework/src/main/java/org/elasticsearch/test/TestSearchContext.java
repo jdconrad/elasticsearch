@@ -43,6 +43,7 @@ import org.elasticsearch.search.internal.ShardSearchContextId;
 import org.elasticsearch.search.internal.ShardSearchRequest;
 import org.elasticsearch.search.profile.Profilers;
 import org.elasticsearch.search.query.QuerySearchResult;
+import org.elasticsearch.search.query.SingleQuerySearchResult;
 import org.elasticsearch.search.rank.RankShardContext;
 import org.elasticsearch.search.rescore.RescoreContext;
 import org.elasticsearch.search.sort.SortAndFormats;
@@ -60,6 +61,7 @@ public class TestSearchContext extends SearchContext {
     final BitsetFilterCache fixedBitSetFilterCache;
     final IndexShard indexShard;
     final QuerySearchResult queryResult = new QuerySearchResult();
+    final SingleQuerySearchResult singleQuerySearchResult;
     final SearchExecutionContext searchExecutionContext;
     ParsedQuery originalQuery;
     ParsedQuery postFilter;
@@ -111,6 +113,7 @@ public class TestSearchContext extends SearchContext {
         this.scrollContext = scrollContext;
         ShardId shardId = indexShard != null ? indexShard.shardId() : new ShardId("N/A", "N/A", 0);
         this.request = new ShardSearchRequest(shardId, 0L, AliasFilter.EMPTY);
+        this.singleQuerySearchResult = this.queryResult.addSingleQueryResult();
     }
 
     public void setSearcher(ContextIndexSearcher searcher) {
@@ -474,12 +477,12 @@ public class TestSearchContext extends SearchContext {
 
     @Override
     public TotalHits getTotalHits() {
-        return queryResult.getTotalHits();
+        return singleQuerySearchResult.getTotalHits();
     }
 
     @Override
     public float getMaxScore() {
-        return queryResult.getMaxScore();
+        return singleQuerySearchResult.getMaxScore();
     }
 
     @Override
