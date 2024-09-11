@@ -1,0 +1,2 @@
+Premain-Class: testagent.TestAgent
+Can-Retransform-Classes: true

@@ -17,6 +17,13 @@ var os = org.gradle.internal.os.OperatingSystem.current()
 
 application {
   mainClass = 'org.openjdk.jmh.Main'
+  applicationDefaultJvmArgs.addAll(['--add-exports', 'java.base/jdk.internal.reflect=ALL-UNNAMED',
+                                    '-Xbootclasspath/a:build/classes/java/main/org/elasticsearch/benchmark/security',
+                                    '-javaagent:/home/jdconrad/Code/elastic/elasticsearch/benchmarks/agent/testagent.jar',
+                                    '--add-exports', 'java.base/jdk.internal.org.objectweb.asm=ALL-UNNAMED',
+                                    '--add-exports', 'java.base/jdk.internal.org.objectweb.asm.commons=ALL-UNNAMED',
+                                    '--add-exports', 'java.base/jdk.internal.org.objectweb.asm.util=ALL-UNNAMED'
+                                  ])
 }
 
 tasks.named("assemble").configure { enabled = false }
@@ -53,6 +60,11 @@ dependencies {
   // Dependencies of JMH
   runtimeOnly 'net.sf.jopt-simple:jopt-simple:5.0.4'
   runtimeOnly 'org.apache.commons:commons-math3:3.6.1'
+  api 'org.ow2.asm:asm-util:7.2'
+  api 'org.ow2.asm:asm-tree:7.2'
+  api 'org.ow2.asm:asm-commons:7.2'
+  api 'org.ow2.asm:asm-analysis:7.2'
+  api 'org.ow2.asm:asm:7.2'
 }
 
 // enable the JMH's BenchmarkProcessor to generate the final benchmark classes
@@ -62,6 +74,10 @@ tasks.named("compileJava").configure {
   // org.elasticsearch.plugins.internal is used in signatures classes used in benchmarks but we don't want to expose it publicly
   // adding an export to allow compilation with gradle. This does not solve a problem in intellij as it does not use compileJava task
   options.compilerArgs.addAll(["--add-exports", "org.elasticsearch.server/org.elasticsearch.plugins.internal=ALL-UNNAMED"])
+  options.compilerArgs.addAll(['--add-exports', 'java.base/jdk.internal.reflect=ALL-UNNAMED'])
+  options.compilerArgs.remove('-Werror')
+  sourceCompatibility = 17
+  options.release.unset()
 }
 
 tasks.register('copyExpression', Copy) {
