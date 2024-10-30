@@ -12,15 +12,19 @@ package org.elasticsearch.plugins;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Build;
+import org.elasticsearch.bootstrap.PluginPolicyInfo;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.io.FileSystemUtils;
 import org.elasticsearch.jdk.JarHell;
 
+import java.io.File;
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.Policy;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -31,6 +35,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -207,6 +213,43 @@ public class PluginsUtils {
                 throw new IllegalStateException(message);
             }
         }
+    }
+
+    public static Set<String> getPluginJavaModuleNames(Path pluginRoot) throws IOException {
+        /*Set<URL> jarUrls = new LinkedHashSet<>();
+        try (DirectoryStream<Path> jarStream = Files.newDirectoryStream(pluginRoot, "*.jar")) {
+            for (Path jar : jarStream) {
+                URL url = jar.toRealPath().toUri().toURL();
+                if (jarUrls.add(url) == false) {
+                    throw new IllegalStateException("duplicate module/plugin: " + url);
+                }
+            }
+        }
+
+        Path spiDir = pluginRoot.resolve("spi");
+        if (Files.exists(spiDir)) {
+            try (DirectoryStream<Path> jarStream = Files.newDirectoryStream(spiDir, "*.jar")) {
+                for (Path jar : jarStream) {
+                    URL url = jar.toRealPath().toUri().toURL();
+                    if (jarUrls.add(url) == false) {
+                        throw new IllegalStateException("duplicate module/plugin: " + url);
+                    }
+                }
+            }
+        }*/
+
+        //Set<String> javaModuleNames = new HashSet<>();
+        //for (URL jarUrl : jarUrls) {
+          //  try (JarFile jar = new JarFile(new File(jarUrl.toURI()))) {
+                //JarEntry jarEntry = jar.getJarEntry("module-info.java");
+                //System.out.println("HERE!!!: " + jarEntry);
+                //if (true) throw new IllegalArgumentException(jarEntry.toString());
+            //} catch (URISyntaxException urise) {
+            //    throw new IllegalStateException("invalid uri: " + jarUrl, urise);
+            //}
+        //}
+
+        return null;
     }
 
     /** Get bundles for plugins installed in the given modules directory. */

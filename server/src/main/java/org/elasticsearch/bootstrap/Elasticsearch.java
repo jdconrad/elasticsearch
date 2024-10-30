@@ -40,6 +40,7 @@ import org.elasticsearch.monitor.process.ProcessProbe;
 import org.elasticsearch.nativeaccess.NativeAccess;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.node.NodeValidationException;
+import org.elasticsearch.plugins.PluginsUtils;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -197,6 +198,10 @@ class Elasticsearch {
             // We eagerly initialize to work around log4j permissions & JDK-8309727
             VectorUtil.class
         );
+
+        for (Path pluginRoot : PluginsUtils.findPluginDirs(nodeEnv.modulesFile())) {
+            PluginsUtils.getPluginJavaModuleNames(pluginRoot);
+        }
 
         // install SM after natives, shutdown hooks, etc.
         org.elasticsearch.bootstrap.Security.configure(
