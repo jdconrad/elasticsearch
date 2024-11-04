@@ -216,7 +216,7 @@ public class PluginsUtils {
     }
 
     public static Set<String> getPluginJavaModuleNames(Path pluginRoot) throws IOException {
-        /*Set<URL> jarUrls = new LinkedHashSet<>();
+        Set<URL> jarUrls = new LinkedHashSet<>();
         try (DirectoryStream<Path> jarStream = Files.newDirectoryStream(pluginRoot, "*.jar")) {
             for (Path jar : jarStream) {
                 URL url = jar.toRealPath().toUri().toURL();
@@ -236,18 +236,22 @@ public class PluginsUtils {
                     }
                 }
             }
-        }*/
+        }
 
-        //Set<String> javaModuleNames = new HashSet<>();
-        //for (URL jarUrl : jarUrls) {
-          //  try (JarFile jar = new JarFile(new File(jarUrl.toURI()))) {
-                //JarEntry jarEntry = jar.getJarEntry("module-info.java");
+        Set<String> javaModuleNames = new HashSet<>();
+        StringBuilder sb = new StringBuilder();
+        for (URL jarUrl : jarUrls) {
+            try (JarFile jar = new JarFile(new File(jarUrl.toURI()))) {
+                for (JarEntry jarEntry : jar.stream().toList()) {
+                    sb.append(jarEntry.getName());
+                    sb.append("\n");
+                }
                 //System.out.println("HERE!!!: " + jarEntry);
-                //if (true) throw new IllegalArgumentException(jarEntry.toString());
-            //} catch (URISyntaxException urise) {
-            //    throw new IllegalStateException("invalid uri: " + jarUrl, urise);
-            //}
-        //}
+            } catch (URISyntaxException urise) {
+                throw new IllegalStateException("invalid uri: " + jarUrl, urise);
+            }
+        }
+        if (true) throw new IllegalArgumentException(sb.toString());
 
         return null;
     }
