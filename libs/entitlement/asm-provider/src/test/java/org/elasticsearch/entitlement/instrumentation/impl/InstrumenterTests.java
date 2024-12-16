@@ -81,19 +81,11 @@ public class InstrumenterTests extends ESTestCase {
         void someMethod(int arg, String anotherArg);
     }
 
-    /**
-     * This is a placeholder for real class library methods.
-     * Without the java agent, we can't instrument the real methods, so we instrument this instead.
-     * <p>
-     * Methods of this class must have the same signature and the same static/virtual condition as the corresponding real method.
-     * They should assert that the arguments came through correctly.
-     * They must not throw {@link TestException}.
-     */
-    public static class TestClassToInstrument implements Testable {
+    public static class BaseTestClassToInstrutment implements Testable {
 
-        public TestClassToInstrument() {}
+        public BaseTestClassToInstrutment() {}
 
-        public TestClassToInstrument(int arg) {}
+        public BaseTestClassToInstrutment(int arg) {}
 
         public void someMethod(int arg) {}
 
@@ -104,6 +96,23 @@ public class InstrumenterTests extends ESTestCase {
         public static void someStaticMethod(int arg, String anotherArg) {}
 
         public static void anotherStaticMethod(int arg) {}
+    }
+
+    /**
+     * This is a placeholder for real class library methods.
+     * Without the java agent, we can't instrument the real methods, so we instrument this instead.
+     * <p>
+     * Methods of this class must have the same signature and the same static/virtual condition as the corresponding real method.
+     * They should assert that the arguments came through correctly.
+     * They must not throw {@link TestException}.
+     */
+    public static class TestClassToInstrument extends BaseTestClassToInstrutment {
+
+        public TestClassToInstrument() {}
+
+        public TestClassToInstrument(int arg) {
+            super(arg);
+        }
     }
 
     /**
@@ -283,6 +292,7 @@ public class InstrumenterTests extends ESTestCase {
         assertCtorThrows(loader, ctor2, 123);
         assertEquals(1, TestEntitlementCheckerHolder.checkerInstance.checkCtorCallCount);
         assertEquals(1, TestEntitlementCheckerHolder.checkerInstance.checkCtorIntCallCount);
+        fail();
     }
 
     /** This test doesn't replace classToInstrument in-place but instead loads a separate

@@ -215,11 +215,14 @@ public class InstrumenterImpl implements Instrumenter {
 
         @Override
         public void visitCode() {
+            super.getDelegate().visitCode();
             pushEntitlementChecker();
             pushCallerClass();
             forwardIncomingArguments();
             invokeInstrumentationMethod();
-            super.visitCode();
+            if (true) {
+                throw new IllegalStateException("HELLO: " + this.getDelegate().getClass().getName());
+            }
         }
 
         private void pushEntitlementChecker() {
