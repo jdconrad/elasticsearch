@@ -156,28 +156,28 @@ public class EntitlementInitialization {
                     new FilesEntitlement(
                         Stream.concat(
                             Stream.of(
-                                FileData.ofPath(bootstrapArgs.tempDir(), READ_WRITE),
-                                FileData.ofPath(bootstrapArgs.configDir(), READ),
-                                FileData.ofPath(bootstrapArgs.logsDir(), READ_WRITE),
+                                FileData.ofPath(bootstrapArgs.tempDir(), READ_WRITE, false),
+                                FileData.ofPath(bootstrapArgs.configDir(), READ, false),
+                                FileData.ofPath(bootstrapArgs.logsDir(), READ_WRITE, false),
                                 // OS release on Linux
-                                FileData.ofPath(Path.of("/etc/os-release"), READ),
-                                FileData.ofPath(Path.of("/etc/system-release"), READ),
-                                FileData.ofPath(Path.of("/usr/lib/os-release"), READ),
+                                FileData.ofPath(Path.of("/etc/os-release"), READ, false),
+                                FileData.ofPath(Path.of("/etc/system-release"), READ, false),
+                                FileData.ofPath(Path.of("/usr/lib/os-release"), READ, false),
                                 // read max virtual memory areas
-                                FileData.ofPath(Path.of("/proc/sys/vm/max_map_count"), READ),
-                                FileData.ofPath(Path.of("/proc/meminfo"), READ),
+                                FileData.ofPath(Path.of("/proc/sys/vm/max_map_count"), READ, false),
+                                FileData.ofPath(Path.of("/proc/meminfo"), READ, false),
                                 // load averages on Linux
-                                FileData.ofPath(Path.of("/proc/loadavg"), READ),
+                                FileData.ofPath(Path.of("/proc/loadavg"), READ, false),
                                 // control group stats on Linux. cgroup v2 stats are in an unpredicable
                                 // location under `/sys/fs/cgroup`, so unfortunately we have to allow
                                 // read access to the entire directory hierarchy.
-                                FileData.ofPath(Path.of("/proc/self/cgroup"), READ),
-                                FileData.ofPath(Path.of("/sys/fs/cgroup/"), READ),
+                                FileData.ofPath(Path.of("/proc/self/cgroup"), READ, false),
+                                FileData.ofPath(Path.of("/sys/fs/cgroup/"), READ, false),
                                 // // io stats on Linux
-                                FileData.ofPath(Path.of("/proc/self/mountinfo"), READ),
-                                FileData.ofPath(Path.of("/proc/diskstats"), READ)
+                                FileData.ofPath(Path.of("/proc/self/mountinfo"), READ, false),
+                                FileData.ofPath(Path.of("/proc/diskstats"), READ, false)
                             ),
-                            Arrays.stream(bootstrapArgs.dataDirs()).map(d -> FileData.ofPath(d, READ))
+                            Arrays.stream(bootstrapArgs.dataDirs()).map(d -> FileData.ofPath(d, READ, false))
                         ).toList()
                     )
                 )
@@ -191,8 +191,8 @@ public class EntitlementInitialization {
                     new ManageThreadsEntitlement(),
                     new FilesEntitlement(
                         Stream.concat(
-                            Stream.of(FileData.ofPath(bootstrapArgs.configDir(), READ)),
-                            Arrays.stream(bootstrapArgs.dataDirs()).map(d -> FileData.ofPath(d, READ_WRITE))
+                            Stream.of(FileData.ofPath(bootstrapArgs.configDir(), READ, false)),
+                            Arrays.stream(bootstrapArgs.dataDirs()).map(d -> FileData.ofPath(d, READ_WRITE, false))
                         ).toList()
                     )
                 )
@@ -202,7 +202,7 @@ public class EntitlementInitialization {
                 "org.elasticsearch.nativeaccess",
                 List.of(
                     new LoadNativeLibrariesEntitlement(),
-                    new FilesEntitlement(List.of(FileData.ofRelativePath(Path.of(""), FilesEntitlement.BaseDir.DATA, READ_WRITE)))
+                    new FilesEntitlement(List.of(FileData.ofRelativePath(Path.of(""), FilesEntitlement.BaseDir.DATA, READ_WRITE, false)))
                 )
             )
         );
@@ -210,7 +210,7 @@ public class EntitlementInitialization {
         Path trustStorePath = trustStorePath();
         if (trustStorePath != null) {
             serverScopes.add(
-                new Scope("org.bouncycastle.fips.tls", List.of(new FilesEntitlement(List.of(FileData.ofPath(trustStorePath, READ)))))
+                new Scope("org.bouncycastle.fips.tls", List.of(new FilesEntitlement(List.of(FileData.ofPath(trustStorePath, READ, false)))))
             );
         }
 

@@ -30,6 +30,7 @@ public record FilesEntitlement(List<FileData> filesData) implements Entitlement 
     public static final FilesEntitlement EMPTY = new FilesEntitlement(List.of());
 
     public enum Mode {
+        NONE, // used only for exclusive paths, not for specifying policy files
         READ,
         READ_WRITE
     }
@@ -46,23 +47,25 @@ public record FilesEntitlement(List<FileData> filesData) implements Entitlement 
 
         Mode mode();
 
-        static FileData ofPath(Path path, Mode mode) {
-            return new AbsolutePathFileData(path, mode);
+        boolean exclusive();
+
+        static FileData ofPath(Path path, Mode mode, boolean exclusive) {
+            return new AbsolutePathFileData(path, mode, exclusive);
         }
 
-        static FileData ofRelativePath(Path relativePath, BaseDir baseDir, Mode mode) {
-            return new RelativePathFileData(relativePath, baseDir, mode);
+        static FileData ofRelativePath(Path relativePath, BaseDir baseDir, Mode mode, boolean exclusive) {
+            return new RelativePathFileData(relativePath, baseDir, mode, exclusive);
         }
     }
 
-    private record AbsolutePathFileData(Path path, Mode mode) implements FileData {
+    private record AbsolutePathFileData(Path path, Mode mode, boolean exclusive) implements FileData {
         @Override
         public Stream<Path> resolvePaths(PathLookup pathLookup) {
             return Stream.of(path);
         }
     }
 
-    private record RelativePathFileData(Path relativePath, BaseDir baseDir, Mode mode) implements FileData {
+    private record RelativePathFileData(Path relativePath, BaseDir baseDir, Mode mode, boolean exclusive) implements FileData {
 
         @Override
         public Stream<Path> resolvePaths(PathLookup pathLookup) {
@@ -109,11 +112,13 @@ public record FilesEntitlement(List<FileData> filesData) implements Entitlement 
         }
         List<FileData> filesData = new ArrayList<>();
         for (Object object : paths) {
-            Map<String, String> file = new HashMap<>((Map<String, String>) object);
-            String pathAsString = file.remove("path");
-            String relativePathAsString = file.remove("relative_path");
-            String relativeTo = file.remove("relative_to");
-            String mode = file.remove("mode");
+            Map<String, Object> file = new HashMap<>((Map<String, String>) object);
+            String pathAsString = (String) file.remove("path");
+            String relativePathAsString = (String) file.remove("relative_path");
+            String relativeTo = (String) file.remove("relative_to");
+            String mode = (String) file.remove("mode");
+            Boolean exclusiveBoolean = (Boolean) file.remove("exclusive");
+            boolean exclusive = exclusiveBoolean != null && exclusiveBoolean;
 
             if (file.isEmpty() == false) {
                 throw new PolicyValidationException("unknown key(s) [" + file + "] in a listed file for files entitlement");
@@ -135,13 +140,13 @@ public record FilesEntitlement(List<FileData> filesData) implements Entitlement 
                 if (relativePath.isAbsolute()) {
                     throw new PolicyValidationException("'relative_path' [" + relativePathAsString + "] must be relative");
                 }
-                filesData.add(FileData.ofRelativePath(relativePath, baseDir, parseMode(mode)));
+                filesData.add(FileData.ofRelativePath(relativePath, baseDir, parseMode(mode), exclusive));
             } else if (pathAsString != null) {
                 Path path = Path.of(pathAsString);
                 if (path.isAbsolute() == false) {
                     throw new PolicyValidationException("'path' [" + pathAsString + "] must be absolute");
                 }
-                filesData.add(FileData.ofPath(path, parseMode(mode)));
+                filesData.add(FileData.ofPath(path, parseMode(mode), exclusive));
             } else {
                 throw new PolicyValidationException("files entitlement must contain either 'path' or 'relative_path' for every entry");
             }

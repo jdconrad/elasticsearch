@@ -39,7 +39,7 @@ public class FilesEntitlementTests extends ESTestCase {
     }
 
     public void testFileDataRelativeWithEmptyDirectory() {
-        var fileData = FilesEntitlement.FileData.ofRelativePath(Path.of(""), FilesEntitlement.BaseDir.DATA, READ_WRITE);
+        var fileData = FilesEntitlement.FileData.ofRelativePath(Path.of(""), FilesEntitlement.BaseDir.DATA, READ_WRITE, false);
         var dataDirs = fileData.resolvePaths(
             new PathLookup(Path.of("/home"), Path.of("/config"), new Path[] { Path.of("/data1/"), Path.of("/data2") }, Path.of("/temp"))
         );

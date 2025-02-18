@@ -99,7 +99,7 @@ public class PolicyManager {
         return new ModuleEntitlements(
             componentName,
             entitlements.stream().collect(groupingBy(Entitlement::getClass)),
-            FileAccessTree.of(filesEntitlement, pathLookup)
+            FileAccessTree.of(filesEntitlement, pathLookup, exclusivePaths)
         );
     }
 
@@ -139,6 +139,13 @@ public class PolicyManager {
      */
     private final Module entitlementsModule;
 
+    /**
+     * Paths that are only allowed for a single module. Used to generate
+     * structures to indicate other modules aren't allowed to use these
+     * files in {@link FileAccessTree}s.
+     */
+    private final Set<String> exclusivePaths = new HashSet<>();
+
     public PolicyManager(
         Policy serverPolicy,
         List<Entitlement> apmAgentEntitlements,
@@ -157,17 +164,21 @@ public class PolicyManager {
         this.apmAgentPackageName = apmAgentPackageName;
         this.entitlementsModule = entitlementsModule;
         this.pathLookup = requireNonNull(pathLookup);
-        this.defaultFileAccess = FileAccessTree.of(FilesEntitlement.EMPTY, pathLookup);
+        this.defaultFileAccess = FileAccessTree.of(FilesEntitlement.EMPTY, pathLookup, Set.of());
 
         for (var e : serverEntitlements.entrySet()) {
             validateEntitlementsPerModule(SERVER_COMPONENT_NAME, e.getKey(), e.getValue());
+            buildExclusivePathList(exclusivePaths, pathLookup, e.getValue());
         }
         validateEntitlementsPerModule(APM_AGENT_COMPONENT_NAME, "unnamed", apmAgentEntitlements);
+        buildExclusivePathList(exclusivePaths, pathLookup, apmAgentEntitlements);
         for (var p : pluginsEntitlements.entrySet()) {
             for (var m : p.getValue().entrySet()) {
                 validateEntitlementsPerModule(p.getKey(), m.getKey(), m.getValue());
+                buildExclusivePathList(exclusivePaths, pathLookup, m.getValue());
             }
         }
+
     }
 
     private static Map<String, List<Entitlement>> buildScopeEntitlementsMap(Policy policy) {
@@ -183,6 +194,25 @@ public class PolicyManager {
                 );
             }
             found.add(e.getClass());
+        }
+    }
+
+    private static void buildExclusivePathList(Set<String> exclusivePaths, PathLookup pathLookup, List<Entitlement> entitlements) {
+        for (var e : entitlements) {
+            if (e instanceof FilesEntitlement fe) {
+                for (FilesEntitlement.FileData fd : fe.filesData()) {
+                    if (fd.exclusive()) {
+                        List<Path> paths = fd.resolvePaths(pathLookup).toList();
+                        for (Path path : paths) {
+                            String pathStr = FileAccessTree.normalizePath(path);
+                            if (exclusivePaths.contains(pathStr)) {
+                                // TODO: throw
+                            }
+                            exclusivePaths.add(pathStr);
+                        }
+                    }
+                }
+            }
         }
     }
 

@@ -10,58 +10,62 @@
 package org.elasticsearch.entitlement.runtime.policy;
 
 import org.elasticsearch.entitlement.runtime.policy.entitlements.FilesEntitlement;
+import org.elasticsearch.entitlement.runtime.policy.entitlements.FilesEntitlement.Mode;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 import static org.elasticsearch.core.PathUtils.getDefaultFileSystem;
 
 public final class FileAccessTree {
 
+    private record AccessPath(String path, Mode mode) {
+
+        private AccessPath(String path, Mode mode) {
+            this.path = Objects.requireNonNull(path);
+            this.mode = Objects.requireNonNull(mode);
+        }
+
+        public static int compareTo(AccessPath one, AccessPath two) {
+            return one.path.compareTo(two.path);
+        }
+    }
+
     private static final String FILE_SEPARATOR = getDefaultFileSystem().getSeparator();
 
-    private final String[] readPaths;
-    private final String[] writePaths;
+    private final AccessPath[] paths;
 
-    private FileAccessTree(FilesEntitlement filesEntitlement, PathLookup pathLookup) {
-        List<String> readPaths = new ArrayList<>();
-        List<String> writePaths = new ArrayList<>();
+    private FileAccessTree(FilesEntitlement filesEntitlement, PathLookup pathLookup, Set<String> exclusivePaths) {
+        List<AccessPath> paths = new ArrayList<>();
         for (FilesEntitlement.FileData fileData : filesEntitlement.filesData()) {
             var mode = fileData.mode();
-            var paths = fileData.resolvePaths(pathLookup);
-            paths.forEach(path -> {
+            var resolvedPaths = fileData.resolvePaths(pathLookup);
+            resolvedPaths.forEach(path -> {
                 var normalized = normalizePath(path);
-                if (mode == FilesEntitlement.Mode.READ_WRITE) {
-                    writePaths.add(normalized);
-                }
-                readPaths.add(normalized);
+                paths.add(new AccessPath(normalized, mode));
             });
         }
 
         // everything has access to the temp dir
-        readPaths.add(pathLookup.tempDir().toString());
-        writePaths.add(pathLookup.tempDir().toString());
-
-        readPaths.sort(String::compareTo);
-        writePaths.sort(String::compareTo);
-
-        this.readPaths = readPaths.toArray(new String[0]);
-        this.writePaths = writePaths.toArray(new String[0]);
+        paths.add(new AccessPath(pathLookup.tempDir().toString(), Mode.READ_WRITE));
+        paths.sort(AccessPath::compareTo);
+        this.paths = paths.toArray(new AccessPath[0]);
     }
 
-    public static FileAccessTree of(FilesEntitlement filesEntitlement, PathLookup pathLookup) {
-        return new FileAccessTree(filesEntitlement, pathLookup);
+    public static FileAccessTree of(FilesEntitlement filesEntitlement, PathLookup pathLookup, Set<String> exclusivePaths) {
+        return new FileAccessTree(filesEntitlement, pathLookup, exclusivePaths);
     }
 
     boolean canRead(Path path) {
-        return checkPath(normalizePath(path), readPaths);
+        return checkPath(normalizePath(path), Mode.READ);
     }
 
     boolean canWrite(Path path) {
-        return checkPath(normalizePath(path), writePaths);
+        return checkPath(normalizePath(path), Mode.READ_WRITE);
     }
 
     /**
@@ -74,27 +78,36 @@ public final class FileAccessTree {
         return path.toAbsolutePath().normalize().toString();
     }
 
-    private static boolean checkPath(String path, String[] paths) {
+    private boolean checkPath(String path, Mode mode) {
         if (paths.length == 0) {
             return false;
         }
-        int ndx = Arrays.binarySearch(paths, path);
+        AccessPath match;
+        int ndx = Arrays.binarySearch(paths, new AccessPath(path, mode), AccessPath::compareTo);
         if (ndx < -1) {
-            String maybeParent = paths[-ndx - 2];
-            return path.startsWith(maybeParent) && path.startsWith(FILE_SEPARATOR, maybeParent.length());
+            AccessPath maybeParent = paths[-ndx - 2];
+            if (path.startsWith(maybeParent.path()) && path.startsWith(FILE_SEPARATOR, maybeParent.path().length())) {
+                match = maybeParent;
+            } else {
+                return false;
+            }
+        } else if (ndx >= 0) {
+            match = paths[ndx];
+        } else {
+            return false;
         }
-        return ndx >= 0;
+        return match.mode == mode || match.mode == Mode.READ_WRITE && mode == Mode.READ;
     }
 
     @Override
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
         FileAccessTree that = (FileAccessTree) o;
-        return Objects.deepEquals(readPaths, that.readPaths) && Objects.deepEquals(writePaths, that.writePaths);
+        return Objects.deepEquals(paths, that.paths);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(Arrays.hashCode(readPaths), Arrays.hashCode(writePaths));
+        return Objects.hash(Arrays.hashCode(paths));
     }
 }

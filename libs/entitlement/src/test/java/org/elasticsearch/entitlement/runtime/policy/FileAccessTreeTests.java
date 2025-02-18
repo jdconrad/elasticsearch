@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.elasticsearch.core.PathUtils.getDefaultFileSystem;
 import static org.hamcrest.Matchers.is;
@@ -166,14 +167,15 @@ public class FileAccessTreeTests extends ESTestCase {
         Path tempDir = createTempDir();
         var tree = FileAccessTree.of(
             FilesEntitlement.EMPTY,
-            new PathLookup(Path.of("/home"), Path.of("/config"), new Path[] { Path.of("/data1"), Path.of("/data2") }, tempDir)
+            new PathLookup(Path.of("/home"), Path.of("/config"), new Path[] { Path.of("/data1"), Path.of("/data2") }, tempDir),
+            Set.of()
         );
         assertThat(tree.canRead(tempDir), is(true));
         assertThat(tree.canWrite(tempDir), is(true));
     }
 
     FileAccessTree accessTree(FilesEntitlement entitlement) {
-        return FileAccessTree.of(entitlement, TEST_PATH_LOOKUP);
+        return FileAccessTree.of(entitlement, TEST_PATH_LOOKUP, Set.of());
     }
 
     static FilesEntitlement entitlement(String... values) {
