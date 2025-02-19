@@ -15,6 +15,7 @@ import org.elasticsearch.entitlement.runtime.policy.entitlements.FilesEntitlemen
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -41,17 +42,26 @@ public final class FileAccessTree {
 
     private FileAccessTree(FilesEntitlement filesEntitlement, PathLookup pathLookup, Set<String> exclusivePaths) {
         List<AccessPath> paths = new ArrayList<>();
+        Set<String> excludes = new HashSet<>();
         for (FilesEntitlement.FileData fileData : filesEntitlement.filesData()) {
             var mode = fileData.mode();
             var resolvedPaths = fileData.resolvePaths(pathLookup);
             resolvedPaths.forEach(path -> {
                 var normalized = normalizePath(path);
                 paths.add(new AccessPath(normalized, mode));
+                if (exclusivePaths.contains(normalized)) {
+                    excludes.add(normalized);
+                }
             });
         }
 
         // everything has access to the temp dir
         paths.add(new AccessPath(pathLookup.tempDir().toString(), Mode.READ_WRITE));
+        for (String exclusivePath : exclusivePaths) {
+            if (excludes.contains(exclusivePath) == false) {
+                paths.add(new AccessPath(exclusivePath, Mode.NONE));
+            }
+        }
         paths.sort(AccessPath::compareTo);
         this.paths = paths.toArray(new AccessPath[0]);
     }
