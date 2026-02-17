@@ -1,0 +1,28 @@
+{
+  "scripts_javascript_context": {
+    "stability": "experimental",
+    "visibility": "public",
+    "documentation": {
+      "url": "https://www.elastic.co/guide/en/elasticsearch/javascript/master/javascript-contexts.html",
+      "description": "Returns the javascript contexts"
+    },
+    "headers":{
+      "accept": [ "application/json"]
+    },
+    "url": {
+      "paths": [
+        {
+          "path": "/_scripts/javascript/_context",
+          "methods": ["GET"],
+          "parts": {}
+        }
+      ]
+    },
+    "params": {
+      "context" : {
+        "type" : "string",
+        "description" : "Select a specific context to retrieve API information about"
+      }
+    }
+  }
+}

@@ -1,0 +1,34 @@
+class org.elasticsearch.javascript.DynamicTypeTests$DynI @dynamic_type {
+}
+
+class org.elasticsearch.javascript.DynamicTypeTests$DynA {
+  ()
+}
+
+class org.elasticsearch.javascript.DynamicTypeTests$DynB @dynamic_type {
+  ()
+}
+
+class org.elasticsearch.javascript.DynamicTypeTests$DynC {
+  ()
+}
+
+class org.elasticsearch.javascript.DynamicTypeTests$DynD @dynamic_type {
+  ()
+  char letter()
+}
+
+class org.elasticsearch.javascript.DynamicTypeTests$DynE @dynamic_type {
+  ()
+  char letter()
+}
+
+class org.elasticsearch.javascript.DynamicTypeTests$DynF @dynamic_type {
+  ()
+}
+
+class org.elasticsearch.javascript.DynamicTypeTests$DynG @dynamic_type {
+  ()
+  char letter()
+  int value()
+}

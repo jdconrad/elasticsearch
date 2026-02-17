@@ -1,0 +1,17 @@
+class org.elasticsearch.javascript.AliasedTestInnerClass {
+  int multiply(int, int)
+}
+
+class org.elasticsearch.javascript.AliasTestClass$AliasedTestInnerClass @alias[class="AliasedTestInnerClass"] {
+  int plus(int, int)
+}
+
+class org.elasticsearch.javascript.AliasTestClass$UnaliasedTestInnerClass {
+  int minus(int, int)
+}
+
+class org.elasticsearch.javascript.AliasTestClass {
+  AliasedTestInnerClass getInnerAliased()
+  AliasTestClass.UnaliasedTestInnerClass getInnerUnaliased()
+}
+

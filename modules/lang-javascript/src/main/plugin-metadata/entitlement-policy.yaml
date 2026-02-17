@@ -1,0 +1,2 @@
+org.elasticsearch.javascript:
+  - create_class_loader
