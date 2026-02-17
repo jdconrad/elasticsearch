@@ -1,118 +1,285 @@
 /*
- * Copyright Elasticsearch B.V. and/or licensed to Elasticsearch B.V. under one
- * or more contributor license agreements. Licensed under the "Elastic License
- * 2.0", the "GNU Affero General Public License v3.0 only", and the "Server Side
- * Public License v 1"; you may not use this file except in compliance with, at
- * your election, the "Elastic License 2.0", the "GNU Affero General Public
- * License v3.0 only", or the "Server Side Public License, v 1".
+ * The MIT License (MIT)
+ *
+ * Copyright (c) 2014 by Bart Kiers (original author) and Alexandre Vitorelli (contributor -> ported to CSharp)
+ * Copyright (c) 2017-2020 by Ivan Kochurkin (Positive Technologies):
+    added ECMAScript 6 support, cleared and transformed to the universal grammar.
+ * Copyright (c) 2018 by Juan Alvarez (contributor -> ported to Go)
+ * Copyright (c) 2019 by Student Main (contributor -> ES2020)
+ *
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-lexer grammar JavascriptLexer;
+// $antlr-format alignTrailingComments true, columnLimit 150, maxEmptyLinesToKeep 1, reflowComments false, useTab false
+// $antlr-format allowShortRulesOnASingleLine true, allowShortBlocksOnASingleLine true, minEmptyLines 0, alignSemicolons ownLine
+// $antlr-format alignColons trailing, singleLineOverrulesHangingColon true, alignLexerCommands true, alignLabels true, alignTrailers true
 
-@members {
-/** Is the preceding {@code /} a the beginning of a regex (true) or a division (false). */
-protected abstract boolean isSlashRegex();
+lexer grammar JavaScriptLexer;
+
+channels {
+    ERROR
 }
 
-WS: [ \t\n\r]+ -> skip;
-COMMENT: ( '//' .*? [\n\r] | '/*' .*? '*/' ) -> skip;
+options {
+    superClass = JavaScriptLexerBase;
+}
 
-LBRACK:    '{';
-RBRACK:    '}';
-LBRACE:    '[';
-RBRACE:    ']';
-LP:        '(';
-RP:        ')';
-DOLLAR:    '$';
-// We switch modes after a dot to ensure there are not conflicts
-// between shortcuts and decimal values.  Without the mode switch
-// shortcuts such as id.0.0 will fail because 0.0 will be interpreted
-// as a decimal value instead of two individual list-style shortcuts.
-DOT:       '.'  -> mode(AFTER_DOT);
-NSDOT:     '?.' -> mode(AFTER_DOT);
-COMMA:     ',';
-SEMICOLON: ';';
-IF:        'if';
-IN:        'in';
-ELSE:      'else';
-WHILE:     'while';
-DO:        'do';
-FOR:       'for';
-CONTINUE:  'continue';
-BREAK:     'break';
-RETURN:    'return';
-NEW:       'new';
-TRY:       'try';
-CATCH:     'catch';
-THROW:     'throw';
-THIS:      'this';
-INSTANCEOF: 'instanceof';
+// Insert here @header for C++ lexer.
 
-BOOLNOT: '!';
-BWNOT:   '~';
-MUL:     '*';
-DIV:     '/' { isSlashRegex() == false }?;
-REM:     '%';
-ADD:     '+';
-SUB:     '-';
-LSH:     '<<';
-RSH:     '>>';
-USH:     '>>>';
-LT:      '<';
-LTE:     '<=';
-GT:      '>';
-GTE:     '>=';
-EQ:      '==';
-EQR:     '===';
-NE:      '!=';
-NER:     '!==';
-BWAND:   '&';
-XOR:     '^';
-BWOR:    '|';
-BOOLAND: '&&';
-BOOLOR:  '||';
-COND:    '?';
-COLON:   ':';
-ELVIS:   '?:';
-REF:     '::';
-ARROW:   '->';
-FIND:    '=~';
-MATCH:   '==~';
-INCR:    '++';
-DECR:    '--';
+HashBangLine      :                           { this.IsStartOfFile()}? '#!' ~[\r\n\u2028\u2029]*; // only allowed at start
+MultiLineComment  : '/*' .*? '*/'             -> channel(HIDDEN);
+SingleLineComment : '//' ~[\r\n\u2028\u2029]* -> channel(HIDDEN);
+RegularExpressionLiteral:
+    '/' RegularExpressionFirstChar RegularExpressionChar* {this.IsRegexPossible()}? '/' IdentifierPart*
+;
 
-ASSIGN: '=';
-AADD:   '+=';
-ASUB:   '-=';
-AMUL:   '*=';
-ADIV:   '/=';
-AREM:   '%=';
-AAND:   '&=';
-AXOR:   '^=';
-AOR:    '|=';
-ALSH:   '<<=';
-ARSH:   '>>=';
-AUSH:   '>>>=';
+OpenBracket                : '[';
+CloseBracket               : ']';
+OpenParen                  : '(';
+CloseParen                 : ')';
+OpenBrace                  : '{' {this.ProcessOpenBrace();};
+TemplateCloseBrace         :     {this.IsInTemplateString()}? '}' // Break lines here to ensure proper transformation by Go/transformGrammar.py
+                                                                  {this.ProcessTemplateCloseBrace();} -> popMode;
+CloseBrace                 : '}' {this.ProcessCloseBrace();};
+SemiColon                  : ';';
+Comma                      : ',';
+Assign                     : '=';
+QuestionMark               : '?';
+QuestionMarkDot            : '?.';
+Colon                      : ':';
+Ellipsis                   : '...';
+Dot                        : '.';
+PlusPlus                   : '++';
+MinusMinus                 : '--';
+Plus                       : '+';
+Minus                      : '-';
+BitNot                     : '~';
+Not                        : '!';
+Multiply                   : '*';
+Divide                     : '/';
+Modulus                    : '%';
+Power                      : '**';
+NullCoalesce               : '??';
+Hashtag                    : '#';
+RightShiftArithmetic       : '>>';
+LeftShiftArithmetic        : '<<';
+RightShiftLogical          : '>>>';
+LessThan                   : '<';
+MoreThan                   : '>';
+LessThanEquals             : '<=';
+GreaterThanEquals          : '>=';
+Equals_                    : '==';
+NotEquals                  : '!=';
+IdentityEquals             : '===';
+IdentityNotEquals          : '!==';
+BitAnd                     : '&';
+BitXOr                     : '^';
+BitOr                      : '|';
+And                        : '&&';
+Or                         : '||';
+MultiplyAssign             : '*=';
+DivideAssign               : '/=';
+ModulusAssign              : '%=';
+PlusAssign                 : '+=';
+MinusAssign                : '-=';
+LeftShiftArithmeticAssign  : '<<=';
+RightShiftArithmeticAssign : '>>=';
+RightShiftLogicalAssign    : '>>>=';
+BitAndAssign               : '&=';
+BitXorAssign               : '^=';
+BitOrAssign                : '|=';
+PowerAssign                : '**=';
+NullishCoalescingAssign    : '??=';
+ARROW                      : '=>';
 
-OCTAL: '0' [0-7]+ [lL]?;
-HEX: '0' [xX] [0-9a-fA-F]+ [lL]?;
-INTEGER: ( '0' | [1-9] [0-9]* ) [lLfFdD]?;
-DECIMAL: ( '0' | [1-9] [0-9]* ) (DOT [0-9]+)? ( [eE] [+\-]? [0-9]+ )? [fFdD]?;
+/// Null Literals
 
-STRING: ( '"' ( '\\"' | '\\\\' | ~[\\"] )*? '"' ) | ( '\'' ( '\\\'' | '\\\\' | ~[\\'] )*? '\'' );
-REGEX: '/' ( '\\' ~'\n' | ~('/' | '\n') )+? '/' [cilmsUux]* { isSlashRegex() }?;
+NullLiteral: 'null';
 
-TRUE:  'true';
-FALSE: 'false';
+/// Boolean Literals
 
-NULL: 'null';
+BooleanLiteral: 'true' | 'false';
 
-PRIMITIVE: 'boolean' | 'byte' | 'short' | 'char' | 'int' | 'long' | 'float' | 'double';
-DEF: 'def';
+/// Numeric Literals
 
-ID: [_a-zA-Z] [_a-zA-Z0-9]*;
+DecimalLiteral:
+    DecimalIntegerLiteral '.' [0-9] [0-9_]* ExponentPart?
+    | '.' [0-9] [0-9_]* ExponentPart?
+    | DecimalIntegerLiteral ExponentPart?
+;
 
-mode AFTER_DOT;
+/// Numeric Literals
 
-DOTINTEGER: ( '0' | [1-9] [0-9]* ) -> mode(DEFAULT_MODE);
-DOTID: [_a-zA-Z] [_a-zA-Z0-9]*     -> mode(DEFAULT_MODE);
+HexIntegerLiteral    : '0' [xX] [0-9a-fA-F] HexDigit*;
+OctalIntegerLiteral  : '0' [0-7]+ {!this.IsStrictMode()}?;
+OctalIntegerLiteral2 : '0' [oO] [0-7] [_0-7]*;
+BinaryIntegerLiteral : '0' [bB] [01] [_01]*;
+
+BigHexIntegerLiteral     : '0' [xX] [0-9a-fA-F] HexDigit* 'n';
+BigOctalIntegerLiteral   : '0' [oO] [0-7] [_0-7]* 'n';
+BigBinaryIntegerLiteral  : '0' [bB] [01] [_01]* 'n';
+BigDecimalIntegerLiteral : DecimalIntegerLiteral 'n';
+
+/// Keywords
+
+Break      : 'break';
+Do         : 'do';
+Instanceof : 'instanceof';
+Typeof     : 'typeof';
+Case       : 'case';
+Else       : 'else';
+New        : 'new';
+Var        : 'var';
+Catch      : 'catch';
+Finally    : 'finally';
+Return     : 'return';
+Void       : 'void';
+Continue   : 'continue';
+For        : 'for';
+Switch     : 'switch';
+While      : 'while';
+Debugger   : 'debugger';
+Function_  : 'function';
+This       : 'this';
+With       : 'with';
+Default    : 'default';
+If         : 'if';
+Throw      : 'throw';
+Delete     : 'delete';
+In         : 'in';
+Try        : 'try';
+As         : 'as';
+From       : 'from';
+Of         : 'of';
+Yield      : 'yield';
+YieldStar  : 'yield*';
+
+/// Future Reserved Words
+
+Class   : 'class';
+Enum    : 'enum';
+Extends : 'extends';
+Super   : 'super';
+Const   : 'const';
+Export  : 'export';
+Import  : 'import';
+
+Async : 'async';
+Await : 'await';
+
+/// The following tokens are also considered to be FutureReservedWords
+/// when parsing strict mode
+
+Implements   : 'implements' {this.IsStrictMode()}?;
+StrictLet    : 'let'        {this.IsStrictMode()}?;
+NonStrictLet : 'let'        {!this.IsStrictMode()}?;
+Private      : 'private'    {this.IsStrictMode()}?;
+Public       : 'public'     {this.IsStrictMode()}?;
+Interface    : 'interface'  {this.IsStrictMode()}?;
+Package      : 'package'    {this.IsStrictMode()}?;
+Protected    : 'protected'  {this.IsStrictMode()}?;
+Static       : 'static'     {this.IsStrictMode()}?;
+
+/// Identifier Names and Identifiers
+
+Identifier: IdentifierStart IdentifierPart*;
+/// String Literals
+StringLiteral:
+    ('"' DoubleStringCharacter* '"' | '\'' SingleStringCharacter* '\'') {this.ProcessStringLiteral();}
+;
+
+BackTick: '`' -> pushMode(TEMPLATE);
+
+WhiteSpaces: [\t\u000B\u000C\u0020\u00A0]+ -> channel(HIDDEN);
+
+LineTerminator: [\r\n\u2028\u2029] -> channel(HIDDEN);
+
+/// Comments
+
+HtmlComment         : '<!--' .*? '-->'      -> channel(HIDDEN);
+CDataComment        : '<![CDATA[' .*? ']]>' -> channel(HIDDEN);
+UnexpectedCharacter : .                     -> channel(ERROR);
+
+mode TEMPLATE;
+
+BackTickInside                : '`' -> type(BackTick), popMode;
+TemplateStringStartExpression : '${' {this.ProcessTemplateOpenBrace();} -> pushMode(DEFAULT_MODE);
+TemplateStringAtom            : ~[`];
+
+// Fragment rules
+
+fragment DoubleStringCharacter: ~["\\\r\n] | '\\' EscapeSequence | LineContinuation;
+
+fragment SingleStringCharacter: ~['\\\r\n] | '\\' EscapeSequence | LineContinuation;
+
+fragment EscapeSequence:
+    CharacterEscapeSequence
+    | '0' // no digit ahead! TODO
+    | HexEscapeSequence
+    | UnicodeEscapeSequence
+    | ExtendedUnicodeEscapeSequence
+;
+
+fragment CharacterEscapeSequence: SingleEscapeCharacter | NonEscapeCharacter;
+
+fragment HexEscapeSequence: 'x' HexDigit HexDigit;
+
+fragment UnicodeEscapeSequence:
+    'u' HexDigit HexDigit HexDigit HexDigit
+    | 'u' '{' HexDigit HexDigit+ '}'
+;
+
+fragment ExtendedUnicodeEscapeSequence: 'u' '{' HexDigit+ '}';
+
+fragment SingleEscapeCharacter: ['"\\bfnrtv];
+
+fragment NonEscapeCharacter: ~['"\\bfnrtv0-9xu\r\n];
+
+fragment EscapeCharacter: SingleEscapeCharacter | [0-9] | [xu];
+
+fragment LineContinuation: '\\' [\r\n\u2028\u2029]+;
+
+fragment HexDigit: [_0-9a-fA-F];
+
+fragment DecimalIntegerLiteral: '0' | [1-9] [0-9_]*;
+
+fragment ExponentPart: [eE] [+-]? [0-9_]+;
+
+fragment IdentifierPart: IdentifierStart | [\p{Mn}] | [\p{Nd}] | [\p{Pc}] | '\u200C' | '\u200D';
+
+fragment IdentifierStart: [\p{L}] | [$_] | '\\' UnicodeEscapeSequence;
+
+fragment RegularExpressionFirstChar:
+    ~[*\r\n\u2028\u2029\\/[]
+    | RegularExpressionBackslashSequence
+    | '[' RegularExpressionClassChar* ']'
+;
+
+fragment RegularExpressionChar:
+    ~[\r\n\u2028\u2029\\/[]
+    | RegularExpressionBackslashSequence
+    | '[' RegularExpressionClassChar* ']'
+;
+
+fragment RegularExpressionClassChar: ~[\r\n\u2028\u2029\]\\] | RegularExpressionBackslashSequence;
+
+fragment RegularExpressionBackslashSequence: '\\' ~[\r\n\u2028\u2029];
