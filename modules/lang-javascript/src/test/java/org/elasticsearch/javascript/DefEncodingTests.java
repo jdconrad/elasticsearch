@@ -43,6 +43,8 @@ public class DefEncodingTests extends ESTestCase {
         assertEquals(new Def.Encoding(true, true, "this", "lambda$synthetic$0", 2), new Def.Encoding("Stthis.lambda$synthetic$0,2"));
 
         assertEquals(new Def.Encoding(true, true, "this", "mycompare", 0), new Def.Encoding("Stthis.mycompare,0"));
+
+        assertEquals(new Def.Encoding(true, false, "this", "lambda$synthetic$10", 12), new Def.Encoding("Sfthis.lambda$synthetic$10,12"));
     }
 
     public void testValidate() {
@@ -66,5 +68,14 @@ public class DefEncodingTests extends ESTestCase {
         expected = expectThrows(IllegalArgumentException.class, () -> new Def.Encoding(false, false, "x", "", 1));
 
         assertThat(expected.getMessage(), startsWith("methodName must be non-empty, encoding [Dfx.,1]"));
+
+        expected = expectThrows(IllegalArgumentException.class, () -> new Def.Encoding(false, false, "x", "concat", -1));
+
+        assertThat(expected.getMessage(), startsWith("numCaptures must be non-negative, not [-1], encoding: [Dfx.concat,-1]"));
+    }
+
+    public void testParseValidation() {
+        IllegalArgumentException expected = expectThrows(IllegalArgumentException.class, () -> new Def.Encoding("Sf"));
+        assertThat(expected.getMessage(), startsWith("Encoding too short. Minimum 6, given [2], encoding: [Sf], format: "));
     }
 }

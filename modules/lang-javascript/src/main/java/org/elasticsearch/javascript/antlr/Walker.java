@@ -54,11 +54,13 @@ import org.elasticsearch.javascript.antlr.JavascriptParser.FalseContext;
 import org.elasticsearch.javascript.antlr.JavascriptParser.FieldaccessContext;
 import org.elasticsearch.javascript.antlr.JavascriptParser.ForContext;
 import org.elasticsearch.javascript.antlr.JavascriptParser.FunctionContext;
+import org.elasticsearch.javascript.antlr.JavascriptParser.FuncrefvalContext;
 import org.elasticsearch.javascript.antlr.JavascriptParser.IfContext;
 import org.elasticsearch.javascript.antlr.JavascriptParser.IneachContext;
 import org.elasticsearch.javascript.antlr.JavascriptParser.InitializerContext;
 import org.elasticsearch.javascript.antlr.JavascriptParser.InstanceofContext;
 import org.elasticsearch.javascript.antlr.JavascriptParser.LambdaContext;
+import org.elasticsearch.javascript.antlr.JavascriptParser.LambdavalContext;
 import org.elasticsearch.javascript.antlr.JavascriptParser.LamtypeContext;
 import org.elasticsearch.javascript.antlr.JavascriptParser.ListinitContext;
 import org.elasticsearch.javascript.antlr.JavascriptParser.ListinitializerContext;
@@ -898,6 +900,16 @@ public final class Walker extends JavascriptParserBaseVisitor<ANode> {
     }
 
     @Override
+    public ANode visitLambdaval(LambdavalContext ctx) {
+        return visit(ctx.lambda());
+    }
+
+    @Override
+    public ANode visitFuncrefval(FuncrefvalContext ctx) {
+        return visit(ctx.funcref());
+    }
+
+    @Override
     public ANode visitVariable(VariableContext ctx) {
         String name = ctx.ID().getText();
 
@@ -1085,10 +1097,6 @@ public final class Walker extends JavascriptParserBaseVisitor<ANode> {
     public ANode visitArgument(ArgumentContext ctx) {
         if (ctx.expression() != null) {
             return visit(ctx.expression());
-        } else if (ctx.lambda() != null) {
-            return visit(ctx.lambda());
-        } else if (ctx.funcref() != null) {
-            return visit(ctx.funcref());
         } else {
             throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
         }

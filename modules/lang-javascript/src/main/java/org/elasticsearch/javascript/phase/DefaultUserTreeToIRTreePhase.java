@@ -198,6 +198,7 @@ import org.elasticsearch.javascript.symbol.FunctionTable.LocalFunction;
 import org.elasticsearch.javascript.symbol.IRDecorations.IRCAllEscape;
 import org.elasticsearch.javascript.symbol.IRDecorations.IRCCaptureBox;
 import org.elasticsearch.javascript.symbol.IRDecorations.IRCContinuous;
+import org.elasticsearch.javascript.symbol.IRDecorations.IRCDefReferenceObject;
 import org.elasticsearch.javascript.symbol.IRDecorations.IRCInitialize;
 import org.elasticsearch.javascript.symbol.IRDecorations.IRCInstanceCapture;
 import org.elasticsearch.javascript.symbol.IRDecorations.IRCRead;
@@ -1375,18 +1376,21 @@ public class DefaultUserTreeToIRTreePhase implements UserTreeVisitor<ScriptScope
     public void visitLambda(ELambda userLambdaNode, ScriptScope scriptScope) {
         ExpressionNode irExpressionNode;
 
-        if (scriptScope.hasDecoration(userLambdaNode, TargetType.class)) {
+        if (scriptScope.hasDecoration(userLambdaNode, EncodingDecoration.class)) {
+            DefInterfaceReferenceNode defInterfaceReferenceNode = new DefInterfaceReferenceNode(userLambdaNode.getLocation());
+            defInterfaceReferenceNode.attachDecoration(
+                new IRDDefReferenceEncoding(scriptScope.getDecoration(userLambdaNode, EncodingDecoration.class).encoding())
+            );
+            if (scriptScope.getDecoration(userLambdaNode, ValueType.class).valueType() == def.class) {
+                defInterfaceReferenceNode.attachCondition(IRCDefReferenceObject.class);
+            }
+            irExpressionNode = defInterfaceReferenceNode;
+        } else {
             TypedInterfaceReferenceNode typedInterfaceReferenceNode = new TypedInterfaceReferenceNode(userLambdaNode.getLocation());
             typedInterfaceReferenceNode.attachDecoration(
                 new IRDReference(scriptScope.getDecoration(userLambdaNode, ReferenceDecoration.class).reference())
             );
             irExpressionNode = typedInterfaceReferenceNode;
-        } else {
-            DefInterfaceReferenceNode defInterfaceReferenceNode = new DefInterfaceReferenceNode(userLambdaNode.getLocation());
-            defInterfaceReferenceNode.attachDecoration(
-                new IRDDefReferenceEncoding(scriptScope.getDecoration(userLambdaNode, EncodingDecoration.class).encoding())
-            );
-            irExpressionNode = defInterfaceReferenceNode;
         }
 
         FunctionNode irFunctionNode = new FunctionNode(userLambdaNode.getLocation());
@@ -1425,15 +1429,17 @@ public class DefaultUserTreeToIRTreePhase implements UserTreeVisitor<ScriptScope
     public void visitFunctionRef(EFunctionRef userFunctionRefNode, ScriptScope scriptScope) {
         ExpressionNode irReferenceNode;
 
-        TargetType targetType = scriptScope.getDecoration(userFunctionRefNode, TargetType.class);
         CapturesDecoration capturesDecoration = scriptScope.getDecoration(userFunctionRefNode, CapturesDecoration.class);
 
-        if (targetType == null) {
+        if (scriptScope.hasDecoration(userFunctionRefNode, EncodingDecoration.class)) {
             Def.Encoding encoding = scriptScope.getDecoration(userFunctionRefNode, EncodingDecoration.class).encoding();
             DefInterfaceReferenceNode defInterfaceReferenceNode = new DefInterfaceReferenceNode(userFunctionRefNode.getLocation());
             defInterfaceReferenceNode.attachDecoration(new IRDDefReferenceEncoding(encoding));
             if (scriptScope.getCondition(userFunctionRefNode, InstanceCapturingFunctionRef.class)) {
                 defInterfaceReferenceNode.attachCondition(IRCInstanceCapture.class);
+            }
+            if (scriptScope.getDecoration(userFunctionRefNode, ValueType.class).valueType() == def.class) {
+                defInterfaceReferenceNode.attachCondition(IRCDefReferenceObject.class);
             }
             irReferenceNode = defInterfaceReferenceNode;
         } else if (capturesDecoration != null && capturesDecoration.captures().get(0).type() == def.class) {
@@ -1469,18 +1475,21 @@ public class DefaultUserTreeToIRTreePhase implements UserTreeVisitor<ScriptScope
     public void visitNewArrayFunctionRef(ENewArrayFunctionRef userNewArrayFunctionRefNode, ScriptScope scriptScope) {
         ExpressionNode irReferenceNode;
 
-        if (scriptScope.hasDecoration(userNewArrayFunctionRefNode, TargetType.class)) {
+        if (scriptScope.hasDecoration(userNewArrayFunctionRefNode, EncodingDecoration.class)) {
+            Def.Encoding encoding = scriptScope.getDecoration(userNewArrayFunctionRefNode, EncodingDecoration.class).encoding();
+            DefInterfaceReferenceNode defInterfaceReferenceNode = new DefInterfaceReferenceNode(userNewArrayFunctionRefNode.getLocation());
+            defInterfaceReferenceNode.attachDecoration(new IRDDefReferenceEncoding(encoding));
+            if (scriptScope.getDecoration(userNewArrayFunctionRefNode, ValueType.class).valueType() == def.class) {
+                defInterfaceReferenceNode.attachCondition(IRCDefReferenceObject.class);
+            }
+            irReferenceNode = defInterfaceReferenceNode;
+        } else {
             TypedInterfaceReferenceNode typedInterfaceReferenceNode = new TypedInterfaceReferenceNode(
                 userNewArrayFunctionRefNode.getLocation()
             );
             FunctionRef reference = scriptScope.getDecoration(userNewArrayFunctionRefNode, ReferenceDecoration.class).reference();
             typedInterfaceReferenceNode.attachDecoration(new IRDReference(reference));
             irReferenceNode = typedInterfaceReferenceNode;
-        } else {
-            Def.Encoding encoding = scriptScope.getDecoration(userNewArrayFunctionRefNode, EncodingDecoration.class).encoding();
-            DefInterfaceReferenceNode defInterfaceReferenceNode = new DefInterfaceReferenceNode(userNewArrayFunctionRefNode.getLocation());
-            defInterfaceReferenceNode.attachDecoration(new IRDDefReferenceEncoding(encoding));
-            irReferenceNode = defInterfaceReferenceNode;
         }
 
         Class<?> returnType = scriptScope.getDecoration(userNewArrayFunctionRefNode, ReturnType.class).returnType();

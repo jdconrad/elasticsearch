@@ -21,8 +21,11 @@ import java.lang.invoke.MethodType;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Map;
+import java.util.function.Function;
 
 import static org.elasticsearch.javascript.ScriptTestCase.JAVASCRIPT_BASE_WHITELIST;
+import static org.hamcrest.Matchers.containsString;
 
 public class DefBootstrapTests extends ESTestCase {
     private final JavascriptLookup javascriptLookup = JavascriptLookupBuilder.buildFromWhitelists(
@@ -255,6 +258,62 @@ public class DefBootstrapTests extends ESTestCase {
         MethodHandle handle = site.dynamicInvoker();
         assertEquals(2, (Object) handle.invokeExact(1, (Object) 1));
         expectThrows(NullPointerException.class, () -> { assertNotNull((Object) handle.invokeExact(5, (Object) null)); });
+    }
+
+    public void testDeferredReferenceUnknownMethod() throws Throwable {
+        CallSite site = DefBootstrap.bootstrap(
+            javascriptLookup,
+            new FunctionTable(),
+            Collections.emptyMap(),
+            MethodHandles.publicLookup(),
+            "bogus",
+            MethodType.methodType(Object.class, Object.class),
+            0,
+            DefBootstrap.METHOD_CALL,
+            ""
+        );
+
+        MethodHandle handle = site.dynamicInvoker();
+        Object[] deferredReference = new Object[] { new Def.Encoding(true, false, "java.lang.Integer", "parseInt", 0).toString() };
+
+        IllegalArgumentException expected = expectThrows(IllegalArgumentException.class, () -> handle.invokeExact((Object) deferredReference));
+        assertEquals("dynamic method [java.lang.Object[], bogus/0] not found", expected.getMessage());
+    }
+
+    public void testDeferredReferenceRejectsNonFunctionalTarget() {
+        Object[] deferredReference = new Object[] { new Def.Encoding(true, false, "java.lang.Integer", "parseInt", 0).toString() };
+
+        IllegalArgumentException expected = expectThrows(
+            IllegalArgumentException.class,
+            () -> Def.defToReferenceImplicit(
+                deferredReference,
+                Map.class,
+                MethodHandles.publicLookup(),
+                javascriptLookup,
+                new FunctionTable(),
+                Collections.emptyMap()
+            )
+        );
+
+        assertEquals("Class [java.util.Map] is not a functional interface", expected.getMessage());
+    }
+
+    public void testDeferredReferenceRejectsInvalidPayload() {
+        Object[] deferredReference = new Object[] { new Def.Encoding(true, false, "java.lang.Integer", "parseInt", 1).toString() };
+
+        IllegalArgumentException expected = expectThrows(
+            IllegalArgumentException.class,
+            () -> Def.defToReferenceImplicit(
+                deferredReference,
+                Function.class,
+                MethodHandles.publicLookup(),
+                javascriptLookup,
+                new FunctionTable(),
+                Collections.emptyMap()
+            )
+        );
+
+        assertThat(expected.getMessage(), containsString("invalid deferred reference payload [Sfjava.lang.Integer.parseInt,1]"));
     }
 
     static void assertDepthEquals(CallSite site, int expected) {

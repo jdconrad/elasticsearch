@@ -12,6 +12,8 @@ package org.elasticsearch.javascript;
 import org.elasticsearch.javascript.lookup.JavascriptCast;
 import org.elasticsearch.javascript.lookup.JavascriptMethod;
 import org.elasticsearch.javascript.lookup.def;
+import org.elasticsearch.javascript.lookup.JavascriptLookup;
+import org.elasticsearch.javascript.symbol.FunctionTable;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.Opcodes;
@@ -26,8 +28,10 @@ import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Deque;
 import java.util.List;
+import java.util.Map;
 
 import static org.elasticsearch.javascript.WriterConstants.CHAR_TO_STRING;
+import static org.elasticsearch.javascript.WriterConstants.CLASS_TYPE;
 import static org.elasticsearch.javascript.WriterConstants.DEF_BOOTSTRAP_HANDLE;
 import static org.elasticsearch.javascript.WriterConstants.DEF_TO_B_BOOLEAN;
 import static org.elasticsearch.javascript.WriterConstants.DEF_TO_B_BYTE_EXPLICIT;
@@ -59,12 +63,16 @@ import static org.elasticsearch.javascript.WriterConstants.DEF_TO_P_LONG_EXPLICI
 import static org.elasticsearch.javascript.WriterConstants.DEF_TO_P_LONG_IMPLICIT;
 import static org.elasticsearch.javascript.WriterConstants.DEF_TO_P_SHORT_EXPLICIT;
 import static org.elasticsearch.javascript.WriterConstants.DEF_TO_P_SHORT_IMPLICIT;
+import static org.elasticsearch.javascript.WriterConstants.DEF_TO_REF_EXPLICIT;
+import static org.elasticsearch.javascript.WriterConstants.DEF_TO_REF_IMPLICIT;
 import static org.elasticsearch.javascript.WriterConstants.DEF_TO_STRING_EXPLICIT;
 import static org.elasticsearch.javascript.WriterConstants.DEF_TO_STRING_IMPLICIT;
 import static org.elasticsearch.javascript.WriterConstants.DEF_UTIL_TYPE;
 import static org.elasticsearch.javascript.WriterConstants.LAMBDA_BOOTSTRAP_HANDLE;
 import static org.elasticsearch.javascript.WriterConstants.MAX_STRING_CONCAT_ARGS;
 import static org.elasticsearch.javascript.WriterConstants.JAVASCRIPT_ERROR_TYPE;
+import static org.elasticsearch.javascript.WriterConstants.METHOD_HANDLES_LOOKUP;
+import static org.elasticsearch.javascript.WriterConstants.METHOD_HANDLES_TYPE;
 import static org.elasticsearch.javascript.WriterConstants.STRING_CONCAT_BOOTSTRAP_HANDLE;
 import static org.elasticsearch.javascript.WriterConstants.STRING_TO_CHAR;
 import static org.elasticsearch.javascript.WriterConstants.STRING_TYPE;
@@ -179,7 +187,13 @@ public final class MethodWriter extends GeneratorAdapter {
                 else if (cast.targetType == Double.class) invokeStatic(DEF_UTIL_TYPE, DEF_TO_B_DOUBLE_EXPLICIT);
                 else if (cast.targetType == String.class) invokeStatic(DEF_UTIL_TYPE, DEF_TO_STRING_EXPLICIT);
                 else {
-                    writeCast(cast.originalType, cast.targetType);
+                    push(Type.getType(cast.targetType));
+                    invokeStatic(METHOD_HANDLES_TYPE, METHOD_HANDLES_LOOKUP);
+                    getStatic(CLASS_TYPE, "$DEFINITION", MethodWriter.getType(JavascriptLookup.class));
+                    getStatic(CLASS_TYPE, "$FUNCTIONS", MethodWriter.getType(FunctionTable.class));
+                    getStatic(CLASS_TYPE, "$COMPILERSETTINGS", MethodWriter.getType(Map.class));
+                    invokeStatic(DEF_UTIL_TYPE, DEF_TO_REF_EXPLICIT);
+                    writeCast(Object.class, cast.targetType);
                 }
             } else {
                 if (cast.targetType == boolean.class) invokeStatic(DEF_UTIL_TYPE, DEF_TO_P_BOOLEAN);
@@ -200,7 +214,13 @@ public final class MethodWriter extends GeneratorAdapter {
                 else if (cast.targetType == Double.class) invokeStatic(DEF_UTIL_TYPE, DEF_TO_B_DOUBLE_IMPLICIT);
                 else if (cast.targetType == String.class) invokeStatic(DEF_UTIL_TYPE, DEF_TO_STRING_IMPLICIT);
                 else {
-                    writeCast(cast.originalType, cast.targetType);
+                    push(Type.getType(cast.targetType));
+                    invokeStatic(METHOD_HANDLES_TYPE, METHOD_HANDLES_LOOKUP);
+                    getStatic(CLASS_TYPE, "$DEFINITION", MethodWriter.getType(JavascriptLookup.class));
+                    getStatic(CLASS_TYPE, "$FUNCTIONS", MethodWriter.getType(FunctionTable.class));
+                    getStatic(CLASS_TYPE, "$COMPILERSETTINGS", MethodWriter.getType(Map.class));
+                    invokeStatic(DEF_UTIL_TYPE, DEF_TO_REF_IMPLICIT);
+                    writeCast(Object.class, cast.targetType);
                 }
             }
         } else {

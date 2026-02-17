@@ -101,6 +101,7 @@ import org.elasticsearch.javascript.symbol.FunctionTable.LocalFunction;
 import org.elasticsearch.javascript.symbol.IRDecorations.IRCAllEscape;
 import org.elasticsearch.javascript.symbol.IRDecorations.IRCCaptureBox;
 import org.elasticsearch.javascript.symbol.IRDecorations.IRCContinuous;
+import org.elasticsearch.javascript.symbol.IRDecorations.IRCDefReferenceObject;
 import org.elasticsearch.javascript.symbol.IRDecorations.IRCInitialize;
 import org.elasticsearch.javascript.symbol.IRDecorations.IRCInstanceCapture;
 import org.elasticsearch.javascript.symbol.IRDecorations.IRCStatic;
@@ -1324,6 +1325,51 @@ public class DefaultIRTreeToASMBytesPhase implements IRTreeVisitor<WriteScope> {
         MethodWriter methodWriter = writeScope.getMethodWriter();
         methodWriter.writeDebugInfo(irDefInterfaceReferenceNode.getLocation());
 
+        if (irDefInterfaceReferenceNode.hasCondition(IRCDefReferenceObject.class)) {
+            Type objectType = Type.getType(Object.class);
+            List<String> captureNames = irDefInterfaceReferenceNode.getDecorationValueOrDefault(IRDCaptureNames.class, Collections.emptyList());
+            int totalCaptures = captureNames.size();
+
+            if (irDefInterfaceReferenceNode.hasCondition(IRCInstanceCapture.class)) {
+                totalCaptures++;
+            }
+
+            methodWriter.push(totalCaptures + 1);
+            methodWriter.newArray(objectType);
+
+            int captureIndex = 0;
+
+            methodWriter.dup();
+            methodWriter.push(captureIndex++);
+            methodWriter.push(irDefInterfaceReferenceNode.getDecorationValue(IRDDefReferenceEncoding.class).toString());
+            methodWriter.arrayStore(objectType);
+
+            if (irDefInterfaceReferenceNode.hasCondition(IRCInstanceCapture.class)) {
+                Variable capturedThis = writeScope.getInternalVariable("this");
+                methodWriter.dup();
+                methodWriter.push(captureIndex++);
+                methodWriter.visitVarInsn(CLASS_TYPE.getOpcode(Opcodes.ILOAD), capturedThis.getSlot());
+                methodWriter.arrayStore(objectType);
+            }
+
+            for (String captureName : captureNames) {
+                Variable captureVariable = writeScope.getVariable(captureName);
+
+                methodWriter.dup();
+                methodWriter.push(captureIndex++);
+                methodWriter.visitVarInsn(captureVariable.getAsmType().getOpcode(Opcodes.ILOAD), captureVariable.getSlot());
+
+                int asmSort = captureVariable.getAsmType().getSort();
+                if (asmSort != Type.OBJECT && asmSort != Type.ARRAY) {
+                    methodWriter.box(captureVariable.getAsmType());
+                }
+
+                methodWriter.arrayStore(objectType);
+            }
+
+            return;
+        }
+
         // place holder for functional interface receiver
         // which is resolved and replace at runtime
         methodWriter.push((String) null);
@@ -1688,7 +1734,8 @@ public class DefaultIRTreeToASMBytesPhase implements IRTreeVisitor<WriteScope> {
             // handle the case for unknown functional interface
             // to hint at which values are the call's arguments
             // versus which values are captures
-            if (irArgumentNode instanceof DefInterfaceReferenceNode defInterfaceReferenceNode) {
+            if (irArgumentNode instanceof DefInterfaceReferenceNode defInterfaceReferenceNode
+                && defInterfaceReferenceNode.hasCondition(IRCDefReferenceObject.class) == false) {
                 List<String> captureNames = defInterfaceReferenceNode.getDecorationValueOrDefault(
                     IRDCaptureNames.class,
                     Collections.emptyList()

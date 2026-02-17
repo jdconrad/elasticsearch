@@ -14,21 +14,28 @@ import org.elasticsearch.javascript.api.ValueIterator;
 import org.elasticsearch.javascript.lookup.JavascriptLookup;
 import org.elasticsearch.javascript.lookup.JavascriptLookupUtility;
 import org.elasticsearch.javascript.lookup.JavascriptMethod;
+import org.elasticsearch.javascript.lookup.def;
 import org.elasticsearch.javascript.symbol.FunctionTable;
 
 import java.lang.invoke.CallSite;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
+import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.Callable;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -66,6 +73,10 @@ public final class Def {
     private static final MethodHandle LIST_INDEX_NORMALIZE;
     /** factory for arraylength MethodHandle (intrinsic) */
     private static final MethodHandle ARRAY_LENGTH;
+    /** adapter used to turn deferred references into functional interface instances */
+    private static final MethodHandle ADAPT_DEFERRED_REFERENCE;
+    /** invoker used for direct dynamic calls on deferred references */
+    private static final MethodHandle INVOKE_DEFERRED_REFERENCE;
 
     public static final Map<Class<?>, MethodHandle> DEF_TO_BOXED_TYPE_IMPLICIT_CAST;
 
@@ -95,6 +106,33 @@ public final class Def {
                 MethodHandles.class,
                 "arrayLength",
                 MethodType.methodType(MethodHandle.class, Class.class)
+            );
+            ADAPT_DEFERRED_REFERENCE = methodHandlesLookup.findStatic(
+                Def.class,
+                "adaptDeferredReference",
+                MethodType.methodType(
+                    Object.class,
+                    JavascriptLookup.class,
+                    FunctionTable.class,
+                    Map.class,
+                    MethodHandles.Lookup.class,
+                    Class.class,
+                    Object.class
+                )
+            );
+            INVOKE_DEFERRED_REFERENCE = methodHandlesLookup.findStatic(
+                Def.class,
+                "invokeDeferredReference",
+                MethodType.methodType(
+                    Object.class,
+                    JavascriptLookup.class,
+                    FunctionTable.class,
+                    Map.class,
+                    MethodHandles.Lookup.class,
+                    String.class,
+                    Object[].class,
+                    Object[].class
+                )
             );
         } catch (ReflectiveOperationException roe) {
             throw new AssertionError(roe);
@@ -191,6 +229,18 @@ public final class Def {
         int numArguments = callSiteType.parameterCount();
         // simple case: no lambdas
         if (recipeString.isEmpty()) {
+            // Deferred closures are represented as an object payload and can be invoked later.
+            if (receiverClass == Object[].class) {
+                return lookupDeferredMethod(
+                    javascriptLookup,
+                    functions,
+                    constants,
+                    methodHandlesLookup,
+                    callSiteType,
+                    name
+                );
+            }
+
             JavascriptMethod javascriptMethod = javascriptLookup.lookupRuntimeJavascriptMethod(receiverClass, name, numArguments - 1);
 
             if (javascriptMethod == null) {
@@ -213,6 +263,18 @@ public final class Def {
                 // method handle contains the "this" pointer so start injections at 1
                 handle = MethodHandles.insertArguments(handle, 1, injections);
             }
+
+            handle = adaptDeferredReferenceArguments(
+                javascriptLookup,
+                functions,
+                constants,
+                methodHandlesLookup,
+                handle,
+                javascriptMethod,
+                callSiteType,
+                null,
+                args
+            );
 
             return handle;
         }
@@ -308,7 +370,286 @@ public final class Def {
             }
         }
 
+        handle = adaptDeferredReferenceArguments(
+            javascriptLookup,
+            functions,
+            constants,
+            methodHandlesLookup,
+            handle,
+            method,
+            callSiteType,
+            lambdaArgs,
+            args
+        );
+
         return handle;
+    }
+
+    private static MethodHandle lookupDeferredMethod(
+        JavascriptLookup javascriptLookup,
+        FunctionTable functions,
+        Map<String, Object> constants,
+        MethodHandles.Lookup methodHandlesLookup,
+        MethodType callSiteType,
+        String name
+    ) {
+        MethodHandle handle = MethodHandles.insertArguments(
+            INVOKE_DEFERRED_REFERENCE,
+            0,
+            javascriptLookup,
+            functions,
+            constants,
+            methodHandlesLookup,
+            name
+        );
+
+        return handle.asCollector(Object[].class, callSiteType.parameterCount() - 1);
+    }
+
+    private static MethodHandle adaptDeferredReferenceArguments(
+        JavascriptLookup javascriptLookup,
+        FunctionTable functions,
+        Map<String, Object> constants,
+        MethodHandles.Lookup methodHandlesLookup,
+        MethodHandle handle,
+        JavascriptMethod method,
+        MethodType callSiteType,
+        BitSet lambdaArgs,
+        Object[] bootstrapArgs
+    ) {
+        List<Class<?>> typeParameters = method.typeParameters();
+
+        if (typeParameters.isEmpty()) {
+            return handle;
+        }
+
+        int[] argumentCallSitePositions = computeMethodArgumentCallSitePositions(callSiteType, lambdaArgs, bootstrapArgs);
+        int argumentCount = Math.min(typeParameters.size(), argumentCallSitePositions.length);
+
+        for (int argumentIndex = 0; argumentIndex < argumentCount; argumentIndex++) {
+            Class<?> interfaceType = typeParameters.get(argumentIndex);
+
+            if (javascriptLookup.lookupFunctionalInterfaceJavascriptMethod(interfaceType) == null) {
+                continue;
+            }
+
+            int argumentCallSitePosition = argumentCallSitePositions[argumentIndex];
+
+            if (callSiteType.parameterType(argumentCallSitePosition) != Object.class) {
+                continue;
+            }
+
+            MethodHandle filter = MethodHandles.insertArguments(
+                ADAPT_DEFERRED_REFERENCE,
+                0,
+                javascriptLookup,
+                functions,
+                constants,
+                methodHandlesLookup,
+                interfaceType
+            );
+            filter = filter.asType(MethodType.methodType(interfaceType, Object.class));
+            handle = MethodHandles.filterArguments(handle, argumentCallSitePosition, filter);
+        }
+
+        return handle;
+    }
+
+    private static int[] computeMethodArgumentCallSitePositions(MethodType callSiteType, BitSet lambdaArgs, Object[] bootstrapArgs) {
+        int[] callSitePositions = new int[callSiteType.parameterCount() - 1];
+        int position = 0;
+        int bootstrapIndex = 1;
+        int capturedSlotsRemaining = 0;
+
+        for (int callSiteIndex = 1; callSiteIndex < callSiteType.parameterCount(); callSiteIndex++) {
+            if (capturedSlotsRemaining > 0) {
+                capturedSlotsRemaining--;
+                continue;
+            }
+
+            callSitePositions[position++] = callSiteIndex;
+
+            if (lambdaArgs != null && lambdaArgs.get(callSiteIndex - 1)) {
+                Encoding encoding = new Encoding((String) bootstrapArgs[bootstrapIndex++]);
+                capturedSlotsRemaining = encoding.numCaptures + (encoding.needsInstance ? 1 : 0);
+            }
+        }
+
+        if (position == callSitePositions.length) {
+            return callSitePositions;
+        }
+
+        return Arrays.copyOf(callSitePositions, position);
+    }
+
+    private static Object adaptDeferredReference(
+        JavascriptLookup javascriptLookup,
+        FunctionTable functions,
+        Map<String, Object> constants,
+        MethodHandles.Lookup methodHandlesLookup,
+        Class<?> interfaceType,
+        Object value
+    ) throws Throwable {
+        if (value == null || interfaceType.isInstance(value)) {
+            return value;
+        }
+
+        if ((value instanceof Object[]) == false) {
+            return interfaceType.cast(value);
+        }
+
+        Object[] deferredReference = (Object[]) value;
+
+        if (isDeferredReferencePayload(deferredReference) == false) {
+            return interfaceType.cast(value);
+        }
+
+        return createDeferredInterfaceReference(
+            javascriptLookup,
+            functions,
+            constants,
+            methodHandlesLookup,
+            interfaceType,
+            deferredReference
+        );
+    }
+
+    private static Object createDeferredInterfaceReference(
+        JavascriptLookup javascriptLookup,
+        FunctionTable functions,
+        Map<String, Object> constants,
+        MethodHandles.Lookup methodHandlesLookup,
+        Class<?> interfaceType,
+        Object[] deferredReference
+    ) throws Throwable {
+        if (javascriptLookup.lookupFunctionalInterfaceJavascriptMethod(interfaceType) == null) {
+            throw new IllegalArgumentException("Class [" + typeToCanonicalTypeName(interfaceType) + "] is not a functional interface");
+        }
+
+        Encoding encoding = new Encoding((String) deferredReference[0]);
+        int expectedCaptures = encoding.numCaptures + (encoding.needsInstance ? 1 : 0);
+
+        if (deferredReference.length != expectedCaptures + 1) {
+            throw new IllegalArgumentException("invalid deferred reference payload [" + encoding + "]");
+        }
+
+        Object[] captures = Arrays.copyOfRange(deferredReference, 1, deferredReference.length);
+        MethodHandle factory;
+
+        if (encoding.isStatic) {
+            factory = lookupReferenceInternal(
+                javascriptLookup,
+                functions,
+                constants,
+                methodHandlesLookup,
+                interfaceType,
+                encoding.symbol,
+                encoding.methodName,
+                encoding.numCaptures,
+                encoding.needsInstance
+            );
+        } else {
+            Class<?>[] captureTypes = new Class<?>[encoding.numCaptures];
+
+            for (int captureIndex = 0; captureIndex < encoding.numCaptures; captureIndex++) {
+                Object capture = captures[captureIndex];
+                captureTypes[captureIndex] = capture == null ? Object.class : capture.getClass();
+            }
+
+            MethodType nestedType = MethodType.methodType(interfaceType, captureTypes);
+            CallSite nested = DefBootstrap.bootstrap(
+                javascriptLookup,
+                functions,
+                constants,
+                methodHandlesLookup,
+                encoding.methodName,
+                nestedType,
+                0,
+                DefBootstrap.REFERENCE,
+                typeToCanonicalTypeName(interfaceType)
+            );
+
+            factory = nested.dynamicInvoker();
+        }
+
+        return factory.invokeWithArguments(captures);
+    }
+
+    private static Object invokeDeferredReference(
+        JavascriptLookup javascriptLookup,
+        FunctionTable functions,
+        Map<String, Object> constants,
+        MethodHandles.Lookup methodHandlesLookup,
+        String name,
+        Object[] deferredReference,
+        Object[] arguments
+    ) throws Throwable {
+        if (isDeferredReferencePayload(deferredReference) == false) {
+            throw dynamicMethodNotFound(Object[].class, name, arguments.length);
+        }
+
+        Class<?> interfaceType = inferDeferredReferenceInterface(name, arguments.length);
+
+        if (interfaceType == null) {
+            throw dynamicMethodNotFound(Object[].class, name, arguments.length);
+        }
+
+        Object adaptedReference = createDeferredInterfaceReference(
+            javascriptLookup,
+            functions,
+            constants,
+            methodHandlesLookup,
+            interfaceType,
+            deferredReference
+        );
+
+        JavascriptMethod javascriptMethod = javascriptLookup.lookupRuntimeJavascriptMethod(adaptedReference.getClass(), name, arguments.length);
+
+        if (javascriptMethod == null) {
+            throw dynamicMethodNotFound(Object[].class, name, arguments.length);
+        }
+
+        MethodHandle handle = javascriptMethod.methodHandle();
+        Object[] injections = JavascriptLookupUtility.buildInjections(javascriptMethod, constants);
+
+        if (injections.length > 0) {
+            handle = MethodHandles.insertArguments(handle, 1, injections);
+        }
+
+        Object[] invocationArguments = new Object[arguments.length + 1];
+        invocationArguments[0] = adaptedReference;
+        System.arraycopy(arguments, 0, invocationArguments, 1, arguments.length);
+
+        return handle.invokeWithArguments(invocationArguments);
+    }
+
+    private static Class<?> inferDeferredReferenceInterface(String name, int arity) {
+        return switch (name) {
+            case "apply" -> {
+                if (arity == 1) {
+                    yield Function.class;
+                }
+                if (arity == 2) {
+                    yield BiFunction.class;
+                }
+                yield null;
+            }
+            case "get" -> arity == 0 ? Supplier.class : null;
+            case "accept" -> arity == 1 ? Consumer.class : null;
+            case "test" -> arity == 1 ? Predicate.class : null;
+            case "compare" -> arity == 2 ? Comparator.class : null;
+            case "run" -> arity == 0 ? Runnable.class : null;
+            case "call" -> arity == 0 ? Callable.class : null;
+            default -> null;
+        };
+    }
+
+    private static boolean isDeferredReferencePayload(Object[] deferredReference) {
+        return deferredReference.length > 0 && deferredReference[0] instanceof String;
+    }
+
+    private static IllegalArgumentException dynamicMethodNotFound(Class<?> receiverClass, String name, int arity) {
+        return new IllegalArgumentException("dynamic method [" + typeToCanonicalTypeName(receiverClass) + ", " + name + "/" + arity + "] not found");
     }
 
     /**
@@ -1614,6 +1955,70 @@ public final class Def {
         } else {
             throw castException(value.getClass(), String.class, false);
         }
+    }
+
+    public static Object defToReferenceImplicit(
+        final Object value,
+        final Class<?> targetType,
+        final MethodHandles.Lookup methodHandlesLookup,
+        final JavascriptLookup javascriptLookup,
+        final FunctionTable functions,
+        final Map<String, Object> constants
+    ) {
+        return defToReference(value, targetType, methodHandlesLookup, javascriptLookup, functions, constants, true);
+    }
+
+    public static Object defToReferenceExplicit(
+        final Object value,
+        final Class<?> targetType,
+        final MethodHandles.Lookup methodHandlesLookup,
+        final JavascriptLookup javascriptLookup,
+        final FunctionTable functions,
+        final Map<String, Object> constants
+    ) {
+        return defToReference(value, targetType, methodHandlesLookup, javascriptLookup, functions, constants, false);
+    }
+
+    private static Object defToReference(
+        final Object value,
+        final Class<?> targetType,
+        final MethodHandles.Lookup methodHandlesLookup,
+        final JavascriptLookup javascriptLookup,
+        final FunctionTable functions,
+        final Map<String, Object> constants,
+        final boolean implicit
+    ) {
+        Objects.requireNonNull(targetType);
+        Objects.requireNonNull(methodHandlesLookup);
+        Objects.requireNonNull(javascriptLookup);
+        Objects.requireNonNull(functions);
+        Objects.requireNonNull(constants);
+
+        if (value == null || targetType == Object.class || targetType == def.class) {
+            return value;
+        }
+
+        if (targetType.isInstance(value)) {
+            return value;
+        }
+
+        if (value instanceof Object[] deferredReference && isDeferredReferencePayload(deferredReference)) {
+            try {
+                return createDeferredInterfaceReference(
+                    javascriptLookup,
+                    functions,
+                    constants,
+                    methodHandlesLookup,
+                    targetType,
+                    deferredReference
+                );
+            } catch (Throwable throwable) {
+                rethrow(throwable);
+                throw new AssertionError(throwable);
+            }
+        }
+
+        throw castException(value.getClass(), targetType, implicit);
     }
 
     /**

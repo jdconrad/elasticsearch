@@ -11,6 +11,85 @@ parser grammar JavascriptParser;
 
 options { tokenVocab=JavascriptLexer; }
 
+@members {
+    private boolean isLambdaAhead() {
+        int la1 = _input.LA(1);
+
+        if (la1 == LP) {
+            int index = 1;
+            int depth = 0;
+
+            while (true) {
+                int token = _input.LA(index++);
+                if (token == org.antlr.v4.runtime.Token.EOF) {
+                    return false;
+                }
+                if (token == LP) {
+                    depth++;
+                } else if (token == RP) {
+                    depth--;
+                    if (depth == 0) {
+                        return _input.LA(index) == ARROW;
+                    }
+                }
+            }
+        }
+
+        if (la1 == ID && _input.LA(2) == ARROW) {
+            return true;
+        }
+
+        int afterType = skipDeclType(1);
+        if (afterType == -1) {
+            return false;
+        }
+
+        return _input.LA(afterType) == ID && _input.LA(afterType + 1) == ARROW;
+    }
+
+    private boolean isFunctionRefAhead() {
+        if (_input.LA(1) == THIS) {
+            return _input.LA(2) == REF && _input.LA(3) == ID;
+        }
+
+        int afterType = skipDeclType(1);
+        if (afterType == -1) {
+            return false;
+        }
+
+        if (_input.LA(afterType) != REF) {
+            return false;
+        }
+
+        int target = _input.LA(afterType + 1);
+        return target == ID || target == NEW;
+    }
+
+    private int skipDeclType(int index) {
+        int token = _input.LA(index);
+        if (token == DEF || token == PRIMITIVE) {
+            index++;
+        } else if (token == ID) {
+            index++;
+
+            while (_input.LA(index) == DOT) {
+                if (_input.LA(index + 1) != DOTID) {
+                    return -1;
+                }
+                index += 2;
+            }
+        } else {
+            return -1;
+        }
+
+        while (_input.LA(index) == LBRACE && _input.LA(index + 1) == RBRACE) {
+            index += 2;
+        }
+
+        return index;
+    }
+}
+
 source
     : function* statement* EOF
     ;
@@ -112,7 +191,9 @@ noncondexpression
     ;
 
 expression
-    :               noncondexpression                                            # nonconditional
+    : {isLambdaAhead()}? lambda                                                  # lambdaval
+    | {isFunctionRefAhead()}? funcref                                            # funcrefval
+    |               noncondexpression                                            # nonconditional
     | <assoc=right> noncondexpression COND expression COLON expression           # conditional
     | <assoc=right> noncondexpression ( ASSIGN | AADD | ASUB | AMUL |
                                         ADIV   | AREM | AAND | AXOR |
@@ -216,8 +297,6 @@ arguments
 
 argument
     : expression
-    | lambda
-    | funcref
     ;
 
 lambda

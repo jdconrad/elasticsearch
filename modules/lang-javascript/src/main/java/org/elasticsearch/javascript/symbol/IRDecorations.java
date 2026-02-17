@@ -460,6 +460,11 @@ public class IRDecorations {
 
     }
 
+    /** describes if a def interface reference is emitted as a storable runtime value */
+    public interface IRCDefReferenceObject extends IRCondition {
+
+    }
+
     /** describes the type of value stored in an assignment operation */
     public static class IRDStoreType extends IRDType {
 

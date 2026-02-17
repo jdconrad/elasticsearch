@@ -9,6 +9,8 @@
 
 package org.elasticsearch.javascript;
 
+import org.elasticsearch.javascript.lookup.JavascriptLookup;
+import org.elasticsearch.javascript.symbol.FunctionTable;
 import org.elasticsearch.javascript.api.ValueIterator;
 import org.objectweb.asm.Handle;
 import org.objectweb.asm.Opcodes;
@@ -22,6 +24,7 @@ import java.lang.invoke.MethodType;
 import java.lang.invoke.StringConcatFactory;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -46,8 +49,10 @@ public final class WriterConstants {
     public static final Type JAVASCRIPT_ERROR_TYPE = Type.getType(JavascriptError.class);
 
     public static final Type OBJECT_TYPE = Type.getType(Object.class);
+    public static final Type METHOD_HANDLES_TYPE = Type.getType(MethodHandles.class);
 
     public static final MethodType NEEDS_PARAMETER_METHOD_TYPE = MethodType.methodType(boolean.class);
+    public static final Method METHOD_HANDLES_LOOKUP = getAsmMethod(MethodHandles.Lookup.class, "lookup");
 
     public static final Type ITERATOR_TYPE = Type.getType(Iterator.class);
     public static final Type VALUE_ITERATOR_TYPE = Type.getType(ValueIterator.class);
@@ -133,6 +138,26 @@ public final class WriterConstants {
 
     public static final Method DEF_TO_STRING_IMPLICIT = getAsmMethod(String.class, "defToStringImplicit", Object.class);
     public static final Method DEF_TO_STRING_EXPLICIT = getAsmMethod(String.class, "defToStringExplicit", Object.class);
+    public static final Method DEF_TO_REF_IMPLICIT = getAsmMethod(
+        Object.class,
+        "defToReferenceImplicit",
+        Object.class,
+        Class.class,
+        MethodHandles.Lookup.class,
+        JavascriptLookup.class,
+        FunctionTable.class,
+        Map.class
+    );
+    public static final Method DEF_TO_REF_EXPLICIT = getAsmMethod(
+        Object.class,
+        "defToReferenceExplicit",
+        Object.class,
+        Class.class,
+        MethodHandles.Lookup.class,
+        JavascriptLookup.class,
+        FunctionTable.class,
+        Map.class
+    );
 
     /** invokedynamic bootstrap for lambda expression/method references */
     public static final MethodType LAMBDA_BOOTSTRAP_TYPE = MethodType.methodType(

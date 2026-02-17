@@ -277,12 +277,9 @@ public class FunctionRefTests extends ScriptTestCase {
 
     public void testNotFunctionalInterface() {
         IllegalArgumentException expected = expectScriptThrows(IllegalArgumentException.class, () -> {
-            exec("List l = new ArrayList(); l.add(2); l.add(1); l.add(Integer::bogus); return l.get(0);");
+            exec("def f = Integer::parseInt; Map m = f; return m;");
         });
-        assertThat(
-            expected.getMessage(),
-            containsString("cannot convert function reference [Integer::bogus] to a non-functional interface [def]")
-        );
+        assertThat(expected.getMessage(), containsString("Class [java.util.Map] is not a functional interface"));
     }
 
     public void testIncompatible() {
@@ -372,6 +369,30 @@ public class FunctionRefTests extends ScriptTestCase {
         assertEquals("s", exec("CharSequence test(Supplier s) {return s.get();} CharSequence s = 's'; return test(s::toString);"));
         assertEquals("s", exec("CharSequence test(Supplier s) {return s.get();} def s = 's'; return test(s::toString);"));
         assertEquals("s", exec("CharSequence test(Function s) {return s.apply('s');} return test(CharSequence::toString);"));
+    }
+
+    public void testTypedOwnMethodReferenceAssignment() {
+        assertEquals("value", exec("String value() { return 'value'; } Supplier s = this::value; return s.get();"));
+    }
+
+    public void testTypedStaticMethodReferenceAssignment() {
+        assertEquals(7, exec("Function f = Integer::parseInt; return f.apply('7');"));
+    }
+
+    public void testTypedInstanceMethodReferenceAssignment() {
+        assertEquals("abc", exec("String text = 'abc'; Supplier s = text::toString; return s.get();"));
+    }
+
+    public void testDefMethodReferenceFirstClassAssignment() {
+        assertEquals(7, exec("def f = Integer::parseInt; return f.apply('7');"));
+    }
+
+    public void testDefMethodReferenceFirstClassMapStorage() {
+        assertEquals(9, exec("int call(Function f) { return f.apply('9'); } Map refs = new HashMap(); refs.put('parse', Integer::parseInt); def f = refs.get('parse'); return call(f);"));
+    }
+
+    public void testDefMethodReferenceDeferredAdaptationArityMismatch() {
+        expectScriptThrows(IllegalArgumentException.class, () -> exec("def f = Integer::parseInt; Supplier s = f; return s.get();"));
     }
 
     public void testInvalidStaticCaptureMethodReference() {

@@ -294,6 +294,38 @@ public class LambdaTests extends ScriptTestCase {
         );
     }
 
+    public void testTypedLambdaAssignment() {
+        assertEquals(2, exec("Function f = x -> x + 1; return f.apply(1);"));
+    }
+
+    public void testTypedLambdaReturn() {
+        assertEquals(3, exec("Function make() { return x -> x + 1; } return make().apply(2);"));
+    }
+
+    public void testTypedLambdaPassThroughVariable() {
+        assertEquals(4, exec("def call(Function f) { return f.apply(1); } Function f = x -> x + 3; return call(f);"));
+    }
+
+    public void testDefLambdaFirstClassAssignment() {
+        assertEquals(2, exec("def f = x -> x + 1; return f.apply(1);"));
+    }
+
+    public void testDefLambdaFirstClassListStorage() {
+        assertEquals(4, exec("List fs = new ArrayList(); fs.add(x -> x + 3); def f = fs.get(0); return f.apply(1);"));
+    }
+
+    public void testDefLambdaFirstClassMapStorage() {
+        assertEquals(5, exec("Map fs = new HashMap(); fs.put('inc', x -> x + 4); def f = fs.get('inc'); return f.apply(1);"));
+    }
+
+    public void testDefLambdaFirstClassPassThroughTypedCall() {
+        assertEquals(5, exec("int call(Function f) { return f.apply(2); } def f = x -> x + 3; return call(f);"));
+    }
+
+    public void testDefLambdaDeferredAdaptationArityMismatch() {
+        expectScriptThrows(IllegalArgumentException.class, () -> exec("def f = x -> x + 1; Supplier s = f; return s.get();"));
+    }
+
     public void testUnaryOperator() {
         assertEquals("doremi", exec("List lst = ['abc', '123']; lst.replaceAll(f -> f.replace('abc', 'doremi')); lst.get(0);"));
         assertEquals("doremi", exec("def lst = ['abc', '123']; lst.replaceAll(f -> f.replace('abc', 'doremi')); lst.get(0);"));
