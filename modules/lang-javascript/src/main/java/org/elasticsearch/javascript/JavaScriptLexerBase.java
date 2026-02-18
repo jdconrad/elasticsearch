@@ -1,4 +1,50 @@
-import org.antlr.v4.runtime.*;
+
+/*
+ * Copyright Elasticsearch B.V. and/or licensed to Elasticsearch B.V. under one
+ * or more contributor license agreements. Licensed under the "Elastic License
+ * 2.0", the "GNU Affero General Public License v3.0 only", and the "Server Side
+ * Public License v 1"; you may not use this file except in compliance with, at
+ * your election, the "Elastic License 2.0", the "GNU Affero General Public
+ * License v3.0 only", or the "Server Side Public License, v 1".
+ */
+
+package org.elasticsearch.javascript;
+
+/*
+ * The MIT License (MIT)
+ *
+ * Copyright (c) 2014 by Bart Kiers (original author) and Alexandre Vitorelli (contributor -> ported to CSharp)
+ * Copyright (c) 2017-2020 by Ivan Kochurkin (Positive Technologies):
+    added ECMAScript 6 support, cleared and transformed to the universal grammar.
+ * Copyright (c) 2018 by Juan Alvarez (contributor -> ported to Go)
+ * Copyright (c) 2019 by Student Main (contributor -> ES2020)
+ *
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use,
+ * copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the
+ * Software is furnished to do so, subject to the following
+ * conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ * HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ * WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ * OTHER DEALINGS IN THE SOFTWARE.
+ */
+
+import org.antlr.v4.runtime.CharStream;
+import org.antlr.v4.runtime.Lexer;
+import org.antlr.v4.runtime.Token;
+import org.elasticsearch.javascript.antlr.JavascriptLexer;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -7,7 +53,7 @@ import java.util.Deque;
  * All lexer methods that used in grammar (IsStrictMode)
  * should start with Upper Case Char similar to Lexer rules.
  */
-public abstract class JavaScriptLexerBase extends Lexer
+public abstract class JavascriptLexerBase extends Lexer
 {
     /**
      * Stores values of nested modes. By default mode is strict or
@@ -36,7 +82,7 @@ public abstract class JavaScriptLexerBase extends Lexer
      */
 	private Deque<Integer> templateDepthStack = new ArrayDeque<Integer>();
 
-    public JavaScriptLexerBase(CharStream input) {
+    public JavascriptLexerBase(CharStream input) {
         super(input);
     }
 
@@ -107,7 +153,7 @@ public abstract class JavaScriptLexerBase extends Lexer
 
     protected void ProcessStringLiteral()
     {
-        if (lastToken == null || lastToken.getType() == JavaScriptLexer.OpenBrace)
+        if (lastToken == null || lastToken.getType() == JavascriptLexer.OpenBrace)
         {
             String text = getText();
             if (text.equals("\"use strict\"") || text.equals("'use strict'"))
@@ -132,18 +178,18 @@ public abstract class JavaScriptLexerBase extends Lexer
         }
 
         switch (this.lastToken.getType()) {
-            case JavaScriptLexer.Identifier:
-            case JavaScriptLexer.NullLiteral:
-            case JavaScriptLexer.BooleanLiteral:
-            case JavaScriptLexer.This:
-            case JavaScriptLexer.CloseBracket:
-            case JavaScriptLexer.CloseParen:
-            case JavaScriptLexer.OctalIntegerLiteral:
-            case JavaScriptLexer.DecimalLiteral:
-            case JavaScriptLexer.HexIntegerLiteral:
-            case JavaScriptLexer.StringLiteral:
-            case JavaScriptLexer.PlusPlus:
-            case JavaScriptLexer.MinusMinus:
+            case JavascriptLexer.Identifier:
+            case JavascriptLexer.NullLiteral:
+            case JavascriptLexer.BooleanLiteral:
+            case JavascriptLexer.This:
+            case JavascriptLexer.CloseBracket:
+            case JavascriptLexer.CloseParen:
+            case JavascriptLexer.OctalIntegerLiteral:
+            case JavascriptLexer.DecimalLiteral:
+            case JavascriptLexer.HexIntegerLiteral:
+            case JavascriptLexer.StringLiteral:
+            case JavascriptLexer.PlusPlus:
+            case JavascriptLexer.MinusMinus:
                 // After any of the tokens above, no regex literal can follow.
                 return false;
             default:

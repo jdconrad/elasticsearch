@@ -201,18 +201,6 @@ tasks.register("regen") {
         // moves token files to grammar directory for use with IDE's
         ant.move(file: "${outputPath}/JavascriptLexer.tokens", toDir: grammarPath)
         ant.move(file: "${outputPath}/JavascriptParser.tokens", toDir: grammarPath)
-        // make the generated classes package private
-        ant.replaceregexp(match: 'public ((interface|class) \\QJavascript\\E\\w+)',
-                replace: '\\1',
-                encoding: 'UTF-8') {
-            fileset(dir: outputPath, includes: 'Javascript*.java')
-        }
-        // make the lexer abstract
-        ant.replaceregexp(match: '(class \\QJavascript\\ELexer)',
-                replace: 'abstract \\1',
-                encoding: 'UTF-8') {
-            fileset(dir: outputPath, includes: 'JavascriptLexer.java')
-        }
         // nuke timestamps/filenames in generated files
         ant.replaceregexp(match: '\\Q// Generated from \\E.*',
                 replace: '\\/\\/ ANTLR GENERATED CODE: DO NOT EDIT',

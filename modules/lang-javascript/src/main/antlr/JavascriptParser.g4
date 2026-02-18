@@ -41,6 +41,10 @@ options {
     superClass = JavascriptParserBase;
 }
 
+@header {
+    import org.elasticsearch.javascript.*;
+}
+
 program
     : HashBangLine? sourceElements? EOF
     ;
