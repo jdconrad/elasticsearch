@@ -11,7 +11,7 @@ This document summarizes the **problems currently causing lang-javascript test f
 | 3 | Type expectations (Long, Integer, Byte) | **Done** – FIX3: AdditionTests.testBasics, AndTests/OrTests/XorTests/DivisionTests/MultiplicationTests/RemainderTests/SubtractionTests.testLongConst assert numeric value. |
 | 4 | Optional chaining / object literals | **Done** – Semantic phase no longer enforces “must be nullable”; testNullSafeDeref asserts values, assertMustBeNullable removed. |
 | 5 | AliasTests.testInnerNoAlias | **Addressed** – simplified test; §1 fix should allow it to pass. |
-| 6 | testStringEscapes | **Not done** – string escape handling / error messages may differ from Painless; align lexer or test as needed. |
+| 6 | testStringEscapes | **Done** – test aligned to JavaScript: \" and \' allowed in both string types; newline assertions use \\n in Java so script has \n escape. |
 | 7 | testCast and similar | **Done** – scripts already converted; testCast asserts value only. |
 | 8 | Static interface methods / HashMap / Map | **Not done** – testStaticInterfaceMethod uses Comparator.comparing; whitelist or @Ignore if needed. |
 
@@ -105,7 +105,7 @@ no viable alternative at input 'x'
 
 ---
 
-## 6. testStringEscapes ❌ NOT DONE
+## 6. testStringEscapes ✅ DONE
 
 **Symptom:** testStringEscapes may fail (parse, compile, or assertion).
 

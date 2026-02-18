@@ -55,21 +55,15 @@ public class BasicExpressionTests extends ScriptTestCase {
         assertEquals("\\string", exec("'\\\\string'"));
         // `\"` is a `"` if surrounded by `"`s
         assertEquals("\"string", exec("\"\\\"string\""));
-        Exception e = expectScriptThrows(IllegalArgumentException.class, () -> exec("'\\\"string'", false));
-        assertEquals(
-            "unexpected character ['\\\"]. The only valid escape sequences in strings starting with ['] are [\\\\] and [\\'].",
-            e.getMessage()
-        );
+        // JavaScript allows \" in single-quoted strings (escape produces "); Painless restricts to \\ and \' only.
+        assertEquals("\"string", exec("'\\\"string'", false));
         // `\'` is a `'` if surrounded by `'`s
-        e = expectScriptThrows(IllegalArgumentException.class, () -> exec("\"\\'string\"", false));
-        assertEquals(
-            "unexpected character [\"\\']. The only valid escape sequences in strings starting with [\"] are [\\\\] and [\\\"].",
-            e.getMessage()
-        );
+        // JavaScript allows \' in double-quoted strings (escape produces '); Painless restricts to \\ and \" only.
+        assertEquals("'string", exec("\"\\'string\"", false));
         assertEquals("'string", exec("'\\'string'"));
-        // We don't break native escapes like new line
-        assertEquals("\nstring", exec("\"\nstring\""));
-        assertEquals("\nstring", exec("'\nstring'"));
+        // We don't break native escapes like new line (use \\n in Java so script contains \n escape)
+        assertEquals("\nstring", exec("\"\\nstring\""));
+        assertEquals("\nstring", exec("'\\nstring'"));
 
         // And we're ok with strings with multiple escape sequences
         assertEquals("\\str\"in\\g", exec("\"\\\\str\\\"in\\\\g\""));
