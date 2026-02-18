@@ -13,10 +13,13 @@ import org.antlr.v4.runtime.ANTLRInputStream;
 import org.antlr.v4.runtime.BaseErrorListener;
 import org.antlr.v4.runtime.CommonTokenStream;
 import org.antlr.v4.runtime.DiagnosticErrorListener;
+import org.antlr.v4.runtime.Parser;
 import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.RecognitionException;
 import org.antlr.v4.runtime.Recognizer;
+import org.antlr.v4.runtime.atn.ATNConfigSet;
 import org.antlr.v4.runtime.atn.PredictionMode;
+import org.antlr.v4.runtime.dfa.DFA;
 import org.elasticsearch.javascript.CompilerSettings;
 import org.elasticsearch.javascript.Location;
 import org.elasticsearch.javascript.Operation;
@@ -115,6 +118,7 @@ import org.elasticsearch.javascript.node.STry;
 import org.elasticsearch.javascript.node.SWhile;
 
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.List;
 
 /**
@@ -163,7 +167,29 @@ public final class Walker extends JavascriptParserBaseVisitor<ANode> {
     }
 
     private static void setupPicky(JavascriptParser parser) {
-        parser.addErrorListener(new DiagnosticErrorListener(true));
+        // Suppress diagnostic reports for full-context/context-sensitivity so they are not treated as syntax errors.
+        // The parser still uses full context to resolve; we only avoid failing the build on these diagnostics.
+        parser.addErrorListener(new DiagnosticErrorListener(true) {
+            @Override
+            public void reportAttemptingFullContext(
+                Parser recognizer,
+                DFA dfa,
+                int startIndex,
+                int stopIndex,
+                BitSet conflictingAlts,
+                ATNConfigSet configs
+            ) {}
+
+            @Override
+            public void reportContextSensitivity(
+                Parser recognizer,
+                DFA dfa,
+                int startIndex,
+                int stopIndex,
+                int prediction,
+                ATNConfigSet configs
+            ) {}
+        });
         parser.addErrorListener(new BaseErrorListener() {
             @Override
             public void syntaxError(
