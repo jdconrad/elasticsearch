@@ -178,6 +178,8 @@ Ordered from most straightforward / lowest uncertainty to more speculative. Each
 4. **Regex limiting:** To match Painless behavior, run `Matcher`/`split` over a `LimitedCharSequence` (or equivalent) when a limit factor is configured, and inject the limit factor the same way (e.g. from script context or settings). Reuse or mirror `org.elasticsearch.painless.api.Augmentation`’s `matcher(Pattern, int, CharSequence)` and `split`/`splitAsStream` so that JS scripts hit the same limiting path when the same runtime/settings are used.
 5. **Tests:** Regex tests that only assert find/match/split/replace behavior can be adapted to JS by using the above (same Java types + whitelist + optional helpers). Tests that assert Painless-only error messages or exact API shapes may need to stay Painless-only or be relaxed.
 
+DEV: I'll need to check with the Painless architect on this
+
 ---
 
 ## FIX4 – Null safety / optional chaining (context and differences)
@@ -198,6 +200,8 @@ Ordered from most straightforward / lowest uncertainty to more speculative. Each
 1. **Walker/codegen:** Emit optional chaining for `?.` so that `a?.b` and `a?.method()` short-circuit on null/undefined and return null (or undefined). If the runtime is shared with Painless, map JS undefined to null where necessary so that script-to-Java boundaries stay consistent.
 2. **Tests:** Tests that only check short-circuit and result (e.g. `null` when receiver is null) can be adapted to JS and may only need an expectation of `null` vs `undefined`. Tests that assert “question space dot” is invalid should either be skipped in JS or the grammar/lexer should reject `? .` and the test updated to expect the JS error message.
 3. **“Must be nullable”:** Painless’s rule that the result of `?.` must be used in a nullable context has no direct JS equivalent (JS doesn’t enforce that). Either skip tests that assert this Painless-only rule or document that JS does not enforce it.
+
+DEV: FIX4a: I'd like to retain the distinction between null and undefined and obey Javascript syntax here.
 
 ---
 
@@ -222,3 +226,5 @@ Ordered from most straightforward / lowest uncertainty to more speculative. Each
 1. **Tests that only need “array of numbers”:** Use a JS array, e.g. `let a = [1, 2, 3]; return a.length` or `a[0]`. Adjust test expectations: return types may be Number instead of int/long, and there is no `def[]` or `int[]`. Such tests can be converted to JS and kept.
 2. **Tests that depend on primitive arrays or Def:** Tests that use `int[]`, `def[]`, `new int[n]`, or Def’s dynamic resolution for arrays (e.g. `def x = new int[10]; return x.length`) should remain Painless-only or be skipped in JS, unless you introduce a JS-side mechanism that exposes the same Java array types and a `.length`-like accessor (e.g. by whitelisting the same Def bootstrap or a small JS helper that takes an object and returns array length when the object is a Java array).
 3. **`Def.arrayLengthGetter` and shared runtime:** If the JavaScript implementation runs in the same JVM and can call into the same Def/bootstrap layer for parameters or return values that are Java arrays, then scripts that receive a Java array (e.g. from params) could support `arr.length` by having the Walker/codegen emit a call to the same `arrayLengthGetter` when the receiver is typed as an array (or def). That would align behavior with Painless for that subset of tests without implementing full Def in JS.
+
+DEV: FIX4b: Let's represent Javascript arrays as Java ArrayList.
