@@ -62,25 +62,4 @@ final class EnhancedJavascriptLexer extends JavascriptLexer {
         throw location.createError(new IllegalArgumentException(message, lnvae));
     }
 
-    @Override
-    protected boolean isSlashRegex() {
-        Token lastToken = current;
-        if (lastToken == null) {
-            return true;
-        }
-        switch (lastToken.getType()) {
-            case JavascriptLexer.RBRACE:
-            case JavascriptLexer.RP:
-            case JavascriptLexer.OCTAL:
-            case JavascriptLexer.HEX:
-            case JavascriptLexer.INTEGER:
-            case JavascriptLexer.DECIMAL:
-            case JavascriptLexer.ID:
-            case JavascriptLexer.DOTINTEGER:
-            case JavascriptLexer.DOTID:
-                return false;
-            default:
-                return true;
-        }
-    }
 }
