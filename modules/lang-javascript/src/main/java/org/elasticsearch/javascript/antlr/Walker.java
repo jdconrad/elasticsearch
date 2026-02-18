@@ -252,6 +252,15 @@ public final class Walker extends JavascriptParserBaseVisitor<ANode> {
         return new Location(sourceName, ctx.getStart().getStartIndex());
     }
 
+    /**
+     * Location for a member-dot expression (e.g. {@code x.isEmpty()}) at the method name,
+     * so stack traces point at the call site. Uses the end of the identifier so the
+     * reported column matches Painless (e.g. assertScriptElementColumn in tests).
+     */
+    private Location locationAtMemberDot(MemberDotExpressionContext ctx) {
+        return new Location(sourceName, ctx.identifierName().getStop().getStopIndex());
+    }
+
     /** Returns the first expression in a comma-separated expression sequence (e.g. condition, return value). */
     private AExpression firstExpression(ExpressionSequenceContext ctx) {
         if (ctx == null || ctx.singleExpression().isEmpty()) {
@@ -627,13 +636,14 @@ public final class Walker extends JavascriptParserBaseVisitor<ANode> {
             return new ECallLocal(nextIdentifier(), location(ctx), ((ESymbol) callee).getSymbol(), args);
         }
         if (callee instanceof EDot) {
+            EDot dot = (EDot) callee;
             return new ECall(
                 nextIdentifier(),
-                location(ctx),
-                ((EDot) callee).getPrefixNode(),
-                ((EDot) callee).getIndex(),
+                dot.getLocation(),
+                dot.getPrefixNode(),
+                dot.getIndex(),
                 args,
-                ((EDot) callee).isNullSafe()
+                dot.isNullSafe()
             );
         }
         return new ECall(nextIdentifier(), location(ctx), callee, "", args, false);
@@ -644,7 +654,7 @@ public final class Walker extends JavascriptParserBaseVisitor<ANode> {
         AExpression prefix = (AExpression) visit(ctx.singleExpression());
         String name = ctx.identifierName().getText();
         boolean nullSafe = ctx.QuestionMark() != null;
-        return new EDot(nextIdentifier(), location(ctx), prefix, name, nullSafe);
+        return new EDot(nextIdentifier(), locationAtMemberDot(ctx), prefix, name, nullSafe);
     }
 
     @Override
