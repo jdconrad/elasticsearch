@@ -85,6 +85,18 @@ public abstract class JavascriptParserBase extends Parser
         return nextTokenType != JavascriptParser.OpenBrace && nextTokenType != JavascriptParser.Function_;
     }
 
+    /**
+     * True when the next token starts a variable declaration (var/let/const).
+     * Used to avoid ambiguity between variableStatement and expressionStatement at statement level.
+     */
+    protected boolean isVariableDeclarationStart() {
+        int t = _input.LT(1).getType();
+        return t == JavascriptParser.Var
+            || t == JavascriptParser.StrictLet
+            || t == JavascriptParser.NonStrictLet
+            || t == JavascriptParser.Const;
+    }
+
     protected boolean closeBrace() {
         return _input.LT(1).getType() == JavascriptParser.CloseBrace;
     }

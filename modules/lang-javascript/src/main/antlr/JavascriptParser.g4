@@ -174,7 +174,7 @@ emptyStatement_
     ;
 
 expressionStatement
-    : {this.notOpenBraceAndNotFunction()}? expressionSequence eos
+    : {this.notOpenBraceAndNotFunction() && !this.isVariableDeclarationStart()}? expressionSequence eos
     ;
 
 ifStatement
