@@ -156,3 +156,69 @@ Ordered from most straightforward / lowest uncertainty to more speculative. Each
 | 5    | FIX6  | Writer/locations  | Medium      |
 | 6    | FIX4  | Documentation      | N/A (info only) |
 | 7    | FIX7  | Assume same runtime| None        |
+
+---
+
+## FIX4 – Regex augmentations (context and JS equivalent)
+
+### What Painless does
+
+- **Pattern literals:** The only way to create a pattern in Painless is the literal `/pattern/` or `/pattern/flags`. There is no `Pattern.compile(String)` in the whitelist, so patterns are compile-time constants and compiled once.
+- **Operators:** `=~` (find: true if any subsequence matches) and `==~` (match: true if the whole text matches).
+- **Whitelist (`java.util.regex.txt`):** Exposes `Pattern` and `Matcher` with a subset of Java API:
+  - **Pattern:** `asPredicate()`, `flags()`, `pattern()`, `quote(String)`; augmented static-style methods `matcher(int, CharSequence)`, `split(int, CharSequence)`, `split(int, CharSequence, int)`, `splitAsStream(int, CharSequence)` with first parameter `@inject_constant[1="regex_limit_factor"]` for limiting work.
+  - **Matcher:** Standard Java methods (`find`, `group`, `replaceAll`, `replaceFirst`, etc.) plus augmentation `namedGroup(String)` (wraps `Matcher.group(String)`).
+- **Augmentation (Painless `api.Augmentation`):** The whitelist “augmented” methods are implemented as static methods with receiver as first argument. For regex, `Pattern.matcher(limitFactor, input)` and `Pattern.split(limitFactor, input[, limit])` / `splitAsStream(limitFactor, input)` wrap the input in a `LimitedCharSequence` when limiting is enabled, so that regex execution is bounded (e.g. by character count) to avoid ReDoS.
+
+### How to add equivalent functionality in JavaScript
+
+1. **Whitelist / method resolution:** In the JS implementation, ensure the same Java types (`java.util.regex.Pattern`, `java.util.regex.Matcher`) are reachable from script and that the same methods are allowed (either via the existing whitelist mechanism used by the shared runtime or by registering JS-callable wrappers that delegate to these Java types).
+2. **Pattern literals:** If the JS grammar supports regex literals (e.g. `/pattern/flags`), the Walker/codegen should compile them to `Pattern.compile(...)` with the same flags as Painless (see Painless docs for the flag character table: `i`, `m`, `s`, `U`, `u`, `x`, `l`, `c`). If the JS grammar does not support `/.../` as a literal, you could expose a helper like `Pattern.from('/pattern/', 'flags')` and document that scripts must use that.
+3. **Find/match operators:** If the grammar does not have `=~` and `==~`, provide helper functions (e.g. `find(regex, string)` and `match(regex, string)`) that take a Pattern (or string + flags) and a string and return boolean, and use them in converted tests.
+4. **Regex limiting:** To match Painless behavior, run `Matcher`/`split` over a `LimitedCharSequence` (or equivalent) when a limit factor is configured, and inject the limit factor the same way (e.g. from script context or settings). Reuse or mirror `org.elasticsearch.painless.api.Augmentation`’s `matcher(Pattern, int, CharSequence)` and `split`/`splitAsStream` so that JS scripts hit the same limiting path when the same runtime/settings are used.
+5. **Tests:** Regex tests that only assert find/match/split/replace behavior can be adapted to JS by using the above (same Java types + whitelist + optional helpers). Tests that assert Painless-only error messages or exact API shapes may need to stay Painless-only or be relaxed.
+
+---
+
+## FIX4 – Null safety / optional chaining (context and differences)
+
+### What Painless does
+
+- **Null safe operator `?.`:** Grammar forms are `?. ID arguments` (null-safe method call) and `?. ID` (null-safe field access). If the receiver is `null`, the expression short-circuits and evaluates to `null` without calling the method or reading the field. If the receiver is non-null, the method is called or the field is read as usual.
+- **Return type:** The result of `?.` is always a reference type (nullable). Painless enforces that the method return type or field type is a reference type or implicitly castable to one; otherwise it is an error (“must be nullable”). So `a?.length()` on a String is allowed only when the result is treated as nullable (e.g. stored in a def or used where null is acceptable); for typed LHS, Painless may require the type to be a boxed/reference type.
+- **“Question space dot”:** In Painless, `? .` (space between `?` and `.`) is **not** the null-safe operator. The parser expects `?.` as a single token. The test `testQuestionSpaceDotIsNotNullSafeDereference` expects `params.a? .b` to throw an error like “invalid sequence of tokens near ['.'].” So Painless explicitly rejects “question space dot” as invalid.
+
+### How JavaScript differs
+
+- **Optional chaining `?.`:** In JS, `?.` is one token and optional chaining is part of the language. So `a?.b` and `a?.method()` behave like Painless: if `a` is `null` or `undefined`, the result is `undefined` (JS) instead of `null` (Painless). That’s a small semantic difference (null vs undefined).
+- **“Question space dot”:** In standard JS, `a? .b` is valid: it is parsed as `a` followed by `?` (ternary) then `.b` (member), which would be a syntax error in a full expression. So the JS grammar may accept a space between `?` and `.` in some contexts. To align with Painless, the JS lexer could treat only `?.` (no space) as optional chaining and reject `? .` with a clear error, or you document that JS allows the space and skip tests that assert “question space dot” is invalid.
+
+### Suggestions
+
+1. **Walker/codegen:** Emit optional chaining for `?.` so that `a?.b` and `a?.method()` short-circuit on null/undefined and return null (or undefined). If the runtime is shared with Painless, map JS undefined to null where necessary so that script-to-Java boundaries stay consistent.
+2. **Tests:** Tests that only check short-circuit and result (e.g. `null` when receiver is null) can be adapted to JS and may only need an expectation of `null` vs `undefined`. Tests that assert “question space dot” is invalid should either be skipped in JS or the grammar/lexer should reject `? .` and the test updated to expect the JS error message.
+3. **“Must be nullable”:** Painless’s rule that the result of `?.` must be used in a nullable context has no direct JS equivalent (JS doesn’t enforce that). Either skip tests that assert this Painless-only rule or document that JS does not enforce it.
+
+---
+
+## FIX4 – Array/length and array-like behavior (context and JS equivalent)
+
+### What Painless does
+
+- **Array types:** Painless has Java-style arrays: `int[]`, `long[]`, `byte[]`, `def[]`, `Object[]`, etc. Literal form is `new int[size]` or `new int[] { 1, 2, 3 }`. These are real JVM arrays.
+- **`.length` on arrays:** For any array type, the only allowed field access is the read-only field `length`. It is implemented via `Def.arrayLengthGetter(arrayType)`, which returns a `MethodHandle` that takes the array instance and returns its length as `int`. So `arr.length` in script becomes a call to that handle. Assignment to `length` is illegal.
+- **Def and arrays:** For `def x = new int[10]`, the dynamic type is the array class. `Def.lookupGetter` special-cases `receiverClass.isArray() && "length".equals(name)` and returns `arrayLengthGetter(receiverClass)`. So `x.length` on def-typed arrays works the same way.
+- **List and `.length`:** Painless also exposes a `.length` shortcut on `List`, implemented as an augmentation: `getLength(List)` in `Augmentation` returns `list.size()`. The whitelist wires this so that `list.length` in script calls that. So in Painless, both arrays and lists have `.length` (arrays: JVM field; lists: augmentation).
+- **Def bootstrap:** For def, method and field resolution is done at runtime via `Def.lookupGetter`, `Def.lookupSetter`, `Def.lookupMethod`, etc. Arrays get `length`; `Map` gets `map.key` → `map.get("key")`; `List` gets `list.0` → `list.get(0)`.
+
+### How JavaScript differs
+
+- **Arrays:** JS has a single array type (Array). There are no primitive arrays (`int[]`, etc.). Indexing and `.length` are part of the language; `.length` is writable (resizing the conceptual array).
+- **No Def:** JS has no `def` type. So there is no dynamic “array or list or map” resolution like Painless’s Def bootstrap.
+- **List/Map in script:** If the script has access to Java `List`/`Map` (e.g. from the same whitelist/runtime), then `list.size()` or a whitelisted `getLength(List)` can be used. JS does not have a `.length` property on Java List unless you expose one (e.g. via augmentation or a wrapper).
+
+### Suggestions
+
+1. **Tests that only need “array of numbers”:** Use a JS array, e.g. `let a = [1, 2, 3]; return a.length` or `a[0]`. Adjust test expectations: return types may be Number instead of int/long, and there is no `def[]` or `int[]`. Such tests can be converted to JS and kept.
+2. **Tests that depend on primitive arrays or Def:** Tests that use `int[]`, `def[]`, `new int[n]`, or Def’s dynamic resolution for arrays (e.g. `def x = new int[10]; return x.length`) should remain Painless-only or be skipped in JS, unless you introduce a JS-side mechanism that exposes the same Java array types and a `.length`-like accessor (e.g. by whitelisting the same Def bootstrap or a small JS helper that takes an object and returns array length when the object is a Java array).
+3. **`Def.arrayLengthGetter` and shared runtime:** If the JavaScript implementation runs in the same JVM and can call into the same Def/bootstrap layer for parameters or return values that are Java arrays, then scripts that receive a Java array (e.g. from params) could support `arr.length` by having the Walker/codegen emit a call to the same `arrayLengthGetter` when the receiver is typed as an array (or def). That would align behavior with Painless for that subset of tests without implementing full Def in JS.
