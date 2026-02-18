@@ -705,6 +705,14 @@ public class DefaultSemanticAnalysisPhase extends UserTreeBaseVisitor<SemanticSc
     }
 
     /**
+     * Returns true when the given canonical type name is a JavaScript variable-declaration keyword (var, let, const).
+     * These are not type names; they indicate an untyped variable and are handled as def in the semantic phase.
+     */
+    private static boolean isVariableDeclarationKeyword(String canonicalTypeName) {
+        return "var".equals(canonicalTypeName) || "let".equals(canonicalTypeName) || "const".equals(canonicalTypeName);
+    }
+
+    /**
      * Visits a declaration and defines a variable with a type and optionally a value.
      * Checks: type validation
      */
@@ -720,12 +728,16 @@ public class DefaultSemanticAnalysisPhase extends UserTreeBaseVisitor<SemanticSc
         }
 
         String canonicalTypeName = userDeclarationNode.getCanonicalTypeName();
-        Class<?> type = scriptScope.getJavascriptLookup().canonicalTypeNameToType(canonicalTypeName);
-
-        if (type == null) {
-            throw userDeclarationNode.createError(
-                new IllegalArgumentException("invalid declaration: cannot resolve type [" + canonicalTypeName + "]")
-            );
+        Class<?> type;
+        if (isVariableDeclarationKeyword(canonicalTypeName)) {
+            type = def.class;
+        } else {
+            type = scriptScope.getJavascriptLookup().canonicalTypeNameToType(canonicalTypeName);
+            if (type == null) {
+                throw userDeclarationNode.createError(
+                    new IllegalArgumentException("invalid declaration: cannot resolve type [" + canonicalTypeName + "]")
+                );
+            }
         }
 
         AExpression userValueNode = userDeclarationNode.getValueNode();
@@ -733,6 +745,9 @@ public class DefaultSemanticAnalysisPhase extends UserTreeBaseVisitor<SemanticSc
         if (userValueNode != null) {
             semanticScope.setCondition(userValueNode, Read.class);
             semanticScope.putDecoration(userValueNode, new TargetType(type));
+            if (type == def.class) {
+                semanticScope.setCondition(userValueNode, Internal.class);
+            }
             checkedVisit(userValueNode, semanticScope);
             decorateWithCast(userValueNode, semanticScope);
         }
