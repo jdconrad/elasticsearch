@@ -1876,6 +1876,8 @@ public class DefaultSemanticAnalysisPhase extends UserTreeBaseVisitor<SemanticSc
         JavascriptClassBinding classBinding = null;
         int classBindingOffset = 0;
         JavascriptInstanceBinding instanceBinding = null;
+        Variable callableVariable = null;
+        JavascriptMethod callableValueMethod = null;
 
         Class<?> valueType;
 
@@ -1925,11 +1927,51 @@ public class DefaultSemanticAnalysisPhase extends UserTreeBaseVisitor<SemanticSc
                             instanceBinding = scriptScope.getJavascriptLookup().lookupJavascriptInstanceBinding(methodName, userArgumentsSize);
 
                             if (instanceBinding == null) {
-                                throw userCallLocalNode.createError(
-                                    new IllegalArgumentException(
-                                        "Unknown call [" + methodName + "] with [" + userArgumentsSize + "] arguments."
-                                    )
-                                );
+                                if (semanticScope.isVariableDefined(methodName)) {
+                                    callableVariable = semanticScope.getVariable(userCallLocalNode.getLocation(), methodName);
+
+                                    if (callableVariable.type() == def.class) {
+                                        throw userCallLocalNode.createError(
+                                            new IllegalArgumentException(
+                                                "cannot invoke [def] value [" + methodName + "] with local call syntax"
+                                            )
+                                        );
+                                    }
+
+                                    callableValueMethod = scriptScope.getJavascriptLookup()
+                                        .lookupFunctionalInterfaceJavascriptMethod(callableVariable.type());
+
+                                    if (callableValueMethod == null) {
+                                        throw userCallLocalNode.createError(
+                                            new IllegalArgumentException(
+                                                "variable ["
+                                                    + methodName
+                                                    + "] of type ["
+                                                    + typeToCanonicalTypeName(callableVariable.type())
+                                                    + "] is not callable"
+                                            )
+                                        );
+                                    }
+
+                                    if (callableValueMethod.typeParameters().size() != userArgumentsSize) {
+                                        throw userCallLocalNode.createError(
+                                            new IllegalArgumentException(
+                                                Strings.format(
+                                                    "incorrect number of arguments for callable value [%s], expected [%d] but found [%d]",
+                                                    methodName,
+                                                    callableValueMethod.typeParameters().size(),
+                                                    userArgumentsSize
+                                                )
+                                            )
+                                        );
+                                    }
+                                } else {
+                                    throw userCallLocalNode.createError(
+                                        new IllegalArgumentException(
+                                            "Unknown call [" + methodName + "] with [" + userArgumentsSize + "] arguments."
+                                        )
+                                    );
+                                }
                             }
                         }
                     }
@@ -1970,6 +2012,13 @@ public class DefaultSemanticAnalysisPhase extends UserTreeBaseVisitor<SemanticSc
 
             typeParameters = instanceBinding.typeParameters();
             valueType = instanceBinding.returnType();
+        } else if (callableValueMethod != null) {
+            semanticScope.putDecoration(userCallLocalNode, new SemanticVariable(callableVariable));
+            semanticScope.putDecoration(userCallLocalNode, new StandardJavascriptMethod(callableValueMethod));
+
+            scriptScope.markNonDeterministic(callableValueMethod.annotations().containsKey(NonDeterministicAnnotation.class));
+            typeParameters = callableValueMethod.typeParameters();
+            valueType = callableValueMethod.returnType();
         } else {
             throw new IllegalStateException("Illegal tree structure.");
         }

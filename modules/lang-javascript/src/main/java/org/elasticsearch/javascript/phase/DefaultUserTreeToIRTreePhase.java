@@ -1247,6 +1247,34 @@ public class DefaultUserTreeToIRTreePhase implements UserTreeVisitor<ScriptScope
 
     @Override
     public void visitCallLocal(ECallLocal callLocalNode, ScriptScope scriptScope) {
+        if (scriptScope.hasDecoration(callLocalNode, SemanticVariable.class)) {
+            Variable semanticVariable = scriptScope.getDecoration(callLocalNode, SemanticVariable.class).semanticVariable();
+            JavascriptMethod interfaceMethod = scriptScope.getDecoration(callLocalNode, StandardJavascriptMethod.class).standardJavascriptMethod();
+            Class<?> valueType = scriptScope.getDecoration(callLocalNode, ValueType.class).valueType();
+
+            LoadVariableNode irLoadVariableNode = new LoadVariableNode(callLocalNode.getLocation());
+            irLoadVariableNode.attachDecoration(new IRDExpressionType(semanticVariable.type()));
+            irLoadVariableNode.attachDecoration(new IRDName(semanticVariable.name()));
+
+            InvokeCallNode irInvokeCallNode = new InvokeCallNode(callLocalNode.getLocation());
+
+            for (AExpression userArgumentNode : callLocalNode.getArgumentNodes()) {
+                irInvokeCallNode.addArgumentNode(injectCast(userArgumentNode, scriptScope));
+            }
+
+            irInvokeCallNode.attachDecoration(new IRDExpressionType(valueType));
+            irInvokeCallNode.setMethod(interfaceMethod);
+            irInvokeCallNode.setBox(semanticVariable.type());
+
+            BinaryImplNode irBinaryImplNode = new BinaryImplNode(callLocalNode.getLocation());
+            irBinaryImplNode.setLeftNode(irLoadVariableNode);
+            irBinaryImplNode.setRightNode(irInvokeCallNode);
+            irBinaryImplNode.attachDecoration(irInvokeCallNode.getDecoration(IRDExpressionType.class));
+
+            scriptScope.putDecoration(callLocalNode, new IRNodeDecoration(irBinaryImplNode));
+            return;
+        }
+
         InvokeCallMemberNode irInvokeCallMemberNode = new InvokeCallMemberNode(callLocalNode.getLocation());
 
         if (scriptScope.hasDecoration(callLocalNode, StandardLocalFunction.class)) {
