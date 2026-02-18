@@ -27,7 +27,7 @@ public class JavascriptLexer extends JavascriptLexerBase {
 		Modulus=28, Power=29, NullCoalesce=30, Hashtag=31, RightShiftArithmetic=32, 
 		LeftShiftArithmetic=33, RightShiftLogical=34, LessThan=35, MoreThan=36, 
 		LessThanEquals=37, GreaterThanEquals=38, Equals_=39, NotEquals=40, IdentityEquals=41, 
-		IdentityNotEquals=42, BitAnd=43, BitXOr=44, BitOr=45, And=46, Or=47, MultiplyAssign=48, 
+		IdentityNotEquals=42, And=43, Or=44, BitAnd=45, BitXOr=46, BitOr=47, MultiplyAssign=48, 
 		DivideAssign=49, ModulusAssign=50, PlusAssign=51, MinusAssign=52, LeftShiftArithmeticAssign=53, 
 		RightShiftArithmeticAssign=54, RightShiftLogicalAssign=55, BitAndAssign=56, 
 		BitXorAssign=57, BitOrAssign=58, PowerAssign=59, NullishCoalescingAssign=60, 
@@ -65,29 +65,29 @@ public class JavascriptLexer extends JavascriptLexerBase {
 			"Plus", "Minus", "BitNot", "Not", "Multiply", "Divide", "Modulus", "Power", 
 			"NullCoalesce", "Hashtag", "RightShiftArithmetic", "LeftShiftArithmetic", 
 			"RightShiftLogical", "LessThan", "MoreThan", "LessThanEquals", "GreaterThanEquals", 
-			"Equals_", "NotEquals", "IdentityEquals", "IdentityNotEquals", "BitAnd", 
-			"BitXOr", "BitOr", "And", "Or", "MultiplyAssign", "DivideAssign", "ModulusAssign", 
-			"PlusAssign", "MinusAssign", "LeftShiftArithmeticAssign", "RightShiftArithmeticAssign", 
-			"RightShiftLogicalAssign", "BitAndAssign", "BitXorAssign", "BitOrAssign", 
-			"PowerAssign", "NullishCoalescingAssign", "ARROW", "NullLiteral", "BooleanLiteral", 
-			"DecimalLiteral", "HexIntegerLiteral", "OctalIntegerLiteral", "OctalIntegerLiteral2", 
-			"BinaryIntegerLiteral", "BigHexIntegerLiteral", "BigOctalIntegerLiteral", 
-			"BigBinaryIntegerLiteral", "BigDecimalIntegerLiteral", "Break", "Do", 
-			"Instanceof", "Typeof", "Case", "Else", "New", "Var", "Catch", "Finally", 
-			"Return", "Void", "Continue", "For", "Switch", "While", "Debugger", "Function_", 
-			"This", "With", "Default", "If", "Throw", "Delete", "In", "Try", "As", 
-			"From", "Of", "Yield", "YieldStar", "Class", "Enum", "Extends", "Super", 
-			"Const", "Export", "Import", "Async", "Await", "Implements", "StrictLet", 
-			"NonStrictLet", "Private", "Public", "Interface", "Package", "Protected", 
-			"Static", "Identifier", "StringLiteral", "BackTick", "WhiteSpaces", "LineTerminator", 
-			"HtmlComment", "CDataComment", "UnexpectedCharacter", "BackTickInside", 
-			"TemplateStringStartExpression", "TemplateStringAtom", "DoubleStringCharacter", 
-			"SingleStringCharacter", "EscapeSequence", "CharacterEscapeSequence", 
-			"HexEscapeSequence", "UnicodeEscapeSequence", "ExtendedUnicodeEscapeSequence", 
-			"SingleEscapeCharacter", "NonEscapeCharacter", "EscapeCharacter", "LineContinuation", 
-			"HexDigit", "DecimalIntegerLiteral", "ExponentPart", "IdentifierPart", 
-			"IdentifierStart", "RegularExpressionFirstChar", "RegularExpressionChar", 
-			"RegularExpressionClassChar", "RegularExpressionBackslashSequence"
+			"Equals_", "NotEquals", "IdentityEquals", "IdentityNotEquals", "And", 
+			"Or", "BitAnd", "BitXOr", "BitOr", "MultiplyAssign", "DivideAssign", 
+			"ModulusAssign", "PlusAssign", "MinusAssign", "LeftShiftArithmeticAssign", 
+			"RightShiftArithmeticAssign", "RightShiftLogicalAssign", "BitAndAssign", 
+			"BitXorAssign", "BitOrAssign", "PowerAssign", "NullishCoalescingAssign", 
+			"ARROW", "NullLiteral", "BooleanLiteral", "DecimalLiteral", "HexIntegerLiteral", 
+			"OctalIntegerLiteral", "OctalIntegerLiteral2", "BinaryIntegerLiteral", 
+			"BigHexIntegerLiteral", "BigOctalIntegerLiteral", "BigBinaryIntegerLiteral", 
+			"BigDecimalIntegerLiteral", "Break", "Do", "Instanceof", "Typeof", "Case", 
+			"Else", "New", "Var", "Catch", "Finally", "Return", "Void", "Continue", 
+			"For", "Switch", "While", "Debugger", "Function_", "This", "With", "Default", 
+			"If", "Throw", "Delete", "In", "Try", "As", "From", "Of", "Yield", "YieldStar", 
+			"Class", "Enum", "Extends", "Super", "Const", "Export", "Import", "Async", 
+			"Await", "Implements", "StrictLet", "NonStrictLet", "Private", "Public", 
+			"Interface", "Package", "Protected", "Static", "Identifier", "StringLiteral", 
+			"BackTick", "WhiteSpaces", "LineTerminator", "HtmlComment", "CDataComment", 
+			"UnexpectedCharacter", "BackTickInside", "TemplateStringStartExpression", 
+			"TemplateStringAtom", "DoubleStringCharacter", "SingleStringCharacter", 
+			"EscapeSequence", "CharacterEscapeSequence", "HexEscapeSequence", "UnicodeEscapeSequence", 
+			"ExtendedUnicodeEscapeSequence", "SingleEscapeCharacter", "NonEscapeCharacter", 
+			"EscapeCharacter", "LineContinuation", "HexDigit", "DecimalIntegerLiteral", 
+			"ExponentPart", "IdentifierPart", "IdentifierStart", "RegularExpressionFirstChar", 
+			"RegularExpressionChar", "RegularExpressionClassChar", "RegularExpressionBackslashSequence"
 		};
 	}
 	public static final String[] ruleNames = makeRuleNames();
@@ -98,7 +98,7 @@ public class JavascriptLexer extends JavascriptLexerBase {
 			"'}'", "';'", "','", "'='", "'?'", "'?.'", "':'", "'...'", "'.'", "'++'", 
 			"'--'", "'+'", "'-'", "'~'", "'!'", "'*'", "'/'", "'%'", "'**'", "'??'", 
 			"'#'", "'>>'", "'<<'", "'>>>'", "'<'", "'>'", "'<='", "'>='", "'=='", 
-			"'!='", "'==='", "'!=='", "'&'", "'^'", "'|'", "'&&'", "'||'", "'*='", 
+			"'!='", "'==='", "'!=='", "'&&'", "'||'", "'&'", "'^'", "'|'", "'*='", 
 			"'/='", "'%='", "'+='", "'-='", "'<<='", "'>>='", "'>>>='", "'&='", "'^='", 
 			"'|='", "'**='", "'??='", "'=>'", "'null'", null, null, null, null, null, 
 			null, null, null, null, null, "'break'", "'do'", "'instanceof'", "'typeof'", 
@@ -121,23 +121,23 @@ public class JavascriptLexer extends JavascriptLexerBase {
 			"Plus", "Minus", "BitNot", "Not", "Multiply", "Divide", "Modulus", "Power", 
 			"NullCoalesce", "Hashtag", "RightShiftArithmetic", "LeftShiftArithmetic", 
 			"RightShiftLogical", "LessThan", "MoreThan", "LessThanEquals", "GreaterThanEquals", 
-			"Equals_", "NotEquals", "IdentityEquals", "IdentityNotEquals", "BitAnd", 
-			"BitXOr", "BitOr", "And", "Or", "MultiplyAssign", "DivideAssign", "ModulusAssign", 
-			"PlusAssign", "MinusAssign", "LeftShiftArithmeticAssign", "RightShiftArithmeticAssign", 
-			"RightShiftLogicalAssign", "BitAndAssign", "BitXorAssign", "BitOrAssign", 
-			"PowerAssign", "NullishCoalescingAssign", "ARROW", "NullLiteral", "BooleanLiteral", 
-			"DecimalLiteral", "HexIntegerLiteral", "OctalIntegerLiteral", "OctalIntegerLiteral2", 
-			"BinaryIntegerLiteral", "BigHexIntegerLiteral", "BigOctalIntegerLiteral", 
-			"BigBinaryIntegerLiteral", "BigDecimalIntegerLiteral", "Break", "Do", 
-			"Instanceof", "Typeof", "Case", "Else", "New", "Var", "Catch", "Finally", 
-			"Return", "Void", "Continue", "For", "Switch", "While", "Debugger", "Function_", 
-			"This", "With", "Default", "If", "Throw", "Delete", "In", "Try", "As", 
-			"From", "Of", "Yield", "YieldStar", "Class", "Enum", "Extends", "Super", 
-			"Const", "Export", "Import", "Async", "Await", "Implements", "StrictLet", 
-			"NonStrictLet", "Private", "Public", "Interface", "Package", "Protected", 
-			"Static", "Identifier", "StringLiteral", "BackTick", "WhiteSpaces", "LineTerminator", 
-			"HtmlComment", "CDataComment", "UnexpectedCharacter", "TemplateStringStartExpression", 
-			"TemplateStringAtom"
+			"Equals_", "NotEquals", "IdentityEquals", "IdentityNotEquals", "And", 
+			"Or", "BitAnd", "BitXOr", "BitOr", "MultiplyAssign", "DivideAssign", 
+			"ModulusAssign", "PlusAssign", "MinusAssign", "LeftShiftArithmeticAssign", 
+			"RightShiftArithmeticAssign", "RightShiftLogicalAssign", "BitAndAssign", 
+			"BitXorAssign", "BitOrAssign", "PowerAssign", "NullishCoalescingAssign", 
+			"ARROW", "NullLiteral", "BooleanLiteral", "DecimalLiteral", "HexIntegerLiteral", 
+			"OctalIntegerLiteral", "OctalIntegerLiteral2", "BinaryIntegerLiteral", 
+			"BigHexIntegerLiteral", "BigOctalIntegerLiteral", "BigBinaryIntegerLiteral", 
+			"BigDecimalIntegerLiteral", "Break", "Do", "Instanceof", "Typeof", "Case", 
+			"Else", "New", "Var", "Catch", "Finally", "Return", "Void", "Continue", 
+			"For", "Switch", "While", "Debugger", "Function_", "This", "With", "Default", 
+			"If", "Throw", "Delete", "In", "Try", "As", "From", "Of", "Yield", "YieldStar", 
+			"Class", "Enum", "Extends", "Super", "Const", "Export", "Import", "Async", 
+			"Await", "Implements", "StrictLet", "NonStrictLet", "Private", "Public", 
+			"Interface", "Package", "Protected", "Static", "Identifier", "StringLiteral", 
+			"BackTick", "WhiteSpaces", "LineTerminator", "HtmlComment", "CDataComment", 
+			"UnexpectedCharacter", "TemplateStringStartExpression", "TemplateStringAtom"
 		};
 	}
 	private static final String[] _SYMBOLIC_NAMES = makeSymbolicNames();
@@ -438,8 +438,8 @@ public class JavascriptLexer extends JavascriptLexerBase {
 		"\u001f\u0001\u001f\u0001 \u0001 \u0001 \u0001!\u0001!\u0001!\u0001!\u0001"+
 		"\"\u0001\"\u0001#\u0001#\u0001$\u0001$\u0001$\u0001%\u0001%\u0001%\u0001"+
 		"&\u0001&\u0001&\u0001\'\u0001\'\u0001\'\u0001(\u0001(\u0001(\u0001(\u0001"+
-		")\u0001)\u0001)\u0001)\u0001*\u0001*\u0001+\u0001+\u0001,\u0001,\u0001"+
-		"-\u0001-\u0001-\u0001.\u0001.\u0001.\u0001/\u0001/\u0001/\u00010\u0001"+
+		")\u0001)\u0001)\u0001)\u0001*\u0001*\u0001*\u0001+\u0001+\u0001+\u0001"+
+		",\u0001,\u0001-\u0001-\u0001.\u0001.\u0001/\u0001/\u0001/\u00010\u0001"+
 		"0\u00010\u00011\u00011\u00011\u00012\u00012\u00012\u00013\u00013\u0001"+
 		"3\u00014\u00014\u00014\u00014\u00015\u00015\u00015\u00015\u00016\u0001"+
 		"6\u00016\u00016\u00016\u00017\u00017\u00017\u00018\u00018\u00018\u0001"+
@@ -899,8 +899,8 @@ public class JavascriptLexer extends JavascriptLexerBase {
 		"\u0000\u0000\u0000J\u01b6\u0001\u0000\u0000\u0000L\u01b9\u0001\u0000\u0000"+
 		"\u0000N\u01bc\u0001\u0000\u0000\u0000P\u01bf\u0001\u0000\u0000\u0000R"+
 		"\u01c2\u0001\u0000\u0000\u0000T\u01c6\u0001\u0000\u0000\u0000V\u01ca\u0001"+
-		"\u0000\u0000\u0000X\u01cc\u0001\u0000\u0000\u0000Z\u01ce\u0001\u0000\u0000"+
-		"\u0000\\\u01d0\u0001\u0000\u0000\u0000^\u01d3\u0001\u0000\u0000\u0000"+
+		"\u0000\u0000\u0000X\u01cd\u0001\u0000\u0000\u0000Z\u01d0\u0001\u0000\u0000"+
+		"\u0000\\\u01d2\u0001\u0000\u0000\u0000^\u01d4\u0001\u0000\u0000\u0000"+
 		"`\u01d6\u0001\u0000\u0000\u0000b\u01d9\u0001\u0000\u0000\u0000d\u01dc"+
 		"\u0001\u0000\u0000\u0000f\u01df\u0001\u0000\u0000\u0000h\u01e2\u0001\u0000"+
 		"\u0000\u0000j\u01e5\u0001\u0000\u0000\u0000l\u01e9\u0001\u0000\u0000\u0000"+
@@ -1023,35 +1023,35 @@ public class JavascriptLexer extends JavascriptLexerBase {
 		"\u01c2\u01c3\u0005=\u0000\u0000\u01c3\u01c4\u0005=\u0000\u0000\u01c4\u01c5"+
 		"\u0005=\u0000\u0000\u01c5S\u0001\u0000\u0000\u0000\u01c6\u01c7\u0005!"+
 		"\u0000\u0000\u01c7\u01c8\u0005=\u0000\u0000\u01c8\u01c9\u0005=\u0000\u0000"+
-		"\u01c9U\u0001\u0000\u0000\u0000\u01ca\u01cb\u0005&\u0000\u0000\u01cbW"+
-		"\u0001\u0000\u0000\u0000\u01cc\u01cd\u0005^\u0000\u0000\u01cdY\u0001\u0000"+
-		"\u0000\u0000\u01ce\u01cf\u0005|\u0000\u0000\u01cf[\u0001\u0000\u0000\u0000"+
-		"\u01d0\u01d1\u0005&\u0000\u0000\u01d1\u01d2\u0005&\u0000\u0000\u01d2]"+
-		"\u0001\u0000\u0000\u0000\u01d3\u01d4\u0005|\u0000\u0000\u01d4\u01d5\u0005"+
-		"|\u0000\u0000\u01d5_\u0001\u0000\u0000\u0000\u01d6\u01d7\u0005*\u0000"+
-		"\u0000\u01d7\u01d8\u0005=\u0000\u0000\u01d8a\u0001\u0000\u0000\u0000\u01d9"+
-		"\u01da\u0005/\u0000\u0000\u01da\u01db\u0005=\u0000\u0000\u01dbc\u0001"+
-		"\u0000\u0000\u0000\u01dc\u01dd\u0005%\u0000\u0000\u01dd\u01de\u0005=\u0000"+
-		"\u0000\u01dee\u0001\u0000\u0000\u0000\u01df\u01e0\u0005+\u0000\u0000\u01e0"+
-		"\u01e1\u0005=\u0000\u0000\u01e1g\u0001\u0000\u0000\u0000\u01e2\u01e3\u0005"+
-		"-\u0000\u0000\u01e3\u01e4\u0005=\u0000\u0000\u01e4i\u0001\u0000\u0000"+
-		"\u0000\u01e5\u01e6\u0005<\u0000\u0000\u01e6\u01e7\u0005<\u0000\u0000\u01e7"+
-		"\u01e8\u0005=\u0000\u0000\u01e8k\u0001\u0000\u0000\u0000\u01e9\u01ea\u0005"+
-		">\u0000\u0000\u01ea\u01eb\u0005>\u0000\u0000\u01eb\u01ec\u0005=\u0000"+
-		"\u0000\u01ecm\u0001\u0000\u0000\u0000\u01ed\u01ee\u0005>\u0000\u0000\u01ee"+
-		"\u01ef\u0005>\u0000\u0000\u01ef\u01f0\u0005>\u0000\u0000\u01f0\u01f1\u0005"+
-		"=\u0000\u0000\u01f1o\u0001\u0000\u0000\u0000\u01f2\u01f3\u0005&\u0000"+
-		"\u0000\u01f3\u01f4\u0005=\u0000\u0000\u01f4q\u0001\u0000\u0000\u0000\u01f5"+
-		"\u01f6\u0005^\u0000\u0000\u01f6\u01f7\u0005=\u0000\u0000\u01f7s\u0001"+
-		"\u0000\u0000\u0000\u01f8\u01f9\u0005|\u0000\u0000\u01f9\u01fa\u0005=\u0000"+
-		"\u0000\u01fau\u0001\u0000\u0000\u0000\u01fb\u01fc\u0005*\u0000\u0000\u01fc"+
-		"\u01fd\u0005*\u0000\u0000\u01fd\u01fe\u0005=\u0000\u0000\u01few\u0001"+
-		"\u0000\u0000\u0000\u01ff\u0200\u0005?\u0000\u0000\u0200\u0201\u0005?\u0000"+
-		"\u0000\u0201\u0202\u0005=\u0000\u0000\u0202y\u0001\u0000\u0000\u0000\u0203"+
-		"\u0204\u0005=\u0000\u0000\u0204\u0205\u0005>\u0000\u0000\u0205{\u0001"+
-		"\u0000\u0000\u0000\u0206\u0207\u0005n\u0000\u0000\u0207\u0208\u0005u\u0000"+
-		"\u0000\u0208\u0209\u0005l\u0000\u0000\u0209\u020a\u0005l\u0000\u0000\u020a"+
-		"}\u0001\u0000\u0000\u0000\u020b\u020c\u0005t\u0000\u0000\u020c\u020d\u0005"+
+		"\u01c9U\u0001\u0000\u0000\u0000\u01ca\u01cb\u0005&\u0000\u0000\u01cb\u01cc"+
+		"\u0005&\u0000\u0000\u01ccW\u0001\u0000\u0000\u0000\u01cd\u01ce\u0005|"+
+		"\u0000\u0000\u01ce\u01cf\u0005|\u0000\u0000\u01cfY\u0001\u0000\u0000\u0000"+
+		"\u01d0\u01d1\u0005&\u0000\u0000\u01d1[\u0001\u0000\u0000\u0000\u01d2\u01d3"+
+		"\u0005^\u0000\u0000\u01d3]\u0001\u0000\u0000\u0000\u01d4\u01d5\u0005|"+
+		"\u0000\u0000\u01d5_\u0001\u0000\u0000\u0000\u01d6\u01d7\u0005*\u0000\u0000"+
+		"\u01d7\u01d8\u0005=\u0000\u0000\u01d8a\u0001\u0000\u0000\u0000\u01d9\u01da"+
+		"\u0005/\u0000\u0000\u01da\u01db\u0005=\u0000\u0000\u01dbc\u0001\u0000"+
+		"\u0000\u0000\u01dc\u01dd\u0005%\u0000\u0000\u01dd\u01de\u0005=\u0000\u0000"+
+		"\u01dee\u0001\u0000\u0000\u0000\u01df\u01e0\u0005+\u0000\u0000\u01e0\u01e1"+
+		"\u0005=\u0000\u0000\u01e1g\u0001\u0000\u0000\u0000\u01e2\u01e3\u0005-"+
+		"\u0000\u0000\u01e3\u01e4\u0005=\u0000\u0000\u01e4i\u0001\u0000\u0000\u0000"+
+		"\u01e5\u01e6\u0005<\u0000\u0000\u01e6\u01e7\u0005<\u0000\u0000\u01e7\u01e8"+
+		"\u0005=\u0000\u0000\u01e8k\u0001\u0000\u0000\u0000\u01e9\u01ea\u0005>"+
+		"\u0000\u0000\u01ea\u01eb\u0005>\u0000\u0000\u01eb\u01ec\u0005=\u0000\u0000"+
+		"\u01ecm\u0001\u0000\u0000\u0000\u01ed\u01ee\u0005>\u0000\u0000\u01ee\u01ef"+
+		"\u0005>\u0000\u0000\u01ef\u01f0\u0005>\u0000\u0000\u01f0\u01f1\u0005="+
+		"\u0000\u0000\u01f1o\u0001\u0000\u0000\u0000\u01f2\u01f3\u0005&\u0000\u0000"+
+		"\u01f3\u01f4\u0005=\u0000\u0000\u01f4q\u0001\u0000\u0000\u0000\u01f5\u01f6"+
+		"\u0005^\u0000\u0000\u01f6\u01f7\u0005=\u0000\u0000\u01f7s\u0001\u0000"+
+		"\u0000\u0000\u01f8\u01f9\u0005|\u0000\u0000\u01f9\u01fa\u0005=\u0000\u0000"+
+		"\u01fau\u0001\u0000\u0000\u0000\u01fb\u01fc\u0005*\u0000\u0000\u01fc\u01fd"+
+		"\u0005*\u0000\u0000\u01fd\u01fe\u0005=\u0000\u0000\u01few\u0001\u0000"+
+		"\u0000\u0000\u01ff\u0200\u0005?\u0000\u0000\u0200\u0201\u0005?\u0000\u0000"+
+		"\u0201\u0202\u0005=\u0000\u0000\u0202y\u0001\u0000\u0000\u0000\u0203\u0204"+
+		"\u0005=\u0000\u0000\u0204\u0205\u0005>\u0000\u0000\u0205{\u0001\u0000"+
+		"\u0000\u0000\u0206\u0207\u0005n\u0000\u0000\u0207\u0208\u0005u\u0000\u0000"+
+		"\u0208\u0209\u0005l\u0000\u0000\u0209\u020a\u0005l\u0000\u0000\u020a}"+
+		"\u0001\u0000\u0000\u0000\u020b\u020c\u0005t\u0000\u0000\u020c\u020d\u0005"+
 		"r\u0000\u0000\u020d\u020e\u0005u\u0000\u0000\u020e\u0215\u0005e\u0000"+
 		"\u0000\u020f\u0210\u0005f\u0000\u0000\u0210\u0211\u0005a\u0000\u0000\u0211"+
 		"\u0212\u0005l\u0000\u0000\u0212\u0213\u0005s\u0000\u0000\u0213\u0215\u0005"+

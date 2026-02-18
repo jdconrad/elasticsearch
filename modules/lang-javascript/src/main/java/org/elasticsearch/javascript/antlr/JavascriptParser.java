@@ -28,7 +28,7 @@ public class JavascriptParser extends JavascriptParserBase {
     Modulus=28, Power=29, NullCoalesce=30, Hashtag=31, RightShiftArithmetic=32, 
     LeftShiftArithmetic=33, RightShiftLogical=34, LessThan=35, MoreThan=36, 
     LessThanEquals=37, GreaterThanEquals=38, Equals_=39, NotEquals=40, IdentityEquals=41, 
-    IdentityNotEquals=42, BitAnd=43, BitXOr=44, BitOr=45, And=46, Or=47, MultiplyAssign=48, 
+    IdentityNotEquals=42, And=43, Or=44, BitAnd=45, BitXOr=46, BitOr=47, MultiplyAssign=48, 
     DivideAssign=49, ModulusAssign=50, PlusAssign=51, MinusAssign=52, LeftShiftArithmeticAssign=53, 
     RightShiftArithmeticAssign=54, RightShiftLogicalAssign=55, BitAndAssign=56, 
     BitXorAssign=57, BitOrAssign=58, PowerAssign=59, NullishCoalescingAssign=60, 
@@ -106,7 +106,7 @@ public class JavascriptParser extends JavascriptParserBase {
       "'}'", "';'", "','", "'='", "'?'", "'?.'", "':'", "'...'", "'.'", "'++'", 
       "'--'", "'+'", "'-'", "'~'", "'!'", "'*'", "'/'", "'%'", "'**'", "'??'", 
       "'#'", "'>>'", "'<<'", "'>>>'", "'<'", "'>'", "'<='", "'>='", "'=='", 
-      "'!='", "'==='", "'!=='", "'&'", "'^'", "'|'", "'&&'", "'||'", "'*='", 
+      "'!='", "'==='", "'!=='", "'&&'", "'||'", "'&'", "'^'", "'|'", "'*='", 
       "'/='", "'%='", "'+='", "'-='", "'<<='", "'>>='", "'>>>='", "'&='", "'^='", 
       "'|='", "'**='", "'??='", "'=>'", "'null'", null, null, null, null, null, 
       null, null, null, null, null, "'break'", "'do'", "'instanceof'", "'typeof'", 
@@ -129,23 +129,23 @@ public class JavascriptParser extends JavascriptParserBase {
       "Plus", "Minus", "BitNot", "Not", "Multiply", "Divide", "Modulus", "Power", 
       "NullCoalesce", "Hashtag", "RightShiftArithmetic", "LeftShiftArithmetic", 
       "RightShiftLogical", "LessThan", "MoreThan", "LessThanEquals", "GreaterThanEquals", 
-      "Equals_", "NotEquals", "IdentityEquals", "IdentityNotEquals", "BitAnd", 
-      "BitXOr", "BitOr", "And", "Or", "MultiplyAssign", "DivideAssign", "ModulusAssign", 
-      "PlusAssign", "MinusAssign", "LeftShiftArithmeticAssign", "RightShiftArithmeticAssign", 
-      "RightShiftLogicalAssign", "BitAndAssign", "BitXorAssign", "BitOrAssign", 
-      "PowerAssign", "NullishCoalescingAssign", "ARROW", "NullLiteral", "BooleanLiteral", 
-      "DecimalLiteral", "HexIntegerLiteral", "OctalIntegerLiteral", "OctalIntegerLiteral2", 
-      "BinaryIntegerLiteral", "BigHexIntegerLiteral", "BigOctalIntegerLiteral", 
-      "BigBinaryIntegerLiteral", "BigDecimalIntegerLiteral", "Break", "Do", 
-      "Instanceof", "Typeof", "Case", "Else", "New", "Var", "Catch", "Finally", 
-      "Return", "Void", "Continue", "For", "Switch", "While", "Debugger", "Function_", 
-      "This", "With", "Default", "If", "Throw", "Delete", "In", "Try", "As", 
-      "From", "Of", "Yield", "YieldStar", "Class", "Enum", "Extends", "Super", 
-      "Const", "Export", "Import", "Async", "Await", "Implements", "StrictLet", 
-      "NonStrictLet", "Private", "Public", "Interface", "Package", "Protected", 
-      "Static", "Identifier", "StringLiteral", "BackTick", "WhiteSpaces", "LineTerminator", 
-      "HtmlComment", "CDataComment", "UnexpectedCharacter", "TemplateStringStartExpression", 
-      "TemplateStringAtom"
+      "Equals_", "NotEquals", "IdentityEquals", "IdentityNotEquals", "And", 
+      "Or", "BitAnd", "BitXOr", "BitOr", "MultiplyAssign", "DivideAssign", 
+      "ModulusAssign", "PlusAssign", "MinusAssign", "LeftShiftArithmeticAssign", 
+      "RightShiftArithmeticAssign", "RightShiftLogicalAssign", "BitAndAssign", 
+      "BitXorAssign", "BitOrAssign", "PowerAssign", "NullishCoalescingAssign", 
+      "ARROW", "NullLiteral", "BooleanLiteral", "DecimalLiteral", "HexIntegerLiteral", 
+      "OctalIntegerLiteral", "OctalIntegerLiteral2", "BinaryIntegerLiteral", 
+      "BigHexIntegerLiteral", "BigOctalIntegerLiteral", "BigBinaryIntegerLiteral", 
+      "BigDecimalIntegerLiteral", "Break", "Do", "Instanceof", "Typeof", "Case", 
+      "Else", "New", "Var", "Catch", "Finally", "Return", "Void", "Continue", 
+      "For", "Switch", "While", "Debugger", "Function_", "This", "With", "Default", 
+      "If", "Throw", "Delete", "In", "Try", "As", "From", "Of", "Yield", "YieldStar", 
+      "Class", "Enum", "Extends", "Super", "Const", "Export", "Import", "Async", 
+      "Await", "Implements", "StrictLet", "NonStrictLet", "Private", "Public", 
+      "Interface", "Package", "Protected", "Static", "Identifier", "StringLiteral", 
+      "BackTick", "WhiteSpaces", "LineTerminator", "HtmlComment", "CDataComment", 
+      "UnexpectedCharacter", "TemplateStringStartExpression", "TemplateStringAtom"
     };
   }
   private static final String[] _SYMBOLIC_NAMES = makeSymbolicNames();
@@ -2152,7 +2152,7 @@ public class JavascriptParser extends JavascriptParserBase {
       enterOuterAlt(_localctx, 1);
       {
       setState(359);
-      if (!(this.notOpenBraceAndNotFunction())) throw new FailedPredicateException(this, "this.notOpenBraceAndNotFunction()");
+      if (!(this.notOpenBraceAndNotFunction() && !this.isVariableDeclarationStart())) throw new FailedPredicateException(this, "this.notOpenBraceAndNotFunction() && !this.isVariableDeclarationStart()");
       setState(360);
       expressionSequence();
       setState(361);
@@ -8547,7 +8547,7 @@ public class JavascriptParser extends JavascriptParserBase {
   private boolean expressionStatement_sempred(ExpressionStatementContext _localctx, int predIndex) {
     switch (predIndex) {
     case 0:
-      return this.notOpenBraceAndNotFunction();
+      return this.notOpenBraceAndNotFunction() && !this.isVariableDeclarationStart();
     }
     return true;
   }
@@ -9262,12 +9262,12 @@ public class JavascriptParser extends JavascriptParserBase {
     "B\u0016\u0364\u0365\n\u0014\u0000\u0000\u0365\u0366\u0005a\u0000\u0000"+
     "\u0366\u03a2\u0003\u0084B\u0015\u0367\u0368\n\u0013\u0000\u0000\u0368"+
     "\u0369\u0007\u0006\u0000\u0000\u0369\u03a2\u0003\u0084B\u0014\u036a\u036b"+
-    "\n\u0012\u0000\u0000\u036b\u036c\u0005+\u0000\u0000\u036c\u03a2\u0003"+
-    "\u0084B\u0013\u036d\u036e\n\u0011\u0000\u0000\u036e\u036f\u0005,\u0000"+
+    "\n\u0012\u0000\u0000\u036b\u036c\u0005-\u0000\u0000\u036c\u03a2\u0003"+
+    "\u0084B\u0013\u036d\u036e\n\u0011\u0000\u0000\u036e\u036f\u0005.\u0000"+
     "\u0000\u036f\u03a2\u0003\u0084B\u0012\u0370\u0371\n\u0010\u0000\u0000"+
-    "\u0371\u0372\u0005-\u0000\u0000\u0372\u03a2\u0003\u0084B\u0011\u0373\u0374"+
-    "\n\u000f\u0000\u0000\u0374\u0375\u0005.\u0000\u0000\u0375\u03a2\u0003"+
-    "\u0084B\u0010\u0376\u0377\n\u000e\u0000\u0000\u0377\u0378\u0005/\u0000"+
+    "\u0371\u0372\u0005/\u0000\u0000\u0372\u03a2\u0003\u0084B\u0011\u0373\u0374"+
+    "\n\u000f\u0000\u0000\u0374\u0375\u0005+\u0000\u0000\u0375\u03a2\u0003"+
+    "\u0084B\u0010\u0376\u0377\n\u000e\u0000\u0000\u0377\u0378\u0005,\u0000"+
     "\u0000\u0378\u03a2\u0003\u0084B\u000f\u0379\u037a\n\r\u0000\u0000\u037a"+
     "\u037b\u0005\u000f\u0000\u0000\u037b\u037c\u0003\u0084B\u0000\u037c\u037d"+
     "\u0005\u0011\u0000\u0000\u037d\u037e\u0003\u0084B\u000e\u037e\u03a2\u0001"+
