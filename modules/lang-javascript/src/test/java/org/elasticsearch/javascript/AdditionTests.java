@@ -9,12 +9,14 @@
 
 package org.elasticsearch.javascript;
 
+import org.junit.Ignore;
+
 /** Tests for addition operator across all types */
 // TODO: NaN/Inf/overflow/...
 public class AdditionTests extends ScriptTestCase {
 
     public void testBasics() throws Exception {
-        assertEquals(3.0, exec("double x = 1; byte y = 2; return x + y;"));
+        assertEquals(3.0, exec("let x = 1; let y = 2; return x + y;"));
     }
 
     public void testInt() throws Exception {
@@ -186,6 +188,7 @@ public class AdditionTests extends ScriptTestCase {
         assertEquals(0.0 + 0.0, exec("return 0.0+0.0;"));
     }
 
+    @Ignore("Painless-only: def and typed casts")
     public void testDef() {
         assertEquals(2, exec("def x = (byte)1; def y = (byte)1; return x + y"));
         assertEquals(2, exec("def x = (short)1; def y = (byte)1; return x + y"));
@@ -244,6 +247,7 @@ public class AdditionTests extends ScriptTestCase {
         assertEquals(2D, exec("def x = (double)1; def y = (double)1; return x + y"));
     }
 
+    @Ignore("Painless-only: typed LHS with def RHS")
     public void testDefTypedLHS() {
         assertEquals(2, exec("byte x = (byte)1; def y = (byte)1; return x + y"));
         assertEquals(2, exec("short x = (short)1; def y = (byte)1; return x + y"));
@@ -302,6 +306,7 @@ public class AdditionTests extends ScriptTestCase {
         assertEquals(2D, exec("double x = (double)1; def y = (double)1; return x + y"));
     }
 
+    @Ignore("Painless-only: def LHS with typed RHS")
     public void testDefTypedRHS() {
         assertEquals(2, exec("def x = (byte)1; byte y = (byte)1; return x + y"));
         assertEquals(2, exec("def x = (short)1; byte y = (byte)1; return x + y"));
@@ -360,12 +365,14 @@ public class AdditionTests extends ScriptTestCase {
         assertEquals(2D, exec("def x = (double)1; double y = (double)1; return x + y"));
     }
 
+    @Ignore("Painless-only: def null semantics")
     public void testDefNulls() {
         expectScriptThrows(NullPointerException.class, () -> { exec("def x = null; int y = 1; return x + y"); });
         expectScriptThrows(NullPointerException.class, () -> { exec("int x = 1; def y = null; return x + y"); });
         expectScriptThrows(NullPointerException.class, () -> { exec("def x = null; def y = 1; return x + y"); });
     }
 
+    @Ignore("Painless-only: typed compound assignment")
     public void testCompoundAssignment() {
         // byte
         assertEquals((byte) 15, exec("byte x = 5; x += 10; return x;"));
@@ -391,6 +398,7 @@ public class AdditionTests extends ScriptTestCase {
         assertEquals(-5D, exec("double x = 5.0; x += -10; return x;"));
     }
 
+    @Ignore("Painless-only: def compound assignment LHS")
     public void testDefCompoundAssignmentLHS() {
         // byte
         assertEquals((byte) 15, exec("def x = (byte)5; x += 10; return x;"));
@@ -416,6 +424,7 @@ public class AdditionTests extends ScriptTestCase {
         assertEquals(-5D, exec("def x = 5.0; x += -10; return x;"));
     }
 
+    @Ignore("Painless-only: def compound assignment RHS")
     public void testDefCompoundAssignmentRHS() {
         // byte
         assertEquals((byte) 15, exec("byte x = 5; def y = 10; x += y; return x;"));

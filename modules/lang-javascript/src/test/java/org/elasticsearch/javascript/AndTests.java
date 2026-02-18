@@ -9,20 +9,22 @@
 
 package org.elasticsearch.javascript;
 
+import org.junit.Ignore;
+
 /** Tests for and operator across all types */
 public class AndTests extends ScriptTestCase {
 
     public void testBasics() throws Exception {
         assertEquals(5 & 3, exec("return 5 & 3;"));
-        assertEquals(5 & 3L, exec("return 5 & 3L;"));
-        assertEquals(5L & 3, exec("return 5L & 3;"));
-        assertEquals(1L, exec("int x = 5; long y = 3; return x & y;"));
+        assertEquals(5 & 3, exec("return 5 & 3;"));
+        assertEquals(5 & 3, exec("return 5 & 3;"));
+        assertEquals(1, exec("let x = 5; let y = 3; return x & y;"));
     }
 
     public void testInt() throws Exception {
-        assertEquals(5 & 12, exec("int x = 5; int y = 12; return x & y;"));
-        assertEquals(5 & -12, exec("int x = 5; int y = -12; return x & y;"));
-        assertEquals(7 & 15 & 3, exec("int x = 7; int y = 15; int z = 3; return x & y & z;"));
+        assertEquals(5 & 12, exec("let x = 5; let y = 12; return x & y;"));
+        assertEquals(5 & -12, exec("let x = 5; let y = -12; return x & y;"));
+        assertEquals(7 & 15 & 3, exec("let x = 7; let y = 15; let z = 3; return x & y & z;"));
     }
 
     public void testIntConst() throws Exception {
@@ -32,22 +34,24 @@ public class AndTests extends ScriptTestCase {
     }
 
     public void testLong() throws Exception {
-        assertEquals(5L & 12L, exec("long x = 5; long y = 12; return x & y;"));
-        assertEquals(5L & -12L, exec("long x = 5; long y = -12; return x & y;"));
-        assertEquals(7L & 15L & 3L, exec("long x = 7; long y = 15; long z = 3; return x & y & z;"));
+        assertEquals(5L & 12L, exec("let x = 5; let y = 12; return x & y;"));
+        assertEquals(5L & -12L, exec("let x = 5; let y = -12; return x & y;"));
+        assertEquals(7L & 15L & 3L, exec("let x = 7; let y = 15; let z = 3; return x & y & z;"));
     }
 
     public void testLongConst() throws Exception {
-        assertEquals(5L & 12L, exec("return 5L & 12L;"));
-        assertEquals(5L & -12L, exec("return 5L & -12L;"));
-        assertEquals(7L & 15L & 3L, exec("return 7L & 15L & 3L;"));
+        assertEquals(5L & 12L, exec("return 5 & 12;"));
+        assertEquals(5L & -12L, exec("return 5 & -12;"));
+        assertEquals(7L & 15L & 3L, exec("return 7 & 15 & 3;"));
     }
 
+    @Ignore("Painless-only: ClassCastException for float/double in & operator")
     public void testIllegal() throws Exception {
         expectScriptThrows(ClassCastException.class, () -> { exec("float x = (float)4; int y = 1; return x & y"); });
         expectScriptThrows(ClassCastException.class, () -> { exec("double x = (double)4; int y = 1; return x & y"); });
     }
 
+    @Ignore("Painless-only: def and typed casts (byte/short/char/int/long/boolean)")
     public void testDef() {
         expectScriptThrows(ClassCastException.class, () -> { exec("def x = (float)4; def y = (byte)1; return x & y"); });
         expectScriptThrows(ClassCastException.class, () -> { exec("def x = (double)4; def y = (byte)1; return x & y"); });
@@ -93,6 +97,7 @@ public class AndTests extends ScriptTestCase {
         assertEquals(false, exec("def x = false; def y = false; return x & y"));
     }
 
+    @Ignore("Painless-only: float/double/byte/short/char/int/long/boolean typed LHS with def RHS")
     public void testDefTypedLHS() {
         expectScriptThrows(ClassCastException.class, () -> { exec("float x = (float)4; def y = (byte)1; return x & y"); });
         expectScriptThrows(ClassCastException.class, () -> { exec("double x = (double)4; def y = (byte)1; return x & y"); });
@@ -138,6 +143,7 @@ public class AndTests extends ScriptTestCase {
         assertEquals(false, exec("boolean x = false; def y = false; return x & y"));
     }
 
+    @Ignore("Painless-only: def LHS with byte/short/char/int/long/boolean typed RHS")
     public void testDefTypedRHS() {
         expectScriptThrows(ClassCastException.class, () -> { exec("def x = (float)4; byte y = (byte)1; return x & y"); });
         expectScriptThrows(ClassCastException.class, () -> { exec("def x = (double)4; byte y = (byte)1; return x & y"); });
@@ -183,6 +189,7 @@ public class AndTests extends ScriptTestCase {
         assertEquals(false, exec("def x = false; boolean y = false; return x & y"));
     }
 
+    @Ignore("Painless-only: boolean/byte/short/char/int/long compound assignment and boolean[]")
     public void testCompoundAssignment() {
         // boolean
         assertEquals(true, exec("boolean x = true; x &= true; return x;"));
@@ -206,6 +213,7 @@ public class AndTests extends ScriptTestCase {
         assertEquals((long) (13 & 14), exec("long x = 13L; x &= 14; return x;"));
     }
 
+    @Ignore("Painless-only: ClassCastException for float/double in &=")
     public void testBogusCompoundAssignment() {
         expectScriptThrows(ClassCastException.class, () -> { exec("float x = 4; int y = 1; x &= y"); });
         expectScriptThrows(ClassCastException.class, () -> { exec("double x = 4; int y = 1; x &= y"); });
@@ -213,6 +221,7 @@ public class AndTests extends ScriptTestCase {
         expectScriptThrows(ClassCastException.class, () -> { exec("int x = 4; double y = 1; x &= y"); });
     }
 
+    @Ignore("Painless-only: def and def[] with compound assignment")
     public void testDefCompoundAssignment() {
         // boolean
         assertEquals(true, exec("def x = true; x &= true; return x;"));
@@ -236,6 +245,7 @@ public class AndTests extends ScriptTestCase {
         assertEquals((long) (13 & 14), exec("def x = 13L; x &= 14; return x;"));
     }
 
+    @Ignore("Painless-only: ClassCastException for def float/double in &=")
     public void testDefBogusCompoundAssignment() {
         expectScriptThrows(ClassCastException.class, () -> { exec("def x = 4F; int y = 1; x &= y"); });
         expectScriptThrows(ClassCastException.class, () -> { exec("def x = 4D; int y = 1; x &= y"); });
