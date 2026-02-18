@@ -30,15 +30,15 @@ public class BasicStatementTests extends ScriptTestCase {
     }
 
     public void testIfStatement() {
-        assertEquals(1, exec("int x = 5; if (x == 5) return 1; return 0;"));
-        assertEquals(0, exec("int x = 4; if (x == 5) return 1; else return 0;"));
-        assertEquals(2, exec("int x = 4; if (x == 5) return 1; else if (x == 4) return 2; else return 0;"));
-        assertEquals(1, exec("int x = 4; if (x == 5) return 1; else if (x == 4) return 1; else return 0;"));
+        assertEquals(1, exec("let x = 5; if (x == 5) return 1; return 0;"));
+        assertEquals(0, exec("let x = 4; if (x == 5) return 1; else return 0;"));
+        assertEquals(2, exec("let x = 4; if (x == 5) return 1; else if (x == 4) return 2; else return 0;"));
+        assertEquals(1, exec("let x = 4; if (x == 5) return 1; else if (x == 4) return 1; else return 0;"));
 
         assertEquals(3, exec("""
-            int x = 5;
+            let x = 5;
             if (x == 5) {
-                int y = 2;
+                let y = 2;
 
                 if (y == 2) {
                     x = 3;

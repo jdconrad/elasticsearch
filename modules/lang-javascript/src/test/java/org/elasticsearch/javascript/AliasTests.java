@@ -48,20 +48,16 @@ public class AliasTests extends ScriptTestCase {
     }
 
     public void testDefAlias() {
-        assertEquals(5, exec("def a = AliasTestClass.getInnerAliased(); AliasedTestInnerClass b = a; b.plus(2, 3)"));
+        assertEquals(5, exec("let a = AliasTestClass.getInnerAliased(); let b = a; b.plus(2, 3)"));
     }
 
     public void testInnerAlias() {
-        assertEquals(5, exec("AliasTestClass.AliasedTestInnerClass a = AliasTestClass.getInnerAliased(); a.plus(2, 3)"));
-        assertEquals(5, exec("AliasedTestInnerClass a = AliasTestClass.getInnerAliased(); a.plus(2, 3)"));
+        assertEquals(5, exec("let a = AliasTestClass.getInnerAliased(); a.plus(2, 3)"));
+        assertEquals(5, exec("let a = AliasTestClass.getInnerAliased(); a.plus(2, 3)"));
     }
 
     public void testInnerNoAlias() {
-        assertEquals(-1, exec("AliasTestClass.UnaliasedTestInnerClass a = AliasTestClass.getInnerUnaliased(); a.minus(2, 3)"));
-        IllegalArgumentException e = expectScriptThrows(
-            IllegalArgumentException.class,
-            () -> exec("UnaliasedTestInnerClass a = AliasTestClass.getInnerUnaliased(); a.minus(2, 3)")
-        );
-        assertEquals("invalid declaration: cannot resolve type [UnaliasedTestInnerClass]", e.getMessage());
+        assertEquals(-1, exec("let a = AliasTestClass.getInnerUnaliased(); a.minus(2, 3)"));
+        // Painless also tested that "UnaliasedTestInnerClass a = ..." throws (unresolved type); no JS equivalent for typed declaration.
     }
 }
