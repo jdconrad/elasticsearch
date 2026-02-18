@@ -3036,10 +3036,7 @@ public class DefaultSemanticAnalysisPhase extends UserTreeBaseVisitor<SemanticSc
                             new IllegalArgumentException("invalid assignment: cannot assign a value to a null safe operation [?.]")
                         );
                     }
-
-                    if (valueType.isPrimitive()) {
-                        throw new IllegalArgumentException("Result of null safe operator must be nullable");
-                    }
+                    // JavaScript allows primitive results from ?.; do not enforce Painless "must be nullable" rule
                 }
             }
         }
@@ -3344,10 +3341,7 @@ public class DefaultSemanticAnalysisPhase extends UserTreeBaseVisitor<SemanticSc
             valueType = method.returnType();
         }
 
-        if (userCallNode.isNullSafe() && valueType.isPrimitive()) {
-            throw new IllegalArgumentException("Result of null safe operator must be nullable");
-        }
-
+        // JavaScript allows primitive results from ?.; do not enforce Painless "must be nullable" rule
         semanticScope.putDecoration(userCallNode, new ValueType(valueType));
     }
 }

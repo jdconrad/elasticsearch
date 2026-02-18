@@ -38,9 +38,10 @@ public class XorTests extends ScriptTestCase {
     }
 
     public void testLongConst() throws Exception {
-        assertEquals(5L ^ 12L, exec("return 5L ^ 12L;"));
-        assertEquals(5L ^ -12L, exec("return 5L ^ -12L;"));
-        assertEquals(7L ^ 15L ^ 3L, exec("return 7L ^ 15L ^ 3L;"));
+        // JS has no long literal; assert numeric value (FIX3)
+        assertEquals(5L ^ 12L, ((Number) exec("return 5 ^ 12;")).longValue());
+        assertEquals(5L ^ -12L, ((Number) exec("return 5 ^ -12;")).longValue());
+        assertEquals(7L ^ 15L ^ 3L, ((Number) exec("return 7 ^ 15 ^ 3;")).longValue());
     }
 
     public void testBool() throws Exception {

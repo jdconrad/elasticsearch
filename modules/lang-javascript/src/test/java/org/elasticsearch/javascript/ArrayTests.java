@@ -9,6 +9,7 @@
 
 package org.elasticsearch.javascript;
 
+import org.junit.Ignore;
 import org.hamcrest.Matcher;
 
 import java.lang.invoke.MethodHandle;
@@ -86,6 +87,7 @@ public class ArrayTests extends ArrayLikeObjectTestCase {
         assertEquals(1, exec("let x = [2]; return x[0] / 2"));
     }
 
+    @Ignore("Painless-only: primitive array initializer new type[] { ... } and typed for-each; JS grammar does not support this syntax")
     public void testPrimitiveIteration() {
         assertEquals(true, exec("let x = new boolean[] { true, false }; let s = false; for (boolean l : x) s |= l; return s"));
         expectScriptThrows(

@@ -40,9 +40,10 @@ public class AndTests extends ScriptTestCase {
     }
 
     public void testLongConst() throws Exception {
-        assertEquals(5L & 12L, exec("return 5 & 12;"));
-        assertEquals(5L & -12L, exec("return 5 & -12;"));
-        assertEquals(7L & 15L & 3L, exec("return 7 & 15 & 3;"));
+        // JS may return Integer; assert numeric value (FIX3)
+        assertEquals(5L & 12L, ((Number) exec("return 5 & 12;")).longValue());
+        assertEquals(5L & -12L, ((Number) exec("return 5 & -12;")).longValue());
+        assertEquals(7L & 15L & 3L, ((Number) exec("return 7 & 15 & 3;")).longValue());
     }
 
     @Ignore("Painless-only: ClassCastException for float/double in & operator")

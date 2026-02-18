@@ -118,14 +118,15 @@ public class SubtractionTests extends ScriptTestCase {
     }
 
     public void testLongConst() throws Exception {
-        assertEquals(1L - 1L, exec("return 1L-1L;"));
-        assertEquals(2L - 3L, exec("return 2L-3L;"));
-        assertEquals(5L - 10L, exec("return 5L-10L;"));
-        assertEquals(1L - 1L - 2L, exec("return 1L-1L-2L;"));
-        assertEquals((1L - 1L) - 2L, exec("return (1L-1L)-2L;"));
-        assertEquals(1L - (1L - 2L), exec("return 1L-(1L-2L);"));
-        assertEquals(10L - 0L, exec("return 10L-0L;"));
-        assertEquals(0L - 0L, exec("return 0L-0L;"));
+        // JS has no long literal; assert numeric value (FIX3)
+        assertEquals(1L - 1L, ((Number) exec("return 1-1;")).longValue());
+        assertEquals(2L - 3L, ((Number) exec("return 2-3;")).longValue());
+        assertEquals(5L - 10L, ((Number) exec("return 5-10;")).longValue());
+        assertEquals(1L - 1L - 2L, ((Number) exec("return 1-1-2;")).longValue());
+        assertEquals((1L - 1L) - 2L, ((Number) exec("return (1-1)-2;")).longValue());
+        assertEquals(1L - (1L - 2L), ((Number) exec("return 1-(1-2);")).longValue());
+        assertEquals(10L - 0L, ((Number) exec("return 10-0;")).longValue());
+        assertEquals(0L - 0L, ((Number) exec("return 0-0;")).longValue());
     }
 
     public void testFloat() throws Exception {

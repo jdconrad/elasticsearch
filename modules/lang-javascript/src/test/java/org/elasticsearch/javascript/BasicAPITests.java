@@ -128,7 +128,8 @@ public class BasicAPITests extends ScriptTestCase {
     }
 
     public void testDefAssignments() {
-        assertEquals(2, exec("let x; let y = 2.0; x = (int)y;"));
+        // JS has no (int) cast; use Math.floor for integer truncation (may return Double 2.0)
+        assertEquals(2, ((Number) exec("let x; let y = 2.0; x = Math.floor(y); return x;")).intValue());
     }
 
     public void testInternalBoxing() {

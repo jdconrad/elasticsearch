@@ -189,6 +189,17 @@ public final class Walker extends JavascriptParserBaseVisitor<ANode> {
                 int prediction,
                 ATNConfigSet configs
             ) {}
+
+            @Override
+            public void reportAmbiguity(
+                Parser recognizer,
+                DFA dfa,
+                int startIndex,
+                int stopIndex,
+                boolean exact,
+                BitSet ambigAlts,
+                ATNConfigSet configs
+            ) {}
         });
         parser.addErrorListener(new BaseErrorListener() {
             @Override
