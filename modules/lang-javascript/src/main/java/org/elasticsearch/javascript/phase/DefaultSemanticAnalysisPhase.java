@@ -1878,6 +1878,7 @@ public class DefaultSemanticAnalysisPhase extends UserTreeBaseVisitor<SemanticSc
         JavascriptInstanceBinding instanceBinding = null;
         Variable callableVariable = null;
         JavascriptMethod callableValueMethod = null;
+        boolean dynamicCallableVariable = false;
 
         Class<?> valueType;
 
@@ -1932,39 +1933,35 @@ public class DefaultSemanticAnalysisPhase extends UserTreeBaseVisitor<SemanticSc
                                     callableVariable = semanticScope.getVariable(userCallLocalNode.getLocation(), methodName);
 
                                     if (callableVariable.type() == def.class) {
-                                        throw userCallLocalNode.createError(
-                                            new IllegalArgumentException(
-                                                "cannot invoke [def] value [" + methodName + "] with local call syntax"
-                                            )
-                                        );
-                                    }
+                                        dynamicCallableVariable = true;
+                                    } else {
+                                        callableValueMethod = scriptScope.getJavascriptLookup()
+                                            .lookupFunctionalInterfaceJavascriptMethod(callableVariable.type());
 
-                                    callableValueMethod = scriptScope.getJavascriptLookup()
-                                        .lookupFunctionalInterfaceJavascriptMethod(callableVariable.type());
-
-                                    if (callableValueMethod == null) {
-                                        throw userCallLocalNode.createError(
-                                            new IllegalArgumentException(
-                                                "variable ["
-                                                    + methodName
-                                                    + "] of type ["
-                                                    + typeToCanonicalTypeName(callableVariable.type())
-                                                    + "] is not callable"
-                                            )
-                                        );
-                                    }
-
-                                    if (callableValueMethod.typeParameters().size() != userArgumentsSize) {
-                                        throw userCallLocalNode.createError(
-                                            new IllegalArgumentException(
-                                                Strings.format(
-                                                    "incorrect number of arguments for callable value [%s], expected [%d] but found [%d]",
-                                                    methodName,
-                                                    callableValueMethod.typeParameters().size(),
-                                                    userArgumentsSize
+                                        if (callableValueMethod == null) {
+                                            throw userCallLocalNode.createError(
+                                                new IllegalArgumentException(
+                                                    "variable ["
+                                                        + methodName
+                                                        + "] of type ["
+                                                        + typeToCanonicalTypeName(callableVariable.type())
+                                                        + "] is not callable"
                                                 )
-                                            )
-                                        );
+                                            );
+                                        }
+
+                                        if (callableValueMethod.typeParameters().size() != userArgumentsSize) {
+                                            throw userCallLocalNode.createError(
+                                                new IllegalArgumentException(
+                                                    Strings.format(
+                                                        "incorrect number of arguments for callable value [%s], expected [%d] but found [%d]",
+                                                        methodName,
+                                                        callableValueMethod.typeParameters().size(),
+                                                        userArgumentsSize
+                                                    )
+                                                )
+                                            );
+                                        }
                                     }
                                 } else {
                                     throw userCallLocalNode.createError(
@@ -1980,7 +1977,7 @@ public class DefaultSemanticAnalysisPhase extends UserTreeBaseVisitor<SemanticSc
             }
         }
 
-        List<Class<?>> typeParameters;
+        List<Class<?>> typeParameters = null;
 
         if (localFunction != null) {
             semanticScope.setUsesInstanceMethod();
@@ -2013,6 +2010,29 @@ public class DefaultSemanticAnalysisPhase extends UserTreeBaseVisitor<SemanticSc
 
             typeParameters = instanceBinding.typeParameters();
             valueType = instanceBinding.returnType();
+        } else if (dynamicCallableVariable) {
+            semanticScope.putDecoration(userCallLocalNode, new SemanticVariable(callableVariable));
+            semanticScope.setCondition(userCallLocalNode, DynamicInvocation.class);
+
+            for (AExpression userArgumentNode : userArgumentNodes) {
+                semanticScope.setCondition(userArgumentNode, Read.class);
+                semanticScope.setCondition(userArgumentNode, Internal.class);
+                checkedVisit(userArgumentNode, semanticScope);
+
+                Class<?> argumentValueType = semanticScope.getDecoration(userArgumentNode, ValueType.class).valueType();
+                if (argumentValueType == void.class) {
+                    throw userCallLocalNode.createError(
+                        new IllegalArgumentException(
+                            "Argument(s) cannot be of [void] type when calling function value [" + methodName + "]."
+                        )
+                    );
+                }
+            }
+
+            TargetType targetType = semanticScope.getDecoration(userCallLocalNode, TargetType.class);
+            valueType = targetType == null || semanticScope.getCondition(userCallLocalNode, Explicit.class)
+                ? def.class
+                : targetType.targetType();
         } else if (callableValueMethod != null) {
             semanticScope.putDecoration(userCallLocalNode, new SemanticVariable(callableVariable));
             semanticScope.putDecoration(userCallLocalNode, new StandardJavascriptMethod(callableValueMethod));
@@ -2026,14 +2046,16 @@ public class DefaultSemanticAnalysisPhase extends UserTreeBaseVisitor<SemanticSc
         // if the class binding is using an implicit this reference then the arguments counted must
         // be incremented by 1 as the this reference will not be part of the arguments passed into
         // the class binding call
-        for (int argument = 0; argument < userArgumentsSize; ++argument) {
-            AExpression userArgumentNode = userArgumentNodes.get(argument);
+        if (dynamicCallableVariable == false) {
+            for (int argument = 0; argument < userArgumentsSize; ++argument) {
+                AExpression userArgumentNode = userArgumentNodes.get(argument);
 
-            semanticScope.setCondition(userArgumentNode, Read.class);
-            semanticScope.putDecoration(userArgumentNode, new TargetType(typeParameters.get(argument + classBindingOffset)));
-            semanticScope.setCondition(userArgumentNode, Internal.class);
-            checkedVisit(userArgumentNode, semanticScope);
-            decorateWithCast(userArgumentNode, semanticScope);
+                semanticScope.setCondition(userArgumentNode, Read.class);
+                semanticScope.putDecoration(userArgumentNode, new TargetType(typeParameters.get(argument + classBindingOffset)));
+                semanticScope.setCondition(userArgumentNode, Internal.class);
+                checkedVisit(userArgumentNode, semanticScope);
+                decorateWithCast(userArgumentNode, semanticScope);
+            }
         }
 
         semanticScope.putDecoration(userCallLocalNode, new ValueType(valueType));

@@ -52,12 +52,27 @@ public class FirstClassFunctionValueTests extends ScriptTestCase {
         assertEquals("variable [value] of type [int] is not callable", e.getMessage());
     }
 
-    public void testCallSyntaxRejectsDefCallableUntilDynamicPathExists() {
+    public void testCallSyntaxInvokesDefCallableValue() {
+        assertEquals(2, exec("IntUnaryOperator increment = (x) -> x + 1; def fn = increment; fn(1)"));
+    }
+
+    public void testCallSyntaxRejectsNonCallableDefValue() {
         IllegalArgumentException e = expectScriptThrows(
             IllegalArgumentException.class,
             () -> exec("def fn = params.fn; fn(1)", Map.of("fn", 1), true)
         );
-        assertEquals("cannot invoke [def] value [fn] with local call syntax", e.getMessage());
+        assertEquals("value of type [java.lang.Integer] is not callable", e.getMessage());
+    }
+
+    public void testCallSyntaxRejectsWrongArityForDefCallable() {
+        IllegalArgumentException e = expectScriptThrows(
+            IllegalArgumentException.class,
+            () -> exec("IntUnaryOperator increment = (x) -> x + 1; def fn = increment; fn(1, 2)")
+        );
+        assertEquals(
+            "incorrect number of arguments for callable value [java.util.function.IntUnaryOperator], expected [1] but found [2]",
+            e.getMessage()
+        );
     }
 
     public void testCallSyntaxRejectsWrongArityForTypedCallable() {

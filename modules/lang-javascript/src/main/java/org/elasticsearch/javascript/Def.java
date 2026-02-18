@@ -50,6 +50,11 @@ import static org.elasticsearch.javascript.lookup.JavascriptLookupUtility.typeTo
  */
 public final class Def {
 
+    /**
+     * Synthetic method name used for direct invocation of callable {@code def} values.
+     */
+    public static final String DEF_CALLABLE_METHOD_NAME = "$$defcall";
+
     /** pointer to Map.get(Object) */
     private static final MethodHandle MAP_GET;
     /** pointer to Map.put(Object,Object) */
@@ -191,19 +196,11 @@ public final class Def {
         int numArguments = callSiteType.parameterCount();
         // simple case: no lambdas
         if (recipeString.isEmpty()) {
-            JavascriptMethod javascriptMethod = javascriptLookup.lookupRuntimeJavascriptMethod(receiverClass, name, numArguments - 1);
+            int methodArity = numArguments - 1;
+            JavascriptMethod javascriptMethod = lookupDynamicJavascriptMethod(javascriptLookup, receiverClass, name, methodArity);
 
             if (javascriptMethod == null) {
-                throw new IllegalArgumentException(
-                    "dynamic method "
-                        + "["
-                        + typeToCanonicalTypeName(receiverClass)
-                        + ", "
-                        + name
-                        + "/"
-                        + (numArguments - 1)
-                        + "] not found"
-                );
+                throw dynamicMethodMissingError(javascriptLookup, receiverClass, name, methodArity);
             }
 
             MethodHandle handle = javascriptMethod.methodHandle();
@@ -240,12 +237,10 @@ public final class Def {
 
         // lookup the method with the proper arity, then we know everything (e.g. interface types of parameters).
         // based on these we can finally link any remaining lambdas that were deferred.
-        JavascriptMethod method = javascriptLookup.lookupRuntimeJavascriptMethod(receiverClass, name, arity);
+        JavascriptMethod method = lookupDynamicJavascriptMethod(javascriptLookup, receiverClass, name, arity);
 
         if (method == null) {
-            throw new IllegalArgumentException(
-                "dynamic method [" + typeToCanonicalTypeName(receiverClass) + ", " + name + "/" + arity + "] not found"
-            );
+            throw dynamicMethodMissingError(javascriptLookup, receiverClass, name, arity);
         }
 
         MethodHandle handle = method.methodHandle();
@@ -309,6 +304,47 @@ public final class Def {
         }
 
         return handle;
+    }
+
+    private static JavascriptMethod lookupDynamicJavascriptMethod(
+        JavascriptLookup javascriptLookup,
+        Class<?> receiverClass,
+        String name,
+        int arity
+    ) {
+        if (DEF_CALLABLE_METHOD_NAME.equals(name)) {
+            return javascriptLookup.lookupRuntimeFunctionalInterfaceJavascriptMethod(receiverClass, arity);
+        }
+
+        return javascriptLookup.lookupRuntimeJavascriptMethod(receiverClass, name, arity);
+    }
+
+    private static IllegalArgumentException dynamicMethodMissingError(
+        JavascriptLookup javascriptLookup,
+        Class<?> receiverClass,
+        String name,
+        int arity
+    ) {
+        if (DEF_CALLABLE_METHOD_NAME.equals(name)) {
+            JavascriptMethod interfaceMethod = javascriptLookup.lookupRuntimeFunctionalInterfaceJavascriptMethod(receiverClass);
+
+            if (interfaceMethod == null) {
+                return new IllegalArgumentException("value of type [" + typeToCanonicalTypeName(receiverClass) + "] is not callable");
+            }
+
+            return new IllegalArgumentException(
+                Strings.format(
+                    "incorrect number of arguments for callable value [%s], expected [%d] but found [%d]",
+                    typeToCanonicalTypeName(interfaceMethod.targetClass()),
+                    interfaceMethod.typeParameters().size(),
+                    arity
+                )
+            );
+        }
+
+        return new IllegalArgumentException(
+            "dynamic method [" + typeToCanonicalTypeName(receiverClass) + ", " + name + "/" + arity + "] not found"
+        );
     }
 
     /**

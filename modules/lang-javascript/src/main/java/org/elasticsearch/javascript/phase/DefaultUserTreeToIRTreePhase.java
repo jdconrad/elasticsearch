@@ -1252,28 +1252,41 @@ public class DefaultUserTreeToIRTreePhase implements UserTreeVisitor<ScriptScope
     public void visitCallLocal(ECallLocal callLocalNode, ScriptScope scriptScope) {
         if (scriptScope.hasDecoration(callLocalNode, SemanticVariable.class)) {
             Variable semanticVariable = scriptScope.getDecoration(callLocalNode, SemanticVariable.class).semanticVariable();
-            JavascriptMethod interfaceMethod = scriptScope.getDecoration(callLocalNode, StandardJavascriptMethod.class)
-                .standardJavascriptMethod();
             Class<?> valueType = scriptScope.getDecoration(callLocalNode, ValueType.class).valueType();
 
             LoadVariableNode irLoadVariableNode = new LoadVariableNode(callLocalNode.getLocation());
             irLoadVariableNode.attachDecoration(new IRDExpressionType(semanticVariable.type()));
             irLoadVariableNode.attachDecoration(new IRDName(semanticVariable.name()));
 
-            InvokeCallNode irInvokeCallNode = new InvokeCallNode(callLocalNode.getLocation());
-
-            for (AExpression userArgumentNode : callLocalNode.getArgumentNodes()) {
-                irInvokeCallNode.addArgumentNode(injectCast(userArgumentNode, scriptScope));
-            }
-
-            irInvokeCallNode.attachDecoration(new IRDExpressionType(valueType));
-            irInvokeCallNode.setMethod(interfaceMethod);
-            irInvokeCallNode.setBox(semanticVariable.type());
-
             BinaryImplNode irBinaryImplNode = new BinaryImplNode(callLocalNode.getLocation());
             irBinaryImplNode.setLeftNode(irLoadVariableNode);
-            irBinaryImplNode.setRightNode(irInvokeCallNode);
-            irBinaryImplNode.attachDecoration(irInvokeCallNode.getDecoration(IRDExpressionType.class));
+
+            if (scriptScope.getCondition(callLocalNode, DynamicInvocation.class)) {
+                InvokeCallDefNode irInvokeCallDefNode = new InvokeCallDefNode(callLocalNode.getLocation());
+
+                for (AExpression userArgumentNode : callLocalNode.getArgumentNodes()) {
+                    irInvokeCallDefNode.addArgumentNode((ExpressionNode) visit(userArgumentNode, scriptScope));
+                }
+
+                irInvokeCallDefNode.attachDecoration(new IRDExpressionType(valueType));
+                irInvokeCallDefNode.attachDecoration(new IRDName(Def.DEF_CALLABLE_METHOD_NAME));
+                irBinaryImplNode.setRightNode(irInvokeCallDefNode);
+                irBinaryImplNode.attachDecoration(irInvokeCallDefNode.getDecoration(IRDExpressionType.class));
+            } else {
+                JavascriptMethod interfaceMethod = scriptScope.getDecoration(callLocalNode, StandardJavascriptMethod.class)
+                    .standardJavascriptMethod();
+                InvokeCallNode irInvokeCallNode = new InvokeCallNode(callLocalNode.getLocation());
+
+                for (AExpression userArgumentNode : callLocalNode.getArgumentNodes()) {
+                    irInvokeCallNode.addArgumentNode(injectCast(userArgumentNode, scriptScope));
+                }
+
+                irInvokeCallNode.attachDecoration(new IRDExpressionType(valueType));
+                irInvokeCallNode.setMethod(interfaceMethod);
+                irInvokeCallNode.setBox(semanticVariable.type());
+                irBinaryImplNode.setRightNode(irInvokeCallNode);
+                irBinaryImplNode.attachDecoration(irInvokeCallNode.getDecoration(IRDExpressionType.class));
+            }
 
             scriptScope.putDecoration(callLocalNode, new IRNodeDecoration(irBinaryImplNode));
             return;

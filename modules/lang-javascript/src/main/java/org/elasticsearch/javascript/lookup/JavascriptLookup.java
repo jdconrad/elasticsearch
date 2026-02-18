@@ -257,6 +257,44 @@ public final class JavascriptLookup {
         return targetJavascriptClass.functionalInterfaceMethod;
     }
 
+    public JavascriptMethod lookupRuntimeFunctionalInterfaceJavascriptMethod(Class<?> originalTargetClass) {
+        Objects.requireNonNull(originalTargetClass);
+
+        if (isRuntimeCallableReceiverType(originalTargetClass) == false) {
+            return null;
+        }
+
+        Function<JavascriptClass, JavascriptMethod> objectLookup = targetJavascriptClass -> targetJavascriptClass.functionalInterfaceMethod;
+
+        return lookupJavascriptObject(originalTargetClass, objectLookup);
+    }
+
+    public JavascriptMethod lookupRuntimeFunctionalInterfaceJavascriptMethod(Class<?> originalTargetClass, int methodArity) {
+        Objects.requireNonNull(originalTargetClass);
+
+        JavascriptMethod interfaceMethod = lookupRuntimeFunctionalInterfaceJavascriptMethod(originalTargetClass);
+
+        if (interfaceMethod == null || interfaceMethod.typeParameters().size() != methodArity) {
+            return null;
+        }
+
+        return interfaceMethod;
+    }
+
+    private boolean isRuntimeCallableReceiverType(Class<?> originalTargetClass) {
+        Class<?> currentTargetClass = originalTargetClass;
+
+        while (currentTargetClass != null && currentTargetClass != Object.class) {
+            if (classesToJavascriptClasses.containsKey(currentTargetClass)) {
+                return false;
+            }
+
+            currentTargetClass = currentTargetClass.getSuperclass();
+        }
+
+        return true;
+    }
+
     public JavascriptMethod lookupRuntimeJavascriptMethod(Class<?> originalTargetClass, String methodName, int methodArity) {
         Objects.requireNonNull(originalTargetClass);
         Objects.requireNonNull(methodName);
