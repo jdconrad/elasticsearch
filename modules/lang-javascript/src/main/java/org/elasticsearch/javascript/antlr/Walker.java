@@ -17,85 +17,61 @@ import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.RecognitionException;
 import org.antlr.v4.runtime.Recognizer;
 import org.antlr.v4.runtime.atn.PredictionMode;
-import org.antlr.v4.runtime.tree.TerminalNode;
 import org.elasticsearch.javascript.CompilerSettings;
 import org.elasticsearch.javascript.Location;
 import org.elasticsearch.javascript.Operation;
-import org.elasticsearch.javascript.antlr.JavascriptParser.AddsubContext;
-import org.elasticsearch.javascript.antlr.JavascriptParser.AfterthoughtContext;
+import org.elasticsearch.javascript.antlr.JavascriptParser.AdditiveExpressionContext;
 import org.elasticsearch.javascript.antlr.JavascriptParser.ArgumentContext;
 import org.elasticsearch.javascript.antlr.JavascriptParser.ArgumentsContext;
-import org.elasticsearch.javascript.antlr.JavascriptParser.AssignmentContext;
-import org.elasticsearch.javascript.antlr.JavascriptParser.BinaryContext;
+import org.elasticsearch.javascript.antlr.JavascriptParser.ArgumentsExpressionContext;
+import org.elasticsearch.javascript.antlr.JavascriptParser.AssignmentExpressionContext;
+import org.elasticsearch.javascript.antlr.JavascriptParser.AssignmentOperatorExpressionContext;
+import org.elasticsearch.javascript.antlr.JavascriptParser.BitAndExpressionContext;
+import org.elasticsearch.javascript.antlr.JavascriptParser.BitOrExpressionContext;
+import org.elasticsearch.javascript.antlr.JavascriptParser.BitShiftExpressionContext;
+import org.elasticsearch.javascript.antlr.JavascriptParser.BitXOrExpressionContext;
 import org.elasticsearch.javascript.antlr.JavascriptParser.BlockContext;
-import org.elasticsearch.javascript.antlr.JavascriptParser.BoolContext;
-import org.elasticsearch.javascript.antlr.JavascriptParser.BraceaccessContext;
-import org.elasticsearch.javascript.antlr.JavascriptParser.BreakContext;
-import org.elasticsearch.javascript.antlr.JavascriptParser.CallinvokeContext;
-import org.elasticsearch.javascript.antlr.JavascriptParser.CalllocalContext;
-import org.elasticsearch.javascript.antlr.JavascriptParser.CastContext;
-import org.elasticsearch.javascript.antlr.JavascriptParser.ClassfuncrefContext;
-import org.elasticsearch.javascript.antlr.JavascriptParser.CompContext;
-import org.elasticsearch.javascript.antlr.JavascriptParser.ConditionalContext;
-import org.elasticsearch.javascript.antlr.JavascriptParser.ConstructorfuncrefContext;
-import org.elasticsearch.javascript.antlr.JavascriptParser.ContinueContext;
-import org.elasticsearch.javascript.antlr.JavascriptParser.DeclContext;
-import org.elasticsearch.javascript.antlr.JavascriptParser.DeclarationContext;
-import org.elasticsearch.javascript.antlr.JavascriptParser.DecltypeContext;
-import org.elasticsearch.javascript.antlr.JavascriptParser.DeclvarContext;
-import org.elasticsearch.javascript.antlr.JavascriptParser.DoContext;
-import org.elasticsearch.javascript.antlr.JavascriptParser.DynamicContext;
-import org.elasticsearch.javascript.antlr.JavascriptParser.EachContext;
-import org.elasticsearch.javascript.antlr.JavascriptParser.ElvisContext;
-import org.elasticsearch.javascript.antlr.JavascriptParser.EmptyContext;
-import org.elasticsearch.javascript.antlr.JavascriptParser.ExprContext;
-import org.elasticsearch.javascript.antlr.JavascriptParser.ExpressionContext;
-import org.elasticsearch.javascript.antlr.JavascriptParser.FalseContext;
-import org.elasticsearch.javascript.antlr.JavascriptParser.FieldaccessContext;
-import org.elasticsearch.javascript.antlr.JavascriptParser.ForContext;
-import org.elasticsearch.javascript.antlr.JavascriptParser.FunctionContext;
-import org.elasticsearch.javascript.antlr.JavascriptParser.IfContext;
-import org.elasticsearch.javascript.antlr.JavascriptParser.IneachContext;
-import org.elasticsearch.javascript.antlr.JavascriptParser.InitializerContext;
-import org.elasticsearch.javascript.antlr.JavascriptParser.InstanceofContext;
-import org.elasticsearch.javascript.antlr.JavascriptParser.LambdaContext;
-import org.elasticsearch.javascript.antlr.JavascriptParser.LamtypeContext;
-import org.elasticsearch.javascript.antlr.JavascriptParser.ListinitContext;
-import org.elasticsearch.javascript.antlr.JavascriptParser.ListinitializerContext;
-import org.elasticsearch.javascript.antlr.JavascriptParser.LocalfuncrefContext;
-import org.elasticsearch.javascript.antlr.JavascriptParser.MapinitContext;
-import org.elasticsearch.javascript.antlr.JavascriptParser.MapinitializerContext;
-import org.elasticsearch.javascript.antlr.JavascriptParser.MaptokenContext;
-import org.elasticsearch.javascript.antlr.JavascriptParser.NewarrayContext;
-import org.elasticsearch.javascript.antlr.JavascriptParser.NewinitializedarrayContext;
-import org.elasticsearch.javascript.antlr.JavascriptParser.NewobjectContext;
-import org.elasticsearch.javascript.antlr.JavascriptParser.NewstandardarrayContext;
-import org.elasticsearch.javascript.antlr.JavascriptParser.NonconditionalContext;
-import org.elasticsearch.javascript.antlr.JavascriptParser.NotContext;
-import org.elasticsearch.javascript.antlr.JavascriptParser.NotaddsubContext;
-import org.elasticsearch.javascript.antlr.JavascriptParser.NullContext;
-import org.elasticsearch.javascript.antlr.JavascriptParser.NumericContext;
-import org.elasticsearch.javascript.antlr.JavascriptParser.ParametersContext;
-import org.elasticsearch.javascript.antlr.JavascriptParser.PostContext;
-import org.elasticsearch.javascript.antlr.JavascriptParser.PostdotContext;
-import org.elasticsearch.javascript.antlr.JavascriptParser.PostfixContext;
-import org.elasticsearch.javascript.antlr.JavascriptParser.PreContext;
-import org.elasticsearch.javascript.antlr.JavascriptParser.PrecedenceContext;
-import org.elasticsearch.javascript.antlr.JavascriptParser.ReadContext;
-import org.elasticsearch.javascript.antlr.JavascriptParser.RegexContext;
-import org.elasticsearch.javascript.antlr.JavascriptParser.ReturnContext;
-import org.elasticsearch.javascript.antlr.JavascriptParser.SingleContext;
-import org.elasticsearch.javascript.antlr.JavascriptParser.SourceContext;
+import org.elasticsearch.javascript.antlr.JavascriptParser.BreakStatementContext;
+import org.elasticsearch.javascript.antlr.JavascriptParser.CatchProductionContext;
+import org.elasticsearch.javascript.antlr.JavascriptParser.ContinueStatementContext;
+import org.elasticsearch.javascript.antlr.JavascriptParser.DoStatementContext;
+import org.elasticsearch.javascript.antlr.JavascriptParser.EqualityExpressionContext;
+import org.elasticsearch.javascript.antlr.JavascriptParser.ExpressionSequenceContext;
+import org.elasticsearch.javascript.antlr.JavascriptParser.ExpressionStatementContext;
+import org.elasticsearch.javascript.antlr.JavascriptParser.ForInStatementContext;
+import org.elasticsearch.javascript.antlr.JavascriptParser.ForOfStatementContext;
+import org.elasticsearch.javascript.antlr.JavascriptParser.ForStatementContext;
+import org.elasticsearch.javascript.antlr.JavascriptParser.IfStatementContext;
+import org.elasticsearch.javascript.antlr.JavascriptParser.InstanceofExpressionContext;
+import org.elasticsearch.javascript.antlr.JavascriptParser.LiteralContext;
+import org.elasticsearch.javascript.antlr.JavascriptParser.LiteralExpressionContext;
+import org.elasticsearch.javascript.antlr.JavascriptParser.LogicalAndExpressionContext;
+import org.elasticsearch.javascript.antlr.JavascriptParser.LogicalOrExpressionContext;
+import org.elasticsearch.javascript.antlr.JavascriptParser.MemberDotExpressionContext;
+import org.elasticsearch.javascript.antlr.JavascriptParser.MemberIndexExpressionContext;
+import org.elasticsearch.javascript.antlr.JavascriptParser.MultiplicativeExpressionContext;
+import org.elasticsearch.javascript.antlr.JavascriptParser.NewExpressionContext;
+import org.elasticsearch.javascript.antlr.JavascriptParser.NotExpressionContext;
+import org.elasticsearch.javascript.antlr.JavascriptParser.PostDecreaseExpressionContext;
+import org.elasticsearch.javascript.antlr.JavascriptParser.PostIncrementExpressionContext;
+import org.elasticsearch.javascript.antlr.JavascriptParser.PreDecreaseExpressionContext;
+import org.elasticsearch.javascript.antlr.JavascriptParser.PreIncrementExpressionContext;
+import org.elasticsearch.javascript.antlr.JavascriptParser.ProgramContext;
+import org.elasticsearch.javascript.antlr.JavascriptParser.RelationalExpressionContext;
+import org.elasticsearch.javascript.antlr.JavascriptParser.ReturnStatementContext;
+import org.elasticsearch.javascript.antlr.JavascriptParser.SourceElementContext;
+import org.elasticsearch.javascript.antlr.JavascriptParser.SourceElementsContext;
 import org.elasticsearch.javascript.antlr.JavascriptParser.StatementContext;
-import org.elasticsearch.javascript.antlr.JavascriptParser.StringContext;
-import org.elasticsearch.javascript.antlr.JavascriptParser.ThrowContext;
-import org.elasticsearch.javascript.antlr.JavascriptParser.TrailerContext;
-import org.elasticsearch.javascript.antlr.JavascriptParser.TrapContext;
-import org.elasticsearch.javascript.antlr.JavascriptParser.TrueContext;
-import org.elasticsearch.javascript.antlr.JavascriptParser.TryContext;
-import org.elasticsearch.javascript.antlr.JavascriptParser.TypeContext;
-import org.elasticsearch.javascript.antlr.JavascriptParser.VariableContext;
-import org.elasticsearch.javascript.antlr.JavascriptParser.WhileContext;
+import org.elasticsearch.javascript.antlr.JavascriptParser.StatementListContext;
+import org.elasticsearch.javascript.antlr.JavascriptParser.TernaryExpressionContext;
+import org.elasticsearch.javascript.antlr.JavascriptParser.ThrowStatementContext;
+import org.elasticsearch.javascript.antlr.JavascriptParser.TryStatementContext;
+import org.elasticsearch.javascript.antlr.JavascriptParser.UnaryMinusExpressionContext;
+import org.elasticsearch.javascript.antlr.JavascriptParser.UnaryPlusExpressionContext;
+import org.elasticsearch.javascript.antlr.JavascriptParser.VariableDeclarationContext;
+import org.elasticsearch.javascript.antlr.JavascriptParser.VariableDeclarationListContext;
+import org.elasticsearch.javascript.antlr.JavascriptParser.VariableStatementContext;
+import org.elasticsearch.javascript.antlr.JavascriptParser.WhileStatementContext;
 import org.elasticsearch.javascript.node.AExpression;
 import org.elasticsearch.javascript.node.ANode;
 import org.elasticsearch.javascript.node.AStatement;
@@ -110,15 +86,8 @@ import org.elasticsearch.javascript.node.EComp;
 import org.elasticsearch.javascript.node.EConditional;
 import org.elasticsearch.javascript.node.EDecimal;
 import org.elasticsearch.javascript.node.EDot;
-import org.elasticsearch.javascript.node.EElvis;
-import org.elasticsearch.javascript.node.EExplicit;
-import org.elasticsearch.javascript.node.EFunctionRef;
 import org.elasticsearch.javascript.node.EInstanceof;
-import org.elasticsearch.javascript.node.ELambda;
 import org.elasticsearch.javascript.node.EListInit;
-import org.elasticsearch.javascript.node.EMapInit;
-import org.elasticsearch.javascript.node.ENewArray;
-import org.elasticsearch.javascript.node.ENewArrayFunctionRef;
 import org.elasticsearch.javascript.node.ENewObj;
 import org.elasticsearch.javascript.node.ENull;
 import org.elasticsearch.javascript.node.ENumeric;
@@ -146,11 +115,13 @@ import org.elasticsearch.javascript.node.STry;
 import org.elasticsearch.javascript.node.SWhile;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 /**
- * Converts the ANTLR tree to a Javascript tree.
+ * Converts the JavaScript ANTLR parse tree (from {@link JavascriptParser#program()}) into the
+ * JavaScript IR tree (rooted at {@link org.elasticsearch.javascript.node.SClass}).
+ * Implements the same logical structure as the Painless Walker but using the JavaScript grammar
+ * context types. Constructs with no JavaScript equivalent are left as TODO.
  */
 public final class Walker extends JavascriptParserBaseVisitor<ANode> {
 
@@ -160,17 +131,13 @@ public final class Walker extends JavascriptParserBaseVisitor<ANode> {
 
     private final CompilerSettings settings;
     private final String sourceName;
-
     private int identifier;
-
     private final SClass source;
 
     private Walker(String sourceName, String sourceText, CompilerSettings settings) {
         this.settings = settings;
         this.sourceName = sourceName;
-
         this.identifier = 0;
-
         this.source = (SClass) visit(buildAntlrTree(sourceText));
     }
 
@@ -178,7 +145,7 @@ public final class Walker extends JavascriptParserBaseVisitor<ANode> {
         return identifier++;
     }
 
-    private SourceContext buildAntlrTree(String sourceString) {
+    private ProgramContext buildAntlrTree(String sourceString) {
         ANTLRInputStream stream = new ANTLRInputStream(sourceString);
         JavascriptLexer lexer = new EnhancedJavascriptLexer(stream, sourceName);
         JavascriptParser parser = new JavascriptParser(new CommonTokenStream(lexer));
@@ -192,30 +159,26 @@ public final class Walker extends JavascriptParserBaseVisitor<ANode> {
         }
 
         parser.setErrorHandler(strategy);
-
-        return parser.source();
+        return parser.program();
     }
 
     private static void setupPicky(JavascriptParser parser) {
-        // Diagnostic listener invokes syntaxError on other listeners for ambiguity issues,
         parser.addErrorListener(new DiagnosticErrorListener(true));
-        // a second listener to fail the test when the above happens.
         parser.addErrorListener(new BaseErrorListener() {
             @Override
             public void syntaxError(
-                final Recognizer<?, ?> recognizer,
-                final Object offendingSymbol,
-                final int line,
-                final int charPositionInLine,
-                final String msg,
-                final RecognitionException e
+                Recognizer<?, ?> recognizer,
+                Object offendingSymbol,
+                int line,
+                int charPositionInLine,
+                String msg,
+                RecognitionException e
             ) {
-                throw new AssertionError("line: " + line + ", offset: " + charPositionInLine + ", symbol:" + offendingSymbol + " " + msg);
+                throw new AssertionError(
+                    "line: " + line + ", offset: " + charPositionInLine + ", symbol:" + offendingSymbol + " " + msg
+                );
             }
         });
-
-        // Enable exact ambiguity detection (costly). we enable exact since its the default for
-        // DiagnosticErrorListener, life is too short to think about what 'inexact ambiguity' might mean.
         parser.getInterpreter().setPredictionMode(PredictionMode.LL_EXACT_AMBIG_DETECTION);
     }
 
@@ -223,24 +186,45 @@ public final class Walker extends JavascriptParserBaseVisitor<ANode> {
         return new Location(sourceName, ctx.getStart().getStartIndex());
     }
 
+    /** Returns the first expression in a comma-separated expression sequence (e.g. condition, return value). */
+    private AExpression firstExpression(ExpressionSequenceContext ctx) {
+        if (ctx == null || ctx.singleExpression().isEmpty()) {
+            return null;
+        }
+        return (AExpression) visit(ctx.singleExpression(0));
+    }
+
+    private List<AExpression> collectArguments(ArgumentsContext ctx) {
+        if (ctx == null) {
+            return List.of();
+        }
+        List<AExpression> args = new ArrayList<>();
+        for (ArgumentContext arg : ctx.argument()) {
+            if (arg.singleExpression() != null) {
+                args.add((AExpression) visit(arg.singleExpression()));
+            } else if (arg.identifier() != null) {
+                args.add(new ESymbol(nextIdentifier(), location(arg), arg.identifier().getText()));
+            }
+        }
+        return args;
+    }
+
+    // -------------------------------------------------------------------------
+    // Program and top-level
+    // -------------------------------------------------------------------------
+
     @Override
-    public ANode visitSource(SourceContext ctx) {
-        List<SFunction> functions = new ArrayList<>();
-
-        for (FunctionContext function : ctx.function()) {
-            functions.add((SFunction) visit(function));
-        }
-
-        // handle the code to generate the execute method here
-        // because the statements come loose from the grammar as
-        // part of the overall class
+    public ANode visitProgram(ProgramContext ctx) {
         List<AStatement> statements = new ArrayList<>();
-
-        for (StatementContext statement : ctx.statement()) {
-            statements.add((AStatement) visit(statement));
+        SourceElementsContext sourceElements = ctx.sourceElements();
+        if (sourceElements != null) {
+            for (SourceElementContext el : sourceElements.sourceElement()) {
+                ANode st = visit(el.statement());
+                if (st != null) {
+                    statements.add((AStatement) st);
+                }
+            }
         }
-
-        // generate the execute method from the collected statements and parameters
         SFunction execute = new SFunction(
             nextIdentifier(),
             location(ctx),
@@ -254,896 +238,531 @@ public final class Walker extends JavascriptParserBaseVisitor<ANode> {
             false,
             false
         );
-        functions.add(execute);
-
-        return new SClass(nextIdentifier(), location(ctx), functions);
+        return new SClass(nextIdentifier(), location(ctx), List.of(execute));
     }
 
     @Override
-    public ANode visitFunction(FunctionContext ctx) {
-        String rtnType = ctx.decltype().getText();
-        String name = ctx.ID().getText();
-
-        List<String> paramTypes = ctx.parameters().decltype().stream().map(DecltypeContext::getText).toList();
-        List<String> paramNames = ctx.parameters().ID().stream().map(TerminalNode::getText).toList();
-
-        List<AStatement> statements = new ArrayList<>();
-        for (StatementContext statement : ctx.block().statement()) {
-            statements.add((AStatement) visit(statement));
-        }
-
-        if (ctx.block().dstatement() != null) {
-            statements.add((AStatement) visit(ctx.block().dstatement()));
-        }
-
-        return new SFunction(
-            nextIdentifier(),
-            location(ctx),
-            rtnType,
-            name,
-            paramTypes,
-            paramNames,
-            new SBlock(nextIdentifier(), location(ctx), statements),
-            false,
-            false,
-            false,
-            false
-        );
-    }
-
-    @Override
-    public ANode visitParameters(ParametersContext ctx) {
-        throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
+    public ANode visitSourceElement(SourceElementContext ctx) {
+        return visit(ctx.statement());
     }
 
     @Override
     public ANode visitStatement(StatementContext ctx) {
-        if (ctx.rstatement() != null) {
-            return visit(ctx.rstatement());
-        } else if (ctx.dstatement() != null) {
-            return visit(ctx.dstatement());
-        } else {
-            throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
-        }
-    }
-
-    @Override
-    public ANode visitIf(IfContext ctx) {
-        AExpression expression = (AExpression) visit(ctx.expression());
-        SBlock ifblock = (SBlock) visit(ctx.trailer(0));
-
-        if (ctx.trailer().size() > 1) {
-            SBlock elseblock = (SBlock) visit(ctx.trailer(1));
-
-            return new SIfElse(nextIdentifier(), location(ctx), expression, ifblock, elseblock);
-        } else {
-            return new SIf(nextIdentifier(), location(ctx), expression, ifblock);
-        }
-    }
-
-    @Override
-    public ANode visitWhile(WhileContext ctx) {
-        AExpression expression = (AExpression) visit(ctx.expression());
-
-        if (ctx.trailer() != null) {
-            SBlock block = (SBlock) visit(ctx.trailer());
-
-            return new SWhile(nextIdentifier(), location(ctx), expression, block);
-        } else if (ctx.empty() != null) {
-            return new SWhile(nextIdentifier(), location(ctx), expression, null);
-        } else {
-            throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
-        }
-    }
-
-    @Override
-    public ANode visitDo(DoContext ctx) {
-        AExpression expression = (AExpression) visit(ctx.expression());
-        SBlock block = (SBlock) visit(ctx.block());
-
-        return new SDo(nextIdentifier(), location(ctx), expression, block);
-    }
-
-    @Override
-    public ANode visitFor(ForContext ctx) {
-        ANode initializer = ctx.initializer() == null ? null : visit(ctx.initializer());
-        AExpression expression = ctx.expression() == null ? null : (AExpression) visit(ctx.expression());
-        AExpression afterthought = ctx.afterthought() == null ? null : (AExpression) visit(ctx.afterthought());
-
-        if (ctx.trailer() != null) {
-            SBlock block = (SBlock) visit(ctx.trailer());
-
-            return new SFor(nextIdentifier(), location(ctx), initializer, expression, afterthought, block);
-        } else if (ctx.empty() != null) {
-            return new SFor(nextIdentifier(), location(ctx), initializer, expression, afterthought, null);
-        } else {
-            throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
-        }
-    }
-
-    @Override
-    public ANode visitEach(EachContext ctx) {
-        String type = ctx.decltype().getText();
-        String name = ctx.ID().getText();
-        AExpression expression = (AExpression) visit(ctx.expression());
-        SBlock block = (SBlock) visit(ctx.trailer());
-
-        return new SEach(nextIdentifier(), location(ctx), type, name, expression, block);
-    }
-
-    @Override
-    public ANode visitIneach(IneachContext ctx) {
-        String name = ctx.ID().getText();
-        AExpression expression = (AExpression) visit(ctx.expression());
-        SBlock block = (SBlock) visit(ctx.trailer());
-
-        return new SEach(nextIdentifier(), location(ctx), "def", name, expression, block);
-    }
-
-    @Override
-    public ANode visitDecl(DeclContext ctx) {
-        return visit(ctx.declaration());
-    }
-
-    @Override
-    public ANode visitContinue(ContinueContext ctx) {
-        return new SContinue(nextIdentifier(), location(ctx));
-    }
-
-    @Override
-    public ANode visitBreak(BreakContext ctx) {
-        return new SBreak(nextIdentifier(), location(ctx));
-    }
-
-    @Override
-    public ANode visitReturn(ReturnContext ctx) {
-        AExpression expression = null;
-
-        if (ctx.expression() != null) {
-            expression = (AExpression) visit(ctx.expression());
-        }
-
-        return new SReturn(nextIdentifier(), location(ctx), expression);
-    }
-
-    @Override
-    public ANode visitTry(TryContext ctx) {
-        SBlock block = (SBlock) visit(ctx.block());
-        List<SCatch> catches = new ArrayList<>();
-
-        for (TrapContext trap : ctx.trap()) {
-            catches.add((SCatch) visit(trap));
-        }
-
-        return new STry(nextIdentifier(), location(ctx), block, catches);
-    }
-
-    @Override
-    public ANode visitThrow(ThrowContext ctx) {
-        AExpression expression = (AExpression) visit(ctx.expression());
-
-        return new SThrow(nextIdentifier(), location(ctx), expression);
-    }
-
-    @Override
-    public ANode visitExpr(ExprContext ctx) {
-        AExpression expression = (AExpression) visit(ctx.expression());
-
-        return new SExpression(nextIdentifier(), location(ctx), expression);
-    }
-
-    @Override
-    public ANode visitTrailer(TrailerContext ctx) {
-        if (ctx.block() != null) {
-            return visit(ctx.block());
-        } else if (ctx.statement() != null) {
-            List<AStatement> statements = new ArrayList<>();
-            statements.add((AStatement) visit(ctx.statement()));
-
-            return new SBlock(nextIdentifier(), location(ctx), statements);
-        } else {
-            throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
-        }
+        if (ctx.block() != null) return visit(ctx.block());
+        if (ctx.variableStatement() != null) return visit(ctx.variableStatement());
+        if (ctx.expressionStatement() != null) return visit(ctx.expressionStatement());
+        if (ctx.ifStatement() != null) return visit(ctx.ifStatement());
+        if (ctx.iterationStatement() != null) return visit(ctx.iterationStatement());
+        if (ctx.returnStatement() != null) return visit(ctx.returnStatement());
+        if (ctx.throwStatement() != null) return visit(ctx.throwStatement());
+        if (ctx.tryStatement() != null) return visit(ctx.tryStatement());
+        if (ctx.continueStatement() != null) return visit(ctx.continueStatement());
+        if (ctx.breakStatement() != null) return visit(ctx.breakStatement());
+        // TODO: importStatement, exportStatement, classDeclaration, functionDeclaration,
+        // switchStatement, withStatement, labelledStatement, yieldStatement, debuggerStatement, emptyStatement_
+        return visitChildren(ctx);
     }
 
     @Override
     public ANode visitBlock(BlockContext ctx) {
-        if (ctx.statement().isEmpty() && ctx.dstatement() == null) {
-            return null;
-        } else {
-            List<AStatement> statements = new ArrayList<>();
+        StatementListContext list = ctx.statementList();
+        if (list == null || list.statement().isEmpty()) {
+            return new SBlock(nextIdentifier(), location(ctx), List.of());
+        }
+        List<AStatement> statements = new ArrayList<>();
+        for (StatementContext s : list.statement()) {
+            ANode n = visit(s);
+            if (n != null) statements.add((AStatement) n);
+        }
+        return new SBlock(nextIdentifier(), location(ctx), statements);
+    }
 
-            for (StatementContext statement : ctx.statement()) {
-                statements.add((AStatement) visit(statement));
+    @Override
+    public ANode visitIfStatement(IfStatementContext ctx) {
+        AExpression condition = firstExpression(ctx.expressionSequence());
+        AStatement thenSt = (AStatement) visit(ctx.statement(0));
+        SBlock ifBlock = thenSt instanceof SBlock ? (SBlock) thenSt : new SBlock(nextIdentifier(), location(ctx), List.of(thenSt));
+        if (ctx.statement().size() > 1) {
+            AStatement elseSt = (AStatement) visit(ctx.statement(1));
+            SBlock elseBlock = elseSt instanceof SBlock ? (SBlock) elseSt : new SBlock(nextIdentifier(), location(ctx), List.of(elseSt));
+            return new SIfElse(nextIdentifier(), location(ctx), condition, ifBlock, elseBlock);
+        }
+        return new SIf(nextIdentifier(), location(ctx), condition, ifBlock);
+    }
+
+    @Override
+    public ANode visitDoStatement(DoStatementContext ctx) {
+        AExpression condition = firstExpression(ctx.expressionSequence());
+        SBlock block = (SBlock) visit(ctx.statement());
+        return new SDo(nextIdentifier(), location(ctx), condition, block);
+    }
+
+    @Override
+    public ANode visitWhileStatement(WhileStatementContext ctx) {
+        AExpression condition = firstExpression(ctx.expressionSequence());
+        SBlock block = (SBlock) visit(ctx.statement());
+        return new SWhile(nextIdentifier(), location(ctx), condition, block);
+    }
+
+    @Override
+    public ANode visitForStatement(ForStatementContext ctx) {
+        List<ExpressionSequenceContext> seqs = ctx.expressionSequence();
+        ANode initializer = null;
+        AExpression condition = null;
+        AExpression afterthought = null;
+        if (ctx.variableDeclarationList() != null) {
+            initializer = visit(ctx.variableDeclarationList());
+            if (seqs != null && !seqs.isEmpty()) {
+                condition = seqs.size() > 0 ? firstExpression(seqs.get(0)) : null;
+                afterthought = seqs.size() > 1 ? firstExpression(seqs.get(1)) : null;
             }
-
-            if (ctx.dstatement() != null) {
-                statements.add((AStatement) visit(ctx.dstatement()));
-            }
-
-            return new SBlock(nextIdentifier(), location(ctx), statements);
-        }
-    }
-
-    @Override
-    public ANode visitEmpty(EmptyContext ctx) {
-        throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
-    }
-
-    @Override
-    public ANode visitInitializer(InitializerContext ctx) {
-        if (ctx.declaration() != null) {
-            return visit(ctx.declaration());
-        } else if (ctx.expression() != null) {
-            return visit(ctx.expression());
         } else {
-            throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
+            if (seqs != null && !seqs.isEmpty()) {
+                initializer = seqs.size() > 0 ? firstExpression(seqs.get(0)) : null;
+                condition = seqs.size() > 1 ? firstExpression(seqs.get(1)) : null;
+                afterthought = seqs.size() > 2 ? firstExpression(seqs.get(2)) : null;
+            }
         }
+        SBlock block = (SBlock) visit(ctx.statement());
+        return new SFor(nextIdentifier(), location(ctx), initializer, condition, afterthought, block);
     }
 
     @Override
-    public ANode visitAfterthought(AfterthoughtContext ctx) {
-        return visit(ctx.expression());
-    }
-
-    @Override
-    public ANode visitDeclaration(DeclarationContext ctx) {
-        String type = ctx.decltype().getText();
-        List<SDeclaration> declarations = new ArrayList<>();
-
-        for (DeclvarContext declvar : ctx.declvar()) {
-            String name = declvar.ID().getText();
-            AExpression expression = declvar.expression() == null ? null : (AExpression) visit(declvar.expression());
-            declarations.add(new SDeclaration(nextIdentifier(), location(declvar), type, name, expression));
+    public ANode visitForInStatement(ForInStatementContext ctx) {
+        String name;
+        if (ctx.singleVariableDeclaration() != null) {
+            // singleVariableDeclaration has assignable; get identifier text
+            if (ctx.singleVariableDeclaration().variableDeclaration().assignable().identifier() != null) {
+                name = ctx.singleVariableDeclaration().variableDeclaration().assignable().identifier().getText();
+            } else {
+                name = ctx.singleVariableDeclaration().getText();
+            }
+        } else {
+            // singleExpression as binding (e.g. bare identifier)
+            AExpression binding = (AExpression) visit(ctx.singleExpression());
+            name = binding instanceof ESymbol ? ((ESymbol) binding).getSymbol() : "item";
         }
-
-        return new SDeclBlock(nextIdentifier(), location(ctx), declarations);
+        AExpression expression = firstExpression(ctx.expressionSequence());
+        SBlock block = (SBlock) visit(ctx.statement());
+        return new SEach(nextIdentifier(), location(ctx), "def", name, expression, block);
     }
 
     @Override
-    public ANode visitDecltype(DecltypeContext ctx) {
-        throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
+    public ANode visitForOfStatement(ForOfStatementContext ctx) {
+        String name;
+        if (ctx.singleVariableDeclaration() != null) {
+            if (ctx.singleVariableDeclaration().variableDeclaration().assignable().identifier() != null) {
+                name = ctx.singleVariableDeclaration().variableDeclaration().assignable().identifier().getText();
+            } else {
+                name = ctx.singleVariableDeclaration().getText();
+            }
+        } else {
+            AExpression binding = (AExpression) visit(ctx.singleExpression());
+            name = binding instanceof ESymbol ? ((ESymbol) binding).getSymbol() : "item";
+        }
+        AExpression expression = firstExpression(ctx.expressionSequence());
+        SBlock block = (SBlock) visit(ctx.statement());
+        return new SEach(nextIdentifier(), location(ctx), "def", name, expression, block);
     }
 
     @Override
-    public ANode visitType(TypeContext ctx) {
-        throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
+    public ANode visitReturnStatement(ReturnStatementContext ctx) {
+        AExpression expression = firstExpression(ctx.expressionSequence());
+        return new SReturn(nextIdentifier(), location(ctx), expression);
     }
 
     @Override
-    public ANode visitDeclvar(DeclvarContext ctx) {
-        throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
+    public ANode visitThrowStatement(ThrowStatementContext ctx) {
+        AExpression expression = firstExpression(ctx.expressionSequence());
+        return new SThrow(nextIdentifier(), location(ctx), expression);
     }
 
     @Override
-    public ANode visitTrap(TrapContext ctx) {
-        String type = ctx.type().getText();
-        String name = ctx.ID().getText();
+    public ANode visitTryStatement(TryStatementContext ctx) {
         SBlock block = (SBlock) visit(ctx.block());
+        List<SCatch> catches = new ArrayList<>();
+        if (ctx.catchProduction() != null) {
+            catches.add((SCatch) visit(ctx.catchProduction()));
+        }
+        // TODO: finallyProduction - no SFinally in current node set
+        return new STry(nextIdentifier(), location(ctx), block, catches);
+    }
 
+    @Override
+    public ANode visitCatchProduction(CatchProductionContext ctx) {
+        String type = "Error";
+        String name = "e";
+        if (ctx.assignable() != null && ctx.assignable().identifier() != null) {
+            name = ctx.assignable().identifier().getText();
+        }
+        SBlock block = (SBlock) visit(ctx.block());
         return new SCatch(nextIdentifier(), location(ctx), Exception.class, type, name, block);
     }
 
     @Override
-    public ANode visitSingle(SingleContext ctx) {
-        return visit(ctx.unary());
+    public ANode visitExpressionStatement(ExpressionStatementContext ctx) {
+        AExpression expression = firstExpression(ctx.expressionSequence());
+        return new SExpression(nextIdentifier(), location(ctx), expression);
     }
 
     @Override
-    public ANode visitBinary(BinaryContext ctx) {
-        AExpression left = (AExpression) visit(ctx.noncondexpression(0));
-        AExpression right = (AExpression) visit(ctx.noncondexpression(1));
-        final Operation operation;
-
-        if (ctx.MUL() != null) {
-            operation = Operation.MUL;
-        } else if (ctx.DIV() != null) {
-            operation = Operation.DIV;
-        } else if (ctx.REM() != null) {
-            operation = Operation.REM;
-        } else if (ctx.ADD() != null) {
-            operation = Operation.ADD;
-        } else if (ctx.SUB() != null) {
-            operation = Operation.SUB;
-        } else if (ctx.FIND() != null) {
-            operation = Operation.FIND;
-        } else if (ctx.MATCH() != null) {
-            operation = Operation.MATCH;
-        } else if (ctx.LSH() != null) {
-            operation = Operation.LSH;
-        } else if (ctx.RSH() != null) {
-            operation = Operation.RSH;
-        } else if (ctx.USH() != null) {
-            operation = Operation.USH;
-        } else if (ctx.BWAND() != null) {
-            operation = Operation.BWAND;
-        } else if (ctx.XOR() != null) {
-            operation = Operation.XOR;
-        } else if (ctx.BWOR() != null) {
-            operation = Operation.BWOR;
-        } else {
-            throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
+    public ANode visitVariableStatement(VariableStatementContext ctx) {
+        VariableDeclarationListContext list = ctx.variableDeclarationList();
+        String modifier = list.varModifier().getText();
+        List<SDeclaration> declarations = new ArrayList<>();
+        for (VariableDeclarationContext vd : list.variableDeclaration()) {
+            String name = vd.assignable().identifier() != null ? vd.assignable().identifier().getText() : vd.getText();
+            AExpression init = vd.singleExpression() != null ? (AExpression) visit(vd.singleExpression()) : null;
+            declarations.add(new SDeclaration(nextIdentifier(), location(vd), modifier, name, init));
         }
-
-        return new EBinary(nextIdentifier(), location(ctx), left, right, operation);
+        return new SDeclBlock(nextIdentifier(), location(ctx), declarations);
     }
 
     @Override
-    public ANode visitComp(CompContext ctx) {
-        AExpression left = (AExpression) visit(ctx.noncondexpression(0));
-        AExpression right = (AExpression) visit(ctx.noncondexpression(1));
-        final Operation operation;
-
-        if (ctx.LT() != null) {
-            operation = Operation.LT;
-        } else if (ctx.LTE() != null) {
-            operation = Operation.LTE;
-        } else if (ctx.GT() != null) {
-            operation = Operation.GT;
-        } else if (ctx.GTE() != null) {
-            operation = Operation.GTE;
-        } else if (ctx.EQ() != null) {
-            operation = Operation.EQ;
-        } else if (ctx.EQR() != null) {
-            operation = Operation.EQR;
-        } else if (ctx.NE() != null) {
-            operation = Operation.NE;
-        } else if (ctx.NER() != null) {
-            operation = Operation.NER;
-        } else {
-            throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
-        }
-
-        return new EComp(nextIdentifier(), location(ctx), left, right, operation);
+    public ANode visitContinueStatement(ContinueStatementContext ctx) {
+        return new SContinue(nextIdentifier(), location(ctx));
     }
 
     @Override
-    public ANode visitInstanceof(InstanceofContext ctx) {
-        AExpression expr = (AExpression) visit(ctx.noncondexpression());
-        String type = ctx.decltype().getText();
-
-        return new EInstanceof(nextIdentifier(), location(ctx), expr, type);
+    public ANode visitBreakStatement(BreakStatementContext ctx) {
+        return new SBreak(nextIdentifier(), location(ctx));
     }
 
-    @Override
-    public ANode visitBool(BoolContext ctx) {
-        AExpression left = (AExpression) visit(ctx.noncondexpression(0));
-        AExpression right = (AExpression) visit(ctx.noncondexpression(1));
-        final Operation operation;
-
-        if (ctx.BOOLAND() != null) {
-            operation = Operation.AND;
-        } else if (ctx.BOOLOR() != null) {
-            operation = Operation.OR;
-        } else {
-            throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
-        }
-
-        return new EBooleanComp(nextIdentifier(), location(ctx), left, right, operation);
-    }
+    // -------------------------------------------------------------------------
+    // Expressions: singleExpression alternatives
+    // -------------------------------------------------------------------------
 
     @Override
-    public ANode visitElvis(ElvisContext ctx) {
-        AExpression left = (AExpression) visit(ctx.noncondexpression(0));
-        AExpression right = (AExpression) visit(ctx.noncondexpression(1));
-
-        return new EElvis(nextIdentifier(), location(ctx), left, right);
-    }
-
-    @Override
-    public ANode visitNonconditional(NonconditionalContext ctx) {
-        return visit(ctx.noncondexpression());
-    }
-
-    @Override
-    public ANode visitConditional(ConditionalContext ctx) {
-        AExpression condition = (AExpression) visit(ctx.noncondexpression());
-        AExpression left = (AExpression) visit(ctx.expression(0));
-        AExpression right = (AExpression) visit(ctx.expression(1));
-
+    public ANode visitTernaryExpression(TernaryExpressionContext ctx) {
+        AExpression condition = (AExpression) visit(ctx.singleExpression(0));
+        AExpression left = (AExpression) visit(ctx.singleExpression(1));
+        AExpression right = (AExpression) visit(ctx.singleExpression(2));
         return new EConditional(nextIdentifier(), location(ctx), condition, left, right);
     }
 
     @Override
-    public ANode visitAssignment(AssignmentContext ctx) {
-        AExpression lhs = (AExpression) visit(ctx.noncondexpression());
-        AExpression rhs = (AExpression) visit(ctx.expression());
-
-        final Operation operation;
-
-        if (ctx.ASSIGN() != null) {
-            operation = null;
-        } else if (ctx.AMUL() != null) {
-            operation = Operation.MUL;
-        } else if (ctx.ADIV() != null) {
-            operation = Operation.DIV;
-        } else if (ctx.AREM() != null) {
-            operation = Operation.REM;
-        } else if (ctx.AADD() != null) {
-            operation = Operation.ADD;
-        } else if (ctx.ASUB() != null) {
-            operation = Operation.SUB;
-        } else if (ctx.ALSH() != null) {
-            operation = Operation.LSH;
-        } else if (ctx.ARSH() != null) {
-            operation = Operation.RSH;
-        } else if (ctx.AUSH() != null) {
-            operation = Operation.USH;
-        } else if (ctx.AAND() != null) {
-            operation = Operation.BWAND;
-        } else if (ctx.AXOR() != null) {
-            operation = Operation.XOR;
-        } else if (ctx.AOR() != null) {
-            operation = Operation.BWOR;
-        } else {
-            throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
-        }
-
-        return new EAssignment(nextIdentifier(), location(ctx), lhs, rhs, false, operation);
+    public ANode visitLogicalAndExpression(LogicalAndExpressionContext ctx) {
+        AExpression left = (AExpression) visit(ctx.singleExpression(0));
+        AExpression right = (AExpression) visit(ctx.singleExpression(1));
+        return new EBooleanComp(nextIdentifier(), location(ctx), left, right, Operation.AND);
     }
 
     @Override
-    public ANode visitPre(PreContext ctx) {
-        AExpression expression = (AExpression) visit(ctx.chain());
+    public ANode visitLogicalOrExpression(LogicalOrExpressionContext ctx) {
+        AExpression left = (AExpression) visit(ctx.singleExpression(0));
+        AExpression right = (AExpression) visit(ctx.singleExpression(1));
+        return new EBooleanComp(nextIdentifier(), location(ctx), left, right, Operation.OR);
+    }
 
-        final Operation operation;
+    @Override
+    public ANode visitAssignmentExpression(AssignmentExpressionContext ctx) {
+        AExpression lhs = (AExpression) visit(ctx.singleExpression(0));
+        AExpression rhs = (AExpression) visit(ctx.singleExpression(1));
+        return new EAssignment(nextIdentifier(), location(ctx), lhs, rhs, false, null);
+    }
 
-        if (ctx.INCR() != null) {
-            operation = Operation.ADD;
-        } else if (ctx.DECR() != null) {
-            operation = Operation.SUB;
-        } else {
-            throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
+    @Override
+    public ANode visitAssignmentOperatorExpression(AssignmentOperatorExpressionContext ctx) {
+        AExpression lhs = (AExpression) visit(ctx.singleExpression(0));
+        AExpression rhs = (AExpression) visit(ctx.singleExpression(1));
+        String op = ctx.assignmentOperator().getText();
+        Operation operation = mapAssignmentOperator(op);
+        return new EAssignment(nextIdentifier(), location(ctx), lhs, rhs, false, operation);
+    }
+
+    private static Operation mapAssignmentOperator(String op) {
+        return switch (op) {
+            case "*=" -> Operation.MUL;
+            case "/=" -> Operation.DIV;
+            case "%=" -> Operation.REM;
+            case "+=" -> Operation.ADD;
+            case "-=" -> Operation.SUB;
+            case "<<=" -> Operation.LSH;
+            case ">>=" -> Operation.RSH;
+            case ">>>=" -> Operation.USH;
+            case "&=" -> Operation.BWAND;
+            case "^=" -> Operation.XOR;
+            case "|=" -> Operation.BWOR;
+            default -> null;
+        };
+    }
+
+    @Override
+    public ANode visitAdditiveExpression(AdditiveExpressionContext ctx) {
+        AExpression left = (AExpression) visit(ctx.singleExpression(0));
+        AExpression right = (AExpression) visit(ctx.singleExpression(1));
+        Operation op = ctx.Plus() != null ? Operation.ADD : Operation.SUB;
+        return new EBinary(nextIdentifier(), location(ctx), left, right, op);
+    }
+
+    @Override
+    public ANode visitMultiplicativeExpression(MultiplicativeExpressionContext ctx) {
+        AExpression left = (AExpression) visit(ctx.singleExpression(0));
+        AExpression right = (AExpression) visit(ctx.singleExpression(1));
+        Operation op = ctx.Multiply() != null ? Operation.MUL
+            : ctx.Divide() != null ? Operation.DIV
+            : Operation.REM;
+        return new EBinary(nextIdentifier(), location(ctx), left, right, op);
+    }
+
+    @Override
+    public ANode visitEqualityExpression(EqualityExpressionContext ctx) {
+        AExpression left = (AExpression) visit(ctx.singleExpression(0));
+        AExpression right = (AExpression) visit(ctx.singleExpression(1));
+        String text = ctx.getChild(1).getText();
+        Operation op = "==".equals(text) ? Operation.EQ : "===".equals(text) ? Operation.EQR : "!=".equals(text) ? Operation.NE : Operation.NER;
+        return new EComp(nextIdentifier(), location(ctx), left, right, op);
+    }
+
+    @Override
+    public ANode visitRelationalExpression(RelationalExpressionContext ctx) {
+        AExpression left = (AExpression) visit(ctx.singleExpression(0));
+        AExpression right = (AExpression) visit(ctx.singleExpression(1));
+        String text = ctx.getChild(1).getText();
+        Operation op = "<".equals(text) ? Operation.LT : "<=".equals(text) ? Operation.LTE : ">".equals(text) ? Operation.GT : Operation.GTE;
+        return new EComp(nextIdentifier(), location(ctx), left, right, op);
+    }
+
+    @Override
+    public ANode visitBitShiftExpression(BitShiftExpressionContext ctx) {
+        AExpression left = (AExpression) visit(ctx.singleExpression(0));
+        AExpression right = (AExpression) visit(ctx.singleExpression(1));
+        String text = ctx.getChild(1).getText();
+        Operation op = "<<".equals(text) ? Operation.LSH : ">>>".equals(text) ? Operation.USH : Operation.RSH;
+        return new EBinary(nextIdentifier(), location(ctx), left, right, op);
+    }
+
+    @Override
+    public ANode visitBitAndExpression(BitAndExpressionContext ctx) {
+        AExpression left = (AExpression) visit(ctx.singleExpression(0));
+        AExpression right = (AExpression) visit(ctx.singleExpression(1));
+        return new EBinary(nextIdentifier(), location(ctx), left, right, Operation.BWAND);
+    }
+
+    @Override
+    public ANode visitBitXOrExpression(BitXOrExpressionContext ctx) {
+        AExpression left = (AExpression) visit(ctx.singleExpression(0));
+        AExpression right = (AExpression) visit(ctx.singleExpression(1));
+        return new EBinary(nextIdentifier(), location(ctx), left, right, Operation.XOR);
+    }
+
+    @Override
+    public ANode visitBitOrExpression(BitOrExpressionContext ctx) {
+        AExpression left = (AExpression) visit(ctx.singleExpression(0));
+        AExpression right = (AExpression) visit(ctx.singleExpression(1));
+        return new EBinary(nextIdentifier(), location(ctx), left, right, Operation.BWOR);
+    }
+
+    @Override
+    public ANode visitArgumentsExpression(ArgumentsExpressionContext ctx) {
+        AExpression callee = (AExpression) visit(ctx.singleExpression());
+        List<AExpression> args = collectArguments(ctx.arguments());
+        if (callee instanceof ESymbol) {
+            return new ECallLocal(nextIdentifier(), location(ctx), ((ESymbol) callee).getSymbol(), args);
         }
+        if (callee instanceof EDot) {
+            return new ECall(
+                nextIdentifier(),
+                location(ctx),
+                ((EDot) callee).getPrefixNode(),
+                ((EDot) callee).getIndex(),
+                args,
+                ((EDot) callee).isNullSafe()
+            );
+        }
+        return new ECall(nextIdentifier(), location(ctx), callee, "", args, false);
+    }
 
+    @Override
+    public ANode visitMemberDotExpression(MemberDotExpressionContext ctx) {
+        AExpression prefix = (AExpression) visit(ctx.singleExpression());
+        String name = ctx.identifierName().getText();
+        boolean nullSafe = ctx.QuestionMark() != null;
+        return new EDot(nextIdentifier(), location(ctx), prefix, name, nullSafe);
+    }
+
+    @Override
+    public ANode visitMemberIndexExpression(MemberIndexExpressionContext ctx) {
+        AExpression prefix = (AExpression) visit(ctx.singleExpression());
+        AExpression index = firstExpression(ctx.expressionSequence());
+        return new EBrace(nextIdentifier(), location(ctx), prefix, index);
+    }
+
+    @Override
+    public ANode visitNewExpression(NewExpressionContext ctx) {
+        String type = ctx.identifier() != null ? ctx.identifier().getText() : ctx.singleExpression().getText();
+        List<AExpression> args = ctx.arguments() != null ? collectArguments(ctx.arguments()) : List.of();
+        return new ENewObj(nextIdentifier(), location(ctx), type, args);
+    }
+
+    @Override
+    public ANode visitLiteralExpression(LiteralExpressionContext ctx) {
+        return visit(ctx.literal());
+    }
+
+    @Override
+    public ANode visitLiteral(LiteralContext ctx) {
+        if (ctx.NullLiteral() != null) return new ENull(nextIdentifier(), location(ctx));
+        if (ctx.BooleanLiteral() != null) {
+            boolean value = "true".equals(ctx.BooleanLiteral().getText());
+            return new EBooleanConstant(nextIdentifier(), location(ctx), value);
+        }
+        if (ctx.StringLiteral() != null) {
+            String raw = ctx.StringLiteral().getText();
+            String unescaped = unescapeString(raw.substring(1, raw.length() - 1), raw.charAt(0));
+            return new EString(nextIdentifier(), location(ctx), unescaped);
+        }
+        if (ctx.RegularExpressionLiteral() != null) {
+            String text = ctx.RegularExpressionLiteral().getText();
+            int lastSlash = text.lastIndexOf('/');
+            return new ERegex(nextIdentifier(), location(ctx), text.substring(1, lastSlash), text.substring(lastSlash + 1));
+        }
+        if (ctx.numericLiteral() != null) {
+            String text = ctx.numericLiteral().getText();
+            if (text.contains(".") || text.toLowerCase().contains("e")) {
+                return new EDecimal(nextIdentifier(), location(ctx), text);
+            }
+            int radix = 10;
+            if (text.startsWith("0x") || text.startsWith("0X")) { text = text.substring(2); radix = 16; }
+            else if (text.startsWith("0o") || text.startsWith("0O")) { text = text.substring(2); radix = 8; }
+            else if (text.startsWith("0b") || text.startsWith("0B")) { text = text.substring(2); radix = 2; }
+            return new ENumeric(nextIdentifier(), location(ctx), text.replaceAll("[lL]$", ""), radix);
+        }
+        // TODO: templateStringLiteral, bigintLiteral
+        return visitChildren(ctx);
+    }
+
+    private static String unescapeString(String s, char quote) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            if (c == '\\' && i + 1 < s.length()) {
+                char next = s.charAt(++i);
+                sb.append(switch (next) {
+                    case 'n' -> '\n';
+                    case 'r' -> '\r';
+                    case 't' -> '\t';
+                    case '\\' -> '\\';
+                    case '\'', '"' -> next;
+                    default -> next;
+                });
+            } else {
+                sb.append(c);
+            }
+        }
+        return sb.toString();
+    }
+
+    @Override
+    public ANode visitInstanceofExpression(InstanceofExpressionContext ctx) {
+        AExpression left = (AExpression) visit(ctx.singleExpression(0));
+        String type = ctx.singleExpression(1).getText();
+        return new EInstanceof(nextIdentifier(), location(ctx), left, type);
+    }
+
+    @Override
+    public ANode visitNotExpression(NotExpressionContext ctx) {
+        AExpression expression = (AExpression) visit(ctx.singleExpression());
+        return new EUnary(nextIdentifier(), location(ctx), expression, Operation.NOT);
+    }
+
+    @Override
+    public ANode visitPreIncrementExpression(PreIncrementExpressionContext ctx) {
+        AExpression expression = (AExpression) visit(ctx.singleExpression());
         return new EAssignment(
             nextIdentifier(),
             location(ctx),
             expression,
             new ENumeric(nextIdentifier(), location(ctx), "1", 10),
             false,
-            operation
+            Operation.ADD
         );
     }
 
     @Override
-    public ANode visitAddsub(AddsubContext ctx) {
-        AExpression expression = (AExpression) visit(ctx.unary());
-
-        final Operation operation;
-
-        if (ctx.ADD() != null) {
-            operation = Operation.ADD;
-        } else if (ctx.SUB() != null) {
-            operation = Operation.SUB;
-        } else {
-            throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
-        }
-
-        return new EUnary(nextIdentifier(), location(ctx), expression, operation);
+    public ANode visitPreDecreaseExpression(PreDecreaseExpressionContext ctx) {
+        AExpression expression = (AExpression) visit(ctx.singleExpression());
+        return new EAssignment(
+            nextIdentifier(),
+            location(ctx),
+            expression,
+            new ENumeric(nextIdentifier(), location(ctx), "1", 10),
+            false,
+            Operation.SUB
+        );
     }
 
     @Override
-    public ANode visitNotaddsub(NotaddsubContext ctx) {
-        return visit(ctx.unarynotaddsub());
-    }
-
-    @Override
-    public ANode visitRead(ReadContext ctx) {
-        return visit(ctx.chain());
-    }
-
-    @Override
-    public ANode visitPost(PostContext ctx) {
-        AExpression expression = (AExpression) visit(ctx.chain());
-
-        final Operation operation;
-
-        if (ctx.INCR() != null) {
-            operation = Operation.ADD;
-        } else if (ctx.DECR() != null) {
-            operation = Operation.SUB;
-        } else {
-            throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
-        }
-
+    public ANode visitPostIncrementExpression(PostIncrementExpressionContext ctx) {
+        AExpression expression = (AExpression) visit(ctx.singleExpression());
         return new EAssignment(
             nextIdentifier(),
             location(ctx),
             expression,
             new ENumeric(nextIdentifier(), location(ctx), "1", 10),
             true,
-            operation
+            Operation.ADD
         );
     }
 
     @Override
-    public ANode visitNot(NotContext ctx) {
-        AExpression expression = (AExpression) visit(ctx.unary());
-
-        final Operation operation;
-
-        if (ctx.BOOLNOT() != null) {
-            operation = Operation.NOT;
-        } else if (ctx.BWNOT() != null) {
-            operation = Operation.BWNOT;
-        } else {
-            throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
-        }
-
-        return new EUnary(nextIdentifier(), location(ctx), expression, operation);
+    public ANode visitPostDecreaseExpression(PostDecreaseExpressionContext ctx) {
+        AExpression expression = (AExpression) visit(ctx.singleExpression());
+        return new EAssignment(
+            nextIdentifier(),
+            location(ctx),
+            expression,
+            new ENumeric(nextIdentifier(), location(ctx), "1", 10),
+            true,
+            Operation.SUB
+        );
     }
 
     @Override
-    public ANode visitCast(CastContext ctx) {
-        return visit(ctx.castexpression());
+    public ANode visitUnaryPlusExpression(UnaryPlusExpressionContext ctx) {
+        AExpression expression = (AExpression) visit(ctx.singleExpression());
+        return new EUnary(nextIdentifier(), location(ctx), expression, Operation.ADD);
     }
 
     @Override
-    public ANode visitPrimordefcast(JavascriptParser.PrimordefcastContext ctx) {
-        String type = ctx.primordefcasttype().getText();
-        AExpression child = (AExpression) visit(ctx.unary());
-
-        return new EExplicit(nextIdentifier(), location(ctx), type, child);
+    public ANode visitUnaryMinusExpression(UnaryMinusExpressionContext ctx) {
+        AExpression expression = (AExpression) visit(ctx.singleExpression());
+        return new EUnary(nextIdentifier(), location(ctx), expression, Operation.SUB);
     }
 
     @Override
-    public ANode visitRefcast(JavascriptParser.RefcastContext ctx) {
-        String type = ctx.refcasttype().getText();
-        AExpression child = (AExpression) visit(ctx.unarynotaddsub());
-
-        return new EExplicit(nextIdentifier(), location(ctx), type, child);
+    public ANode visitParenthesizedExpression(org.elasticsearch.javascript.antlr.JavascriptParser.ParenthesizedExpressionContext ctx) {
+        return visit(ctx.expressionSequence());
     }
 
     @Override
-    public ANode visitPrimordefcasttype(JavascriptParser.PrimordefcasttypeContext ctx) {
-        throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
+    public ANode visitExpressionSequence(ExpressionSequenceContext ctx) {
+        return ctx.singleExpression().isEmpty() ? null : visit(ctx.singleExpression(0));
     }
 
     @Override
-    public ANode visitRefcasttype(JavascriptParser.RefcasttypeContext ctx) {
-        throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
-    }
-
-    @Override
-    public ANode visitDynamic(DynamicContext ctx) {
-        AExpression primary = (AExpression) visit(ctx.primary());
-
-        return buildPostfixChain(primary, null, ctx.postfix());
-    }
-
-    @Override
-    public ANode visitNewarray(NewarrayContext ctx) {
-        return visit(ctx.arrayinitializer());
-    }
-
-    @Override
-    public ANode visitPrecedence(PrecedenceContext ctx) {
-        return visit(ctx.expression());
-    }
-
-    @Override
-    public ANode visitNumeric(NumericContext ctx) {
-        if (ctx.DECIMAL() != null) {
-            return new EDecimal(nextIdentifier(), location(ctx), ctx.DECIMAL().getText());
-        } else if (ctx.HEX() != null) {
-            return new ENumeric(nextIdentifier(), location(ctx), ctx.HEX().getText().substring(2), 16);
-        } else if (ctx.INTEGER() != null) {
-            return new ENumeric(nextIdentifier(), location(ctx), ctx.INTEGER().getText(), 10);
-        } else if (ctx.OCTAL() != null) {
-            return new ENumeric(nextIdentifier(), location(ctx), ctx.OCTAL().getText().substring(1), 8);
-        } else {
-            throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
-        }
-    }
-
-    @Override
-    public ANode visitTrue(TrueContext ctx) {
-        return new EBooleanConstant(nextIdentifier(), location(ctx), true);
-    }
-
-    @Override
-    public ANode visitFalse(FalseContext ctx) {
-        return new EBooleanConstant(nextIdentifier(), location(ctx), false);
-    }
-
-    @Override
-    public ANode visitNull(NullContext ctx) {
-        return new ENull(nextIdentifier(), location(ctx));
-    }
-
-    @Override
-    public ANode visitString(StringContext ctx) {
-        StringBuilder string = new StringBuilder(ctx.STRING().getText());
-
-        // Strip the leading and trailing quotes and replace the escape sequences with their literal equivalents
-        int src = 1;
-        int dest = 0;
-        int end = string.length() - 1;
-        assert string.charAt(0) == '"' || string.charAt(0) == '\'' : "expected string to start with a quote but was [" + string + "]";
-        assert string.charAt(end) == '"' || string.charAt(end) == '\'' : "expected string to end with a quote was [" + string + "]";
-        while (src < end) {
-            char current = string.charAt(src);
-            if (current == '\\') {
-                src++;
-                current = string.charAt(src);
-            }
-            string.setCharAt(dest, current);
-            src++;
-            dest++;
-        }
-        string.setLength(dest);
-
-        return new EString(nextIdentifier(), location(ctx), string.toString());
-    }
-
-    @Override
-    public ANode visitRegex(RegexContext ctx) {
-        String text = ctx.REGEX().getText();
-        int lastSlash = text.lastIndexOf('/');
-        String pattern = text.substring(1, lastSlash);
-        String flags = text.substring(lastSlash + 1);
-
-        return new ERegex(nextIdentifier(), location(ctx), pattern, flags);
-    }
-
-    @Override
-    public ANode visitListinit(ListinitContext ctx) {
-        return visit(ctx.listinitializer());
-    }
-
-    @Override
-    public ANode visitMapinit(MapinitContext ctx) {
-        return visit(ctx.mapinitializer());
-    }
-
-    @Override
-    public ANode visitVariable(VariableContext ctx) {
-        String name = ctx.ID().getText();
-
+    public ANode visitIdentifierExpression(org.elasticsearch.javascript.antlr.JavascriptParser.IdentifierExpressionContext ctx) {
+        String name = ctx.identifier().getText();
         return new ESymbol(nextIdentifier(), location(ctx), name);
     }
 
     @Override
-    public ANode visitCalllocal(CalllocalContext ctx) {
-        String name = ctx.ID() == null ? ctx.DOLLAR().getText() : ctx.ID().getText();
-        List<AExpression> arguments = collectArguments(ctx.arguments());
-
-        return new ECallLocal(nextIdentifier(), location(ctx), name, arguments);
-    }
-
-    @Override
-    public ANode visitNewobject(NewobjectContext ctx) {
-        String type = ctx.type().getText();
-        List<AExpression> arguments = collectArguments(ctx.arguments());
-
-        return new ENewObj(nextIdentifier(), location(ctx), type, arguments);
-    }
-
-    private AExpression buildPostfixChain(AExpression primary, PostdotContext postdot, List<PostfixContext> postfixes) {
-        AExpression prefix = primary;
-
-        if (postdot != null) {
-            prefix = visitPostdot(postdot, prefix);
+    public ANode visitArrayLiteralExpression(org.elasticsearch.javascript.antlr.JavascriptParser.ArrayLiteralExpressionContext ctx) {
+        org.elasticsearch.javascript.antlr.JavascriptParser.ArrayLiteralContext al = ctx.arrayLiteral();
+        if (al.elementList() == null || al.elementList().arrayElement() == null) {
+            return new EListInit(nextIdentifier(), location(ctx), List.of());
         }
-
-        for (PostfixContext postfix : postfixes) {
-            prefix = visitPostfix(postfix, prefix);
-        }
-
-        return prefix;
-    }
-
-    @Override
-    public ANode visitPostfix(PostfixContext ctx) {
-        throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
-    }
-
-    public AExpression visitPostfix(PostfixContext ctx, AExpression prefix) {
-        if (ctx.callinvoke() != null) {
-            return visitCallinvoke(ctx.callinvoke(), prefix);
-        } else if (ctx.fieldaccess() != null) {
-            return visitFieldaccess(ctx.fieldaccess(), prefix);
-        } else if (ctx.braceaccess() != null) {
-            return visitBraceaccess(ctx.braceaccess(), prefix);
-        } else {
-            throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
-        }
-    }
-
-    @Override
-    public ANode visitPostdot(PostdotContext ctx) {
-        throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
-    }
-
-    public AExpression visitPostdot(PostdotContext ctx, AExpression prefix) {
-        if (ctx.callinvoke() != null) {
-            return visitCallinvoke(ctx.callinvoke(), prefix);
-        } else if (ctx.fieldaccess() != null) {
-            return visitFieldaccess(ctx.fieldaccess(), prefix);
-        } else {
-            throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
-        }
-    }
-
-    @Override
-    public ANode visitCallinvoke(CallinvokeContext ctx) {
-        throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
-    }
-
-    public AExpression visitCallinvoke(CallinvokeContext ctx, AExpression prefix) {
-        String name = ctx.DOTID().getText();
-        List<AExpression> arguments = collectArguments(ctx.arguments());
-
-        return new ECall(nextIdentifier(), location(ctx), prefix, name, arguments, ctx.NSDOT() != null);
-    }
-
-    @Override
-    public ANode visitFieldaccess(FieldaccessContext ctx) {
-        throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
-    }
-
-    public AExpression visitFieldaccess(FieldaccessContext ctx, AExpression prefix) {
-        final String value;
-
-        if (ctx.DOTID() != null) {
-            value = ctx.DOTID().getText();
-        } else if (ctx.DOTINTEGER() != null) {
-            value = ctx.DOTINTEGER().getText();
-        } else {
-            throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
-        }
-
-        return new EDot(nextIdentifier(), location(ctx), prefix, value, ctx.NSDOT() != null);
-    }
-
-    @Override
-    public ANode visitBraceaccess(BraceaccessContext ctx) {
-        throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
-    }
-
-    public AExpression visitBraceaccess(BraceaccessContext ctx, AExpression prefix) {
-        AExpression expression = (AExpression) visit(ctx.expression());
-
-        return new EBrace(nextIdentifier(), location(ctx), prefix, expression);
-    }
-
-    @Override
-    public ANode visitNewstandardarray(NewstandardarrayContext ctx) {
-        StringBuilder type = new StringBuilder(ctx.type().getText());
-        List<AExpression> expressions = new ArrayList<>();
-
-        for (ExpressionContext expression : ctx.expression()) {
-            type.append("[]");
-            expressions.add((AExpression) visit(expression));
-        }
-
-        return buildPostfixChain(
-            new ENewArray(nextIdentifier(), location(ctx), type.toString(), expressions, false),
-            ctx.postdot(),
-            ctx.postfix()
-        );
-    }
-
-    @Override
-    public ANode visitNewinitializedarray(NewinitializedarrayContext ctx) {
-        String type = ctx.type().getText() + "[]";
-        List<AExpression> expressions = new ArrayList<>();
-
-        for (ExpressionContext expression : ctx.expression()) {
-            expressions.add((AExpression) visit(expression));
-        }
-
-        return buildPostfixChain(new ENewArray(nextIdentifier(), location(ctx), type, expressions, true), null, ctx.postfix());
-    }
-
-    @Override
-    public ANode visitListinitializer(ListinitializerContext ctx) {
         List<AExpression> values = new ArrayList<>();
-
-        for (ExpressionContext expression : ctx.expression()) {
-            values.add((AExpression) visit(expression));
+        for (org.elasticsearch.javascript.antlr.JavascriptParser.ArrayElementContext ae : al.elementList().arrayElement()) {
+            if (ae.singleExpression() != null) {
+                values.add((AExpression) visit(ae.singleExpression()));
+            }
         }
-
         return new EListInit(nextIdentifier(), location(ctx), values);
     }
 
-    @Override
-    public ANode visitMapinitializer(MapinitializerContext ctx) {
-        List<AExpression> keys = new ArrayList<>();
-        List<AExpression> values = new ArrayList<>();
-
-        for (MaptokenContext maptoken : ctx.maptoken()) {
-            keys.add((AExpression) visit(maptoken.expression(0)));
-            values.add((AExpression) visit(maptoken.expression(1)));
-        }
-
-        return new EMapInit(nextIdentifier(), location(ctx), keys, values);
-    }
-
-    @Override
-    public ANode visitMaptoken(MaptokenContext ctx) {
-        throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
-    }
-
-    @Override
-    public ANode visitArguments(ArgumentsContext ctx) {
-        throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
-    }
-
-    private List<AExpression> collectArguments(ArgumentsContext ctx) {
-        List<AExpression> arguments = new ArrayList<>(ctx.argument().size());
-
-        for (ArgumentContext argument : ctx.argument()) {
-            arguments.add((AExpression) visit(argument));
-        }
-
-        return arguments;
-    }
-
-    @Override
-    public ANode visitArgument(ArgumentContext ctx) {
-        if (ctx.expression() != null) {
-            return visit(ctx.expression());
-        } else if (ctx.lambda() != null) {
-            return visit(ctx.lambda());
-        } else if (ctx.funcref() != null) {
-            return visit(ctx.funcref());
-        } else {
-            throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
-        }
-    }
-
-    @Override
-    public ANode visitLambda(LambdaContext ctx) {
-        List<String> paramTypes = new ArrayList<>(ctx.lamtype().size());
-        List<String> paramNames = new ArrayList<>(ctx.lamtype().size());
-        SBlock block;
-
-        for (LamtypeContext lamtype : ctx.lamtype()) {
-            if (lamtype.decltype() == null) {
-                paramTypes.add(null);
-            } else {
-                paramTypes.add(lamtype.decltype().getText());
-            }
-
-            paramNames.add(lamtype.ID().getText());
-        }
-
-        if (ctx.expression() != null) {
-            // single expression
-            AExpression expression = (AExpression) visit(ctx.expression());
-            block = new SBlock(
-                nextIdentifier(),
-                location(ctx),
-                Collections.singletonList(new SReturn(nextIdentifier(), location(ctx), expression))
-            );
-        } else {
-            block = (SBlock) visit(ctx.block());
-        }
-
-        return new ELambda(nextIdentifier(), location(ctx), paramTypes, paramNames, block);
-    }
-
-    @Override
-    public ANode visitLamtype(LamtypeContext ctx) {
-        throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
-    }
-
-    @Override
-    public ANode visitClassfuncref(ClassfuncrefContext ctx) {
-        return new EFunctionRef(nextIdentifier(), location(ctx), ctx.decltype().getText(), ctx.ID().getText());
-    }
-
-    @Override
-    public ANode visitConstructorfuncref(ConstructorfuncrefContext ctx) {
-        return ctx.decltype().LBRACE().isEmpty()
-            ? new EFunctionRef(nextIdentifier(), location(ctx), ctx.decltype().getText(), ctx.NEW().getText())
-            : new ENewArrayFunctionRef(nextIdentifier(), location(ctx), ctx.decltype().getText());
-    }
-
-    @Override
-    public ANode visitLocalfuncref(LocalfuncrefContext ctx) {
-        return new EFunctionRef(nextIdentifier(), location(ctx), ctx.THIS().getText(), ctx.ID().getText());
-    }
+    // TODO: PowerExpression, CoalesceExpression, OptionalChainExpression, TemplateStringExpression,
+    // ThisExpression, SuperExpression, ClassExpression, FunctionExpression, ObjectLiteralExpression,
+    // MetaExpression, YieldExpression, AwaitExpression, DeleteExpression, TypeofExpression,
+    // VoidExpression, ImportExpression, BitNotExpression, NamedFunction, AnonymousFunctionDecl, ArrowFunction
 }
