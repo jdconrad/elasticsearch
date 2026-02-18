@@ -20,13 +20,24 @@ import java.lang.invoke.CallSite;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
+import java.lang.invoke.WrongMethodTypeException;
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.lang.reflect.Proxy;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.BitSet;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -345,6 +356,159 @@ public final class Def {
         return new IllegalArgumentException(
             "dynamic method [" + typeToCanonicalTypeName(receiverClass) + ", " + name + "/" + arity + "] not found"
         );
+    }
+
+    public static boolean isFunctionalInterfaceType(final Class<?> targetType) {
+        return lookupFunctionalInterfaceMethod(targetType) != null;
+    }
+
+    public static Object defToFunctionalInterface(final Object value, final Class<?> targetType) {
+        Objects.requireNonNull(targetType);
+
+        if (value == null || targetType.isInstance(value)) {
+            return value;
+        }
+
+        Method targetMethod = lookupFunctionalInterfaceMethod(targetType);
+        if (targetMethod == null) {
+            throw castError(value.getClass(), targetType);
+        }
+
+        MethodType targetMethodType = MethodType.methodType(targetMethod.getReturnType(), targetMethod.getParameterTypes());
+        MethodHandle adaptedHandle = lookupFunctionalAdapterHandle(value, targetMethodType);
+        if (adaptedHandle == null) {
+            throw castError(value.getClass(), targetType);
+        }
+
+        return Proxy.newProxyInstance(
+            targetType.getClassLoader(),
+            new Class<?>[] { targetType },
+            new FunctionalInterfaceAdapterInvocationHandler(targetType, value, targetMethod, adaptedHandle)
+        );
+    }
+
+    private static MethodHandle lookupFunctionalAdapterHandle(Object value, MethodType targetMethodType) {
+        MethodHandles.Lookup publicLookup = MethodHandles.publicLookup();
+
+        for (Method sourceMethod : lookupRuntimeCallableMethods(value.getClass())) {
+            MethodHandle sourceHandle;
+            try {
+                sourceHandle = publicLookup.findVirtual(
+                    sourceMethod.getDeclaringClass(),
+                    sourceMethod.getName(),
+                    MethodType.methodType(sourceMethod.getReturnType(), sourceMethod.getParameterTypes())
+                ).bindTo(value);
+            } catch (NoSuchMethodException | IllegalAccessException e) {
+                continue;
+            }
+
+            try {
+                return sourceHandle.asType(targetMethodType);
+            } catch (WrongMethodTypeException exception) {
+                // try the next callable shape
+            }
+        }
+
+        return null;
+    }
+
+    private static List<Method> lookupRuntimeCallableMethods(Class<?> valueType) {
+        List<Method> callableMethods = new ArrayList<>();
+        Deque<Class<?>> interfaceQueue = new ArrayDeque<>();
+        Set<Class<?>> visited = new HashSet<>();
+        Class<?> currentType = valueType;
+
+        while (currentType != null) {
+            interfaceQueue.addAll(Arrays.asList(currentType.getInterfaces()));
+            currentType = currentType.getSuperclass();
+        }
+
+        Class<?> interfaceType;
+        while ((interfaceType = interfaceQueue.pollFirst()) != null) {
+            if (visited.add(interfaceType)) {
+                Method functionalMethod = lookupFunctionalInterfaceMethod(interfaceType);
+                if (functionalMethod != null) {
+                    callableMethods.add(functionalMethod);
+                }
+
+                interfaceQueue.addAll(Arrays.asList(interfaceType.getInterfaces()));
+            }
+        }
+
+        return callableMethods;
+    }
+
+    private static Method lookupFunctionalInterfaceMethod(Class<?> interfaceType) {
+        if (interfaceType == null || interfaceType.isInterface() == false) {
+            return null;
+        }
+
+        Method functionalMethod = null;
+        for (Method method : interfaceType.getMethods()) {
+            if (Modifier.isAbstract(method.getModifiers()) == false || method.getDeclaringClass() == Object.class) {
+                continue;
+            }
+
+            if (functionalMethod == null) {
+                functionalMethod = method;
+            } else if (sameMethodSignature(functionalMethod, method) == false) {
+                return null;
+            }
+        }
+
+        return functionalMethod;
+    }
+
+    private static boolean sameMethodSignature(Method left, Method right) {
+        return left.getName().equals(right.getName()) && Arrays.equals(left.getParameterTypes(), right.getParameterTypes());
+    }
+
+    private static ClassCastException castError(Class<?> valueType, Class<?> targetType) {
+        return new ClassCastException(
+            "Cannot cast from [" + typeToCanonicalTypeName(valueType) + "] to [" + typeToCanonicalTypeName(targetType) + "]."
+        );
+    }
+
+    private static final class FunctionalInterfaceAdapterInvocationHandler implements InvocationHandler {
+
+        private final Class<?> targetType;
+        private final Object delegate;
+        private final Method targetMethod;
+        private final MethodHandle adaptedHandle;
+
+        private FunctionalInterfaceAdapterInvocationHandler(
+            Class<?> targetType,
+            Object delegate,
+            Method targetMethod,
+            MethodHandle adaptedHandle
+        ) {
+            this.targetType = targetType;
+            this.delegate = delegate;
+            this.targetMethod = targetMethod;
+            this.adaptedHandle = adaptedHandle;
+        }
+
+        @Override
+        public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+            if (sameMethodSignature(method, targetMethod)) {
+                return adaptedHandle.invokeWithArguments(args == null ? new Object[0] : args);
+            }
+
+            if (method.getDeclaringClass() == Object.class) {
+                return switch (method.getName()) {
+                    case "equals" -> proxy == (args == null ? null : args[0]);
+                    case "hashCode" -> System.identityHashCode(proxy);
+                    case "toString" -> "def-adapter[" + targetType.getName() + "](" + delegate + ")";
+                    default -> throw new UnsupportedOperationException("unsupported object method [" + method + "]");
+                };
+            }
+
+            if (method.isDefault()) {
+                return InvocationHandler.invokeDefault(proxy, method, args == null ? new Object[0] : args);
+            }
+
+            throw new UnsupportedOperationException("unsupported interface method [" + method + "]");
+        }
     }
 
     /**

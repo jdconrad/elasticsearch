@@ -75,6 +75,37 @@ public class FirstClassFunctionValueTests extends ScriptTestCase {
         );
     }
 
+    public void testAdaptDefCallableToCompatibleInterfaceVariable() {
+        assertEquals(
+            2,
+            exec(
+                "IntUnaryOperator increment = (x) -> x + 1; "
+                    + "def fn = increment; "
+                    + "Function func = fn; "
+                    + "((Integer)func.apply(1)).intValue()"
+            )
+        );
+    }
+
+    public void testPassDefCallableToCompatibleInterfaceArgument() {
+        assertEquals(
+            6,
+            exec(
+                "int apply(Function func, int x) { ((Integer)func.apply(x)).intValue() } "
+                    + "IntUnaryOperator increment = (x) -> x + 1; "
+                    + "def fn = increment; "
+                    + "apply(fn, 5)"
+            )
+        );
+    }
+
+    public void testAdaptDefCallableRejectsIncompatibleInterface() {
+        expectScriptThrows(
+            ClassCastException.class,
+            () -> exec("IntUnaryOperator increment = (x) -> x + 1; def fn = increment; Predicate predicate = fn; predicate.test(1)")
+        );
+    }
+
     public void testCallSyntaxRejectsWrongArityForTypedCallable() {
         IllegalArgumentException e = expectScriptThrows(
             IllegalArgumentException.class,

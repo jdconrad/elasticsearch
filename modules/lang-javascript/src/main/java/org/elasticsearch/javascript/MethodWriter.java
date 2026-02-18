@@ -44,6 +44,7 @@ import static org.elasticsearch.javascript.WriterConstants.DEF_TO_B_LONG_EXPLICI
 import static org.elasticsearch.javascript.WriterConstants.DEF_TO_B_LONG_IMPLICIT;
 import static org.elasticsearch.javascript.WriterConstants.DEF_TO_B_SHORT_EXPLICIT;
 import static org.elasticsearch.javascript.WriterConstants.DEF_TO_B_SHORT_IMPLICIT;
+import static org.elasticsearch.javascript.WriterConstants.DEF_TO_FUNCTIONAL_INTERFACE;
 import static org.elasticsearch.javascript.WriterConstants.DEF_TO_P_BOOLEAN;
 import static org.elasticsearch.javascript.WriterConstants.DEF_TO_P_BYTE_EXPLICIT;
 import static org.elasticsearch.javascript.WriterConstants.DEF_TO_P_BYTE_IMPLICIT;
@@ -178,7 +179,9 @@ public final class MethodWriter extends GeneratorAdapter {
                 else if (cast.targetType == Float.class) invokeStatic(DEF_UTIL_TYPE, DEF_TO_B_FLOAT_EXPLICIT);
                 else if (cast.targetType == Double.class) invokeStatic(DEF_UTIL_TYPE, DEF_TO_B_DOUBLE_EXPLICIT);
                 else if (cast.targetType == String.class) invokeStatic(DEF_UTIL_TYPE, DEF_TO_STRING_EXPLICIT);
-                else {
+                else if (cast.targetType.isInterface() && Def.isFunctionalInterfaceType(cast.targetType)) {
+                    writeDefToFunctionalInterfaceCast(cast.targetType);
+                } else {
                     writeCast(cast.originalType, cast.targetType);
                 }
             } else {
@@ -199,7 +202,9 @@ public final class MethodWriter extends GeneratorAdapter {
                 else if (cast.targetType == Float.class) invokeStatic(DEF_UTIL_TYPE, DEF_TO_B_FLOAT_IMPLICIT);
                 else if (cast.targetType == Double.class) invokeStatic(DEF_UTIL_TYPE, DEF_TO_B_DOUBLE_IMPLICIT);
                 else if (cast.targetType == String.class) invokeStatic(DEF_UTIL_TYPE, DEF_TO_STRING_IMPLICIT);
-                else {
+                else if (cast.targetType.isInterface() && Def.isFunctionalInterfaceType(cast.targetType)) {
+                    writeDefToFunctionalInterfaceCast(cast.targetType);
+                } else {
                     writeCast(cast.originalType, cast.targetType);
                 }
             }
@@ -220,6 +225,12 @@ public final class MethodWriter extends GeneratorAdapter {
                 checkCast(getType(to));
             }
         }
+    }
+
+    private void writeDefToFunctionalInterfaceCast(Class<?> targetType) {
+        visitLdcInsn(getType(targetType));
+        invokeStatic(DEF_UTIL_TYPE, DEF_TO_FUNCTIONAL_INTERFACE);
+        checkCast(getType(targetType));
     }
 
     /**

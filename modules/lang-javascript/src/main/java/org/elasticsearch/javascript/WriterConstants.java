@@ -133,6 +133,12 @@ public final class WriterConstants {
 
     public static final Method DEF_TO_STRING_IMPLICIT = getAsmMethod(String.class, "defToStringImplicit", Object.class);
     public static final Method DEF_TO_STRING_EXPLICIT = getAsmMethod(String.class, "defToStringExplicit", Object.class);
+    public static final Method DEF_TO_FUNCTIONAL_INTERFACE = getAsmMethod(
+        Object.class,
+        "defToFunctionalInterface",
+        Object.class,
+        Class.class
+    );
 
     /** invokedynamic bootstrap for lambda expression/method references */
     public static final MethodType LAMBDA_BOOTSTRAP_TYPE = MethodType.methodType(
