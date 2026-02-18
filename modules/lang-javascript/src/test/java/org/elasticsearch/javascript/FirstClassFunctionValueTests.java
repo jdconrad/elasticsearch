@@ -28,7 +28,9 @@ public class FirstClassFunctionValueTests extends ScriptTestCase {
     public void testStoreTypedCallableInCollection() {
         assertEquals(
             5,
-            exec("IntUnaryOperator increment = (x) -> x + 1; List callables = [increment]; IntUnaryOperator fn = (IntUnaryOperator)callables[0]; fn.applyAsInt(4)")
+            exec(
+                "IntUnaryOperator increment = (x) -> x + 1; List callables = [increment]; IntUnaryOperator fn = (IntUnaryOperator)callables[0]; fn.applyAsInt(4)"
+            )
         );
     }
 
@@ -39,7 +41,9 @@ public class FirstClassFunctionValueTests extends ScriptTestCase {
     public void testInvokeTypedCallableFromCollectionWithCallSyntax() {
         assertEquals(
             5,
-            exec("IntUnaryOperator increment = (x) -> x + 1; List callables = [increment]; IntUnaryOperator fn = (IntUnaryOperator)callables[0]; fn(4)")
+            exec(
+                "IntUnaryOperator increment = (x) -> x + 1; List callables = [increment]; IntUnaryOperator fn = (IntUnaryOperator)callables[0]; fn(4)"
+            )
         );
     }
 

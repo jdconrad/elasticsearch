@@ -234,13 +234,17 @@ public class InjectionTests extends ScriptTestCase {
         assertEquals(
             20000,
             exec(
-                "def f = new org.elasticsearch.javascript.FeatureTestObject(100, 0); " + "f.augmentInjectMultiWithLambda(x -> 2*x, (short)5)"
+                "def f = new org.elasticsearch.javascript.FeatureTestObject(100, 0); "
+                    + "f.augmentInjectMultiWithLambda(x -> 2*x, (short)5)"
             )
         );
     }
 
     public void testAugmentedMultiInjectionOnDefNoMultiInject() {
-        assertEquals(5000, exec("def d = new org.elasticsearch.javascript.FeatureTestObject(100, 0); d.augmentInjectMultiTimesX((short)5)"));
+        assertEquals(
+            5000,
+            exec("def d = new org.elasticsearch.javascript.FeatureTestObject(100, 0); d.augmentInjectMultiTimesX((short)5)")
+        );
     }
 
     public void testAugmentedMultiInjectionOnMethodReference() {

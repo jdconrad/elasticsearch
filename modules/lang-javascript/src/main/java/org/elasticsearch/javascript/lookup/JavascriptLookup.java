@@ -273,7 +273,9 @@ public final class JavascriptLookup {
         Objects.requireNonNull(originalTargetClass);
         Objects.requireNonNull(getterName);
 
-        Function<JavascriptClass, MethodHandle> objectLookup = targetJavascriptClass -> targetJavascriptClass.getterMethodHandles.get(getterName);
+        Function<JavascriptClass, MethodHandle> objectLookup = targetJavascriptClass -> targetJavascriptClass.getterMethodHandles.get(
+            getterName
+        );
 
         return lookupJavascriptObject(originalTargetClass, objectLookup);
     }
@@ -282,7 +284,9 @@ public final class JavascriptLookup {
         Objects.requireNonNull(originalTargetClass);
         Objects.requireNonNull(setterName);
 
-        Function<JavascriptClass, MethodHandle> objectLookup = targetJavascriptClass -> targetJavascriptClass.setterMethodHandles.get(setterName);
+        Function<JavascriptClass, MethodHandle> objectLookup = targetJavascriptClass -> targetJavascriptClass.setterMethodHandles.get(
+            setterName
+        );
 
         return lookupJavascriptObject(originalTargetClass, objectLookup);
     }

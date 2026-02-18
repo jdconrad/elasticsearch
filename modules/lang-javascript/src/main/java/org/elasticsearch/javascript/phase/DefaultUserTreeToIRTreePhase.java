@@ -179,14 +179,13 @@ import org.elasticsearch.javascript.symbol.Decorations.SetterJavascriptMethod;
 import org.elasticsearch.javascript.symbol.Decorations.ShiftType;
 import org.elasticsearch.javascript.symbol.Decorations.Shortcut;
 import org.elasticsearch.javascript.symbol.Decorations.StandardConstant;
-import org.elasticsearch.javascript.symbol.Decorations.StandardLocalFunction;
 import org.elasticsearch.javascript.symbol.Decorations.StandardJavascriptClassBinding;
 import org.elasticsearch.javascript.symbol.Decorations.StandardJavascriptConstructor;
 import org.elasticsearch.javascript.symbol.Decorations.StandardJavascriptField;
 import org.elasticsearch.javascript.symbol.Decorations.StandardJavascriptInstanceBinding;
 import org.elasticsearch.javascript.symbol.Decorations.StandardJavascriptMethod;
+import org.elasticsearch.javascript.symbol.Decorations.StandardLocalFunction;
 import org.elasticsearch.javascript.symbol.Decorations.StaticType;
-import org.elasticsearch.javascript.symbol.Decorations.TargetType;
 import org.elasticsearch.javascript.symbol.Decorations.ThisJavascriptMethod;
 import org.elasticsearch.javascript.symbol.Decorations.TypeParameters;
 import org.elasticsearch.javascript.symbol.Decorations.UnaryType;
@@ -1170,7 +1169,9 @@ public class DefaultUserTreeToIRTreePhase implements UserTreeVisitor<ScriptScope
             new IRDExpressionType(scriptScope.getDecoration(userListInitNode, ValueType.class).valueType())
         );
         irListInitializationNode.attachDecoration(
-            new IRDConstructor(scriptScope.getDecoration(userListInitNode, StandardJavascriptConstructor.class).standardJavascriptConstructor())
+            new IRDConstructor(
+                scriptScope.getDecoration(userListInitNode, StandardJavascriptConstructor.class).standardJavascriptConstructor()
+            )
         );
         irListInitializationNode.attachDecoration(
             new IRDMethod(scriptScope.getDecoration(userListInitNode, StandardJavascriptMethod.class).standardJavascriptMethod())
@@ -1191,7 +1192,9 @@ public class DefaultUserTreeToIRTreePhase implements UserTreeVisitor<ScriptScope
             new IRDExpressionType(scriptScope.getDecoration(userMapInitNode, ValueType.class).valueType())
         );
         irMapInitializationNode.attachDecoration(
-            new IRDConstructor(scriptScope.getDecoration(userMapInitNode, StandardJavascriptConstructor.class).standardJavascriptConstructor())
+            new IRDConstructor(
+                scriptScope.getDecoration(userMapInitNode, StandardJavascriptConstructor.class).standardJavascriptConstructor()
+            )
         );
         irMapInitializationNode.attachDecoration(
             new IRDMethod(scriptScope.getDecoration(userMapInitNode, StandardJavascriptMethod.class).standardJavascriptMethod())
@@ -1249,7 +1252,8 @@ public class DefaultUserTreeToIRTreePhase implements UserTreeVisitor<ScriptScope
     public void visitCallLocal(ECallLocal callLocalNode, ScriptScope scriptScope) {
         if (scriptScope.hasDecoration(callLocalNode, SemanticVariable.class)) {
             Variable semanticVariable = scriptScope.getDecoration(callLocalNode, SemanticVariable.class).semanticVariable();
-            JavascriptMethod interfaceMethod = scriptScope.getDecoration(callLocalNode, StandardJavascriptMethod.class).standardJavascriptMethod();
+            JavascriptMethod interfaceMethod = scriptScope.getDecoration(callLocalNode, StandardJavascriptMethod.class)
+                .standardJavascriptMethod();
             Class<?> valueType = scriptScope.getDecoration(callLocalNode, ValueType.class).valueType();
 
             LoadVariableNode irLoadVariableNode = new LoadVariableNode(callLocalNode.getLocation());
@@ -1284,7 +1288,8 @@ public class DefaultUserTreeToIRTreePhase implements UserTreeVisitor<ScriptScope
             JavascriptMethod thisMethod = scriptScope.getDecoration(callLocalNode, ThisJavascriptMethod.class).thisJavascriptMethod();
             irInvokeCallMemberNode.attachDecoration(new IRDThisMethod(thisMethod));
         } else if (scriptScope.hasDecoration(callLocalNode, StandardJavascriptMethod.class)) {
-            JavascriptMethod importedMethod = scriptScope.getDecoration(callLocalNode, StandardJavascriptMethod.class).standardJavascriptMethod();
+            JavascriptMethod importedMethod = scriptScope.getDecoration(callLocalNode, StandardJavascriptMethod.class)
+                .standardJavascriptMethod();
             irInvokeCallMemberNode.attachDecoration(new IRDMethod(importedMethod));
         } else if (scriptScope.hasDecoration(callLocalNode, StandardJavascriptClassBinding.class)) {
             JavascriptClassBinding javascriptClassBinding = scriptScope.getDecoration(callLocalNode, StandardJavascriptClassBinding.class)
@@ -1648,7 +1653,8 @@ public class DefaultUserTreeToIRTreePhase implements UserTreeVisitor<ScriptScope
 
                 accessDepth = 1;
             } else if (scriptScope.hasDecoration(userDotNode, StandardJavascriptField.class)) {
-                JavascriptField javascriptField = scriptScope.getDecoration(userDotNode, StandardJavascriptField.class).standardJavascriptField();
+                JavascriptField javascriptField = scriptScope.getDecoration(userDotNode, StandardJavascriptField.class)
+                    .standardJavascriptField();
 
                 if (write || compound) {
                     StoreDotNode irStoreDotNode = new StoreDotNode(location);

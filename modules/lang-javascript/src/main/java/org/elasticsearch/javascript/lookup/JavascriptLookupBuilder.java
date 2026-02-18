@@ -1638,7 +1638,9 @@ public final class JavascriptLookupBuilder {
             throw new IllegalArgumentException("instance binding and class binding cannot have the same name [" + methodName + "]");
         }
 
-        JavascriptInstanceBinding existingJavascriptInstanceBinding = javascriptMethodKeysToJavascriptInstanceBindings.get(javascriptMethodKey);
+        JavascriptInstanceBinding existingJavascriptInstanceBinding = javascriptMethodKeysToJavascriptInstanceBindings.get(
+            javascriptMethodKey
+        );
         JavascriptInstanceBinding newJavascriptInstanceBinding = new JavascriptInstanceBinding(
             targetInstance,
             javaMethod,
@@ -1648,7 +1650,10 @@ public final class JavascriptLookupBuilder {
         );
 
         if (existingJavascriptInstanceBinding == null) {
-            newJavascriptInstanceBinding = (JavascriptInstanceBinding) dedup.computeIfAbsent(newJavascriptInstanceBinding, Function.identity());
+            newJavascriptInstanceBinding = (JavascriptInstanceBinding) dedup.computeIfAbsent(
+                newJavascriptInstanceBinding,
+                Function.identity()
+            );
             javascriptMethodKeysToJavascriptInstanceBindings.put(javascriptMethodKey.intern(), newJavascriptInstanceBinding);
         } else if (newJavascriptInstanceBinding.equals(existingJavascriptInstanceBinding) == false) {
             throw lookupException(
@@ -1809,7 +1814,9 @@ public final class JavascriptLookupBuilder {
                 while ((superInterface = superInterfaces.pollFirst()) != null) {
 
                     if (resolvedInterfaces.add(superInterface)) {
-                        JavascriptClassBuilder functionalInterfaceJavascriptClassBuilder = classesToJavascriptClassBuilders.get(superInterface);
+                        JavascriptClassBuilder functionalInterfaceJavascriptClassBuilder = classesToJavascriptClassBuilders.get(
+                            superInterface
+                        );
 
                         if (functionalInterfaceJavascriptClassBuilder != null) {
                             targetJavascriptClassBuilder.functionalInterfaceMethod = functionalInterfaceJavascriptClassBuilder.methods.get(
@@ -1867,7 +1874,10 @@ public final class JavascriptLookupBuilder {
         JavascriptMethod javascriptMethod,
         Map<JavascriptMethod, JavascriptMethod> filteredMethodCache
     ) {
-        String javascriptMethodKey = buildJavascriptMethodKey(javascriptMethod.javaMethod().getName(), javascriptMethod.typeParameters().size());
+        String javascriptMethodKey = buildJavascriptMethodKey(
+            javascriptMethod.javaMethod().getName(),
+            javascriptMethod.typeParameters().size()
+        );
         JavascriptMethod filteredJavascriptMethod = filteredMethodCache.get(javascriptMethod);
 
         if (filteredJavascriptMethod == null) {
@@ -1974,8 +1984,14 @@ public final class JavascriptLookupBuilder {
         }
 
         for (JavascriptField javascriptField : javascriptClassBuilder.fields.values()) {
-            javascriptClassBuilder.getterMethodHandles.put(javascriptField.javaField().getName().intern(), javascriptField.getterMethodHandle());
-            javascriptClassBuilder.setterMethodHandles.put(javascriptField.javaField().getName().intern(), javascriptField.setterMethodHandle());
+            javascriptClassBuilder.getterMethodHandles.put(
+                javascriptField.javaField().getName().intern(),
+                javascriptField.getterMethodHandle()
+            );
+            javascriptClassBuilder.setterMethodHandles.put(
+                javascriptField.javaField().getName().intern(),
+                javascriptField.setterMethodHandle()
+            );
         }
     }
 }

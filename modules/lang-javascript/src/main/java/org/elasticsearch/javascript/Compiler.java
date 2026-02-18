@@ -212,7 +212,14 @@ final class Compiler {
         String scriptName = Location.computeSourceName(name);
         ScriptClassInfo scriptClassInfo = new ScriptClassInfo(javascriptLookup, scriptClass);
         SClass root = Walker.buildJavascriptTree(scriptName, source, settings);
-        ScriptScope scriptScope = new ScriptScope(javascriptLookup, settings, scriptClassInfo, scriptName, source, root.getIdentifier() + 1);
+        ScriptScope scriptScope = new ScriptScope(
+            javascriptLookup,
+            settings,
+            scriptClassInfo,
+            scriptName,
+            source,
+            root.getIdentifier() + 1
+        );
         new JavascriptSemanticHeaderPhase().visitClass(root, scriptScope);
         new JavascriptSemanticAnalysisPhase().visitClass(root, scriptScope);
         new JavascriptUserTreeToIRTreePhase().visitClass(root, scriptScope);
@@ -248,7 +255,14 @@ final class Compiler {
         String scriptName = Location.computeSourceName(name);
         ScriptClassInfo scriptClassInfo = new ScriptClassInfo(javascriptLookup, scriptClass);
         SClass root = Walker.buildJavascriptTree(scriptName, source, settings);
-        ScriptScope scriptScope = new ScriptScope(javascriptLookup, settings, scriptClassInfo, scriptName, source, root.getIdentifier() + 1);
+        ScriptScope scriptScope = new ScriptScope(
+            javascriptLookup,
+            settings,
+            scriptClassInfo,
+            scriptName,
+            source,
+            root.getIdentifier() + 1
+        );
         new JavascriptSemanticHeaderPhase().visitClass(root, scriptScope);
         new JavascriptSemanticAnalysisPhase().visitClass(root, scriptScope);
         new JavascriptUserTreeToIRTreePhase().visitClass(root, scriptScope);
@@ -278,7 +292,14 @@ final class Compiler {
         String scriptName = Location.computeSourceName(name);
         ScriptClassInfo scriptClassInfo = new ScriptClassInfo(javascriptLookup, scriptClass);
         SClass root = Walker.buildJavascriptTree(scriptName, source, settings);
-        ScriptScope scriptScope = new ScriptScope(javascriptLookup, settings, scriptClassInfo, scriptName, source, root.getIdentifier() + 1);
+        ScriptScope scriptScope = new ScriptScope(
+            javascriptLookup,
+            settings,
+            scriptClassInfo,
+            scriptName,
+            source,
+            root.getIdentifier() + 1
+        );
 
         new JavascriptSemanticHeaderPhase().visitClass(root, scriptScope);
         new JavascriptSemanticAnalysisPhase().visitClass(root, scriptScope);

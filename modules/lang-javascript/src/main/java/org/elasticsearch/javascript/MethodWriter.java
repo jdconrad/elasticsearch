@@ -62,9 +62,9 @@ import static org.elasticsearch.javascript.WriterConstants.DEF_TO_P_SHORT_IMPLIC
 import static org.elasticsearch.javascript.WriterConstants.DEF_TO_STRING_EXPLICIT;
 import static org.elasticsearch.javascript.WriterConstants.DEF_TO_STRING_IMPLICIT;
 import static org.elasticsearch.javascript.WriterConstants.DEF_UTIL_TYPE;
+import static org.elasticsearch.javascript.WriterConstants.JAVASCRIPT_ERROR_TYPE;
 import static org.elasticsearch.javascript.WriterConstants.LAMBDA_BOOTSTRAP_HANDLE;
 import static org.elasticsearch.javascript.WriterConstants.MAX_STRING_CONCAT_ARGS;
-import static org.elasticsearch.javascript.WriterConstants.JAVASCRIPT_ERROR_TYPE;
 import static org.elasticsearch.javascript.WriterConstants.STRING_CONCAT_BOOTSTRAP_HANDLE;
 import static org.elasticsearch.javascript.WriterConstants.STRING_TO_CHAR;
 import static org.elasticsearch.javascript.WriterConstants.STRING_TYPE;

@@ -146,7 +146,8 @@ public class DefBootstrapTests extends ESTestCase {
         IllegalArgumentException iae = (IllegalArgumentException) pwe.getCause();
         assertEquals("dynamic method [java.lang.Object, size/0] not found", iae.getMessage());
         assertTrue("Does not fail inside ClassValue.computeValue()", Arrays.stream(iae.getStackTrace()).anyMatch(e -> {
-            return e.getMethodName().equals("computeValue") && e.getClassName().startsWith("org.elasticsearch.javascript.DefBootstrap$PIC$");
+            return e.getMethodName().equals("computeValue")
+                && e.getClassName().startsWith("org.elasticsearch.javascript.DefBootstrap$PIC$");
         }));
     }
 

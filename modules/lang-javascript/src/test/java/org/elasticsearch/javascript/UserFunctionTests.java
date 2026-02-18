@@ -152,7 +152,10 @@ public class UserFunctionTests extends ScriptTestCase {
             return l;""";
         assertEquals(List.of(100, 1, -100), exec(source, Map.of("a", 1), false));
         assertBytecodeExists(source, "public &myCompare(Ljava/lang/Object;II)I");
-        assertBytecodeExists(source, "INVOKEVIRTUAL org/elasticsearch/javascript/JavascriptScript$Script.&myCompare (Ljava/lang/Object;II)I");
+        assertBytecodeExists(
+            source,
+            "INVOKEVIRTUAL org/elasticsearch/javascript/JavascriptScript$Script.&myCompare (Ljava/lang/Object;II)I"
+        );
     }
 
     public void testLambdaCapture() {

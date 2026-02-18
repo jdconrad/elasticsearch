@@ -117,12 +117,12 @@ import org.elasticsearch.javascript.symbol.Decorations.SetterJavascriptMethod;
 import org.elasticsearch.javascript.symbol.Decorations.ShiftType;
 import org.elasticsearch.javascript.symbol.Decorations.Shortcut;
 import org.elasticsearch.javascript.symbol.Decorations.StandardConstant;
-import org.elasticsearch.javascript.symbol.Decorations.StandardLocalFunction;
 import org.elasticsearch.javascript.symbol.Decorations.StandardJavascriptClassBinding;
 import org.elasticsearch.javascript.symbol.Decorations.StandardJavascriptConstructor;
 import org.elasticsearch.javascript.symbol.Decorations.StandardJavascriptField;
 import org.elasticsearch.javascript.symbol.Decorations.StandardJavascriptInstanceBinding;
 import org.elasticsearch.javascript.symbol.Decorations.StandardJavascriptMethod;
+import org.elasticsearch.javascript.symbol.Decorations.StandardLocalFunction;
 import org.elasticsearch.javascript.symbol.Decorations.StaticType;
 import org.elasticsearch.javascript.symbol.Decorations.TargetType;
 import org.elasticsearch.javascript.symbol.Decorations.ThisJavascriptMethod;
@@ -1924,7 +1924,8 @@ public class DefaultSemanticAnalysisPhase extends UserTreeBaseVisitor<SemanticSc
                         }
 
                         if (classBinding == null) {
-                            instanceBinding = scriptScope.getJavascriptLookup().lookupJavascriptInstanceBinding(methodName, userArgumentsSize);
+                            instanceBinding = scriptScope.getJavascriptLookup()
+                                .lookupJavascriptInstanceBinding(methodName, userArgumentsSize);
 
                             if (instanceBinding == null) {
                                 if (semanticScope.isVariableDefined(methodName)) {
