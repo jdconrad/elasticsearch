@@ -1083,15 +1083,11 @@ public final class Walker extends JavascriptParserBaseVisitor<ANode> {
 
     @Override
     public ANode visitArgument(ArgumentContext ctx) {
-        if (ctx.expression() != null) {
-            return visit(ctx.expression());
-        } else if (ctx.lambda() != null) {
-            return visit(ctx.lambda());
-        } else if (ctx.funcref() != null) {
-            return visit(ctx.funcref());
-        } else {
+        if (ctx.expression() == null) {
             throw location(ctx).createError(new IllegalStateException("illegal tree structure"));
         }
+
+        return visit(ctx.expression());
     }
 
     @Override

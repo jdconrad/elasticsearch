@@ -1375,7 +1375,7 @@ public class DefaultUserTreeToIRTreePhase implements UserTreeVisitor<ScriptScope
     public void visitLambda(ELambda userLambdaNode, ScriptScope scriptScope) {
         ExpressionNode irExpressionNode;
 
-        if (scriptScope.hasDecoration(userLambdaNode, TargetType.class)) {
+        if (scriptScope.hasDecoration(userLambdaNode, ReferenceDecoration.class)) {
             TypedInterfaceReferenceNode typedInterfaceReferenceNode = new TypedInterfaceReferenceNode(userLambdaNode.getLocation());
             typedInterfaceReferenceNode.attachDecoration(
                 new IRDReference(scriptScope.getDecoration(userLambdaNode, ReferenceDecoration.class).reference())
@@ -1425,10 +1425,9 @@ public class DefaultUserTreeToIRTreePhase implements UserTreeVisitor<ScriptScope
     public void visitFunctionRef(EFunctionRef userFunctionRefNode, ScriptScope scriptScope) {
         ExpressionNode irReferenceNode;
 
-        TargetType targetType = scriptScope.getDecoration(userFunctionRefNode, TargetType.class);
         CapturesDecoration capturesDecoration = scriptScope.getDecoration(userFunctionRefNode, CapturesDecoration.class);
 
-        if (targetType == null) {
+        if (scriptScope.hasDecoration(userFunctionRefNode, EncodingDecoration.class)) {
             Def.Encoding encoding = scriptScope.getDecoration(userFunctionRefNode, EncodingDecoration.class).encoding();
             DefInterfaceReferenceNode defInterfaceReferenceNode = new DefInterfaceReferenceNode(userFunctionRefNode.getLocation());
             defInterfaceReferenceNode.attachDecoration(new IRDDefReferenceEncoding(encoding));
@@ -1469,7 +1468,7 @@ public class DefaultUserTreeToIRTreePhase implements UserTreeVisitor<ScriptScope
     public void visitNewArrayFunctionRef(ENewArrayFunctionRef userNewArrayFunctionRefNode, ScriptScope scriptScope) {
         ExpressionNode irReferenceNode;
 
-        if (scriptScope.hasDecoration(userNewArrayFunctionRefNode, TargetType.class)) {
+        if (scriptScope.hasDecoration(userNewArrayFunctionRefNode, ReferenceDecoration.class)) {
             TypedInterfaceReferenceNode typedInterfaceReferenceNode = new TypedInterfaceReferenceNode(
                 userNewArrayFunctionRefNode.getLocation()
             );

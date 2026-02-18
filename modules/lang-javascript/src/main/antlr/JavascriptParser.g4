@@ -112,7 +112,9 @@ noncondexpression
     ;
 
 expression
-    :               noncondexpression                                            # nonconditional
+    :               lambda                                                       # lambdaexpression
+    |               funcref                                                      # funcrefexpression
+    |               noncondexpression                                            # nonconditional
     | <assoc=right> noncondexpression COND expression COLON expression           # conditional
     | <assoc=right> noncondexpression ( ASSIGN | AADD | ASUB | AMUL |
                                         ADIV   | AREM | AAND | AXOR |
@@ -216,8 +218,6 @@ arguments
 
 argument
     : expression
-    | lambda
-    | funcref
     ;
 
 lambda
