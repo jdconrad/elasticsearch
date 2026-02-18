@@ -21,6 +21,7 @@ import org.antlr.v4.runtime.atn.ATNConfigSet;
 import org.antlr.v4.runtime.atn.PredictionMode;
 import org.antlr.v4.runtime.dfa.DFA;
 import org.elasticsearch.javascript.CompilerSettings;
+import org.elasticsearch.javascript.JavascriptScriptEngine;
 import org.elasticsearch.javascript.Location;
 import org.elasticsearch.javascript.Operation;
 import org.elasticsearch.javascript.antlr.JavascriptParser.AdditiveExpressionContext;
@@ -117,8 +118,11 @@ import org.elasticsearch.javascript.node.SThrow;
 import org.elasticsearch.javascript.node.STry;
 import org.elasticsearch.javascript.node.SWhile;
 
+import org.elasticsearch.script.ScriptException;
+
 import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -159,14 +163,14 @@ public final class Walker extends JavascriptParserBaseVisitor<ANode> {
         parser.removeErrorListeners();
 
         if (settings.isPicky()) {
-            setupPicky(parser);
+            setupPicky(parser, sourceName, sourceString);
         }
 
         parser.setErrorHandler(strategy);
         return parser.program();
     }
 
-    private static void setupPicky(JavascriptParser parser) {
+    private static void setupPicky(JavascriptParser parser, String sourceName, String sourceText) {
         // Suppress diagnostic reports for full-context/context-sensitivity so they are not treated as syntax errors.
         // The parser still uses full context to resolve; we only avoid failing the build on these diagnostics.
         parser.addErrorListener(new DiagnosticErrorListener(true) {
@@ -211,12 +215,37 @@ public final class Walker extends JavascriptParserBaseVisitor<ANode> {
                 String msg,
                 RecognitionException e
             ) {
-                throw new AssertionError(
-                    "line: " + line + ", offset: " + charPositionInLine + ", symbol:" + offendingSymbol + " " + msg
+                String parseMessage = "line " + line + ", offset " + charPositionInLine + ": " + msg;
+                List<String> scriptStack = buildParseErrorScriptStack(sourceText, line, charPositionInLine);
+                Throwable cause = e != null ? e : new RuntimeException(parseMessage);
+                throw new ScriptException(
+                    "parse error",
+                    cause,
+                    scriptStack,
+                    sourceName,
+                    JavascriptScriptEngine.NAME
                 );
             }
         });
         parser.getInterpreter().setPredictionMode(PredictionMode.LL_EXACT_AMBIG_DETECTION);
+    }
+
+    private static List<String> buildParseErrorScriptStack(String sourceText, int line, int charPositionInLine) {
+        if (sourceText == null || sourceText.isEmpty()) {
+            return Collections.emptyList();
+        }
+        String[] lines = sourceText.split("\n", -1);
+        int oneBasedLine = line;
+        if (oneBasedLine < 1 || oneBasedLine > lines.length) {
+            return Collections.singletonList("line " + line + ", offset " + charPositionInLine);
+        }
+        String lineContent = lines[oneBasedLine - 1];
+        StringBuilder pointer = new StringBuilder();
+        for (int i = 0; i < charPositionInLine && i < lineContent.length(); i++) {
+            pointer.append(' ');
+        }
+        pointer.append("^---- HERE");
+        return List.of(lineContent, pointer.toString());
     }
 
     private Location location(ParserRuleContext ctx) {
