@@ -2040,6 +2040,16 @@ public class DefaultSemanticAnalysisPhase extends UserTreeBaseVisitor<SemanticSc
             scriptScope.markNonDeterministic(callableValueMethod.annotations().containsKey(NonDeterministicAnnotation.class));
             typeParameters = callableValueMethod.typeParameters();
             valueType = callableValueMethod.returnType();
+            if (valueType == Object.class) {
+                TargetType targetType = semanticScope.getDecoration(userCallLocalNode, TargetType.class);
+                if (targetType != null
+                    && targetType.targetType() != Object.class
+                    && semanticScope.getCondition(userCallLocalNode, Explicit.class) == false) {
+                    // Raw functional interfaces (e.g., Supplier) erase return type to Object.
+                    // Treat this as def when a concrete target type is expected so downstream casts can unbox/coerce.
+                    valueType = def.class;
+                }
+            }
         } else {
             throw new IllegalStateException("Illegal tree structure.");
         }
@@ -2369,13 +2379,16 @@ public class DefaultSemanticAnalysisPhase extends UserTreeBaseVisitor<SemanticSc
         ScriptScope scriptScope = semanticScope.getScriptScope();
         TargetType targetType = semanticScope.getDecoration(userLambdaNode, TargetType.class);
         List<String> canonicalTypeNameParameters = userLambdaNode.getCanonicalTypeNameParameters();
+        boolean runtimeCallableTarget = targetType == null
+            || targetType.targetType() == def.class
+            || targetType.targetType() == Object.class;
 
         Class<?> returnType;
         List<Class<?>> typeParameters;
         JavascriptMethod interfaceMethod;
 
         // inspect the target first, set interface method if we know it.
-        if (targetType == null) {
+        if (runtimeCallableTarget) {
             // we don't know anything: treat as def
             returnType = def.class;
             // don't infer any types, replace any null types with def
@@ -2482,8 +2495,8 @@ public class DefaultSemanticAnalysisPhase extends UserTreeBaseVisitor<SemanticSc
 
         Class<?> valueType;
         // setup method reference to synthetic method
-        if (targetType == null) {
-            valueType = String.class;
+        if (runtimeCallableTarget) {
+            valueType = def.class;
             semanticScope.putDecoration(
                 userLambdaNode,
                 EncodingDecoration.of(true, lambdaScope.usesInstanceMethod(), "this", name, capturedVariables.size())
@@ -2529,6 +2542,9 @@ public class DefaultSemanticAnalysisPhase extends UserTreeBaseVisitor<SemanticSc
         Class<?> type = scriptScope.getJavascriptLookup().canonicalTypeNameToType(symbol);
         TargetType targetType = semanticScope.getDecoration(userFunctionRefNode, TargetType.class);
         Class<?> valueType;
+        boolean runtimeCallableTarget = targetType == null
+            || targetType.targetType() == def.class
+            || targetType.targetType() == Object.class;
 
         boolean isInstanceReference = "this".equals(symbol);
         if (isInstanceReference || type != null) {
@@ -2549,8 +2565,8 @@ public class DefaultSemanticAnalysisPhase extends UserTreeBaseVisitor<SemanticSc
             if (isInstanceReference) {
                 semanticScope.setCondition(userFunctionRefNode, InstanceCapturingFunctionRef.class);
             }
-            if (targetType == null) {
-                valueType = String.class;
+            if (runtimeCallableTarget) {
+                valueType = def.class;
                 semanticScope.putDecoration(userFunctionRefNode, EncodingDecoration.of(true, isInstanceReference, symbol, methodName, 0));
             } else {
                 FunctionRef ref = FunctionRef.create(
@@ -2591,7 +2607,7 @@ public class DefaultSemanticAnalysisPhase extends UserTreeBaseVisitor<SemanticSc
                 semanticScope.setCondition(userFunctionRefNode, CaptureBox.class);
             }
 
-            if (targetType == null) {
+            if (runtimeCallableTarget) {
                 EncodingDecoration encodingDecoration;
                 if (captured.type() == def.class) {
                     // dynamic implementation
@@ -2600,7 +2616,7 @@ public class DefaultSemanticAnalysisPhase extends UserTreeBaseVisitor<SemanticSc
                     // typed implementation
                     encodingDecoration = EncodingDecoration.of(true, false, captured.getCanonicalTypeName(), methodName, 1);
                 }
-                valueType = String.class;
+                valueType = def.class;
                 semanticScope.putDecoration(userFunctionRefNode, encodingDecoration);
             } else {
                 valueType = targetType.targetType();
@@ -2652,6 +2668,9 @@ public class DefaultSemanticAnalysisPhase extends UserTreeBaseVisitor<SemanticSc
 
         ScriptScope scriptScope = semanticScope.getScriptScope();
         TargetType targetType = semanticScope.getDecoration(userNewArrayFunctionRefNode, TargetType.class);
+        boolean runtimeCallableTarget = targetType == null
+            || targetType.targetType() == def.class
+            || targetType.targetType() == Object.class;
 
         Class<?> valueType;
         Class<?> clazz = scriptScope.getJavascriptLookup().canonicalTypeNameToType(canonicalTypeName);
@@ -2665,8 +2684,8 @@ public class DefaultSemanticAnalysisPhase extends UserTreeBaseVisitor<SemanticSc
         scriptScope.getFunctionTable().addFunction(name, clazz, Collections.singletonList(int.class), true, true);
         semanticScope.putDecoration(userNewArrayFunctionRefNode, new MethodNameDecoration(name));
 
-        if (targetType == null) {
-            valueType = String.class;
+        if (runtimeCallableTarget) {
+            valueType = def.class;
             scriptScope.putDecoration(userNewArrayFunctionRefNode, EncodingDecoration.of(true, false, "this", name, 0));
         } else {
             FunctionRef ref = FunctionRef.create(
@@ -2689,15 +2708,16 @@ public class DefaultSemanticAnalysisPhase extends UserTreeBaseVisitor<SemanticSc
 
     /**
      * Visits a symbol expression which covers static types, partial canonical types,
-     * and variables.
-     * Checks: type checking, type resolution, variable resolution
+     * variables, and bare local function values.
+     * Checks: type checking, type resolution, variable/function resolution
      */
     @Override
     public void visitSymbol(ESymbol userSymbolNode, SemanticScope semanticScope) {
         boolean read = semanticScope.getCondition(userSymbolNode, Read.class);
         boolean write = semanticScope.getCondition(userSymbolNode, Write.class);
         String symbol = userSymbolNode.getSymbol();
-        Class<?> staticType = semanticScope.getScriptScope().getJavascriptLookup().canonicalTypeNameToType(symbol);
+        ScriptScope scriptScope = semanticScope.getScriptScope();
+        Class<?> staticType = scriptScope.getJavascriptLookup().canonicalTypeNameToType(symbol);
 
         if (staticType != null) {
             if (write) {
@@ -2735,7 +2755,61 @@ public class DefaultSemanticAnalysisPhase extends UserTreeBaseVisitor<SemanticSc
             Class<?> valueType = variable.type();
             semanticScope.putDecoration(userSymbolNode, new ValueType(valueType));
         } else {
-            semanticScope.putDecoration(userSymbolNode, new PartialCanonicalTypeName(symbol));
+            LocalFunction localFunction = null;
+            TargetType targetType = semanticScope.getDecoration(userSymbolNode, TargetType.class);
+            boolean runtimeCallableTarget = targetType == null
+                || targetType.targetType() == def.class
+                || targetType.targetType() == Object.class;
+
+            if (write == false) {
+                if (runtimeCallableTarget) {
+                    localFunction = getExternalLocalFunctionByName(scriptScope.getFunctionTable(), symbol);
+                } else {
+                    JavascriptMethod targetMethod = scriptScope.getJavascriptLookup()
+                        .lookupFunctionalInterfaceJavascriptMethod(targetType.targetType());
+                    if (targetMethod != null) {
+                        localFunction = getExternalLocalFunction(
+                            scriptScope.getFunctionTable(),
+                            symbol,
+                            targetMethod.typeParameters().size()
+                        );
+                    }
+                }
+            }
+
+            if (localFunction == null) {
+                semanticScope.putDecoration(userSymbolNode, new PartialCanonicalTypeName(symbol));
+                return;
+            }
+
+            if (read == false) {
+                throw userSymbolNode.createError(new IllegalArgumentException("not a statement: function value [" + symbol + "] not used"));
+            }
+
+            boolean needsInstance = localFunction.isStatic() == false;
+            if (needsInstance) {
+                semanticScope.setUsesInstanceMethod();
+                semanticScope.setCondition(userSymbolNode, InstanceCapturingFunctionRef.class);
+            }
+
+            if (runtimeCallableTarget) {
+                semanticScope.putDecoration(userSymbolNode, EncodingDecoration.of(true, needsInstance, "this", symbol, 0));
+                semanticScope.putDecoration(userSymbolNode, new ValueType(def.class));
+            } else {
+                FunctionRef ref = FunctionRef.create(
+                    scriptScope.getJavascriptLookup(),
+                    scriptScope.getFunctionTable(),
+                    userSymbolNode.getLocation(),
+                    targetType.targetType(),
+                    "this",
+                    symbol,
+                    0,
+                    scriptScope.getCompilerSettings().asMap(),
+                    needsInstance
+                );
+                semanticScope.putDecoration(userSymbolNode, new ReferenceDecoration(ref));
+                semanticScope.putDecoration(userSymbolNode, new ValueType(targetType.targetType()));
+            }
         }
     }
 
@@ -3406,5 +3480,25 @@ public class DefaultSemanticAnalysisPhase extends UserTreeBaseVisitor<SemanticSc
         }
 
         semanticScope.putDecoration(userCallNode, new ValueType(valueType));
+    }
+
+    private static LocalFunction getExternalLocalFunction(FunctionTable functionTable, String functionName, int functionArity) {
+        LocalFunction localFunction = functionTable.getFunction(functionName, functionArity);
+
+        if (localFunction == null || localFunction.isInternal()) {
+            return null;
+        }
+
+        return localFunction;
+    }
+
+    private static LocalFunction getExternalLocalFunctionByName(FunctionTable functionTable, String functionName) {
+        for (LocalFunction localFunction : functionTable.getFunctionsByName(functionName)) {
+            if (localFunction.isInternal() == false) {
+                return localFunction;
+            }
+        }
+
+        return null;
     }
 }

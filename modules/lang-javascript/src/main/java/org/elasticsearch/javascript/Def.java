@@ -11,6 +11,7 @@ package org.elasticsearch.javascript;
 
 import org.elasticsearch.core.Strings;
 import org.elasticsearch.javascript.api.ValueIterator;
+import org.elasticsearch.javascript.lookup.JavascriptConstructor;
 import org.elasticsearch.javascript.lookup.JavascriptLookup;
 import org.elasticsearch.javascript.lookup.JavascriptLookupUtility;
 import org.elasticsearch.javascript.lookup.JavascriptMethod;
@@ -28,7 +29,6 @@ import java.lang.reflect.Proxy;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.BitSet;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
@@ -82,6 +82,10 @@ public final class Def {
     private static final MethodHandle LIST_INDEX_NORMALIZE;
     /** factory for arraylength MethodHandle (intrinsic) */
     private static final MethodHandle ARRAY_LENGTH;
+    /** pointer to RuntimeCallable.invoke(Object...) */
+    private static final MethodHandle RUNTIME_CALLABLE_INVOKE;
+    /** pointer to Def.defToFunctionalInterface(Object, Class) */
+    private static final MethodHandle DEF_TO_FUNCTIONAL_INTERFACE_ADAPTER;
 
     public static final Map<Class<?>, MethodHandle> DEF_TO_BOXED_TYPE_IMPLICIT_CAST;
 
@@ -111,6 +115,16 @@ public final class Def {
                 MethodHandles.class,
                 "arrayLength",
                 MethodType.methodType(MethodHandle.class, Class.class)
+            );
+            RUNTIME_CALLABLE_INVOKE = methodHandlesLookup.findVirtual(
+                RuntimeCallable.class,
+                "invoke",
+                MethodType.methodType(Object.class, Object[].class)
+            );
+            DEF_TO_FUNCTIONAL_INTERFACE_ADAPTER = methodHandlesLookup.findStatic(
+                Def.class,
+                "defToFunctionalInterface",
+                MethodType.methodType(Object.class, Object.class, Class.class)
             );
         } catch (ReflectiveOperationException roe) {
             throw new AssertionError(roe);
@@ -171,7 +185,7 @@ public final class Def {
     }
 
     /**
-     * Looks up handle for a dynamic method call, with lambda replacement
+     * Looks up a handle for a dynamic method call.
      * <p>
      * A dynamic method call for variable {@code x} of type {@code def} looks like:
      * {@code x.method(args...)}
@@ -181,9 +195,7 @@ public final class Def {
      * Otherwise it returns a handle to the matching method.
      *
      * @param javascriptLookup the whitelist
-     * @param functions user defined functions and lambdas
      * @param constants available constants to be used if the method has the {@code InjectConstantAnnotation}
-     * @param methodHandlesLookup caller's lookup
      * @param callSiteType callsite's type
      * @param receiverClass Class of the object to invoke the method on.
      * @param name Name of the method.
@@ -194,9 +206,7 @@ public final class Def {
      */
     static MethodHandle lookupMethod(
         JavascriptLookup javascriptLookup,
-        FunctionTable functions,
         Map<String, Object> constants,
-        MethodHandles.Lookup methodHandlesLookup,
         MethodType callSiteType,
         Class<?> receiverClass,
         String name,
@@ -204,117 +214,79 @@ public final class Def {
     ) throws Throwable {
 
         String recipeString = (String) args[0];
+        if (recipeString.isEmpty() == false) {
+            throw new IllegalStateException("dynamic call recipes are no longer supported");
+        }
+
         int numArguments = callSiteType.parameterCount();
-        // simple case: no lambdas
-        if (recipeString.isEmpty()) {
-            int methodArity = numArguments - 1;
-            JavascriptMethod javascriptMethod = lookupDynamicJavascriptMethod(javascriptLookup, receiverClass, name, methodArity);
+        int methodArity = numArguments - 1;
+        if (DEF_CALLABLE_METHOD_NAME.equals(name) && RuntimeCallable.class.isAssignableFrom(receiverClass)) {
+            return RUNTIME_CALLABLE_INVOKE.asCollector(Object[].class, methodArity);
+        }
+        JavascriptMethod javascriptMethod = lookupDynamicJavascriptMethod(javascriptLookup, receiverClass, name, methodArity);
 
-            if (javascriptMethod == null) {
-                throw dynamicMethodMissingError(javascriptLookup, receiverClass, name, methodArity);
-            }
-
-            MethodHandle handle = javascriptMethod.methodHandle();
-            Object[] injections = JavascriptLookupUtility.buildInjections(javascriptMethod, constants);
-
-            if (injections.length > 0) {
-                // method handle contains the "this" pointer so start injections at 1
-                handle = MethodHandles.insertArguments(handle, 1, injections);
-            }
-
-            return handle;
+        if (javascriptMethod == null) {
+            throw dynamicMethodMissingError(javascriptLookup, receiverClass, name, methodArity);
         }
 
-        // convert recipe string to a bitset for convenience (the code below should be refactored...)
-        BitSet lambdaArgs = new BitSet(recipeString.length());
-        for (int i = 0; i < recipeString.length(); i++) {
-            lambdaArgs.set(recipeString.charAt(i));
-        }
-
-        // otherwise: first we have to compute the "real" arity. This is because we have extra arguments:
-        // e.g. f(a, g(x), b, h(y), i()) looks like f(a, g, x, b, h, y, i).
-        int arity = callSiteType.parameterCount() - 1;
-        int upTo = 1;
-        for (int i = 1; i < numArguments; i++) {
-            if (lambdaArgs.get(i - 1)) {
-                Def.Encoding signature = new Def.Encoding((String) args[upTo++]);
-                arity -= signature.numCaptures;
-                // arity in javascriptLookup does not include 'this' reference
-                if (signature.needsInstance) {
-                    arity--;
-                }
-            }
-        }
-
-        // lookup the method with the proper arity, then we know everything (e.g. interface types of parameters).
-        // based on these we can finally link any remaining lambdas that were deferred.
-        JavascriptMethod method = lookupDynamicJavascriptMethod(javascriptLookup, receiverClass, name, arity);
-
-        if (method == null) {
-            throw dynamicMethodMissingError(javascriptLookup, receiverClass, name, arity);
-        }
-
-        MethodHandle handle = method.methodHandle();
-        Object[] injections = JavascriptLookupUtility.buildInjections(method, constants);
+        MethodHandle handle = javascriptMethod.methodHandle();
+        Object[] injections = JavascriptLookupUtility.buildInjections(javascriptMethod, constants);
 
         if (injections.length > 0) {
             // method handle contains the "this" pointer so start injections at 1
             handle = MethodHandles.insertArguments(handle, 1, injections);
         }
 
-        int replaced = 0;
-        upTo = 1;
-        for (int i = 1; i < numArguments; i++) {
-            // its a functional reference, replace the argument with an impl
-            if (lambdaArgs.get(i - 1)) {
-                Def.Encoding defEncoding = new Encoding((String) args[upTo++]);
-                MethodHandle filter;
-                Class<?> interfaceType = method.typeParameters().get(i - 1 - replaced - (defEncoding.needsInstance ? 1 : 0));
-                if (defEncoding.isStatic) {
-                    // the implementation is strongly typed, now that we know the interface type,
-                    // we have everything.
-                    filter = lookupReferenceInternal(
-                        javascriptLookup,
-                        functions,
-                        constants,
-                        methodHandlesLookup,
-                        interfaceType,
-                        defEncoding.symbol,
-                        defEncoding.methodName,
-                        defEncoding.numCaptures,
-                        defEncoding.needsInstance
-                    );
-                } else {
-                    // the interface type is now known, but we need to get the implementation.
-                    // this is dynamically based on the receiver type (and cached separately, underneath
-                    // this cache). It won't blow up since we never nest here (just references)
-                    Class<?>[] captures = new Class<?>[defEncoding.numCaptures];
-                    for (int capture = 0; capture < captures.length; capture++) {
-                        captures[capture] = callSiteType.parameterType(i + 1 + capture);
-                    }
-                    MethodType nestedType = MethodType.methodType(interfaceType, captures);
-                    CallSite nested = DefBootstrap.bootstrap(
-                        javascriptLookup,
-                        functions,
-                        constants,
-                        methodHandlesLookup,
-                        defEncoding.methodName,
-                        nestedType,
-                        0,
-                        DefBootstrap.REFERENCE,
-                        JavascriptLookupUtility.typeToCanonicalTypeName(interfaceType)
-                    );
-                    filter = nested.dynamicInvoker();
-                }
-                // the filter now ignores the signature (placeholder) on the stack
-                filter = MethodHandles.dropArguments(filter, 0, String.class);
-                handle = MethodHandles.collectArguments(handle, i - (defEncoding.needsInstance ? 1 : 0), filter);
-                i += defEncoding.numCaptures;
-                replaced += defEncoding.numCaptures;
+        handle = adaptFunctionalInterfaceArguments(handle, javascriptMethod, callSiteType, injections.length);
+        return handle;
+    }
+
+    private static MethodHandle adaptFunctionalInterfaceArguments(
+        MethodHandle handle,
+        JavascriptMethod javascriptMethod,
+        MethodType callSiteType,
+        int injectionCount
+    ) {
+        int callSiteArity = callSiteType.parameterCount();
+
+        for (int argumentIndex = 0; argumentIndex < callSiteArity - 1; argumentIndex++) {
+            // callSiteType includes receiver at index 0.
+            int callSiteIndex = argumentIndex + 1;
+            if (callSiteIndex >= callSiteArity) {
+                break;
             }
+
+            if (callSiteType.parameterType(callSiteIndex) != Object.class) {
+                continue;
+            }
+
+            Class<?> parameterType = handle.type().parameterType(callSiteIndex);
+            if (isFunctionalInterfaceType(parameterType) == false && argumentIndex < javascriptMethod.typeParameters().size()) {
+                parameterType = javascriptMethod.typeParameters().get(argumentIndex);
+            }
+
+            if (isFunctionalInterfaceType(parameterType) == false) {
+                parameterType = lookupFunctionalTypeFromJavaMethod(javascriptMethod, argumentIndex, injectionCount);
+            }
+
+            if (isFunctionalInterfaceType(parameterType) == false) {
+                continue;
+            }
+
+            MethodHandle filter = MethodHandles.insertArguments(DEF_TO_FUNCTIONAL_INTERFACE_ADAPTER, 1, parameterType)
+                .asType(MethodType.methodType(parameterType, Object.class));
+            handle = MethodHandles.filterArguments(handle, callSiteIndex, filter);
         }
 
         return handle;
+    }
+
+    private static Class<?> lookupFunctionalTypeFromJavaMethod(JavascriptMethod javascriptMethod, int argumentIndex, int injectionCount) {
+        Method javaMethod = javascriptMethod.javaMethod();
+        int augmentedOffset = javaMethod.getDeclaringClass() == javascriptMethod.targetClass() ? 0 : 1;
+        int javaParameterIndex = argumentIndex + injectionCount + augmentedOffset;
+        Class<?>[] javaParameterTypes = javaMethod.getParameterTypes();
+        return javaParameterIndex >= 0 && javaParameterIndex < javaParameterTypes.length ? javaParameterTypes[javaParameterIndex] : null;
     }
 
     private static JavascriptMethod lookupDynamicJavascriptMethod(
@@ -369,6 +341,10 @@ public final class Def {
             return value;
         }
 
+        if (value instanceof RuntimeCallable runtimeCallable) {
+            return runtimeCallable.toFunctionalInterface(targetType);
+        }
+
         Method targetMethod = lookupFunctionalInterfaceMethod(targetType);
         if (targetMethod == null) {
             throw castError(value.getClass(), targetType);
@@ -385,6 +361,314 @@ public final class Def {
             new Class<?>[] { targetType },
             new FunctionalInterfaceAdapterInvocationHandler(targetType, value, targetMethod, adaptedHandle)
         );
+    }
+
+    public static Object createRuntimeCallable(
+        JavascriptLookup javascriptLookup,
+        FunctionTable functions,
+        Map<String, Object> constants,
+        String encodedReference,
+        Class<?> scriptClass,
+        Object scriptInstance,
+        Object[] captures
+    ) {
+        return new RuntimeCallable(
+            javascriptLookup,
+            functions,
+            constants,
+            new Encoding(encodedReference),
+            scriptClass,
+            scriptInstance,
+            captures
+        );
+    }
+
+    public static final class RuntimeCallable {
+
+        private final JavascriptLookup javascriptLookup;
+        private final FunctionTable functions;
+        private final Map<String, Object> constants;
+        private final Encoding encoding;
+        private final Class<?> scriptClass;
+        private final Object scriptInstance;
+        private final Object[] captures;
+
+        private RuntimeCallable(
+            JavascriptLookup javascriptLookup,
+            FunctionTable functions,
+            Map<String, Object> constants,
+            Encoding encoding,
+            Class<?> scriptClass,
+            Object scriptInstance,
+            Object[] captures
+        ) {
+            this.javascriptLookup = Objects.requireNonNull(javascriptLookup);
+            this.functions = Objects.requireNonNull(functions);
+            this.constants = Objects.requireNonNull(constants);
+            this.encoding = Objects.requireNonNull(encoding);
+            this.scriptClass = Objects.requireNonNull(scriptClass);
+            this.scriptInstance = scriptInstance;
+            this.captures = Arrays.copyOf(Objects.requireNonNull(captures), captures.length);
+
+            if (encoding.needsInstance && scriptInstance == null) {
+                throw new IllegalArgumentException("callable value [" + encoding + "] requires a script instance");
+            }
+
+            if (encoding.numCaptures != captures.length) {
+                throw new IllegalArgumentException(
+                    "callable value [" + encoding + "] expected [" + encoding.numCaptures + "] captures but found [" + captures.length + "]"
+                );
+            }
+        }
+
+        public Object invoke(Object... args) throws Throwable {
+            Object[] invocationArguments = args == null ? new Object[0] : args;
+            if ("this".equals(encoding.symbol)) {
+                return invokeLocalFunction(invocationArguments);
+            }
+
+            if (encoding.isStatic == false) {
+                return invokeDynamicCapturedMethod(invocationArguments);
+            }
+
+            if ("new".equals(encoding.methodName)) {
+                return invokeConstructor(invocationArguments);
+            }
+
+            if (encoding.numCaptures == 0) {
+                return invokeUncapturedMethodReference(invocationArguments);
+            }
+
+            if (encoding.numCaptures == 1) {
+                return invokeCapturedTypedMethodReference(invocationArguments);
+            }
+
+            throw new IllegalStateException("unsupported callable encoding [" + encoding + "]");
+        }
+
+        private Object toFunctionalInterface(Class<?> targetType) {
+            Method targetMethod = lookupFunctionalInterfaceMethod(targetType);
+            if (targetMethod == null) {
+                throw castError(RuntimeCallable.class, targetType);
+            }
+
+            MethodHandles.Lookup methodHandlesLookup = MethodHandles.publicLookup().in(scriptClass);
+            try {
+                if (encoding.isStatic) {
+                    MethodHandle factory = lookupReferenceInternal(
+                        javascriptLookup,
+                        functions,
+                        constants,
+                        methodHandlesLookup,
+                        targetType,
+                        encoding.symbol,
+                        encoding.methodName,
+                        encoding.numCaptures,
+                        encoding.needsInstance
+                    );
+
+                    Object[] factoryArguments = new Object[captures.length + (encoding.needsInstance ? 1 : 0)];
+                    int argumentIndex = 0;
+                    if (encoding.needsInstance) {
+                        factoryArguments[argumentIndex++] = scriptInstance;
+                    }
+                    System.arraycopy(captures, 0, factoryArguments, argumentIndex, captures.length);
+                    return factory.invokeWithArguments(factoryArguments);
+                }
+
+                if (captures.length != 1) {
+                    throw castError(RuntimeCallable.class, targetType);
+                }
+
+                Object receiver = captures[0];
+                if (receiver == null) {
+                    throw new NullPointerException("cannot access method/field [" + encoding.methodName + "] from a null def reference");
+                }
+
+                MethodHandle factory = lookupReference(
+                    javascriptLookup,
+                    functions,
+                    constants,
+                    methodHandlesLookup,
+                    JavascriptLookupUtility.typeToCanonicalTypeName(targetType),
+                    receiver.getClass(),
+                    encoding.methodName
+                );
+
+                return factory.invokeWithArguments(receiver);
+            } catch (WrongMethodTypeException exception) {
+                throw castError(RuntimeCallable.class, targetType);
+            } catch (Throwable throwable) {
+                rethrow(throwable);
+                throw new AssertionError(throwable);
+            }
+        }
+
+        private Object invokeLocalFunction(Object[] invocationArguments) throws Throwable {
+            int localFunctionArity = encoding.numCaptures + invocationArguments.length;
+            FunctionTable.LocalFunction localFunction = functions.getFunction(encoding.methodName, localFunctionArity);
+            if (localFunction == null) {
+                throw new IllegalArgumentException(
+                    "callable value ["
+                        + encoding.symbol
+                        + "::"
+                        + encoding.methodName
+                        + "] does not support ["
+                        + invocationArguments.length
+                        + "] arguments"
+                );
+            }
+
+            MethodHandle handle;
+            if (localFunction.isStatic()) {
+                handle = MethodHandles.publicLookup()
+                    .findStatic(scriptClass, localFunction.getMangledName(), localFunction.getMethodType());
+            } else {
+                if (scriptInstance == null) {
+                    throw new IllegalStateException("callable value [" + encoding + "] is missing the script instance");
+                }
+                handle = MethodHandles.publicLookup()
+                    .findVirtual(scriptClass, localFunction.getMangledName(), localFunction.getMethodType())
+                    .bindTo(scriptInstance);
+            }
+
+            Object[] invocation = new Object[captures.length + invocationArguments.length];
+            System.arraycopy(captures, 0, invocation, 0, captures.length);
+            System.arraycopy(invocationArguments, 0, invocation, captures.length, invocationArguments.length);
+            return handle.invokeWithArguments(invocation);
+        }
+
+        private Object invokeDynamicCapturedMethod(Object[] invocationArguments) throws Throwable {
+            if (captures.length != 1) {
+                throw new IllegalStateException("dynamic callable value [" + encoding + "] must capture exactly one receiver");
+            }
+
+            Object receiver = captures[0];
+            if (receiver == null) {
+                throw new NullPointerException("cannot access method/field [" + encoding.methodName + "] from a null def reference");
+            }
+
+            JavascriptMethod method = javascriptLookup.lookupRuntimeJavascriptMethod(
+                receiver.getClass(),
+                encoding.methodName,
+                invocationArguments.length
+            );
+            if (method == null) {
+                throw dynamicMethodMissingError(javascriptLookup, receiver.getClass(), encoding.methodName, invocationArguments.length);
+            }
+
+            return invokeJavascriptMethod(method, constants, receiver, invocationArguments);
+        }
+
+        private Object invokeConstructor(Object[] invocationArguments) throws Throwable {
+            JavascriptConstructor constructor = javascriptLookup.lookupJavascriptConstructor(encoding.symbol, invocationArguments.length);
+            if (constructor == null) {
+                throw new IllegalArgumentException(
+                    "function reference [" + encoding.symbol + "::new/" + invocationArguments.length + "] not found"
+                );
+            }
+
+            return constructor.methodHandle().invokeWithArguments(invocationArguments);
+        }
+
+        private Object invokeUncapturedMethodReference(Object[] invocationArguments) throws Throwable {
+            JavascriptMethod staticMethod = javascriptLookup.lookupJavascriptMethod(
+                encoding.symbol,
+                true,
+                encoding.methodName,
+                invocationArguments.length
+            );
+            if (staticMethod != null) {
+                return invokeJavascriptMethod(staticMethod, constants, null, invocationArguments);
+            }
+
+            if (invocationArguments.length == 0) {
+                throw new IllegalArgumentException(
+                    "callable value [" + encoding.symbol + "::" + encoding.methodName + "] does not support [0] arguments"
+                );
+            }
+
+            JavascriptMethod virtualMethod = javascriptLookup.lookupJavascriptMethod(
+                encoding.symbol,
+                false,
+                encoding.methodName,
+                invocationArguments.length - 1
+            );
+            if (virtualMethod == null) {
+                throw new IllegalArgumentException(
+                    "callable value ["
+                        + encoding.symbol
+                        + "::"
+                        + encoding.methodName
+                        + "] does not support ["
+                        + invocationArguments.length
+                        + "] arguments"
+                );
+            }
+
+            Object receiver = invocationArguments[0];
+            if (receiver == null) {
+                throw new NullPointerException("cannot access method/field [" + encoding.methodName + "] from a null def reference");
+            }
+
+            Object[] tailArguments = Arrays.copyOfRange(invocationArguments, 1, invocationArguments.length);
+            return invokeJavascriptMethod(virtualMethod, constants, receiver, tailArguments);
+        }
+
+        private Object invokeCapturedTypedMethodReference(Object[] invocationArguments) throws Throwable {
+            if (captures.length != 1) {
+                throw new IllegalStateException("capturing callable value [" + encoding + "] must capture exactly one receiver");
+            }
+
+            Object receiver = captures[0];
+            if (receiver == null) {
+                throw new NullPointerException("cannot access method/field [" + encoding.methodName + "] from a null def reference");
+            }
+
+            JavascriptMethod method = javascriptLookup.lookupJavascriptMethod(
+                encoding.symbol,
+                false,
+                encoding.methodName,
+                invocationArguments.length
+            );
+            if (method == null) {
+                throw new IllegalArgumentException(
+                    "callable value ["
+                        + encoding.symbol
+                        + "::"
+                        + encoding.methodName
+                        + "] does not support ["
+                        + invocationArguments.length
+                        + "] arguments"
+                );
+            }
+
+            return invokeJavascriptMethod(method, constants, receiver, invocationArguments);
+        }
+
+        private static Object invokeJavascriptMethod(
+            JavascriptMethod javascriptMethod,
+            Map<String, Object> constants,
+            Object receiver,
+            Object[] invocationArguments
+        ) throws Throwable {
+            MethodHandle handle = javascriptMethod.methodHandle();
+            Object[] injections = JavascriptLookupUtility.buildInjections(javascriptMethod, constants);
+            boolean isStatic = Modifier.isStatic(javascriptMethod.javaMethod().getModifiers());
+
+            if (injections.length > 0) {
+                handle = MethodHandles.insertArguments(handle, isStatic ? 0 : 1, injections);
+            }
+
+            if (isStatic) {
+                return handle.invokeWithArguments(invocationArguments);
+            }
+
+            Object[] invocation = new Object[invocationArguments.length + 1];
+            invocation[0] = receiver;
+            System.arraycopy(invocationArguments, 0, invocation, 1, invocationArguments.length);
+            return handle.invokeWithArguments(invocation);
+        }
     }
 
     private static MethodHandle lookupFunctionalAdapterHandle(Object value, MethodType targetMethodType) {
@@ -445,7 +729,9 @@ public final class Def {
 
         Method functionalMethod = null;
         for (Method method : interfaceType.getMethods()) {
-            if (Modifier.isAbstract(method.getModifiers()) == false || method.getDeclaringClass() == Object.class) {
+            if (Modifier.isAbstract(method.getModifiers()) == false
+                || method.getDeclaringClass() == Object.class
+                || isObjectMethod(method)) {
                 continue;
             }
 
@@ -457,6 +743,15 @@ public final class Def {
         }
 
         return functionalMethod;
+    }
+
+    private static boolean isObjectMethod(Method method) {
+        try {
+            Object.class.getMethod(method.getName(), method.getParameterTypes());
+            return true;
+        } catch (NoSuchMethodException exception) {
+            return false;
+        }
     }
 
     private static boolean sameMethodSignature(Method left, Method right) {

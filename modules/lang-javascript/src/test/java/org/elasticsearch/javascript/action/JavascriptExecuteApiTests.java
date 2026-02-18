@@ -48,7 +48,7 @@ public class JavascriptExecuteApiTests extends ESSingleNodeTestCase {
 
     public void testDefaults() throws IOException {
         ScriptService scriptService = getInstanceFromNode(ScriptService.class);
-        Request request = new Request(new Script("100.0 / 1000.0"), null, null);
+        Request request = new Request(new Script(ScriptType.INLINE, "javascript", "100.0 / 1000.0", emptyMap()), null, null);
         Response response = innerShardOperation(request, scriptService, null);
         assertThat(response.getResult(), equalTo("0.1"));
 
@@ -88,7 +88,11 @@ public class JavascriptExecuteApiTests extends ESSingleNodeTestCase {
 
         Request.ContextSetup contextSetup = new Request.ContextSetup("index", new BytesArray("{\"field\": 3}"), null);
         contextSetup.setXContentType(XContentType.JSON);
-        Request request = new Request(new Script("doc['field'].value >= 3"), "filter", contextSetup);
+        Request request = new Request(
+            new Script(ScriptType.INLINE, "javascript", "doc['field'].value >= 3", emptyMap()),
+            "filter",
+            contextSetup
+        );
         Response response = innerShardOperation(request, scriptService, indexService);
         assertThat(response.getResult(), equalTo(true));
 
@@ -440,18 +444,22 @@ public class JavascriptExecuteApiTests extends ESSingleNodeTestCase {
     public void testContextWhitelists() throws IOException {
         ScriptService scriptService = getInstanceFromNode(ScriptService.class);
         // score
-        Request request = new Request(new Script("sigmoid(1.0, 2.0, 3.0)"), null, null);
+        Request request = new Request(new Script(ScriptType.INLINE, "javascript", "sigmoid(1.0, 2.0, 3.0)", emptyMap()), null, null);
         Response response = innerShardOperation(request, scriptService, null);
         double result = Double.parseDouble((String) response.getResult());
         assertEquals(0.111, result, 0.001);
 
         // ingest
-        request = new Request(new Script("'foo'.sha1()"), null, null);
+        request = new Request(new Script(ScriptType.INLINE, "javascript", "'foo'.sha1()", emptyMap()), null, null);
         response = innerShardOperation(request, scriptService, null);
         assertEquals("0beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33", response.getResult());
 
         // json
-        request = new Request(new Script("Json.load('{\"a\": 1, \"b\": 2}')['b']"), null, null);
+        request = new Request(
+            new Script(ScriptType.INLINE, "javascript", "Json.load('{\"a\": 1, \"b\": 2}')['b']", emptyMap()),
+            null,
+            null
+        );
         response = innerShardOperation(request, scriptService, null);
         assertEquals(2, Integer.parseInt((String) response.getResult()));
     }
@@ -472,7 +480,11 @@ public class JavascriptExecuteApiTests extends ESSingleNodeTestCase {
         String indexNameWithClusterAlias = "remote1:" + indexName;
         Request.ContextSetup contextSetup = new Request.ContextSetup(indexNameWithClusterAlias, new BytesArray("{\"field\": 3}"), null);
         contextSetup.setXContentType(XContentType.JSON);
-        Request request = new Request(new Script("doc['field'].value >= 3"), "filter", contextSetup);
+        Request request = new Request(
+            new Script(ScriptType.INLINE, "javascript", "doc['field'].value >= 3", emptyMap()),
+            "filter",
+            contextSetup
+        );
         Response response = innerShardOperation(request, scriptService, indexService);
         assertThat(response.getResult(), equalTo(true));
 
@@ -569,7 +581,7 @@ public class JavascriptExecuteApiTests extends ESSingleNodeTestCase {
 
     private JavascriptExecuteAction.Request createRequest(String indexExpression) {
         return new JavascriptExecuteAction.Request(
-            new Script("100.0 / 1000.0"),
+            new Script(ScriptType.INLINE, "javascript", "100.0 / 1000.0", emptyMap()),
             null,
             new JavascriptExecuteAction.Request.ContextSetup(indexExpression, null, null)
         );

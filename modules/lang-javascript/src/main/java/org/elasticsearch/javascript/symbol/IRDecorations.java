@@ -165,10 +165,10 @@ public class IRDecorations {
         }
     }
 
-    /** describes an encoding used to resolve references and lambdas at runtime */
-    public static class IRDDefReferenceEncoding extends IRDecoration<Def.Encoding> {
+    /** describes the runtime callable encoding for first-class function values */
+    public static class IRDRuntimeCallableEncoding extends IRDecoration<Def.Encoding> {
 
-        public IRDDefReferenceEncoding(Def.Encoding value) {
+        public IRDRuntimeCallableEncoding(Def.Encoding value) {
             super(value);
         }
     }

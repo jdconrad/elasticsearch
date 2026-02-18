@@ -38,6 +38,58 @@ public class FirstClassFunctionValueTests extends ScriptTestCase {
         assertEquals(2, exec("IntUnaryOperator increment = (x) -> x + 1; increment(1)"));
     }
 
+    public void testInvokeRawSupplierWithPrimitiveTarget() {
+        assertEquals(1, exec("Supplier one = () -> 1; int value = one(); value"));
+    }
+
+    public void testInvokeRawSupplierInPrimitiveReturningFunction() {
+        assertEquals(1, exec("int read(Supplier one) { one() } read(() -> 1)"));
+    }
+
+    public void testAssignLambdaToDefVariableAndInvokeWithCallSyntax() {
+        assertEquals(2, exec("def increment = (x) -> x + 1; increment(1)"));
+    }
+
+    public void testAssignZeroArgLambdaToDefVariableAndInvokeWithCallSyntax() {
+        assertEquals(1, exec("def one = () -> 1; one()"));
+    }
+
+    public void testAssignFunctionReferenceToDefVariableAndInvokeWithCallSyntax() {
+        assertEquals(1, exec("def compare = Integer::compare; compare(2, 1)"));
+    }
+
+    public void testPassDefLambdaValueToDynamicMethodCall() {
+        assertEquals(1, exec("def opt = Optional.empty(); def one = () -> 1; opt.orElseGet(one)"));
+    }
+
+    public void testAdaptRuntimeCallableDefToTypedInterface() {
+        assertEquals(2, exec("def increment = (x) -> x + 1; Function f = increment; ((Integer)f.apply(1)).intValue()"));
+    }
+
+    public void testStoreRuntimeCallableDefInCollectionAndInvokeWithCallSyntax() {
+        assertEquals(2, exec("def increment = (x) -> x + 1; List callables = [increment]; def fn = callables[0]; fn(1)"));
+    }
+
+    public void testInvokeNestedMapCallableValuesWithCallSyntax() {
+        assertEquals(5, exec("def z = ['x': () -> 1, 'y': ['z': (a) -> a + 3]]; def x = z.x; def y = z.y.z; x() + y(1)"));
+    }
+
+    public void testInvokeNestedMapCallableValuesWithBraceAccessAndCallSyntax() {
+        assertEquals(5, exec("def z = ['x': () -> 1, 'y': ['z': (a) -> a + 3]]; def x = z['x']; def y = z['y']['z']; x() + y(1)"));
+    }
+
+    public void testInvokeCallableValuesFromMixedNestedCollections() {
+        assertEquals(5, exec("def z = ['x': () -> 1, 'y': [(a) -> a + 3]]; def x = z.x; def y = z.y[0]; x() + y(1)"));
+    }
+
+    public void testAdaptAliasedRuntimeCallableDefToRawBiFunctionWithCallSyntax() {
+        assertEquals(3, exec("def x = (a, b) -> a + b; def y = x; BiFunction z = y; z(1, 2);"));
+    }
+
+    public void testRoundTripBetweenDefAndRawBiFunctionWithCallSyntax() {
+        assertEquals(8, exec("def x = (a, b) -> a + b; BiFunction y = x; def z = y; y(2, 3) + z(1, 2)"));
+    }
+
     public void testInvokeTypedCallableFromCollectionWithCallSyntax() {
         assertEquals(
             5,

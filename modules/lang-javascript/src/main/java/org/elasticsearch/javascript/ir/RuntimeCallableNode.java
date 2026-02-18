@@ -12,13 +12,16 @@ package org.elasticsearch.javascript.ir;
 import org.elasticsearch.javascript.Location;
 import org.elasticsearch.javascript.phase.IRTreeVisitor;
 
-public class DefInterfaceReferenceNode extends ExpressionNode {
+/**
+ * IR node for first-class runtime callable values used by {@code def} flows.
+ */
+public class RuntimeCallableNode extends ExpressionNode {
 
     /* ---- begin visitor ---- */
 
     @Override
     public <Scope> void visit(IRTreeVisitor<Scope> irTreeVisitor, Scope scope) {
-        irTreeVisitor.visitDefInterfaceReference(this, scope);
+        irTreeVisitor.visitRuntimeCallable(this, scope);
     }
 
     @Override
@@ -28,8 +31,7 @@ public class DefInterfaceReferenceNode extends ExpressionNode {
 
     /* ---- end visitor ---- */
 
-    public DefInterfaceReferenceNode(Location location) {
+    public RuntimeCallableNode(Location location) {
         super(location);
     }
-
 }

@@ -214,6 +214,28 @@ public class DefBootstrapTests extends ESTestCase {
         );
     }
 
+    public void testMethodCallRejectsLegacyCallRecipe() throws Throwable {
+        CallSite site = DefBootstrap.bootstrap(
+            javascriptLookup,
+            new FunctionTable(),
+            Collections.emptyMap(),
+            MethodHandles.publicLookup(),
+            "toString",
+            MethodType.methodType(String.class, Object.class),
+            0,
+            DefBootstrap.METHOD_CALL,
+            "a",
+            "unused"
+        );
+        MethodHandle handle = site.dynamicInvoker();
+
+        IllegalStateException e = expectThrows(
+            IllegalStateException.class,
+            () -> { assertEquals("5", (String) handle.invokeExact((Object) 5)); }
+        );
+        assertEquals("dynamic call recipes are no longer supported", e.getMessage());
+    }
+
     // test operators with null guards
 
     public void testNullGuardAdd() throws Throwable {

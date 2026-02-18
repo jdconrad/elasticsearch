@@ -13,6 +13,7 @@ import org.elasticsearch.javascript.lookup.JavascriptLookupUtility;
 import org.objectweb.asm.commons.Method;
 
 import java.lang.invoke.MethodType;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -157,5 +158,18 @@ public class FunctionTable {
 
     public LocalFunction getFunction(String functionKey) {
         return localFunctions.get(functionKey);
+    }
+
+    public List<LocalFunction> getFunctionsByName(String functionName) {
+        Objects.requireNonNull(functionName);
+
+        List<LocalFunction> localFunctionsByName = new ArrayList<>();
+        for (LocalFunction localFunction : localFunctions.values()) {
+            if (localFunction.functionName.equals(functionName)) {
+                localFunctionsByName.add(localFunction);
+            }
+        }
+
+        return List.copyOf(localFunctionsByName);
     }
 }
