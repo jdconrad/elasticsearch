@@ -1,13 +1,13 @@
 # Test failure summary and fix suggestions (fixes3.md)
 
-This document summarizes the **problems currently causing lang-javascript test failures** after FIX2 (grammar/parser ambiguity) and partial FIX1 (script-only conversions), and suggests how to fix them.
+This document summarizes the **problems currently causing lang-javascript test failures** after FIX2 (grammar/parser ambiguity) and FIX1 (script-only conversions for planned test classes), and suggests how to fix them.
 
 **Progress summary (as of last update):**
 
 | § | Topic | Status |
 |---|--------|--------|
 | 1 | Semantic: "cannot resolve type [let]" | **Done** – var/let/const treated as def in semantic phase. |
-| 2 | Remaining "no viable alternative" | **Partial** – AdditionTests, AliasTests, BasicExpressionTests, testIfStatement converted; ArrayTests, AugmentationTests, ComparisonTests, etc. still need script conversions. |
+| 2 | Remaining "no viable alternative" (FIX1) | **Done** – AugmentationTests, BasicStatementTests, ComparisonTests, ArrayTests, BasicAPITests converted; ArrayLikeObjectTestCase has defDeclType() for JS. Any other class still failing with parse errors needs the same script conversions. |
 | 3 | Type expectations (Long, Integer, Byte) | **Not done** – FIX3: relax assertions or @Ignore for boxed-type-only. |
 | 4 | Optional chaining / object literals | **Not done** – testNullSafeDeref, object literal / ?. semantics. |
 | 5 | AliasTests.testInnerNoAlias | **Addressed** – simplified test; §1 fix should allow it to pass. |
@@ -40,9 +40,9 @@ java.lang.IllegalArgumentException: invalid declaration: cannot resolve type [le
 
 ---
 
-## 2. Remaining "no viable alternative" (parse errors) ⏳ PARTIAL
+## 2. Remaining "no viable alternative" (parse errors) ✅ DONE (planned scope)
 
-**Symptom:** Tests in **unconverted** classes still fail with:
+**Symptom:** Tests in unconverted classes fail with:
 
 ```text
 no viable alternative at input 'x'
@@ -138,7 +138,7 @@ no viable alternative at input 'x'
 ## Suggested order of work
 
 1. ~~**Fix semantic “cannot resolve type [let]”** (§1)~~ **Done.**
-2. **Continue FIX1** (§2) for remaining “no viable alternative” failures in other test classes (ArrayTests, AugmentationTests, ComparisonTests, etc.).
+2. ~~**Continue FIX1** (§2) for “no viable alternative” in ArrayTests, AugmentationTests, ComparisonTests, BasicStatementTests, BasicAPITests.~~ **Done.** Any other class with parse errors: apply same script conversions.
 3. **Apply FIX3** (§3) for type expectations (Long/Integer/Byte) and cast-related assertions (§7).
 4. **Adjust optional chaining / object literals** (§4) and **string escapes** (§6) as needed.
 5. **Tidy edge cases** (§5, §8) once the main categories are fixed.

@@ -35,8 +35,13 @@ public abstract class ArrayLikeObjectTestCase extends ScriptTestCase {
      */
     protected abstract Matcher<String> outOfBoundsExceptionMessageMatcher(int index, int size);
 
+    /** Declaration type when {@code declareAsDef} is true (e.g. "def" or "let"). Subclasses may override for JS. */
+    protected String defDeclType() {
+        return "def";
+    }
+
     private void arrayLoadStoreTestCase(boolean declareAsDef, String valueType, Object val, @Nullable Number valPlusOne) {
-        String declType = declareAsDef ? "def" : declType(valueType);
+        String declType = declareAsDef ? defDeclType() : declType(valueType);
         String valueCtorCall = valueCtorCall(valueType, 5);
         String decl = declType + " x = " + valueCtorCall;
         assertEquals(5, exec(decl + "; return x.length", true));
