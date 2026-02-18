@@ -1,5 +1,8 @@
 // ANTLR GENERATED CODE: DO NOT EDIT
 package org.elasticsearch.javascript.antlr;
+
+    import org.elasticsearch.javascript.*;
+
 import org.antlr.v4.runtime.tree.AbstractParseTreeVisitor;
 
 /**
@@ -11,7 +14,7 @@ import org.antlr.v4.runtime.tree.AbstractParseTreeVisitor;
  * operations with no return type.
  */
 @SuppressWarnings("CheckReturnValue")
-class JavascriptParserBaseVisitor<T> extends AbstractParseTreeVisitor<T> implements JavascriptParserVisitor<T> {
+public class JavascriptParserBaseVisitor<T> extends AbstractParseTreeVisitor<T> implements JavascriptParserVisitor<T> {
   /**
    * {@inheritDoc}
    *

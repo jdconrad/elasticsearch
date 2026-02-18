@@ -1,5 +1,8 @@
 // ANTLR GENERATED CODE: DO NOT EDIT
 package org.elasticsearch.javascript.antlr;
+
+    import org.elasticsearch.javascript.*;
+
 import org.antlr.v4.runtime.atn.*;
 import org.antlr.v4.runtime.dfa.DFA;
 import org.antlr.v4.runtime.*;
@@ -10,7 +13,7 @@ import java.util.Iterator;
 import java.util.ArrayList;
 
 @SuppressWarnings({"all", "warnings", "unchecked", "unused", "cast", "CheckReturnValue"})
-class JavascriptParser extends JavascriptParserBase {
+public class JavascriptParser extends JavascriptParserBase {
   static { RuntimeMetaData.checkVersion("4.13.1", RuntimeMetaData.VERSION); }
 
   protected static final DFA[] _decisionToDFA;

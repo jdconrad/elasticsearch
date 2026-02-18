@@ -1,5 +1,8 @@
 // ANTLR GENERATED CODE: DO NOT EDIT
 package org.elasticsearch.javascript.antlr;
+
+    import org.elasticsearch.javascript.*;
+
 import org.antlr.v4.runtime.Lexer;
 import org.antlr.v4.runtime.CharStream;
 import org.antlr.v4.runtime.Token;
@@ -10,7 +13,7 @@ import org.antlr.v4.runtime.dfa.DFA;
 import org.antlr.v4.runtime.misc.*;
 
 @SuppressWarnings({"all", "warnings", "unchecked", "unused", "cast", "CheckReturnValue", "this-escape"})
-abstract class JavascriptLexer extends JavascriptLexerBase {
+public class JavascriptLexer extends JavascriptLexerBase {
   static { RuntimeMetaData.checkVersion("4.13.1", RuntimeMetaData.VERSION); }
 
   protected static final DFA[] _decisionToDFA;
