@@ -68,9 +68,9 @@ DEV: FIX7: We're going to be using the same runtime as Painless, so the same lim
 
 ## Plan for next steps (by priority)
 
-Ordered from most straightforward / lowest uncertainty to more speculative. Each step assumes re-running the lang-javascript test suite to verify.
+Ordered from most straightforward / lowest uncertainty to more speculative. Each step assumes re-running the lang-javascript test suite to verify. **Status:** Steps 1–4 are done; **step 5 (FIX6) is next.**
 
-### 1. FIX2 – Grammar: variable statement and bitwise `&` (highest priority)
+### 1. ~~FIX2 – Grammar: variable statement and bitwise `&`~~ ✅ Done
 
 **Goal:** Eliminate `reportAttemptingFullContext` so that `let x = 5; let y = 3; return x & y;` and `return 5 & 12;` parse without ambiguity.
 
@@ -83,7 +83,7 @@ Ordered from most straightforward / lowest uncertainty to more speculative. Each
 
 ---
 
-### 2. FIX1 – Script-only fixes for "no viable alternative"
+### 2. ~~FIX1 – Script-only fixes for "no viable alternative"~~ ✅ Done
 
 **Goal:** Where the failure is "no viable alternative at input 'x'" (or similar) and the **language** is not to be extended, change the **test script** to valid JavaScript that the current grammar already accepts.
 
@@ -93,7 +93,7 @@ Ordered from most straightforward / lowest uncertainty to more speculative. Each
 
 ---
 
-### 3. FIX5 – Walker: throw ScriptException on parse error
+### 3. ~~FIX5 – Walker: throw ScriptException on parse error~~ ✅ Done
 
 **Goal:** When the parser fails, tests that expect `ScriptException` (e.g. `expectScriptThrows`) should get a `ScriptException` instead of an `AssertionError` from the Walker's error listener.
 
@@ -103,7 +103,7 @@ Ordered from most straightforward / lowest uncertainty to more speculative. Each
 
 ---
 
-### 4. FIX3 – Test expectations for number types
+### 4. ~~FIX3 – Test expectations for number types~~ ✅ Done
 
 **Goal:** Align test assertions with JavaScript number semantics (no distinct Integer/Long; Number or BigInt).
 
@@ -147,15 +147,15 @@ Ordered from most straightforward / lowest uncertainty to more speculative. Each
 
 ### Summary table
 
-| Step | Fix   | Scope              | Uncertainty |
-|------|-------|--------------------|-------------|
-| 1    | FIX2  | Grammar (let, &)   | Low         |
-| 2    | FIX1  | Test scripts only  | Low         |
-| 3    | FIX5  | Walker (ScriptException) | Low  |
-| 4    | FIX3  | Test expectations  | Low         |
-| 5    | FIX6  | Writer/locations  | Medium      |
-| 6    | FIX4  | Documentation      | N/A (info only) |
-| 7    | FIX7  | Assume same runtime| None        |
+| Step | Fix   | Scope              | Uncertainty | Status   |
+|------|-------|--------------------|-------------|----------|
+| 1    | FIX2  | Grammar (let, &)   | Low         | Done     |
+| 2    | FIX1  | Test scripts only  | Low         | Done     |
+| 3    | FIX5  | Walker (ScriptException) | Low  | Done     |
+| 4    | FIX3  | Test expectations  | Low         | Done     |
+| 5    | FIX6  | Writer/locations   | Medium      | **Next** |
+| 6    | FIX4  | Documentation      | N/A (info only) | —    |
+| 7    | FIX7  | Assume same runtime| None        | No action|
 
 ---
 

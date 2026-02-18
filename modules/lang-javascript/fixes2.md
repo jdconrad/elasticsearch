@@ -12,15 +12,17 @@ Concise restatement of the plan from `fixes.md`, including developer decisions (
 
 ## Fix order and decisions
 
-| # | Fix | Scope | Decision / action |
-|---|-----|--------|-------------------|
-| 1 | **FIX2** | Grammar | Eliminate parser ambiguity. **let:** Ensure lexer emits distinct token for `let` (or reorder `statement` alternatives) so `let x = 5; let y = 3;` parses without `reportAttemptingFullContext`. **&:** Ensure lexer gives distinct tokens for `&` vs `&&` (and `&&` before `&`) so `return 5 & 12;` parses. Use ANTLR features where possible. Re-run tests to confirm no ambiguity. |
-| 2 | **FIX1** | Test scripts | For "no viable alternative" errors, fix the **script** to valid JS the grammar already accepts; do not change the JavaScript language. |
-| 3 | **FIX5** | Walker | On parse error, throw (or wrap in) `ScriptException` instead of `AssertionError` so tests that expect `ScriptException` get it. Change Walker only. |
-| 4 | **FIX3** | Tests | Alter tests to expect JS number semantics (e.g. numeric value, Double, BigInt). No Long/Integer where JS doesn’t provide them. |
-| 5 | **FIX6** | Writer | Record source locations (script name, line, column) and report them in `ScriptException` the same way as Painless so stack/column tests can pass. |
-| 6 | **FIX4** | Regex / null safety / arrays | See below. |
-| 7 | **FIX7** | Loop limits | No action. Same runtime as Painless; assume limits apply. |
+**Status:** Steps 1–4 done; step 5 (FIX6) is next.
+
+| # | Fix | Scope | Decision / action | Status |
+|---|-----|--------|-------------------|---|
+| 1 | **FIX2** | Grammar | Eliminate parser ambiguity. **let:** Ensure lexer emits distinct token for `let` (or reorder `statement` alternatives) so `let x = 5; let y = 3;` parses without `reportAttemptingFullContext`. **&:** Ensure lexer gives distinct tokens for `&` vs `&&` (and `&&` before `&`) so `return 5 & 12;` parses. Use ANTLR features where possible. Re-run tests to confirm no ambiguity. | Done |
+| 2 | **FIX1** | Test scripts | For "no viable alternative" errors, fix the **script** to valid JS the grammar already accepts; do not change the JavaScript language. | Done |
+| 3 | **FIX5** | Walker | On parse error, throw (or wrap in) `ScriptException` instead of `AssertionError` so tests that expect `ScriptException` get it. Change Walker only. | Done |
+| 4 | **FIX3** | Tests | Alter tests to expect JS number semantics (e.g. numeric value, Double, BigInt). No Long/Integer where JS doesn’t provide them. | Done |
+| 5 | **FIX6** | Writer | Record source locations (script name, line, column) and report them in `ScriptException` the same way as Painless so stack/column tests can pass. | **Next** |
+| 6 | **FIX4** | Regex / null safety / arrays | See below. | — |
+| 7 | **FIX7** | Loop limits | No action. Same runtime as Painless; assume limits apply. | No action |
 
 ---
 

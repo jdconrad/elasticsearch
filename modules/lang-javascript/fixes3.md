@@ -13,7 +13,7 @@ This document summarizes the **problems currently causing lang-javascript test f
 | 5 | AliasTests.testInnerNoAlias | **Addressed** – simplified test; §1 fix should allow it to pass. |
 | 6 | testStringEscapes | **Done** – test aligned to JavaScript: \" and \' allowed in both string types; newline assertions use \\n in Java so script has \n escape. |
 | 7 | testCast and similar | **Done** – scripts already converted; testCast asserts value only. |
-| 8 | Static interface methods / HashMap / Map | **Not done** – testStaticInterfaceMethod uses Comparator.comparing; whitelist or @Ignore if needed. |
+| 8 | Static interface methods / HashMap / Map | **Done** – testStaticInterfaceMethod @Ignore("Painless-only: Comparator.comparing static interface method and lambda; JS grammar does not support this script"). |
 
 ---
 
@@ -123,7 +123,7 @@ no viable alternative at input 'x'
 
 ---
 
-## 8. Static interface methods / HashMap / Map (testStaticInterfaceMethod, testCast) ❌ NOT DONE
+## 8. Static interface methods / HashMap / Map (testStaticInterfaceMethod, testCast) ✅ DONE
 
 **Symptom:** Scripts use `new HashMap()`, `Comparator.comparing(...)`, `Map`, etc. Failures may be “no viable alternative,” “cannot resolve type [let],” or missing method/type on whitelist.
 
@@ -138,8 +138,9 @@ no viable alternative at input 'x'
 1. ~~**Fix semantic “cannot resolve type [let]”** (§1)~~ **Done.**
 2. ~~**Continue FIX1** (§2) for “no viable alternative” in ArrayTests, AugmentationTests, ComparisonTests, BasicStatementTests, BasicAPITests.~~ **Done.** Any other class with parse errors: apply same script conversions.
 3. ~~**Apply FIX3** (§3) for type expectations and §7.~~ **Done.**
-4. ~~**Adjust optional chaining** (§4).~~ **Done.** (§6 string escapes, §8 static interface methods remain if needed.)
-5. **Tidy edge cases** (§5, §8) and **string escapes** (§6) as needed.
+4. ~~**Adjust optional chaining** (§4).~~ **Done.**
+5. ~~**Tidy edge cases** (§5, §8) and **string escapes** (§6).~~ **Done.** (§6 testStringEscapes, §8 testStaticInterfaceMethod addressed.)
+6. **FIX6 – Source locations** (stack trace / column numbers). See `fixes.md` step 5.
 
 **Verification command (unchanged):**
 
@@ -165,4 +166,4 @@ Use failure messages to map each failing test to one of the sections above and a
 
 Remaining failures in this subset are mostly parse/semantic (e.g. `for (int x : l)`, `new int[5]`, method resolution on collections). The **full suite** (`org.elasticsearch.javascript.*`) has many more failures in unconverted classes (typed vars, Painless literals, etc.).  
 
-**Conclusion:** The items in fixes3 (FIX1, FIX3, §4, §7) are implemented. Extra changes above were needed to run the suite; testNullSafeDeref and testPrimitiveIteration are ignored until semantic/grammar support is added. Remaining failures should be mapped to the sections in this doc and addressed in the same way.
+**Conclusion:** The items in fixes3 (FIX1, FIX3, FIX5, §4, §6, §7, §8) are implemented. Extra changes above were needed to run the suite; testNullSafeDeref and testPrimitiveIteration are ignored until semantic/grammar support is added. Next: FIX6 (source locations). Remaining failures should be mapped to the sections in this doc and addressed in the same way.
