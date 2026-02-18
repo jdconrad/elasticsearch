@@ -2,9 +2,22 @@
 
 This document summarizes the **problems currently causing lang-javascript test failures** after FIX2 (grammar/parser ambiguity) and partial FIX1 (script-only conversions), and suggests how to fix them.
 
+**Progress summary (as of last update):**
+
+| § | Topic | Status |
+|---|--------|--------|
+| 1 | Semantic: "cannot resolve type [let]" | **Done** – var/let/const treated as def in semantic phase. |
+| 2 | Remaining "no viable alternative" | **Partial** – AdditionTests, AliasTests, BasicExpressionTests, testIfStatement converted; ArrayTests, AugmentationTests, ComparisonTests, etc. still need script conversions. |
+| 3 | Type expectations (Long, Integer, Byte) | **Not done** – FIX3: relax assertions or @Ignore for boxed-type-only. |
+| 4 | Optional chaining / object literals | **Not done** – testNullSafeDeref, object literal / ?. semantics. |
+| 5 | AliasTests.testInnerNoAlias | **Addressed** – simplified test; §1 fix should allow it to pass. |
+| 6 | testStringEscapes | **Not done** – string escape handling / test expectations. |
+| 7 | testCast and similar | **Partial** – scripts converted; assertions may need FIX3. |
+| 8 | Static interface methods / HashMap / Map | **Not done** – whitelist, resolution, or @Ignore. |
+
 ---
 
-## 1. Semantic: "cannot resolve type [let]"
+## 1. Semantic: "cannot resolve type [let]" ✅ DONE
 
 **Symptom:** Scripts like `let x = 1; let y = 2; return x + y;` parse successfully but fail at compile with:
 
@@ -21,11 +34,13 @@ java.lang.IllegalArgumentException: invalid declaration: cannot resolve type [le
 
 **Where to look:** `DefaultSemanticAnalysisPhase.visitDeclaration` (and any helper that resolves the declaration type); how `var` is handled today (use that as the model for `let`/`const`).
 
-**Verification:** After the change, tests that only failed with “cannot resolve type [let]” (e.g. AdditionTests.testBasics, testInt, testByte, …; BasicExpressionTests.testDeclareVariable, testComp, testBool, …; AliasTests with `let a = ...`) should get past compile and fail only on later steps (e.g. type expectations or runtime) if at all.
+**Implementation:** In `DefaultSemanticAnalysisPhase.visitDeclaration`, `var`/`let`/`const` (from `getCanonicalTypeName()`) are treated as variable-declaration keywords and mapped to `def.class`; initializer gets `Internal` when type is def so casting works. No type resolution for these keywords.
+
+**Verification:** Scripts with `let`/`var`/`const` now compile; failures in those tests are typically type/assertion (e.g. §3) rather than “cannot resolve type [let]”.
 
 ---
 
-## 2. Remaining "no viable alternative" (parse errors)
+## 2. Remaining "no viable alternative" (parse errors) ⏳ PARTIAL
 
 **Symptom:** Tests in **unconverted** classes still fail with:
 
@@ -43,11 +58,13 @@ no viable alternative at input 'x'
 
 **Classes still likely to need script conversions:** ArrayTests, AugmentationTests, ComparisonTests, BasicStatementTests (beyond testIfStatement), BasicAPITests, and any other that still appears in “no viable alternative” failure output.
 
-**Verification:** After converting a test’s scripts, that test should no longer fail with “no viable alternative”; it may then fail on semantics (e.g. “cannot resolve type [let]”) or on assertions (e.g. type or value).
+**Done so far:** AdditionTests, AliasTests, BasicExpressionTests (most methods), BasicStatementTests.testIfStatement. **Still to do:** ArrayTests, AugmentationTests, ComparisonTests, rest of BasicStatementTests, BasicAPITests, and any other class still failing with “no viable alternative”.
+
+**Verification:** After converting a test’s scripts, that test should no longer fail with “no viable alternative”; it may then fail on semantics or on assertions (e.g. §3).
 
 ---
 
-## 3. Type expectations (Long, Integer, Byte, etc.)
+## 3. Type expectations (Long, Integer, Byte, etc.) ❌ NOT DONE
 
 **Symptom:** Test expects a boxed type (e.g. `Long`, `Integer`, `Byte`) but gets another (e.g. `Integer` where `Long` was expected, or a double/number).
 
@@ -58,11 +75,11 @@ no viable alternative at input 'x'
 - Where the test only cares about numeric value, assert on the value (e.g. `assertEquals(4, result)` or allow both `Integer` and `Long` for the same value).
 - Where the test explicitly checks Painless’s int/long/byte semantics, either relax the assertion to “value and optionally acceptable types” or mark the test `@Ignore("Painless-only: exact boxed type")`.
 
-**Verification:** Tests like AndTests.testLongConst (expected Long, got Integer) should pass once assertions accept the actual JS semantics (e.g. value 4 or both Integer/Long).
+**Verification:** Tests like AndTests.testLongConst (expected Long, got Integer), AdditionTests.testBasics (3.0 vs 3), should pass once assertions accept the actual JS semantics (e.g. value 4 or both Integer/Long).
 
 ---
 
-## 4. Optional chaining / null-safe and object literals (testNullSafeDeref, etc.)
+## 4. Optional chaining / null-safe and object literals (testNullSafeDeref, etc.) ❌ NOT DONE
 
 **Symptom:** Tests that use optional chaining `?.` or object literals (e.g. `let a = {}`, `a?.size()`) may fail in compile or runtime.
 
@@ -78,17 +95,17 @@ no viable alternative at input 'x'
 
 ---
 
-## 5. AliasTests.testInnerNoAlias
+## 5. AliasTests.testInnerNoAlias ✅ ADDRESSED
 
 **Symptom:** After FIX1 the test was simplified to a single successful exec (`let a = AliasTestClass.getInnerUnaliased(); a.minus(2, 3)` → -1). The second assertion (expecting “cannot resolve type [UnaliasedTestInnerClass]”) was removed because there is no JS equivalent for “typed declaration with unresolved type.”
 
 **Cause:** The test now only checks that the call works with `let`. Any remaining failure could be due to semantics (“cannot resolve type [let]”) or to a different expectation (e.g. that the first call throws in some scenario).
 
-**Suggestion:** If the test still fails, ensure (1) semantic phase accepts `let` (see §1). (2) If the intent is only “call with unaliased inner class works,” keep the single assertion; otherwise document that the “unresolved type” check is Painless-only and not covered in JS.
+**Suggestion:** If the test still fails, ensure (1) semantic phase accepts `let` (see §1 – done). (2) If the intent is only “call with unaliased inner class works,” keep the single assertion; otherwise document that the “unresolved type” check is Painless-only and not covered in JS.
 
 ---
 
-## 6. testStringEscapes
+## 6. testStringEscapes ❌ NOT DONE
 
 **Symptom:** testStringEscapes may fail (parse, compile, or assertion).
 
@@ -98,17 +115,17 @@ no viable alternative at input 'x'
 
 ---
 
-## 7. testCast and similar (Painless casts removed)
+## 7. testCast and similar (Painless casts removed) ⏳ PARTIAL
 
 **Symptom:** testCast was converted to `return 1` and `let x = 100; return x` (no Painless casts). The test may still expect a boxed type (e.g. `(byte)100`) or a specific type.
 
 **Cause:** JavaScript has no `(byte)` / `(int)` casts; we only assert numeric value.
 
-**Suggestion:** If the test asserts on type (e.g. Byte), either (a) relax to value (e.g. `assertEquals(100, exec(...))`) per FIX3, or (b) `@Ignore("Painless-only: primitive cast")` for that assertion. Keep the script in valid JS.
+**Done so far:** Scripts converted to valid JS (`return 1`, `let x = 100; return x`). **Remaining:** Assertions may still expect boxed types; apply FIX3 or @Ignore as above.
 
 ---
 
-## 8. Static interface methods / HashMap / Map (testStaticInterfaceMethod, testCast)
+## 8. Static interface methods / HashMap / Map (testStaticInterfaceMethod, testCast) ❌ NOT DONE
 
 **Symptom:** Scripts use `new HashMap()`, `Comparator.comparing(...)`, `Map`, etc. Failures may be “no viable alternative,” “cannot resolve type [let],” or missing method/type on whitelist.
 
@@ -120,8 +137,8 @@ no viable alternative at input 'x'
 
 ## Suggested order of work
 
-1. **Fix semantic “cannot resolve type [let]”** (§1) so all scripts that use `let`/`const` compile. This unblocks most of the failures introduced by FIX1.
-2. **Continue FIX1** (§2) for remaining “no viable alternative” failures in other test classes.
+1. ~~**Fix semantic “cannot resolve type [let]”** (§1)~~ **Done.**
+2. **Continue FIX1** (§2) for remaining “no viable alternative” failures in other test classes (ArrayTests, AugmentationTests, ComparisonTests, etc.).
 3. **Apply FIX3** (§3) for type expectations (Long/Integer/Byte) and cast-related assertions (§7).
 4. **Adjust optional chaining / object literals** (§4) and **string escapes** (§6) as needed.
 5. **Tidy edge cases** (§5, §8) once the main categories are fixed.
