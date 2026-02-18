@@ -33,14 +33,14 @@
 // $antlr-format allowShortRulesOnASingleLine true, allowShortBlocksOnASingleLine true, minEmptyLines 0, alignSemicolons ownLine
 // $antlr-format alignColons trailing, singleLineOverrulesHangingColon true, alignLexerCommands true, alignLabels true, alignTrailers true
 
-lexer grammar JavaScriptLexer;
+lexer grammar JavascriptLexer;
 
 channels {
     ERROR
 }
 
 options {
-    superClass = JavaScriptLexerBase;
+    superClass = JavascriptLexerBase;
 }
 
 // Insert here @header for C++ lexer.
