@@ -62,6 +62,7 @@ public final class JavascriptPlugin extends Plugin implements ScriptPlugin, Exte
                 JavascriptPlugin.class,
                 WhitelistAnnotationParser.BASE_ANNOTATION_PARSERS,
                 "org.elasticsearch.txt",
+                "org.elasticsearch.javascript.builtins.txt",
                 "org.elasticsearch.net.txt",
                 "org.elasticsearch.script.fields.txt",
                 "java.lang.txt",

@@ -15,18 +15,17 @@ import org.hamcrest.Matcher;
 import static java.util.Collections.singletonMap;
 
 /**
- * Superclass for testing array-like objects (arrays and lists).
+ * Superclass for testing array-like objects (arrays and lists) using JavaScript syntax.
+ * Subclasses supply declaration and constructor form so scripts use e.g. {@code let x = new Array(5)} or {@code let x = [0,0,0,0,0]}.
  */
 public abstract class ArrayLikeObjectTestCase extends ScriptTestCase {
     /**
-     * Build the string for declaring the variable holding the array-like-object to test. So {@code int[]} for arrays and {@code List} for
-     * lists.
+     * Declaration keyword for the array-like variable. For JS use {@code "let"} so scripts are e.g. {@code let x = ...}.
      */
     protected abstract String declType(String valueType);
 
     /**
-     * Build the string for calling the constructor for the array-like-object to test. So {@code new int[5]} for arrays and
-     * {@code [0, 0, 0, 0, 0]} or {@code [null, null, null, null, null]} for lists.
+     * Expression that creates an array-like of the given size. For JS use {@code "new Array(5)"} or a literal {@code "[0,0,0,0,0]"}.
      */
     protected abstract String valueCtorCall(String valueType, int size);
 
@@ -35,15 +34,15 @@ public abstract class ArrayLikeObjectTestCase extends ScriptTestCase {
      */
     protected abstract Matcher<String> outOfBoundsExceptionMessageMatcher(int index, int size);
 
-    /** Declaration type when {@code declareAsDef} is true (e.g. "def" or "let"). Subclasses may override for JS. */
+    /** Declaration type when {@code declareAsDef} is true. Default {@code "let"} for JavaScript. */
     protected String defDeclType() {
-        return "def";
+        return "let";
     }
 
     private void arrayLoadStoreTestCase(boolean declareAsDef, String valueType, Object val, @Nullable Number valPlusOne) {
-        String declType = declareAsDef ? defDeclType() : declType(valueType);
-        String valueCtorCall = valueCtorCall(valueType, 5);
-        String decl = declType + " x = " + valueCtorCall;
+        String declKeyword = declareAsDef ? defDeclType() : declType(valueType);
+        String ctorCall = valueCtorCall(valueType, 5);
+        String decl = declKeyword + " x = " + ctorCall;
         assertEquals(5, exec(decl + "; return x.length", true));
         assertEquals(val, exec(decl + "; x[ 0] = params.val; return x[ 0];", singletonMap("val", val), true));
         assertEquals(val, exec(decl + "; x[ 0] = params.val; return x[-5];", singletonMap("val", val), true));

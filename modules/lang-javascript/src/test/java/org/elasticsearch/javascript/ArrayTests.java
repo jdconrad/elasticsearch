@@ -17,7 +17,7 @@ import java.lang.invoke.MethodType;
 
 import static org.hamcrest.Matchers.equalTo;
 
-/** Tests for working with arrays. */
+/** Tests for working with arrays. Uses JavaScript array syntax (new Array(n), []). */
 public class ArrayTests extends ArrayLikeObjectTestCase {
     @Override
     protected String declType(String valueType) {
@@ -29,9 +29,10 @@ public class ArrayTests extends ArrayLikeObjectTestCase {
         return "let";
     }
 
+    /** JavaScript: create array of given size with new Array(size). */
     @Override
     protected String valueCtorCall(String valueType, int size) {
-        return "new " + valueType + "[" + size + "]";
+        return "new Array(" + size + ")";
     }
 
     @Override
@@ -67,14 +68,14 @@ public class ArrayTests extends ArrayLikeObjectTestCase {
     }
 
     public void testArrayVariable() {
-        assertEquals(1, exec("let x = 1; let y = new int[x]; return y.length"));
+        assertEquals(1, exec("let x = 1; let y = [x]; return y.length"));
     }
 
     public void testForLoop() {
         assertEquals(
             999 * 1000 / 2,
             exec(
-                "let a = new int[1000]; for (let x = 0; x < a.length; x++) { a[x] = x; } "
+                "let a = new Array(1000); for (let x = 0; x < a.length; x++) { a[x] = x; } "
                     + "let total = 0; for (let x = 0; x < a.length; x++) { total += a[x]; } return total;"
             )
         );

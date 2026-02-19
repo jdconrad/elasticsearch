@@ -1,0 +1,9 @@
+# JavaScript builtins available to all script contexts
+
+# Array: new Array(n) creates a list of length n (JS semantics)
+class org.elasticsearch.javascript.JsArray @alias[class="Array"] {
+  (int)
+  int length()
+  def get(int)
+  def set(int, def)
+}

@@ -17,11 +17,11 @@ import java.util.List;
 
 import static org.hamcrest.Matchers.equalTo;
 
-/** Tests for working with lists. */
+/** Tests for working with list-like arrays using JavaScript array literal syntax. */
 public class ListTests extends ArrayLikeObjectTestCase {
     @Override
     protected String declType(String valueType) {
-        return "List";
+        return "let";
     }
 
     @Override
@@ -31,15 +31,12 @@ public class ListTests extends ArrayLikeObjectTestCase {
         return "[" + String.join(",", fill) + "]";
     }
 
+    /** JavaScript literal for the default element of the given value type (no Painless casts). */
     private String fillValue(String valueType) {
         return switch (valueType) {
-            case "int" -> "0";
-            case "long" -> "0L";
-            case "short" -> "(short) 0";
-            case "byte" -> "(byte) 0";
-            case "float" -> "0.0f";
-            case "double" -> "0.0"; // Double is implicit for decimal constants
-            default -> null;
+            case "int", "long", "short", "byte" -> "0";
+            case "float", "double" -> "0.0";
+            default -> "null";
         };
     }
 
