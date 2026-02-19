@@ -76,7 +76,7 @@ import java.util.function.BiConsumer;
 public final class Script implements ToXContentObject, Writeable {
 
     /**
-     * The name of the of the default scripting language.
+     * The name of the default scripting language.
      */
     public static final String DEFAULT_SCRIPT_LANG = "painless";
 

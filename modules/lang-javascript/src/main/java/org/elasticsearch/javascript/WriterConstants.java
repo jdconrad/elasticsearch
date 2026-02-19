@@ -10,6 +10,8 @@
 package org.elasticsearch.javascript;
 
 import org.elasticsearch.javascript.api.ValueIterator;
+import org.elasticsearch.javascript.lookup.JavascriptLookup;
+import org.elasticsearch.javascript.symbol.FunctionTable;
 import org.objectweb.asm.Handle;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.Type;
@@ -22,6 +24,7 @@ import java.lang.invoke.MethodType;
 import java.lang.invoke.StringConcatFactory;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -133,6 +136,23 @@ public final class WriterConstants {
 
     public static final Method DEF_TO_STRING_IMPLICIT = getAsmMethod(String.class, "defToStringImplicit", Object.class);
     public static final Method DEF_TO_STRING_EXPLICIT = getAsmMethod(String.class, "defToStringExplicit", Object.class);
+    public static final Method DEF_TO_FUNCTIONAL_INTERFACE = getAsmMethod(
+        Object.class,
+        "defToFunctionalInterface",
+        Object.class,
+        Class.class
+    );
+    public static final Method DEF_CREATE_RUNTIME_CALLABLE = getAsmMethod(
+        Object.class,
+        "createRuntimeCallable",
+        JavascriptLookup.class,
+        FunctionTable.class,
+        Map.class,
+        String.class,
+        Class.class,
+        Object.class,
+        Object[].class
+    );
 
     /** invokedynamic bootstrap for lambda expression/method references */
     public static final MethodType LAMBDA_BOOTSTRAP_TYPE = MethodType.methodType(

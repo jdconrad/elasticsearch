@@ -64,7 +64,11 @@ public class JavascriptContextClassInfo implements Writeable, ToXContentObject {
             (p, c) -> JavascriptContextMethodInfo.fromXContent(p),
             STATIC_METHODS
         );
-        PARSER.declareObjectArray(ConstructingObjectParser.constructorArg(), (p, c) -> JavascriptContextMethodInfo.fromXContent(p), METHODS);
+        PARSER.declareObjectArray(
+            ConstructingObjectParser.constructorArg(),
+            (p, c) -> JavascriptContextMethodInfo.fromXContent(p),
+            METHODS
+        );
         PARSER.declareObjectArray(
             ConstructingObjectParser.constructorArg(),
             (p, c) -> JavascriptContextFieldInfo.fromXContent(p),

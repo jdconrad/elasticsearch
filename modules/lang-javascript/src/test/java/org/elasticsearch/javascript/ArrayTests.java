@@ -9,8 +9,8 @@
 
 package org.elasticsearch.javascript;
 
-import org.junit.Ignore;
 import org.hamcrest.Matcher;
+import org.junit.Ignore;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodType;

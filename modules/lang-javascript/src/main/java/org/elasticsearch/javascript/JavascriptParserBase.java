@@ -42,8 +42,7 @@ import org.elasticsearch.javascript.antlr.JavascriptParser;
  * All parser methods that used in grammar (p, prev, notLineTerminator, etc.)
  * should start with lower case char similar to parser rules.
  */
-public abstract class JavascriptParserBase extends Parser
-{
+public abstract class JavascriptParserBase extends Parser {
     public JavascriptParserBase(TokenStream input) {
         super(input);
     }
@@ -141,7 +140,7 @@ public abstract class JavascriptParserBase extends Parser
         int type = ahead.getType();
 
         // Check if the token is, or contains a line terminator.
-        return (type == JavascriptParser.MultiLineComment && (text.contains("\r") || text.contains("\n"))) ||
-                (type == JavascriptParser.LineTerminator);
+        return (type == JavascriptParser.MultiLineComment && (text.contains("\r") || text.contains("\n")))
+            || (type == JavascriptParser.LineTerminator);
     }
 }

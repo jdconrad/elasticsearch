@@ -43,10 +43,10 @@ public class SuggestTests extends ScriptTestCase {
 
         // Painless-only syntax: int/ArrayList/def type declarations; no obvious JS lexer equivalent for same token expectations
         // compareTokens(
-        //     getSuggestTokens("int test;"),
-        //     SuggestLexer.VOCABULARY.getDisplayName(SuggestLexer.TYPE),
-        //     "int",
-        //     ...
+        // getSuggestTokens("int test;"),
+        // SuggestLexer.VOCABULARY.getDisplayName(SuggestLexer.TYPE),
+        // "int",
+        // ...
         // );
         // compareTokens(getSuggestTokens("ArrayList test;"), ...);
         // compareTokens(getSuggestTokens("def test;"), ...);

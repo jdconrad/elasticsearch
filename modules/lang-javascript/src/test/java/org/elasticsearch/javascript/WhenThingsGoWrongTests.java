@@ -36,14 +36,15 @@ public class WhenThingsGoWrongTests extends ScriptTestCase {
     public void testDefNullPointer() {
         // No JavaScript equivalent: intValue() and Painless def/null semantics
         // NullPointerException npe = expectScriptThrows(
-        //     NullPointerException.class,
-        //     () -> { exec("def x = null; x.intValue(); return null;"); }
+        // NullPointerException.class,
+        // () -> { exec("def x = null; x.intValue(); return null;"); }
         // );
         // assertEquals(npe.getMessage(), "cannot access method/field [intValue] from a null def reference");
-        // npe = expectScriptThrows(NullPointerException.class, () -> { exec("def x = [1, null]; for (y in x) y.intValue(); return null;"); });
+        // npe = expectScriptThrows(NullPointerException.class, () -> { exec("def x = [1, null]; for (y in x) y.intValue(); return null;");
+        // });
         // assertEquals(npe.getMessage(), "cannot access method/field [intValue] from a null def reference");
         // npe = expectScriptThrows(NullPointerException.class, () -> {
-        //     exec("def x = [1, 2L, 3.0, 'test', (byte)1, (short)1, (char)1, null]; for (y in x) y.toString(); return null;");
+        // exec("def x = [1, 2L, 3.0, 'test', (byte)1, (short)1, (char)1, null]; for (y in x) y.toString(); return null;");
         // });
         // assertEquals(npe.getMessage(), "cannot access method/field [toString] from a null def reference");
     }
@@ -53,12 +54,13 @@ public class WhenThingsGoWrongTests extends ScriptTestCase {
      * numbers are really 1 based character numbers.
      */
     public void testScriptStack() {
-        // Use "let" only so column/snippet expectations match ( "let   " would shift offsets )
+        // Use "let" only so column/snippet expectations match ( "let " would shift offsets )
         for (String type : new String[] { "let" }) {
             // trigger NPE at line 1 of the script
-            ScriptException exception = expectThrows(ScriptException.class, () -> {
-                exec(type + " x = null; let y = x.isEmpty();\n" + "return y;");
-            });
+            ScriptException exception = expectThrows(
+                ScriptException.class,
+                () -> { exec(type + " x = null; let y = x.isEmpty();\n" + "return y;"); }
+            );
             // null deref at x.isEmpty(); column (1-based line number in stack) = offset + 1 = 31
             assertScriptElementColumn(30, exception);
             assertScriptStackHasLocation(exception, "isEmpty");
@@ -231,7 +233,8 @@ public class WhenThingsGoWrongTests extends ScriptTestCase {
 
     public void testStackOverflowError() {
         // No JavaScript equivalent: Painless "void recurse(int x, int y)" function syntax
-        // var e = expectScriptThrows(ErrorCauseWrapper.class, () -> { exec("void recurse(int x, int y) {recurse(x, y)} recurse(1, 2);"); });
+        // var e = expectScriptThrows(ErrorCauseWrapper.class, () -> { exec("void recurse(int x, int y) {recurse(x, y)} recurse(1, 2);");
+        // });
         // assertThat(e.realCause.getClass(), equalTo(StackOverflowError.class));
         var e = expectScriptThrows(ErrorCauseWrapper.class, () -> {
             exec("function recurse(x, y) { return recurse(x, y); } return recurse(1, 2);");
@@ -854,10 +857,7 @@ public class WhenThingsGoWrongTests extends ScriptTestCase {
     }
 
     public void testArrayToArrayException() {
-        IllegalArgumentException iae = expectScriptThrows(
-            IllegalArgumentException.class,
-            () -> exec("return ['a'].noMethod()")
-        );
+        IllegalArgumentException iae = expectScriptThrows(IllegalArgumentException.class, () -> exec("return ['a'].noMethod()"));
         assertTrue(iae.getMessage().contains("member method") && iae.getMessage().contains("not found"));
     }
 }

@@ -134,7 +134,11 @@ public class JavascriptContextAction {
         private final JavascriptScriptEngine javascriptScriptEngine;
 
         @Inject
-        public TransportAction(TransportService transportService, ActionFilters actionFilters, JavascriptScriptEngine javascriptScriptEngine) {
+        public TransportAction(
+            TransportService transportService,
+            ActionFilters actionFilters,
+            JavascriptScriptEngine javascriptScriptEngine
+        ) {
             super(
                 INSTANCE.name(),
                 transportService,

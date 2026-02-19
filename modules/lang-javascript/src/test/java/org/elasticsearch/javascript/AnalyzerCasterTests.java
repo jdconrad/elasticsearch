@@ -11,6 +11,7 @@ package org.elasticsearch.javascript;
 
 import org.elasticsearch.javascript.lookup.JavascriptCast;
 import org.elasticsearch.test.ESTestCase;
+
 public class AnalyzerCasterTests extends ESTestCase {
 
     private static void assertCast(Class<?> actual, Class<?> expected, boolean mustBeExplicit) {

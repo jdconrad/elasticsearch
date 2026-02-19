@@ -25,9 +25,12 @@ import org.elasticsearch.javascript.JavascriptScriptEngine;
 import org.elasticsearch.javascript.Location;
 import org.elasticsearch.javascript.Operation;
 import org.elasticsearch.javascript.antlr.JavascriptParser.AdditiveExpressionContext;
+import org.elasticsearch.javascript.antlr.JavascriptParser.AnonymousFunctionDeclContext;
 import org.elasticsearch.javascript.antlr.JavascriptParser.ArgumentContext;
 import org.elasticsearch.javascript.antlr.JavascriptParser.ArgumentsContext;
 import org.elasticsearch.javascript.antlr.JavascriptParser.ArgumentsExpressionContext;
+import org.elasticsearch.javascript.antlr.JavascriptParser.ArrowFunctionContext;
+import org.elasticsearch.javascript.antlr.JavascriptParser.ArrowFunctionParametersContext;
 import org.elasticsearch.javascript.antlr.JavascriptParser.AssignmentExpressionContext;
 import org.elasticsearch.javascript.antlr.JavascriptParser.AssignmentOperatorExpressionContext;
 import org.elasticsearch.javascript.antlr.JavascriptParser.BitAndExpressionContext;
@@ -45,6 +48,11 @@ import org.elasticsearch.javascript.antlr.JavascriptParser.ExpressionStatementCo
 import org.elasticsearch.javascript.antlr.JavascriptParser.ForInStatementContext;
 import org.elasticsearch.javascript.antlr.JavascriptParser.ForOfStatementContext;
 import org.elasticsearch.javascript.antlr.JavascriptParser.ForStatementContext;
+import org.elasticsearch.javascript.antlr.JavascriptParser.FormalParameterArgContext;
+import org.elasticsearch.javascript.antlr.JavascriptParser.FormalParameterListContext;
+import org.elasticsearch.javascript.antlr.JavascriptParser.FunctionBodyContext;
+import org.elasticsearch.javascript.antlr.JavascriptParser.FunctionDeclarationContext;
+import org.elasticsearch.javascript.antlr.JavascriptParser.FunctionExpressionContext;
 import org.elasticsearch.javascript.antlr.JavascriptParser.IfStatementContext;
 import org.elasticsearch.javascript.antlr.JavascriptParser.InstanceofExpressionContext;
 import org.elasticsearch.javascript.antlr.JavascriptParser.LiteralContext;
@@ -54,6 +62,7 @@ import org.elasticsearch.javascript.antlr.JavascriptParser.LogicalOrExpressionCo
 import org.elasticsearch.javascript.antlr.JavascriptParser.MemberDotExpressionContext;
 import org.elasticsearch.javascript.antlr.JavascriptParser.MemberIndexExpressionContext;
 import org.elasticsearch.javascript.antlr.JavascriptParser.MultiplicativeExpressionContext;
+import org.elasticsearch.javascript.antlr.JavascriptParser.NamedFunctionContext;
 import org.elasticsearch.javascript.antlr.JavascriptParser.NewExpressionContext;
 import org.elasticsearch.javascript.antlr.JavascriptParser.NotExpressionContext;
 import org.elasticsearch.javascript.antlr.JavascriptParser.PostDecreaseExpressionContext;
@@ -61,6 +70,7 @@ import org.elasticsearch.javascript.antlr.JavascriptParser.PostIncrementExpressi
 import org.elasticsearch.javascript.antlr.JavascriptParser.PreDecreaseExpressionContext;
 import org.elasticsearch.javascript.antlr.JavascriptParser.PreIncrementExpressionContext;
 import org.elasticsearch.javascript.antlr.JavascriptParser.ProgramContext;
+import org.elasticsearch.javascript.antlr.JavascriptParser.PropertyNameContext;
 import org.elasticsearch.javascript.antlr.JavascriptParser.RelationalExpressionContext;
 import org.elasticsearch.javascript.antlr.JavascriptParser.ReturnStatementContext;
 import org.elasticsearch.javascript.antlr.JavascriptParser.SourceElementContext;
@@ -91,6 +101,7 @@ import org.elasticsearch.javascript.node.EConditional;
 import org.elasticsearch.javascript.node.EDecimal;
 import org.elasticsearch.javascript.node.EDot;
 import org.elasticsearch.javascript.node.EInstanceof;
+import org.elasticsearch.javascript.node.ELambda;
 import org.elasticsearch.javascript.node.EListInit;
 import org.elasticsearch.javascript.node.ENewObj;
 import org.elasticsearch.javascript.node.ENull;
@@ -117,7 +128,6 @@ import org.elasticsearch.javascript.node.SReturn;
 import org.elasticsearch.javascript.node.SThrow;
 import org.elasticsearch.javascript.node.STry;
 import org.elasticsearch.javascript.node.SWhile;
-
 import org.elasticsearch.script.ScriptException;
 
 import java.util.ArrayList;
@@ -218,13 +228,7 @@ public final class Walker extends JavascriptParserBaseVisitor<ANode> {
                 String parseMessage = "line " + line + ", offset " + charPositionInLine + ": " + msg;
                 List<String> scriptStack = buildParseErrorScriptStack(sourceText, line, charPositionInLine);
                 Throwable cause = e != null ? e : new RuntimeException(parseMessage);
-                throw new ScriptException(
-                    "parse error",
-                    cause,
-                    scriptStack,
-                    sourceName,
-                    JavascriptScriptEngine.NAME
-                );
+                throw new ScriptException("parse error", cause, scriptStack, sourceName, JavascriptScriptEngine.NAME);
             }
         });
         parser.getInterpreter().setPredictionMode(PredictionMode.LL_EXACT_AMBIG_DETECTION);
@@ -284,17 +288,148 @@ public final class Walker extends JavascriptParserBaseVisitor<ANode> {
         return args;
     }
 
+    private List<AStatement> collectSourceElementStatements(SourceElementsContext sourceElementsContext) {
+        if (sourceElementsContext == null) {
+            return List.of();
+        }
+
+        List<AStatement> statements = new ArrayList<>();
+        for (SourceElementContext sourceElementContext : sourceElementsContext.sourceElement()) {
+            ANode statementNode = visit(sourceElementContext.statement());
+            if (statementNode == null) {
+                continue;
+            }
+            if ((statementNode instanceof AStatement) == false) {
+                throw location(sourceElementContext).createError(new IllegalStateException("illegal tree structure"));
+            }
+            statements.add((AStatement) statementNode);
+        }
+        return statements;
+    }
+
+    private static List<String> nullParameterTypes(int size) {
+        List<String> parameterTypes = new ArrayList<>(size);
+        for (int i = 0; i < size; i++) {
+            parameterTypes.add(null);
+        }
+        return parameterTypes;
+    }
+
+    private static List<String> defParameterTypes(int size) {
+        List<String> parameterTypes = new ArrayList<>(size);
+        for (int i = 0; i < size; i++) {
+            parameterTypes.add("def");
+        }
+        return parameterTypes;
+    }
+
+    private String extractParameterName(ParserRuleContext context, JavascriptParser.AssignableContext assignableContext) {
+        if (assignableContext.identifier() != null) {
+            return assignableContext.identifier().getText();
+        }
+        throw location(context).createError(
+            new IllegalArgumentException("unsupported function parameter [" + assignableContext.getText() + "]")
+        );
+    }
+
+    private String extractArrowParameterName(ParserRuleContext context, PropertyNameContext propertyNameContext) {
+        if (propertyNameContext.identifierName() != null) {
+            return propertyNameContext.identifierName().getText();
+        }
+        throw location(context).createError(
+            new IllegalArgumentException("unsupported arrow parameter [" + propertyNameContext.getText() + "]")
+        );
+    }
+
+    private List<String> collectFormalParameterNames(ParserRuleContext context, FormalParameterListContext formalParameterListContext) {
+        if (formalParameterListContext == null) {
+            return List.of();
+        }
+        if (formalParameterListContext.lastFormalParameterArg() != null) {
+            throw location(context).createError(new IllegalArgumentException("rest parameters are not supported"));
+        }
+
+        List<String> parameterNames = new ArrayList<>(formalParameterListContext.formalParameterArg().size());
+        for (FormalParameterArgContext formalParameterArgContext : formalParameterListContext.formalParameterArg()) {
+            if (formalParameterArgContext.singleExpression() != null) {
+                throw location(context).createError(new IllegalArgumentException("default parameter values are not supported"));
+            }
+            parameterNames.add(extractParameterName(context, formalParameterArgContext.assignable()));
+        }
+        return parameterNames;
+    }
+
+    private List<String> collectArrowParameterNames(
+        ParserRuleContext context,
+        ArrowFunctionParametersContext arrowFunctionParametersContext
+    ) {
+        if (arrowFunctionParametersContext.propertyName() != null) {
+            return List.of(extractArrowParameterName(context, arrowFunctionParametersContext.propertyName()));
+        }
+        return collectFormalParameterNames(context, arrowFunctionParametersContext.formalParameterList());
+    }
+
+    private SBlock buildFunctionBody(FunctionBodyContext functionBodyContext) {
+        List<AStatement> statements = collectSourceElementStatements(functionBodyContext.sourceElements());
+        return new SBlock(nextIdentifier(), location(functionBodyContext), statements);
+    }
+
+    private void ensureSupportedFunctionModifiers(ParserRuleContext context, boolean isAsync, boolean isGenerator) {
+        if (isAsync) {
+            throw location(context).createError(new IllegalArgumentException("async functions are not supported"));
+        }
+        if (isGenerator) {
+            throw location(context).createError(new IllegalArgumentException("generator functions are not supported"));
+        }
+    }
+
+    private SFunction buildFunctionDeclaration(FunctionDeclarationContext functionDeclarationContext) {
+        ensureSupportedFunctionModifiers(
+            functionDeclarationContext,
+            functionDeclarationContext.Async() != null,
+            functionDeclarationContext.Multiply() != null
+        );
+
+        List<String> parameterNames = collectFormalParameterNames(
+            functionDeclarationContext,
+            functionDeclarationContext.formalParameterList()
+        );
+        return new SFunction(
+            nextIdentifier(),
+            location(functionDeclarationContext),
+            "def",
+            functionDeclarationContext.identifier().getText(),
+            defParameterTypes(parameterNames.size()),
+            parameterNames,
+            buildFunctionBody(functionDeclarationContext.functionBody()),
+            false,
+            false,
+            false,
+            false
+        );
+    }
+
+    private ELambda buildLambda(ParserRuleContext context, List<String> parameterNames, SBlock block) {
+        return new ELambda(nextIdentifier(), location(context), nullParameterTypes(parameterNames.size()), parameterNames, block);
+    }
+
     // -------------------------------------------------------------------------
     // Program and top-level
     // -------------------------------------------------------------------------
 
     @Override
     public ANode visitProgram(ProgramContext ctx) {
+        List<SFunction> functions = new ArrayList<>();
         List<AStatement> statements = new ArrayList<>();
         SourceElementsContext sourceElements = ctx.sourceElements();
         if (sourceElements != null) {
             for (SourceElementContext el : sourceElements.sourceElement()) {
-                ANode st = visit(el.statement());
+                StatementContext statementContext = el.statement();
+                if (statementContext.functionDeclaration() != null) {
+                    functions.add(buildFunctionDeclaration(statementContext.functionDeclaration()));
+                    continue;
+                }
+                ANode st = visit(statementContext);
                 if (st != null) {
                     statements.add((AStatement) st);
                 }
@@ -313,7 +448,8 @@ public final class Walker extends JavascriptParserBaseVisitor<ANode> {
             false,
             false
         );
-        return new SClass(nextIdentifier(), location(ctx), List.of(execute));
+        functions.add(execute);
+        return new SClass(nextIdentifier(), location(ctx), functions);
     }
 
     @Override
@@ -323,6 +459,9 @@ public final class Walker extends JavascriptParserBaseVisitor<ANode> {
 
     @Override
     public ANode visitStatement(StatementContext ctx) {
+        if (ctx.functionDeclaration() != null) {
+            throw location(ctx).createError(new IllegalArgumentException("function declarations are only supported at the top level"));
+        }
         if (ctx.block() != null) return visit(ctx.block());
         if (ctx.variableStatement() != null) return visit(ctx.variableStatement());
         if (ctx.expressionStatement() != null) return visit(ctx.expressionStatement());
@@ -517,6 +656,42 @@ public final class Walker extends JavascriptParserBaseVisitor<ANode> {
     // -------------------------------------------------------------------------
 
     @Override
+    public ANode visitFunctionExpression(FunctionExpressionContext ctx) {
+        return visit(ctx.anonymousFunction());
+    }
+
+    @Override
+    public ANode visitArrowFunction(ArrowFunctionContext ctx) {
+        ensureSupportedFunctionModifiers(ctx, ctx.Async() != null, false);
+
+        List<String> parameterNames = collectArrowParameterNames(ctx, ctx.arrowFunctionParameters());
+        SBlock block;
+        if (ctx.arrowFunctionBody().singleExpression() != null) {
+            AExpression expression = (AExpression) visit(ctx.arrowFunctionBody().singleExpression());
+            block = new SBlock(nextIdentifier(), location(ctx), List.of(new SReturn(nextIdentifier(), location(ctx), expression)));
+        } else {
+            block = buildFunctionBody(ctx.arrowFunctionBody().functionBody());
+        }
+        return buildLambda(ctx, parameterNames, block);
+    }
+
+    @Override
+    public ANode visitAnonymousFunctionDecl(AnonymousFunctionDeclContext ctx) {
+        ensureSupportedFunctionModifiers(ctx, ctx.Async() != null, ctx.Multiply() != null);
+
+        List<String> parameterNames = collectFormalParameterNames(ctx, ctx.formalParameterList());
+        return buildLambda(ctx, parameterNames, buildFunctionBody(ctx.functionBody()));
+    }
+
+    @Override
+    public ANode visitNamedFunction(NamedFunctionContext ctx) {
+        FunctionDeclarationContext functionDeclarationContext = ctx.functionDeclaration();
+        ensureSupportedFunctionModifiers(ctx, functionDeclarationContext.Async() != null, functionDeclarationContext.Multiply() != null);
+        List<String> parameterNames = collectFormalParameterNames(ctx, functionDeclarationContext.formalParameterList());
+        return buildLambda(ctx, parameterNames, buildFunctionBody(functionDeclarationContext.functionBody()));
+    }
+
+    @Override
     public ANode visitTernaryExpression(TernaryExpressionContext ctx) {
         AExpression condition = (AExpression) visit(ctx.singleExpression(0));
         AExpression left = (AExpression) visit(ctx.singleExpression(1));
@@ -583,9 +758,7 @@ public final class Walker extends JavascriptParserBaseVisitor<ANode> {
     public ANode visitMultiplicativeExpression(MultiplicativeExpressionContext ctx) {
         AExpression left = (AExpression) visit(ctx.singleExpression(0));
         AExpression right = (AExpression) visit(ctx.singleExpression(1));
-        Operation op = ctx.Multiply() != null ? Operation.MUL
-            : ctx.Divide() != null ? Operation.DIV
-            : Operation.REM;
+        Operation op = ctx.Multiply() != null ? Operation.MUL : ctx.Divide() != null ? Operation.DIV : Operation.REM;
         return new EBinary(nextIdentifier(), location(ctx), left, right, op);
     }
 
@@ -594,7 +767,10 @@ public final class Walker extends JavascriptParserBaseVisitor<ANode> {
         AExpression left = (AExpression) visit(ctx.singleExpression(0));
         AExpression right = (AExpression) visit(ctx.singleExpression(1));
         String text = ctx.getChild(1).getText();
-        Operation op = "==".equals(text) ? Operation.EQ : "===".equals(text) ? Operation.EQR : "!=".equals(text) ? Operation.NE : Operation.NER;
+        Operation op = "==".equals(text) ? Operation.EQ
+            : "===".equals(text) ? Operation.EQR
+            : "!=".equals(text) ? Operation.NE
+            : Operation.NER;
         return new EComp(nextIdentifier(), location(ctx), left, right, op);
     }
 
@@ -603,7 +779,10 @@ public final class Walker extends JavascriptParserBaseVisitor<ANode> {
         AExpression left = (AExpression) visit(ctx.singleExpression(0));
         AExpression right = (AExpression) visit(ctx.singleExpression(1));
         String text = ctx.getChild(1).getText();
-        Operation op = "<".equals(text) ? Operation.LT : "<=".equals(text) ? Operation.LTE : ">".equals(text) ? Operation.GT : Operation.GTE;
+        Operation op = "<".equals(text) ? Operation.LT
+            : "<=".equals(text) ? Operation.LTE
+            : ">".equals(text) ? Operation.GT
+            : Operation.GTE;
         return new EComp(nextIdentifier(), location(ctx), left, right, op);
     }
 
@@ -646,14 +825,7 @@ public final class Walker extends JavascriptParserBaseVisitor<ANode> {
         }
         if (callee instanceof EDot) {
             EDot dot = (EDot) callee;
-            return new ECall(
-                nextIdentifier(),
-                dot.getLocation(),
-                dot.getPrefixNode(),
-                dot.getIndex(),
-                args,
-                dot.isNullSafe()
-            );
+            return new ECall(nextIdentifier(), dot.getLocation(), dot.getPrefixNode(), dot.getIndex(), args, dot.isNullSafe());
         }
         return new ECall(nextIdentifier(), location(ctx), callee, "", args, false);
     }
@@ -708,9 +880,16 @@ public final class Walker extends JavascriptParserBaseVisitor<ANode> {
                 return new EDecimal(nextIdentifier(), location(ctx), text);
             }
             int radix = 10;
-            if (text.startsWith("0x") || text.startsWith("0X")) { text = text.substring(2); radix = 16; }
-            else if (text.startsWith("0o") || text.startsWith("0O")) { text = text.substring(2); radix = 8; }
-            else if (text.startsWith("0b") || text.startsWith("0B")) { text = text.substring(2); radix = 2; }
+            if (text.startsWith("0x") || text.startsWith("0X")) {
+                text = text.substring(2);
+                radix = 16;
+            } else if (text.startsWith("0o") || text.startsWith("0O")) {
+                text = text.substring(2);
+                radix = 8;
+            } else if (text.startsWith("0b") || text.startsWith("0B")) {
+                text = text.substring(2);
+                radix = 2;
+            }
             return new ENumeric(nextIdentifier(), location(ctx), text.replaceAll("[lL]$", ""), radix);
         }
         // TODO: templateStringLiteral, bigintLiteral
@@ -847,7 +1026,7 @@ public final class Walker extends JavascriptParserBaseVisitor<ANode> {
     }
 
     // TODO: PowerExpression, CoalesceExpression, OptionalChainExpression, TemplateStringExpression,
-    // ThisExpression, SuperExpression, ClassExpression, FunctionExpression, ObjectLiteralExpression,
-    // MetaExpression, YieldExpression, AwaitExpression, DeleteExpression, TypeofExpression,
-    // VoidExpression, ImportExpression, BitNotExpression, NamedFunction, AnonymousFunctionDecl, ArrowFunction
+    // ThisExpression, SuperExpression, ClassExpression, ObjectLiteralExpression, MetaExpression,
+    // YieldExpression, AwaitExpression, DeleteExpression, TypeofExpression, VoidExpression,
+    // ImportExpression, BitNotExpression
 }

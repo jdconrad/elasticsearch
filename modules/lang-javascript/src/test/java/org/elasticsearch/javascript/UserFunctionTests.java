@@ -143,6 +143,65 @@ public class UserFunctionTests extends ScriptTestCase {
         assertBytecodeExists(source, "INVOKEVIRTUAL org/elasticsearch/javascript/JavascriptScript$Script.&myCompare (II)I");
     }
 
+    public void testBareUserFunctionValueDef() {
+        String source = """
+            int add(int a, int b) { a + b }
+            def fn = add;
+            fn(1, 2);
+            """;
+        assertEquals(3, exec(source));
+    }
+
+    public void testBareUserFunctionValueTyped() {
+        String source = """
+            int add(int a, int b) { a + b }
+            BiFunction fn = add;
+            fn(1, 2);
+            """;
+        assertEquals(3, exec(source));
+    }
+
+    public void testBareUserFunctionValueAsMethodArgument() {
+        String source = """
+            int myCompare(int x, int y) { -1 * (x - y) }
+            List l = [1, 100, -100];
+            l.sort(myCompare);
+            l;
+            """;
+        assertEquals(List.of(100, 1, -100), exec(source, Map.of("a", 1), false));
+    }
+
+    public void testBareUserFunctionValuePrefersVariableShadowing() {
+        String source = """
+            int add(int a, int b) { a + b }
+            def add = (a, b) -> a - b;
+            BiFunction fn = add;
+            fn(5, 3);
+            """;
+        assertEquals(2, exec(source));
+    }
+
+    public void testBareUserFunctionValueAsMethodArgumentPrefersVariableShadowing() {
+        String source = """
+            int myCompare(int x, int y) { x - y }
+            def myCompare = (x, y) -> -1 * (x - y);
+            List l = [1, 100, -100];
+            l.sort(myCompare);
+            l;
+            """;
+        assertEquals(List.of(100, 1, -100), exec(source));
+    }
+
+    public void testBareOverloadedUserFunctionValueDef() {
+        String source = """
+            int sum(int a) { a + 1 }
+            int sum(int a, int b) { a + b }
+            def fn = sum;
+            fn(2) + fn(1, 3);
+            """;
+        assertEquals(7, exec(source));
+    }
+
     public void testUserFunctionLambdaCapture() {
         String source = """
             int myCompare(Object o, int x, int y) { return o != null ? -1 * ( x - y ) : ( x - y ) }
@@ -152,7 +211,10 @@ public class UserFunctionTests extends ScriptTestCase {
             return l;""";
         assertEquals(List.of(100, 1, -100), exec(source, Map.of("a", 1), false));
         assertBytecodeExists(source, "public &myCompare(Ljava/lang/Object;II)I");
-        assertBytecodeExists(source, "INVOKEVIRTUAL org/elasticsearch/javascript/JavascriptScript$Script.&myCompare (Ljava/lang/Object;II)I");
+        assertBytecodeExists(
+            source,
+            "INVOKEVIRTUAL org/elasticsearch/javascript/JavascriptScript$Script.&myCompare (Ljava/lang/Object;II)I"
+        );
     }
 
     public void testLambdaCapture() {

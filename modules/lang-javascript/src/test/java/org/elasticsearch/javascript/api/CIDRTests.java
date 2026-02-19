@@ -10,6 +10,7 @@
 package org.elasticsearch.javascript.api;
 
 import org.elasticsearch.test.ESTestCase;
+
 public class CIDRTests extends ESTestCase {
     public void testCIDR() {
         CIDR cidr = new CIDR("192.168.8.0/24");

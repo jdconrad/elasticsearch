@@ -222,7 +222,10 @@ public class ContextGeneratorCommon {
             }
         }
 
-        private static <T> Set<T> getCommon(List<JavascriptContextInfo> javascriptContexts, Function<JavascriptContextInfo, List<T>> getter) {
+        private static <T> Set<T> getCommon(
+            List<JavascriptContextInfo> javascriptContexts,
+            Function<JavascriptContextInfo, List<T>> getter
+        ) {
             Map<T, Integer> infoCounts = new HashMap<>();
             for (JavascriptContextInfo contextInfo : javascriptContexts) {
                 for (T info : getter.apply(contextInfo)) {

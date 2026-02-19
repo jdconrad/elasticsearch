@@ -160,23 +160,11 @@ public class BasicAPITests extends ScriptTestCase {
     }
 
     public void testPublicMemberAccess() {
-        assertEquals(
-            5,
-            exec(
-                "let ft = new org.elasticsearch.javascript.FeatureTestObject();"
-                    + " ft.z = 5; return ft.z;"
-            )
-        );
+        assertEquals(5, exec("let ft = new org.elasticsearch.javascript.FeatureTestObject();" + " ft.z = 5; return ft.z;"));
     }
 
     public void testSetterShortcut() {
-        assertEquals(
-            25,
-            exec(
-                "let ft = new org.elasticsearch.javascript.FeatureTestObject();"
-                    + " ft.y = 25; return ft.y;"
-            )
-        );
+        assertEquals(25, exec("let ft = new org.elasticsearch.javascript.FeatureTestObject();" + " ft.y = 25; return ft.y;"));
     }
 
     public void testNoSemicolon() {

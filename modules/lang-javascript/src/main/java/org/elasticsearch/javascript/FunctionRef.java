@@ -136,7 +136,10 @@ public class FunctionRef {
                     throw new IllegalStateException("internal error");
                 }
 
-                JavascriptConstructor javascriptConstructor = javascriptLookup.lookupJavascriptConstructor(typeName, interfaceTypeParametersSize);
+                JavascriptConstructor javascriptConstructor = javascriptLookup.lookupJavascriptConstructor(
+                    typeName,
+                    interfaceTypeParametersSize
+                );
 
                 if (javascriptConstructor == null) {
                     throw new IllegalArgumentException(

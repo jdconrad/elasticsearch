@@ -41,7 +41,10 @@ public class JavascriptInfoJson {
             JavadocExtractor extractor
         ) throws IOException {
             this.name = info.getName();
-            List<JavascriptContextClassInfo> classInfos = ContextGeneratorCommon.excludeCommonClassInfos(commonClassInfos, info.getClasses());
+            List<JavascriptContextClassInfo> classInfos = ContextGeneratorCommon.excludeCommonClassInfos(
+                commonClassInfos,
+                info.getClasses()
+            );
             classInfos = ContextGeneratorCommon.sortClassInfos(classInfos);
             this.classes = Class.fromInfos(classInfos, javaNamesToDisplayNames, extractor);
             // TODO(stu): should we use extractor for these imported methods?
@@ -56,7 +59,10 @@ public class JavascriptInfoJson {
             Map<String, String> javaNamesToDisplayNames
         ) {
             this.name = info.getName();
-            List<JavascriptContextClassInfo> classInfos = ContextGeneratorCommon.excludeCommonClassInfos(commonClassInfos, info.getClasses());
+            List<JavascriptContextClassInfo> classInfos = ContextGeneratorCommon.excludeCommonClassInfos(
+                commonClassInfos,
+                info.getClasses()
+            );
             classInfos = ContextGeneratorCommon.sortClassInfos(classInfos);
             this.classes = Class.fromInfos(classInfos, javaNamesToDisplayNames);
             this.importedMethods = Method.fromInfos(info.getImportedMethods(), javaNamesToDisplayNames);
@@ -291,7 +297,10 @@ public class JavascriptInfoJson {
             this.javadoc = javadoc;
         }
 
-        public static List<Constructor> fromInfos(List<JavascriptContextConstructorInfo> infos, Map<String, String> javaNamesToDisplayNames) {
+        public static List<Constructor> fromInfos(
+            List<JavascriptContextConstructorInfo> infos,
+            Map<String, String> javaNamesToDisplayNames
+        ) {
             List<Constructor> constructors = new ArrayList<>(infos.size());
             for (JavascriptContextConstructorInfo info : infos) {
                 List<String> parameterTypes = toDisplayParameterTypes(info.getParameters(), javaNamesToDisplayNames);

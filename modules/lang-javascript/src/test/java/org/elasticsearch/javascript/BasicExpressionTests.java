@@ -166,7 +166,9 @@ public class BasicExpressionTests extends ScriptTestCase {
         assertEquals(true, exec("let t = true, f = false; return t && (f || t);"));
     }
 
-    @org.junit.Ignore("null-safe method resolution: Unknown call [toString] when receiver is def-typed; semantic phase needs to resolve method on nullable receiver")
+    @org.junit.Ignore(
+        "null-safe method resolution: Unknown call [toString] when receiver is def-typed; semantic phase needs to resolve method on nullable receiver"
+    )
     public void testNullSafeDeref() {
         // Objects in general
         // Call

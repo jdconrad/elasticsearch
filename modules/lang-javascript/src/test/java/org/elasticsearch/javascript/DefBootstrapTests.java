@@ -21,6 +21,7 @@ import java.lang.invoke.MethodType;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.function.IntUnaryOperator;
 
 import static org.elasticsearch.javascript.ScriptTestCase.JAVASCRIPT_BASE_WHITELIST;
 
@@ -146,8 +147,93 @@ public class DefBootstrapTests extends ESTestCase {
         IllegalArgumentException iae = (IllegalArgumentException) pwe.getCause();
         assertEquals("dynamic method [java.lang.Object, size/0] not found", iae.getMessage());
         assertTrue("Does not fail inside ClassValue.computeValue()", Arrays.stream(iae.getStackTrace()).anyMatch(e -> {
-            return e.getMethodName().equals("computeValue") && e.getClassName().startsWith("org.elasticsearch.javascript.DefBootstrap$PIC$");
+            return e.getMethodName().equals("computeValue")
+                && e.getClassName().startsWith("org.elasticsearch.javascript.DefBootstrap$PIC$");
         }));
+    }
+
+    public void testDefCallableInvocation() throws Throwable {
+        CallSite site = DefBootstrap.bootstrap(
+            javascriptLookup,
+            new FunctionTable(),
+            Collections.emptyMap(),
+            MethodHandles.publicLookup(),
+            Def.DEF_CALLABLE_METHOD_NAME,
+            MethodType.methodType(int.class, Object.class, int.class),
+            0,
+            DefBootstrap.METHOD_CALL,
+            ""
+        );
+        MethodHandle handle = site.dynamicInvoker();
+
+        IntUnaryOperator increment = x -> x + 1;
+        assertEquals(2, (int) handle.invokeExact((Object) increment, 1));
+    }
+
+    public void testDefCallableInvocationRejectsNonCallable() throws Throwable {
+        CallSite site = DefBootstrap.bootstrap(
+            javascriptLookup,
+            new FunctionTable(),
+            Collections.emptyMap(),
+            MethodHandles.publicLookup(),
+            Def.DEF_CALLABLE_METHOD_NAME,
+            MethodType.methodType(int.class, Object.class, int.class),
+            0,
+            DefBootstrap.METHOD_CALL,
+            ""
+        );
+        MethodHandle handle = site.dynamicInvoker();
+
+        IllegalArgumentException e = expectThrows(IllegalArgumentException.class, () -> {
+            Integer.toString((int) handle.invokeExact((Object) Integer.valueOf(1), 1));
+        });
+        assertEquals("value of type [java.lang.Integer] is not callable", e.getMessage());
+    }
+
+    public void testDefCallableInvocationRejectsWrongArity() throws Throwable {
+        CallSite site = DefBootstrap.bootstrap(
+            javascriptLookup,
+            new FunctionTable(),
+            Collections.emptyMap(),
+            MethodHandles.publicLookup(),
+            Def.DEF_CALLABLE_METHOD_NAME,
+            MethodType.methodType(int.class, Object.class, int.class, int.class),
+            0,
+            DefBootstrap.METHOD_CALL,
+            ""
+        );
+        MethodHandle handle = site.dynamicInvoker();
+
+        IntUnaryOperator increment = x -> x + 1;
+        IllegalArgumentException e = expectThrows(IllegalArgumentException.class, () -> {
+            Integer.toString((int) handle.invokeExact((Object) increment, 1, 2));
+        });
+        assertEquals(
+            "incorrect number of arguments for callable value [java.util.function.IntUnaryOperator], expected [1] but found [2]",
+            e.getMessage()
+        );
+    }
+
+    public void testMethodCallRejectsLegacyCallRecipe() throws Throwable {
+        CallSite site = DefBootstrap.bootstrap(
+            javascriptLookup,
+            new FunctionTable(),
+            Collections.emptyMap(),
+            MethodHandles.publicLookup(),
+            "toString",
+            MethodType.methodType(String.class, Object.class),
+            0,
+            DefBootstrap.METHOD_CALL,
+            "a",
+            "unused"
+        );
+        MethodHandle handle = site.dynamicInvoker();
+
+        IllegalStateException e = expectThrows(
+            IllegalStateException.class,
+            () -> { assertEquals("5", (String) handle.invokeExact((Object) 5)); }
+        );
+        assertEquals("dynamic call recipes are no longer supported", e.getMessage());
     }
 
     // test operators with null guards

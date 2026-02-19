@@ -1,0 +1,90 @@
+setup:
+  - do:
+      indices.create:
+        index: test_metric_fc
+        body:
+          settings:
+            number_of_replicas: 0
+          mappings:
+            properties:
+              rank:
+                type: integer
+              rank_plus_bonus:
+                type: integer
+
+  - do:
+      cluster.health:
+        wait_for_status: green
+
+  - do:
+      index:
+        index: test_metric_fc
+        id: "1"
+        body:
+          rank: 4
+          rank_plus_bonus: 9
+
+  - do:
+      index:
+        index: test_metric_fc
+        id: "2"
+        body:
+          rank: 8
+          rank_plus_bonus: 13
+
+  - do:
+      index:
+        index: test_metric_fc
+        id: "3"
+        body:
+          rank: 12
+          rank_plus_bonus: 17
+
+  - do:
+      index:
+        index: test_metric_fc
+        id: "4"
+        body:
+          rank: 16
+          rank_plus_bonus: 21
+
+  - do:
+      indices.refresh: {}
+
+---
+"Metric aggs with first-class functions":
+  - do:
+      search:
+        rest_total_hits_as_int: true
+        index: test_metric_fc
+        body:
+          size: 0
+          aggs:
+            sum_transformed_rank:
+              sum:
+                script:
+                  lang: javascript
+                  source: "let transforms = [(x) => x + 1, (x) => x * 2]; let bump = transforms[0]; let scale = transforms[1]; scale(bump(doc['rank'].value))"
+            avg_via_bare_function_value:
+              avg:
+                script:
+                  lang: javascript
+                  source: "function metric(v) { v * 1.5; } let fn = metric; fn(doc['rank'].value)"
+            stats_via_nested_callables:
+              stats:
+                script:
+                  lang: javascript
+                  source: "let z = [() => 1, [(a) => a + 3]]; let x = z[0]; let y = z[1][0]; doc['rank'].value + x() + y(1)"
+            max_rank_plus_bonus:
+              max:
+                field: rank_plus_bonus
+
+  - match: { hits.total: 4 }
+  - match: { aggregations.sum_transformed_rank.value: 88.0 }
+  - match: { aggregations.avg_via_bare_function_value.value: 15.0 }
+  - match: { aggregations.stats_via_nested_callables.count: 4 }
+  - match: { aggregations.stats_via_nested_callables.min: 9.0 }
+  - match: { aggregations.stats_via_nested_callables.max: 21.0 }
+  - match: { aggregations.stats_via_nested_callables.avg: 15.0 }
+  - match: { aggregations.stats_via_nested_callables.sum: 60.0 }
+  - match: { aggregations.max_rank_plus_bonus.value: 21.0 }

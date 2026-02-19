@@ -51,24 +51,24 @@ public final class EnhancedSuggestLexer extends SuggestLexer {
     @Override
     protected boolean isSlashRegex() {
         throw new IllegalStateException("Not implemented");
-//        Token lastToken = current;
-//        if (lastToken == null) {
-//            return true;
-//        }
-//        switch (lastToken.getType()) {
-//            case JavascriptLexer.RBRACE:
-//            case JavascriptLexer.RP:
-//            case JavascriptLexer.OCTAL:
-//            case JavascriptLexer.HEX:
-//            case JavascriptLexer.INTEGER:
-//            case JavascriptLexer.DECIMAL:
-//            case JavascriptLexer.ID:
-//            case JavascriptLexer.DOTINTEGER:
-//            case JavascriptLexer.DOTID:
-//                return false;
-//            default:
-//                return true;
-//        }
+        // Token lastToken = current;
+        // if (lastToken == null) {
+        // return true;
+        // }
+        // switch (lastToken.getType()) {
+        // case JavascriptLexer.RBRACE:
+        // case JavascriptLexer.RP:
+        // case JavascriptLexer.OCTAL:
+        // case JavascriptLexer.HEX:
+        // case JavascriptLexer.INTEGER:
+        // case JavascriptLexer.DECIMAL:
+        // case JavascriptLexer.ID:
+        // case JavascriptLexer.DOTINTEGER:
+        // case JavascriptLexer.DOTID:
+        // return false;
+        // default:
+        // return true;
+        // }
     }
 
     @Override

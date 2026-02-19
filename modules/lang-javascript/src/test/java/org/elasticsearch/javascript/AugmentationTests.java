@@ -61,18 +61,9 @@ public class AugmentationTests extends ScriptTestCase {
     }
 
     public void testCapturingReference() {
-        assertEquals(
-            1,
-            exec("function foo(t) { return t.get(); } let l = new ArrayList(); l.add(1); return foo(l::getLength);")
-        );
-        assertEquals(
-            1,
-            exec("function foo(t) { return t.get(); } let l = new ArrayList(); l.add(1); return foo(l::getLength);")
-        );
-        assertEquals(
-            1,
-            exec("function foo(t) { return t.get(); } let l = new ArrayList(); l.add(1); return foo(l::getLength);")
-        );
+        assertEquals(1, exec("function foo(t) { return t.get(); } let l = new ArrayList(); l.add(1); return foo(l::getLength);"));
+        assertEquals(1, exec("function foo(t) { return t.get(); } let l = new ArrayList(); l.add(1); return foo(l::getLength);"));
+        assertEquals(1, exec("function foo(t) { return t.get(); } let l = new ArrayList(); l.add(1); return foo(l::getLength);"));
     }
 
     public void testIterable_Any() {
@@ -217,10 +208,7 @@ public class AugmentationTests extends ScriptTestCase {
     public void testFeatureTest() {
         assertEquals(
             5,
-            exec(
-                "let ft = new org.elasticsearch.javascript.FeatureTestObject();"
-                    + " ft.setX(3); ft.setY(2); return ft.getTotal()"
-            )
+            exec("let ft = new org.elasticsearch.javascript.FeatureTestObject();" + " ft.setX(3); ft.setY(2); return ft.getTotal()")
         );
         assertEquals(
             5,
@@ -228,10 +216,7 @@ public class AugmentationTests extends ScriptTestCase {
         );
         assertEquals(
             8,
-            exec(
-                "let ft = new org.elasticsearch.javascript.FeatureTestObject();"
-                    + " ft.setX(3); ft.setY(2); return ft.addToTotal(3)"
-            )
+            exec("let ft = new org.elasticsearch.javascript.FeatureTestObject();" + " ft.setX(3); ft.setY(2); return ft.addToTotal(3)")
         );
         assertEquals(
             8,

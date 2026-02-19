@@ -53,8 +53,7 @@ import java.util.Deque;
  * All lexer methods that used in grammar (IsStrictMode)
  * should start with Upper Case Char similar to Lexer rules.
  */
-public abstract class JavascriptLexerBase extends Lexer
-{
+public abstract class JavascriptLexerBase extends Lexer {
     /**
      * Stores values of nested modes. By default mode is strict or
      * defined externally (useStrictDefault)
@@ -75,12 +74,12 @@ public abstract class JavascriptLexerBase extends Lexer
     /**
      * Preserves depth due to braces including template literals.
      */
-	private int currentDepth = 0;
+    private int currentDepth = 0;
 
     /**
      * Preserves the starting depth of template literals to correctly handle braces inside template literals.
      */
-	private Deque<Integer> templateDepthStack = new ArrayDeque<Integer>();
+    private Deque<Integer> templateDepthStack = new ArrayDeque<Integer>();
 
     public JavascriptLexerBase(CharStream input) {
         super(input);
@@ -104,7 +103,7 @@ public abstract class JavascriptLexerBase extends Lexer
     }
 
     public boolean IsInTemplateString() {
-		return !templateDepthStack.isEmpty() && templateDepthStack.peek() == currentDepth;
+        return !templateDepthStack.isEmpty() && templateDepthStack.peek() == currentDepth;
     }
 
     /**
@@ -128,38 +127,32 @@ public abstract class JavascriptLexerBase extends Lexer
         return next;
     }
 
-    protected void ProcessOpenBrace()
-    {
-		currentDepth++;
+    protected void ProcessOpenBrace() {
+        currentDepth++;
         useStrictCurrent = scopeStrictModes.size() > 0 && scopeStrictModes.peek() ? true : useStrictDefault;
         scopeStrictModes.push(useStrictCurrent);
     }
 
-    protected void ProcessCloseBrace()
-    {
+    protected void ProcessCloseBrace() {
         useStrictCurrent = scopeStrictModes.size() > 0 ? scopeStrictModes.pop() : useStrictDefault;
-		currentDepth--;
+        currentDepth--;
     }
 
-	protected void ProcessTemplateOpenBrace() {
-		currentDepth++;
-		this.templateDepthStack.push(currentDepth);
-	}
+    protected void ProcessTemplateOpenBrace() {
+        currentDepth++;
+        this.templateDepthStack.push(currentDepth);
+    }
 
-	protected void ProcessTemplateCloseBrace() {
-		this.templateDepthStack.pop();
-		currentDepth--;
-	}
+    protected void ProcessTemplateCloseBrace() {
+        this.templateDepthStack.pop();
+        currentDepth--;
+    }
 
-    protected void ProcessStringLiteral()
-    {
-        if (lastToken == null || lastToken.getType() == JavascriptLexer.OpenBrace)
-        {
+    protected void ProcessStringLiteral() {
+        if (lastToken == null || lastToken.getType() == JavascriptLexer.OpenBrace) {
             String text = getText();
-            if (text.equals("\"use strict\"") || text.equals("'use strict'"))
-            {
-                if (scopeStrictModes.size() > 0)
-                    scopeStrictModes.pop();
+            if (text.equals("\"use strict\"") || text.equals("'use strict'")) {
+                if (scopeStrictModes.size() > 0) scopeStrictModes.pop();
                 useStrictCurrent = true;
                 scopeStrictModes.push(useStrictCurrent);
             }
@@ -204,8 +197,8 @@ public abstract class JavascriptLexerBase extends Lexer
         this.lastToken = null;
         this.useStrictDefault = false;
         this.useStrictCurrent = false;
-	    this.currentDepth = 0;
-	    this.templateDepthStack = new ArrayDeque<Integer>();
+        this.currentDepth = 0;
+        this.templateDepthStack = new ArrayDeque<Integer>();
         super.reset();
     }
 }

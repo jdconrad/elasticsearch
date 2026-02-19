@@ -276,13 +276,7 @@ public class FunctionRefTests extends ScriptTestCase {
     }
 
     public void testNotFunctionalInterface() {
-        IllegalArgumentException expected = expectScriptThrows(IllegalArgumentException.class, () -> {
-            exec("List l = new ArrayList(); l.add(2); l.add(1); l.add(Integer::bogus); return l.get(0);");
-        });
-        assertThat(
-            expected.getMessage(),
-            containsString("cannot convert function reference [Integer::bogus] to a non-functional interface [def]")
-        );
+        assertEquals(1, exec("List l = new ArrayList(); l.add(Integer::compare); def compare = l.get(0); compare(2, 1);"));
     }
 
     public void testIncompatible() {

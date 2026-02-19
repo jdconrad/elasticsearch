@@ -159,16 +159,7 @@ public final class DefBootstrap {
          */
         private MethodHandle lookup(int flavorValue, String nameValue, Class<?> receiver) throws Throwable {
             return switch (flavorValue) {
-                case METHOD_CALL -> Def.lookupMethod(
-                    javascriptLookup,
-                    functions,
-                    constants,
-                    methodHandlesLookup,
-                    type(),
-                    receiver,
-                    nameValue,
-                    args
-                );
+                case METHOD_CALL -> Def.lookupMethod(javascriptLookup, constants, type(), receiver, nameValue, args);
                 case LOAD -> Def.lookupGetter(javascriptLookup, receiver, nameValue);
                 case STORE -> Def.lookupSetter(javascriptLookup, receiver, nameValue);
                 case ARRAY_LOAD -> Def.lookupArrayLoad(receiver);

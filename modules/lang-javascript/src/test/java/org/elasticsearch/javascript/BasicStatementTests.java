@@ -117,7 +117,10 @@ public class BasicStatementTests extends ScriptTestCase {
         assertEquals(6, exec("let x = 0; let y = 0; for (x = 0; x < 4; ++x) { y += x; } return y;"));
         assertEquals("aaaaaa", exec("let c = \"a\"; for (let x = 0; x < 5; ++x) c += \"a\"; return c;"));
 
-        assertEquals(6, exec("function test() { return 0.0; } let x = 0; let y = 0; for (test(); x < 4; test()) { y += x; ++x; } return y;"));
+        assertEquals(
+            6,
+            exec("function test() { return 0.0; } let x = 0; let y = 0; for (test(); x < 4; test()) { y += x; ++x; } return y;")
+        );
 
         Object value = exec("""
              let b = new int[5][5];
@@ -150,10 +153,7 @@ public class BasicStatementTests extends ScriptTestCase {
         );
         assertEquals(
             "123",
-            exec(
-                "let l = new ArrayList(); l.add('1'); l.add('2'); l.add('3'); let cat = '';"
-                    + " for (String x : l) cat += x; return cat"
-            )
+            exec("let l = new ArrayList(); l.add('1'); l.add('2'); l.add('3'); let cat = '';" + " for (String x : l) cat += x; return cat")
         );
         assertEquals(
             "123",
@@ -188,9 +188,7 @@ public class BasicStatementTests extends ScriptTestCase {
         );
         assertEquals(
             "123",
-            exec(
-                "let l = new ArrayList(); l.add('1'); l.add('2'); l.add('3'); let cat = '';" + " for (String x : l) cat += x; return cat"
-            )
+            exec("let l = new ArrayList(); l.add('1'); l.add('2'); l.add('3'); let cat = '';" + " for (String x : l) cat += x; return cat")
         );
         assertEquals(
             "123",
@@ -232,9 +230,7 @@ public class BasicStatementTests extends ScriptTestCase {
         );
         assertEquals(
             "123",
-            exec(
-                "let a = new String[3]; a[0] = '1'; a[1] = '2'; a[2] = '3'; let total = '';" + " for (x in a) total += x; return total"
-            )
+            exec("let a = new String[3]; a[0] = '1'; a[1] = '2'; a[2] = '3'; let total = '';" + " for (x in a) total += x; return total")
         );
         assertEquals(
             6,
@@ -246,8 +242,7 @@ public class BasicStatementTests extends ScriptTestCase {
         assertEquals(
             6,
             exec(
-                "let i = new int[3][1]; i[0][0] = 1; i[1][0] = 2; i[2][0] = 3; let total = 0;"
-                    + " for (j in i) total += j[0]; return total"
+                "let i = new int[3][1]; i[0][0] = 1; i[1][0] = 2; i[2][0] = 3; let total = 0;" + " for (j in i) total += j[0]; return total"
             )
         );
     }
@@ -409,8 +404,7 @@ public class BasicStatementTests extends ScriptTestCase {
         assertEquals(
             6L,
             exec(
-                "let sum = 0; let array = [1, 2, 3];"
-                    + " for (let i = 0; i < array.length; i++) { sum += array[i]; } return sum;",
+                "let sum = 0; let array = [1, 2, 3];" + " for (let i = 0; i < array.length; i++) { sum += array[i]; } return sum;",
                 Collections.emptyMap(),
                 Collections.singletonMap(CompilerSettings.MAX_LOOP_COUNTER, "0"),
                 true
@@ -419,8 +413,7 @@ public class BasicStatementTests extends ScriptTestCase {
         assertEquals(
             6L,
             exec(
-                "let sum = 0; let array = [1, 2, 3];"
-                    + " let i = 0; while (i < array.length) { sum += array[i++]; } return sum;",
+                "let sum = 0; let array = [1, 2, 3];" + " let i = 0; while (i < array.length) { sum += array[i++]; } return sum;",
                 Collections.emptyMap(),
                 Collections.singletonMap(CompilerSettings.MAX_LOOP_COUNTER, "0"),
                 true
@@ -429,8 +422,7 @@ public class BasicStatementTests extends ScriptTestCase {
         assertEquals(
             6L,
             exec(
-                "let sum = 0; let array = [1, 2, 3];"
-                    + " let i = 0; do { sum += array[i++]; } while (i < array.length); return sum;",
+                "let sum = 0; let array = [1, 2, 3];" + " let i = 0; do { sum += array[i++]; } while (i < array.length); return sum;",
                 Collections.emptyMap(),
                 Collections.singletonMap(CompilerSettings.MAX_LOOP_COUNTER, "0"),
                 true

@@ -23,7 +23,6 @@ import org.elasticsearch.javascript.ir.ConstantNode;
 import org.elasticsearch.javascript.ir.ContinueNode;
 import org.elasticsearch.javascript.ir.DeclarationBlockNode;
 import org.elasticsearch.javascript.ir.DeclarationNode;
-import org.elasticsearch.javascript.ir.DefInterfaceReferenceNode;
 import org.elasticsearch.javascript.ir.DoWhileLoopNode;
 import org.elasticsearch.javascript.ir.DupNode;
 import org.elasticsearch.javascript.ir.ElvisNode;
@@ -59,6 +58,7 @@ import org.elasticsearch.javascript.ir.NewObjectNode;
 import org.elasticsearch.javascript.ir.NullNode;
 import org.elasticsearch.javascript.ir.NullSafeSubNode;
 import org.elasticsearch.javascript.ir.ReturnNode;
+import org.elasticsearch.javascript.ir.RuntimeCallableNode;
 import org.elasticsearch.javascript.ir.StatementExpressionNode;
 import org.elasticsearch.javascript.ir.StaticNode;
 import org.elasticsearch.javascript.ir.StoreBraceDefNode;
@@ -266,8 +266,8 @@ public class IRTreeBaseVisitor<Scope> implements IRTreeVisitor<Scope> {
     }
 
     @Override
-    public void visitDefInterfaceReference(DefInterfaceReferenceNode irDefInterfaceReferenceNode, Scope scope) {
-        irDefInterfaceReferenceNode.visitChildren(this, scope);
+    public void visitRuntimeCallable(RuntimeCallableNode irRuntimeCallableNode, Scope scope) {
+        irRuntimeCallableNode.visitChildren(this, scope);
     }
 
     @Override

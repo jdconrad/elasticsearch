@@ -37,7 +37,12 @@ public class JavascriptCast {
     }
 
     /** Create a cast where the target type will be unboxed, and then the cast will be performed. */
-    public static JavascriptCast unboxTargetType(Class<?> originalType, Class<?> targetType, boolean explicitCast, Class<?> unboxTargetType) {
+    public static JavascriptCast unboxTargetType(
+        Class<?> originalType,
+        Class<?> targetType,
+        boolean explicitCast,
+        Class<?> unboxTargetType
+    ) {
 
         Objects.requireNonNull(originalType);
         Objects.requireNonNull(targetType);
@@ -47,7 +52,12 @@ public class JavascriptCast {
     }
 
     /** Create a cast where the original type will be boxed, and then the cast will be performed. */
-    public static JavascriptCast boxOriginalType(Class<?> originalType, Class<?> targetType, boolean explicitCast, Class<?> boxOriginalType) {
+    public static JavascriptCast boxOriginalType(
+        Class<?> originalType,
+        Class<?> targetType,
+        boolean explicitCast,
+        Class<?> boxOriginalType
+    ) {
 
         Objects.requireNonNull(originalType);
         Objects.requireNonNull(targetType);
@@ -67,7 +77,11 @@ public class JavascriptCast {
     }
 
     /** Create a cast where the original type is unboxed, cast to a target type, and the target type is boxed. */
-    public static JavascriptCast unboxOriginalTypeToBoxTargetType(boolean explicitCast, Class<?> unboxOriginalType, Class<?> boxTargetType) {
+    public static JavascriptCast unboxOriginalTypeToBoxTargetType(
+        boolean explicitCast,
+        Class<?> unboxOriginalType,
+        Class<?> boxTargetType
+    ) {
 
         Objects.requireNonNull(unboxOriginalType);
         Objects.requireNonNull(boxTargetType);

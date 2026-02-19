@@ -9,10 +9,10 @@
 
 package org.elasticsearch.javascript.phase;
 
-import org.elasticsearch.javascript.Location;
 import org.elasticsearch.javascript.JavascriptError;
 import org.elasticsearch.javascript.JavascriptExplainError;
 import org.elasticsearch.javascript.JavascriptWrappedException;
+import org.elasticsearch.javascript.Location;
 import org.elasticsearch.javascript.ScriptClassInfo;
 import org.elasticsearch.javascript.ScriptClassInfo.MethodArgument;
 import org.elasticsearch.javascript.ir.BinaryImplNode;
