@@ -88,9 +88,20 @@ public class ArrayTests extends ArrayLikeObjectTestCase {
         assertEquals(1, exec("let x = [2]; return x[0] / 2"));
     }
 
-    @Ignore("Painless-only: primitive array initializer new type[] { ... } and typed for-each; JS grammar does not support this syntax")
+    /** Iteration over array literals using JavaScript for-of; successful cases only. */
     public void testPrimitiveIteration() {
-        assertEquals(true, exec("let x = new boolean[] { true, false }; let s = false; for (boolean l : x) s |= l; return s"));
+        assertEquals(true, exec("let x = [true, false]; let s = false; for (let l of x) s = s || l; return s"));
+
+        assertEquals(30, exec("let x = [10, 20]; let s = 0; for (let l of x) s += l; return s"));
+        assertEquals(20, exec("let x = [10, 20]; let s = 0; for (let l of x) s = l; return s"));
+        assertEquals(300, exec("let x = [100, 200]; let s = 0; for (let l of x) s += l; return s"));
+        assertEquals(200, exec("let x = [100, 200]; let s = 0; for (let l of x) s = l; return s"));
+
+        assertEquals('b', exec("let x = ['a', 'b']; let s = 0; for (let l of x) s = l; return s"));
+    }
+
+    @Ignore("Painless-only: typed for-each with wrong element type yields ClassCastException; JS has no typed iteration")
+    public void testPrimitiveIterationWrongTypeThrows() {
         expectScriptThrows(
             ClassCastException.class,
             () -> exec("let x = new boolean[] { true, false }; let s = 0; for (short l : x) s += l; return s")
@@ -115,71 +126,6 @@ public class ArrayTests extends ArrayLikeObjectTestCase {
             ClassCastException.class,
             () -> exec("let x = new boolean[] { true, false }; let s = 0; for (double l : x) s += l; return s")
         );
-        assertEquals(true, exec("let x = new boolean[] { true, false }; let s = false; for (def l : x) s |= l; return s"));
-
-        assertEquals((byte) 30, exec("let x = new byte[] { 10, 20 }; let s = 0; for (byte l : x) s += l; return s"));
-        assertEquals((short) 30, exec("let x = new byte[] { 10, 20 }; let s = 0; for (short l : x) s += l; return s"));
-        assertEquals((char) 20, exec("let x = new byte[] { 10, 20 }; let s = 0; for (char l : x) s = l; return s"));
-        assertEquals(30, exec("let x = new byte[] { 10, 20 }; let s = 0; for (int l : x) s += l; return s"));
-        assertEquals(30L, exec("let x = new byte[] { 10, 20 }; let s = 0; for (long l : x) s += l; return s"));
-        assertEquals(30f, exec("let x = new byte[] { 10, 20 }; let s = 0; for (float l : x) s += l; return s"));
-        assertEquals(30d, exec("let x = new byte[] { 10, 20 }; let s = 0; for (double l : x) s += l; return s"));
-        assertEquals((byte) 30, exec("let x = new byte[] { 10, 20 }; let s = 0; for (def l : x) s += l; return s"));
-
-        assertEquals((byte) 30, exec("let x = new short[] { 10, 20 }; let s = 0; for (byte l : x) s += l; return s"));
-        assertEquals((short) 300, exec("let x = new short[] { 100, 200 }; let s = 0; for (short l : x) s += l; return s"));
-        assertEquals((char) 200, exec("let x = new short[] { 100, 200 }; let s = 0; for (char l : x) s = l; return s"));
-        assertEquals(300, exec("let x = new short[] { 100, 200 }; let s = 0; for (int l : x) s += l; return s"));
-        assertEquals(300L, exec("let x = new short[] { 100, 200 }; let s = 0; for (long l : x) s += l; return s"));
-        assertEquals(300f, exec("let x = new short[] { 100, 200 }; let s = 0; for (float l : x) s += l; return s"));
-        assertEquals(300d, exec("let x = new short[] { 100, 200 }; let s = 0; for (double l : x) s += l; return s"));
-        assertEquals((short) 300, exec("let x = new short[] { 100, 200 }; let s = 0; for (def l : x) s += l; return s"));
-
-        assertEquals((byte) 'b', exec("let x = new char[] { 'a', 'b' }; let s = 0; for (byte l : x) s = l; return s"));
-        assertEquals((short) 'b', exec("let x = new char[] { 'a', 'b' }; let s = 0; for (short l : x) s = l; return s"));
-        assertEquals('b', exec("let x = new char[] { 'a', 'b' }; let s = 0; for (char l : x) s = l; return s"));
-        assertEquals((int) 'b', exec("let x = new char[] { 'a', 'b' }; let s = 0; for (int l : x) s = l; return s"));
-        assertEquals((long) 'b', exec("let x = new char[] { 'a', 'b' }; let s = 0; for (long l : x) s = l; return s"));
-        assertEquals((float) 'b', exec("let x = new char[] { 'a', 'b' }; let s = 0; for (float l : x) s = l; return s"));
-        assertEquals((double) 'b', exec("let x = new char[] { 'a', 'b' }; let s = 0; for (double l : x) s = l; return s"));
-        assertEquals('b', exec("let x = new char[] { 'a', 'b' }; let s = 0; for (def l : x) s = l; return s"));
-
-        assertEquals((byte) 30, exec("let x = new int[] { 10, 20 }; let s = 0; for (byte l : x) s += l; return s"));
-        assertEquals((short) 300, exec("let x = new int[] { 100, 200 }; let s = 0; for (short l : x) s += l; return s"));
-        assertEquals((char) 200, exec("let x = new int[] { 100, 200 }; let s = 0; for (char l : x) s = l; return s"));
-        assertEquals(300, exec("let x = new int[] { 100, 200 }; let s = 0; for (int l : x) s += l; return s"));
-        assertEquals(300L, exec("let x = new int[] { 100, 200 }; let s = 0; for (long l : x) s += l; return s"));
-        assertEquals(300f, exec("let x = new int[] { 100, 200 }; let s = 0; for (float l : x) s += l; return s"));
-        assertEquals(300d, exec("let x = new int[] { 100, 200 }; let s = 0; for (double l : x) s += l; return s"));
-        assertEquals(300, exec("let x = new int[] { 100, 200 }; let s = 0; for (def l : x) s += l; return s"));
-
-        assertEquals((byte) 30, exec("let x = new long[] { 10, 20 }; let s = 0; for (byte l : x) s += l; return s"));
-        assertEquals((short) 300, exec("let x = new long[] { 100, 200 }; let s = 0; for (short l : x) s += l; return s"));
-        assertEquals((char) 200, exec("let x = new long[] { 100, 200 }; let s = 0; for (char l : x) s = l; return s"));
-        assertEquals(300, exec("let x = new long[] { 100, 200 }; let s = 0; for (int l : x) s += l; return s"));
-        assertEquals(300L, exec("let x = new long[] { 100, 200 }; let s = 0; for (long l : x) s += l; return s"));
-        assertEquals(300f, exec("let x = new long[] { 100, 200 }; let s = 0; for (float l : x) s += l; return s"));
-        assertEquals(300d, exec("let x = new long[] { 100, 200 }; let s = 0; for (double l : x) s += l; return s"));
-        assertEquals(300L, exec("let x = new long[] { 100, 200 }; let s = 0; for (def l : x) s += l; return s"));
-
-        assertEquals((byte) 30, exec("let x = new float[] { 10, 20 }; let s = 0; for (byte l : x) s += l; return s"));
-        assertEquals((short) 300, exec("let x = new float[] { 100, 200 }; let s = 0; for (short l : x) s += l; return s"));
-        assertEquals((char) 200, exec("let x = new float[] { 100, 200 }; let s = 0; for (char l : x) s = l; return s"));
-        assertEquals(300, exec("let x = new float[] { 100, 200 }; let s = 0; for (int l : x) s += l; return s"));
-        assertEquals(300L, exec("let x = new float[] { 100, 200 }; let s = 0; for (long l : x) s += l; return s"));
-        assertEquals(300f, exec("let x = new float[] { 100, 200 }; let s = 0; for (float l : x) s += l; return s"));
-        assertEquals(300d, exec("let x = new float[] { 100, 200 }; let s = 0; for (double l : x) s += l; return s"));
-        assertEquals(300f, exec("let x = new float[] { 100, 200 }; let s = 0; for (def l : x) s += l; return s"));
-
-        assertEquals((byte) 30, exec("let x = new double[] { 10, 20 }; let s = 0; for (byte l : x) s += l; return s"));
-        assertEquals((short) 300, exec("let x = new double[] { 100, 200 }; let s = 0; for (short l : x) s += l; return s"));
-        assertEquals((char) 200, exec("let x = new double[] { 100, 200 }; let s = 0; for (char l : x) s = l; return s"));
-        assertEquals(300, exec("let x = new double[] { 100, 200 }; let s = 0; for (int l : x) s += l; return s"));
-        assertEquals(300L, exec("let x = new double[] { 100, 200 }; let s = 0; for (long l : x) s += l; return s"));
-        assertEquals(300f, exec("let x = new double[] { 100, 200 }; let s = 0; for (float l : x) s += l; return s"));
-        assertEquals(300d, exec("let x = new double[] { 100, 200 }; let s = 0; for (double l : x) s += l; return s"));
-        assertEquals(300d, exec("let x = new double[] { 100, 200 }; let s = 0; for (def l : x) s += l; return s"));
-
         expectScriptThrows(
             ClassCastException.class,
             () -> exec("let x = new String[] { 'foo', 'bar' }; let s = false; for (boolean l : x) s |= l; return s")
