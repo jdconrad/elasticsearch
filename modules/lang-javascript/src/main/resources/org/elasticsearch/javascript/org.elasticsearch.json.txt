@@ -8,7 +8,7 @@
 #
 
 class org.elasticsearch.javascript.api.Json {
-  def load(String)
-  String dump(def)
-  String dump(def, boolean)
+  def load(String) @alias[method="parse"]
+  String dump(def) @alias[method="stringify"]
+  String dump(def, boolean) @alias[method="stringify"]
 }

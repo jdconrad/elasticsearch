@@ -742,14 +742,14 @@ class java.lang.String {
   int compareTo(String)
   int compareToIgnoreCase(String)
   String concat(String)
-  boolean contains(CharSequence)
+  boolean contains(CharSequence) @alias[method="includes"]
   boolean contentEquals(CharSequence)
   String copyValueOf(char[])
   String copyValueOf(char[],int,int)
   String org.elasticsearch.javascript.api.Augmentation decodeBase64()
   String org.elasticsearch.javascript.api.Augmentation encodeBase64()
-  String[] org.elasticsearch.javascript.api.Augmentation splitOnToken(String)
-  String[] org.elasticsearch.javascript.api.Augmentation splitOnToken(String, int)
+  String[] org.elasticsearch.javascript.api.Augmentation splitOnToken(String) @alias[method="split"]
+  String[] org.elasticsearch.javascript.api.Augmentation splitOnToken(String, int) @alias[method="split"]
   boolean endsWith(String)
   boolean equalsIgnoreCase(String)
   String format(Locale,String,def[])

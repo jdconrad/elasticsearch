@@ -18,7 +18,7 @@ class java.util.Collection {
   boolean add(def)
   boolean addAll(Collection)
   void clear()
-  boolean contains(def)
+  boolean contains(def) @alias[method="includes"]
   boolean containsAll(Collection)
   boolean isEmpty()
   boolean removeAll(Collection)
@@ -104,7 +104,7 @@ class java.util.List {
   void add(int,def)
   boolean addAll(int,Collection)
   boolean equals(Object)
-  def get(int)
+  def get(int) @alias[method="at"]
   int hashCode()
   int indexOf(def)
   int lastIndexOf(def)
@@ -133,15 +133,15 @@ class java.util.Map {
   def compute(def,BiFunction)
   def computeIfAbsent(def,Function)
   def computeIfPresent(def,BiFunction)
-  boolean containsKey(def)
+  boolean containsKey(def) @alias[method="has"]
   boolean containsValue(def)
-  Set entrySet()
+  Set entrySet() @alias[method="entries"]
   boolean equals(Object)
   void forEach(BiConsumer)
   def get(def)
   def getOrDefault(def,def)
   boolean isEmpty()
-  Set keySet()
+  Set keySet() @alias[method="keys"]
   def merge(def,def,BiFunction)
   def put(def,def)
   void putAll(Map)
@@ -288,6 +288,7 @@ class java.util.RandomAccess {
 }
 
 class java.util.Set {
+  boolean contains(def) @alias[method="has"]
   boolean equals(Object)
   int hashCode()
   boolean remove(def)
