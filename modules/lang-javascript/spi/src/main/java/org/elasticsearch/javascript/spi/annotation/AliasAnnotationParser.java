@@ -9,10 +9,13 @@
 
 package org.elasticsearch.javascript.spi.annotation;
 
+import org.elasticsearch.javascript.spi.annotation.AliasAnnotation.AliasType;
+
 import java.util.Map;
 
 /**
- * Parser for the <pre>@alias[class="Inner"]</pre> annotation.  See {@link AliasAnnotation} for details.
+ * Parser for the <pre>@alias[class="Inner"]</pre> and <pre>@alias[method="foo"]</pre> annotations.
+ * See {@link AliasAnnotation} for details.
  */
 public class AliasAnnotationParser implements WhitelistAnnotationParser {
     public static final AliasAnnotationParser INSTANCE = new AliasAnnotationParser();
@@ -26,14 +29,19 @@ public class AliasAnnotationParser implements WhitelistAnnotationParser {
         }
         AliasAnnotation annotation = null;
         for (Map.Entry<String, String> entry : arguments.entrySet()) {
-            if ("class".equals(entry.getKey()) == false) {
-                throw new IllegalArgumentException("[@alias] only supports class aliases");
+            AliasType aliasType;
+            if ("class".equals(entry.getKey())) {
+                aliasType = AliasType.CLASS;
+            } else if ("method".equals(entry.getKey())) {
+                aliasType = AliasType.METHOD;
+            } else {
+                throw new IllegalArgumentException("[@alias] only supports class or method aliases");
             }
             String alias = entry.getValue();
             if (alias == null || alias.isBlank()) {
                 throw new IllegalArgumentException("[@alias] must be non-empty");
             }
-            annotation = new AliasAnnotation(alias);
+            annotation = new AliasAnnotation(aliasType, alias);
         }
         return annotation;
     }

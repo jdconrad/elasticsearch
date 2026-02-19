@@ -20,6 +20,7 @@ import org.elasticsearch.javascript.spi.WhitelistField;
 import org.elasticsearch.javascript.spi.WhitelistInstanceBinding;
 import org.elasticsearch.javascript.spi.WhitelistMethod;
 import org.elasticsearch.javascript.spi.annotation.AliasAnnotation;
+import org.elasticsearch.javascript.spi.annotation.AliasAnnotation.AliasType;
 import org.elasticsearch.javascript.spi.annotation.AugmentedAnnotation;
 import org.elasticsearch.javascript.spi.annotation.CompileTimeOnlyAnnotation;
 import org.elasticsearch.javascript.spi.annotation.InjectConstantAnnotation;
@@ -40,6 +41,7 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -272,6 +274,97 @@ public final class JavascriptLookupBuilder {
         return new IllegalArgumentException(Strings.format(formatText, args), cause);
     }
 
+    private static String methodIdentifier(Class<?> targetClass, String methodName, int methodArity) {
+        return typeToCanonicalTypeName(targetClass) + "#" + methodName + "/" + methodArity;
+    }
+
+    private static AliasAnnotation requireAliasType(AliasAnnotation alias, AliasType aliasType, String context) {
+        if (alias.type() != aliasType) {
+            throw new IllegalArgumentException("invalid alias type [" + alias.type().name().toLowerCase(Locale.ROOT) + "] for " + context);
+        }
+        return alias;
+    }
+
+    private void addMethodAlias(
+        Map<String, JavascriptMethod> methods,
+        Class<?> targetClass,
+        String methodName,
+        int methodArity,
+        AliasAnnotation alias,
+        JavascriptMethod javascriptMethod
+    ) {
+        String targetCanonicalClassName = typeToCanonicalTypeName(targetClass);
+        String methodAlias = requireAliasType(
+            alias,
+            AliasType.METHOD,
+            "method [" + methodIdentifier(targetClass, methodName, methodArity) + "]"
+        ).alias();
+
+        if (METHOD_AND_FIELD_NAME_PATTERN.matcher(methodAlias).matches() == false) {
+            throw new IllegalArgumentException(
+                "invalid method alias name [" + methodAlias + "] for target class [" + targetCanonicalClassName + "]."
+            );
+        }
+
+        String methodAliasKey = buildJavascriptMethodKey(methodAlias, methodArity);
+
+        if (buildJavascriptMethodKey(methodName, methodArity).equals(methodAliasKey)) {
+            return;
+        }
+
+        JavascriptMethod existingMethod = methods.get(methodAliasKey);
+        if (existingMethod == null) {
+            methods.put(methodAliasKey.intern(), javascriptMethod);
+        } else if (existingMethod.equals(javascriptMethod) == false) {
+            throw lookupException(
+                "Cannot add method alias [%s] for [%s] that shadows method [%s]",
+                methodAlias,
+                methodIdentifier(targetClass, methodName, methodArity),
+                methodIdentifier(targetClass, existingMethod.javaMethod().getName(), existingMethod.typeParameters().size())
+            );
+        }
+    }
+
+    private void addImportedMethodAlias(
+        String methodName,
+        int methodArity,
+        AliasAnnotation alias,
+        JavascriptMethod importedJavascriptMethod
+    ) {
+        String methodAlias = requireAliasType(alias, AliasType.METHOD, "imported method [" + methodName + "/" + methodArity + "]").alias();
+
+        if (METHOD_AND_FIELD_NAME_PATTERN.matcher(methodAlias).matches() == false) {
+            throw new IllegalArgumentException("invalid imported method alias name [" + methodAlias + "].");
+        }
+
+        String methodAliasKey = buildJavascriptMethodKey(methodAlias, methodArity);
+        if (buildJavascriptMethodKey(methodName, methodArity).equals(methodAliasKey)) {
+            return;
+        }
+
+        if (javascriptMethodKeysToJavascriptClassBindings.containsKey(methodAliasKey)) {
+            throw new IllegalArgumentException("imported method and class binding cannot have the same name [" + methodAlias + "]");
+        }
+
+        if (javascriptMethodKeysToJavascriptInstanceBindings.containsKey(methodAliasKey)) {
+            throw new IllegalArgumentException("imported method and instance binding cannot have the same name [" + methodAlias + "]");
+        }
+
+        JavascriptMethod existingImportedJavascriptMethod = javascriptMethodKeysToImportedJavascriptMethods.get(methodAliasKey);
+        if (existingImportedJavascriptMethod == null) {
+            javascriptMethodKeysToImportedJavascriptMethods.put(methodAliasKey.intern(), importedJavascriptMethod);
+        } else if (existingImportedJavascriptMethod.equals(importedJavascriptMethod) == false) {
+            throw lookupException(
+                "cannot add imported method alias [%s] for method [%s/%s] that shadows imported method [%s/%s]",
+                methodAlias,
+                methodName,
+                methodArity,
+                existingImportedJavascriptMethod.javaMethod().getName(),
+                existingImportedJavascriptMethod.typeParameters().size()
+            );
+        }
+    }
+
     private void addJavascriptClass(Class<?> clazz, Map<Class<?>, Object> annotations) {
         Objects.requireNonNull(clazz);
         Objects.requireNonNull(annotations);
@@ -339,9 +432,10 @@ public final class JavascriptLookupBuilder {
 
                     canonicalClassNamesToClasses.put(importedCanonicalClassName.intern(), clazz);
                     if (annotations.get(AliasAnnotation.class) instanceof AliasAnnotation alias) {
-                        Class<?> existing = canonicalClassNamesToClasses.put(alias.alias(), clazz);
+                        String classAlias = requireAliasType(alias, AliasType.CLASS, "class [" + canonicalClassName + "]").alias();
+                        Class<?> existing = canonicalClassNamesToClasses.put(classAlias, clazz);
                         if (existing != null) {
-                            throw lookupException("Cannot add alias [%s] for [%s] that shadows class [%s]", alias.alias(), clazz, existing);
+                            throw lookupException("Cannot add alias [%s] for [%s] that shadows class [%s]", classAlias, clazz, existing);
                         }
                     }
                 }
@@ -745,9 +839,8 @@ public final class JavascriptLookupBuilder {
         MethodType methodType = methodHandle.type();
         boolean isStatic = augmentedClass == null && Modifier.isStatic(javaMethod.getModifiers());
         String javascriptMethodKey = buildJavascriptMethodKey(methodName, typeParametersSize);
-        JavascriptMethod existingJavascriptMethod = isStatic
-            ? javascriptClassBuilder.staticMethods.get(javascriptMethodKey)
-            : javascriptClassBuilder.methods.get(javascriptMethodKey);
+        Map<String, JavascriptMethod> javascriptMethods = isStatic ? javascriptClassBuilder.staticMethods : javascriptClassBuilder.methods;
+        JavascriptMethod existingJavascriptMethod = javascriptMethods.get(javascriptMethodKey);
         JavascriptMethod newJavascriptMethod = new JavascriptMethod(
             javaMethod,
             targetClass,
@@ -760,12 +853,7 @@ public final class JavascriptLookupBuilder {
 
         if (existingJavascriptMethod == null) {
             newJavascriptMethod = (JavascriptMethod) dedup.computeIfAbsent(newJavascriptMethod, Function.identity());
-
-            if (isStatic) {
-                javascriptClassBuilder.staticMethods.put(javascriptMethodKey.intern(), newJavascriptMethod);
-            } else {
-                javascriptClassBuilder.methods.put(javascriptMethodKey.intern(), newJavascriptMethod);
-            }
+            javascriptMethods.put(javascriptMethodKey.intern(), newJavascriptMethod);
         } else if (newJavascriptMethod.equals(existingJavascriptMethod) == false) {
             throw lookupException(
                 "cannot add methods with the same name and arity but are not equivalent for methods "
@@ -779,6 +867,11 @@ public final class JavascriptLookupBuilder {
                 typeToCanonicalTypeName(existingJavascriptMethod.returnType()),
                 typesToCanonicalTypeNames(existingJavascriptMethod.typeParameters())
             );
+        }
+
+        JavascriptMethod javascriptMethod = existingJavascriptMethod == null ? newJavascriptMethod : existingJavascriptMethod;
+        if (annotations.get(AliasAnnotation.class) instanceof AliasAnnotation alias) {
+            addMethodAlias(javascriptMethods, targetClass, methodName, typeParametersSize, alias, javascriptMethod);
         }
     }
 
@@ -1212,6 +1305,13 @@ public final class JavascriptLookupBuilder {
                 typeToCanonicalTypeName(existingImportedJavascriptMethod.returnType()),
                 typesToCanonicalTypeNames(existingImportedJavascriptMethod.typeParameters())
             );
+        }
+
+        JavascriptMethod importedJavascriptMethod = existingImportedJavascriptMethod == null
+            ? newImportedJavascriptMethod
+            : existingImportedJavascriptMethod;
+        if (annotations.get(AliasAnnotation.class) instanceof AliasAnnotation alias) {
+            addImportedMethodAlias(methodName, typeParametersSize, alias, importedJavascriptMethod);
         }
     }
 
@@ -1852,7 +1952,9 @@ public final class JavascriptLookupBuilder {
             JavascriptClassBuilder javascriptClassBuilder = javascriptClassBuilderEntry.getValue();
             javascriptClassBuilder.runtimeMethods.putAll(javascriptClassBuilder.methods);
 
-            for (JavascriptMethod javascriptMethod : javascriptClassBuilder.runtimeMethods.values()) {
+            for (Map.Entry<String, JavascriptMethod> javascriptMethodEntry : javascriptClassBuilder.runtimeMethods.entrySet()) {
+                String javascriptMethodKey = javascriptMethodEntry.getKey();
+                JavascriptMethod javascriptMethod = javascriptMethodEntry.getValue();
                 for (Class<?> typeParameter : javascriptMethod.typeParameters()) {
                     if (typeParameter == Byte.class
                         || typeParameter == Short.class
@@ -1861,7 +1963,13 @@ public final class JavascriptLookupBuilder {
                         || typeParameter == Long.class
                         || typeParameter == Float.class
                         || typeParameter == Double.class) {
-                        generateFilteredMethod(targetClass, javascriptClassBuilder, javascriptMethod, filteredMethodCache);
+                        generateFilteredMethod(
+                            targetClass,
+                            javascriptClassBuilder,
+                            javascriptMethodKey,
+                            javascriptMethod,
+                            filteredMethodCache
+                        );
                     }
                 }
             }
@@ -1871,13 +1979,10 @@ public final class JavascriptLookupBuilder {
     private static void generateFilteredMethod(
         Class<?> targetClass,
         JavascriptClassBuilder javascriptClassBuilder,
+        String javascriptMethodKey,
         JavascriptMethod javascriptMethod,
         Map<JavascriptMethod, JavascriptMethod> filteredMethodCache
     ) {
-        String javascriptMethodKey = buildJavascriptMethodKey(
-            javascriptMethod.javaMethod().getName(),
-            javascriptMethod.typeParameters().size()
-        );
         JavascriptMethod filteredJavascriptMethod = filteredMethodCache.get(javascriptMethod);
 
         if (filteredJavascriptMethod == null) {

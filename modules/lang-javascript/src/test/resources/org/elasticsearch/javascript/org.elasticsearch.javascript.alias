@@ -1,5 +1,5 @@
 class org.elasticsearch.javascript.AliasTestClass$AliasedTestInnerClass @alias[class="AliasedTestInnerClass"] {
-  int plus(int, int)
+  int plus(int, int) @alias[method="add"]
 }
 
 class org.elasticsearch.javascript.AliasTestClass$UnaliasedTestInnerClass {

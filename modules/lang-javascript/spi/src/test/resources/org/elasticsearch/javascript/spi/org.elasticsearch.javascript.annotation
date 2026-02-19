@@ -4,4 +4,5 @@ class org.elasticsearch.javascript.AnnotationTestObject @no_import {
   void deprecatedMethod() @deprecated[message="use another method"]
   void annotatedTestMethod() @test_annotation[one="one",two="two",three="three"]
   void annotatedMultipleMethod() @test_annotation[one="one",two="two",three="three"] @deprecated[message="test"]
+  void aliasedMethod() @alias[method="scriptAlias"]
 }

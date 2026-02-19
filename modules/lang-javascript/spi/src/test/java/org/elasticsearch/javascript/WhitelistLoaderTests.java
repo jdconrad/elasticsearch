@@ -14,6 +14,7 @@ import org.elasticsearch.javascript.spi.Whitelist;
 import org.elasticsearch.javascript.spi.WhitelistClass;
 import org.elasticsearch.javascript.spi.WhitelistLoader;
 import org.elasticsearch.javascript.spi.WhitelistMethod;
+import org.elasticsearch.javascript.spi.annotation.AliasAnnotation;
 import org.elasticsearch.javascript.spi.annotation.DeprecatedAnnotation;
 import org.elasticsearch.javascript.spi.annotation.NoImportAnnotation;
 import org.elasticsearch.javascript.spi.annotation.WhitelistAnnotationParser;
@@ -62,7 +63,7 @@ public class WhitelistLoaderTests extends ESTestCase {
 
         assertNotNull(whitelistClass.javascriptAnnotations.get(NoImportAnnotation.class));
         assertEquals(1, whitelistClass.javascriptAnnotations.size());
-        assertEquals(3, whitelistClass.whitelistMethods.size());
+        assertEquals(4, whitelistClass.whitelistMethods.size());
 
         int count = 0;
 
@@ -101,9 +102,17 @@ public class WhitelistLoaderTests extends ESTestCase {
                 assertEquals(2, whitelistMethod.javascriptAnnotations.size());
                 ++count;
             }
+
+            if ("aliasedMethod".equals(whitelistMethod.methodName)) {
+                AliasAnnotation alias = (AliasAnnotation) whitelistMethod.javascriptAnnotations.get(AliasAnnotation.class);
+                assertEquals(AliasAnnotation.AliasType.METHOD, alias.type());
+                assertEquals("scriptAlias", alias.alias());
+                assertEquals(1, whitelistMethod.javascriptAnnotations.size());
+                ++count;
+            }
         }
 
-        assertEquals(3, count);
+        assertEquals(4, count);
     }
 
     public void testMissingWhitelistResource() {

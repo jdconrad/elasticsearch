@@ -47,8 +47,27 @@ public class AliasTests extends ScriptTestCase {
         );
     }
 
+    public void testMethodAliasNoShadowing() {
+        List<Whitelist> whitelists = new ArrayList<>(JAVASCRIPT_BASE_WHITELIST);
+        whitelists.add(WhitelistLoader.loadFromResourceFiles(JavascriptPlugin.class, "org.elasticsearch.javascript.alias-method-shadow"));
+        IllegalArgumentException err = expectThrows(
+            IllegalArgumentException.class,
+            () -> JavascriptLookupBuilder.buildFromWhitelists(whitelists, new HashMap<>(), new HashMap<>())
+        );
+        assertEquals(
+            "Cannot add method alias [plus] for [org.elasticsearch.javascript.AliasTestClass.AliasedTestInnerClass#minus/2]"
+                + " that shadows method [org.elasticsearch.javascript.AliasTestClass.AliasedTestInnerClass#plus/2]",
+            err.getCause().getMessage()
+        );
+    }
+
     public void testDefAlias() {
         assertEquals(5, exec("let a = AliasTestClass.getInnerAliased(); let b = a; b.plus(2, 3)"));
+    }
+
+    public void testMethodAlias() {
+        assertEquals(5, exec("let a = AliasTestClass.getInnerAliased(); a.add(2, 3)"));
+        assertEquals(5, exec("let a = AliasTestClass.getInnerAliased(); let b = a; b.add(2, 3)"));
     }
 
     public void testInnerAlias() {

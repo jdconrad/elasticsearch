@@ -10,7 +10,7 @@
 package org.elasticsearch.javascript.spi.annotation;
 
 /**
- * Creates an alias in JavascriptLookupBuilder for the given class.  Can be used to expose an inner class without
+ * Creates an alias in JavascriptLookupBuilder for the given class or method. Class aliases can be used to expose an inner class without
  * scripts and whitelists needing to scope it by the outer class.
  *
  * For class
@@ -44,10 +44,17 @@ package org.elasticsearch.javascript.spi.annotation;
  * And scripts refer can to {@code Inner} directly, {@code Inner inner = Outer.inner()}, instead of using the outer class to scope
  * the type name {@code Outer.Inner} as would normally be required {@code Outer.Inner inner = Outer.inner()}
  *
- * Only class alias types are available.
+ * Method aliases are defined on whitelist methods using {@code @alias[method="foo"]}.
+ * The underlying Java method name remains unchanged and the alias is an additional callable script name.
  *
- * @param alias the other name for the class
+ * @param type identifies whether this alias targets a class or method
+ * @param alias the other name for the class or method
  */
-public record AliasAnnotation(String alias) {
+public record AliasAnnotation(AliasType type, String alias) {
     public static final String NAME = "alias";
+
+    public enum AliasType {
+        CLASS,
+        METHOD
+    }
 }

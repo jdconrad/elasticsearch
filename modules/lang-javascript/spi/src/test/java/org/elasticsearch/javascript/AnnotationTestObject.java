@@ -66,4 +66,8 @@ public class AnnotationTestObject {
     public void annotatedMultipleMethod() {
 
     }
+
+    public void aliasedMethod() {
+
+    }
 }
