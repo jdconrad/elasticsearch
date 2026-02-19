@@ -368,14 +368,16 @@ public final class Walker extends JavascriptParserBaseVisitor<ANode> {
     @Override
     public ANode visitDoStatement(DoStatementContext ctx) {
         AExpression condition = firstExpression(ctx.expressionSequence());
-        SBlock block = (SBlock) visit(ctx.statement());
+        AStatement bodySt = (AStatement) visit(ctx.statement());
+        SBlock block = bodySt instanceof SBlock ? (SBlock) bodySt : new SBlock(nextIdentifier(), location(ctx), List.of(bodySt));
         return new SDo(nextIdentifier(), location(ctx), condition, block);
     }
 
     @Override
     public ANode visitWhileStatement(WhileStatementContext ctx) {
         AExpression condition = firstExpression(ctx.expressionSequence());
-        SBlock block = (SBlock) visit(ctx.statement());
+        AStatement bodySt = (AStatement) visit(ctx.statement());
+        SBlock block = bodySt instanceof SBlock ? (SBlock) bodySt : new SBlock(nextIdentifier(), location(ctx), List.of(bodySt));
         return new SWhile(nextIdentifier(), location(ctx), condition, block);
     }
 
@@ -398,7 +400,8 @@ public final class Walker extends JavascriptParserBaseVisitor<ANode> {
                 afterthought = seqs.size() > 2 ? firstExpression(seqs.get(2)) : null;
             }
         }
-        SBlock block = (SBlock) visit(ctx.statement());
+        AStatement bodySt = (AStatement) visit(ctx.statement());
+        SBlock block = bodySt instanceof SBlock ? (SBlock) bodySt : new SBlock(nextIdentifier(), location(ctx), List.of(bodySt));
         return new SFor(nextIdentifier(), location(ctx), initializer, condition, afterthought, block);
     }
 
@@ -418,7 +421,8 @@ public final class Walker extends JavascriptParserBaseVisitor<ANode> {
             name = binding instanceof ESymbol ? ((ESymbol) binding).getSymbol() : "item";
         }
         AExpression expression = firstExpression(ctx.expressionSequence());
-        SBlock block = (SBlock) visit(ctx.statement());
+        AStatement bodySt = (AStatement) visit(ctx.statement());
+        SBlock block = bodySt instanceof SBlock ? (SBlock) bodySt : new SBlock(nextIdentifier(), location(ctx), List.of(bodySt));
         return new SEach(nextIdentifier(), location(ctx), "def", name, expression, block);
     }
 
@@ -436,7 +440,8 @@ public final class Walker extends JavascriptParserBaseVisitor<ANode> {
             name = binding instanceof ESymbol ? ((ESymbol) binding).getSymbol() : "item";
         }
         AExpression expression = firstExpression(ctx.expressionSequence());
-        SBlock block = (SBlock) visit(ctx.statement());
+        AStatement bodySt = (AStatement) visit(ctx.statement());
+        SBlock block = bodySt instanceof SBlock ? (SBlock) bodySt : new SBlock(nextIdentifier(), location(ctx), List.of(bodySt));
         return new SEach(nextIdentifier(), location(ctx), "def", name, expression, block);
     }
 
