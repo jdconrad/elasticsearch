@@ -9,11 +9,18 @@
 
 package org.elasticsearch.javascript;
 
+import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.javascript.lookup.JavascriptLookup;
+import org.elasticsearch.javascript.lookup.JavascriptMethod;
 import org.elasticsearch.javascript.spi.JavascriptTestScript;
 import org.elasticsearch.javascript.spi.Whitelist;
 import org.elasticsearch.javascript.spi.WhitelistLoader;
 import org.elasticsearch.script.ScriptContext;
+import org.elasticsearch.script.field.vectors.FloatRankVectors;
+import org.elasticsearch.script.field.vectors.KnnDenseVector;
+import org.elasticsearch.script.field.vectors.VectorIterator;
 
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -74,6 +81,65 @@ public class BuiltinAliasTests extends ScriptTestCase {
         assertEquals(true, exec("return params.p instanceof Pattern", vars, true));
     }
 
+    public void testVectorGetterAliases() {
+        Map<String, Object> vars = new HashMap<>();
+        vars.put("dv", new KnnDenseVector(new float[] { 3.0f, 4.0f }));
+        byte[] magnitudes = ByteBuffer.allocate(2 * Float.BYTES).putFloat(5.0f).putFloat(5.0f).array();
+        vars.put(
+            "rv",
+            new FloatRankVectors(
+                VectorIterator.from(new float[][] { new float[] { 3.0f, 4.0f }, new float[] { 0.0f, 5.0f } }),
+                new BytesRef(magnitudes),
+                2,
+                2
+            )
+        );
+
+        assertEquals(
+            28.0d,
+            ((Number) exec(
+                "return params.dv.getDims() + params.dv.dims()"
+                    + "  + params.dv.getVector().length + params.dv.vector().length"
+                    + "  + params.dv.getMagnitude() + params.dv.magnitude()"
+                    + "  + params.rv.getDims() + params.rv.dims()"
+                    + "  + params.rv.getMagnitudes().length + params.rv.magnitudes().length"
+                    + "  + (params.rv.getVectors().hasNext() ? 1 : 0)"
+                    + "  + (params.rv.vectors().hasNext() ? 1 : 0);",
+                vars,
+                true
+            )).doubleValue(),
+            0.0d
+        );
+    }
+
+    public void testScriptFieldGetterAliasesAreRegistered() {
+        JavascriptLookup lookup = scriptEngine.getContextsToLookups().get(JavascriptTestScript.CONTEXT);
+        assertNotNull(lookup);
+
+        assertMethodAlias(lookup, "org.elasticsearch.index.fielddata.ScriptDocValues.Strings", "getValue", "value", 0);
+        assertMethodAlias(lookup, "org.elasticsearch.index.fielddata.ScriptDocValues.Longs", "getValue", "value", 0);
+        assertMethodAlias(lookup, "org.elasticsearch.index.fielddata.ScriptDocValues.Dates", "getValue", "value", 0);
+        assertMethodAlias(lookup, "org.elasticsearch.index.fielddata.ScriptDocValues.Doubles", "getValue", "value", 0);
+        assertMethodAlias(lookup, "org.elasticsearch.index.fielddata.ScriptDocValues.GeoPoints", "getValue", "value", 0);
+        assertMethodAlias(lookup, "org.elasticsearch.index.fielddata.ScriptDocValues.Booleans", "getValue", "value", 0);
+        assertMethodAlias(lookup, "org.elasticsearch.index.fielddata.ScriptDocValues.BytesRefs", "getValue", "value", 0);
+
+        assertMethodAlias(lookup, "org.elasticsearch.search.lookup.FieldLookup", "getValue", "value", 0);
+        assertMethodAlias(lookup, "org.elasticsearch.search.lookup.FieldLookup", "getValues", "values", 0);
+
+        assertMethodAlias(lookup, "org.elasticsearch.index.mapper.vectors.DenseVectorScriptDocValues", "getVectorValue", "vector", 0);
+        assertMethodAlias(lookup, "org.elasticsearch.index.mapper.vectors.DenseVectorScriptDocValues", "getMagnitude", "magnitude", 0);
+        assertMethodAlias(lookup, "org.elasticsearch.index.mapper.vectors.RankVectorsScriptDocValues", "getVectorValues", "vectors", 0);
+        assertMethodAlias(lookup, "org.elasticsearch.index.mapper.vectors.RankVectorsScriptDocValues", "getMagnitudes", "magnitudes", 0);
+
+        assertMethodAlias(lookup, "org.elasticsearch.script.field.vectors.DenseVector", "getVector", "vector", 0);
+        assertMethodAlias(lookup, "org.elasticsearch.script.field.vectors.DenseVector", "getMagnitude", "magnitude", 0);
+        assertMethodAlias(lookup, "org.elasticsearch.script.field.vectors.DenseVector", "getDims", "dims", 0);
+        assertMethodAlias(lookup, "org.elasticsearch.script.field.vectors.RankVectors", "getVectors", "vectors", 0);
+        assertMethodAlias(lookup, "org.elasticsearch.script.field.vectors.RankVectors", "getMagnitudes", "magnitudes", 0);
+        assertMethodAlias(lookup, "org.elasticsearch.script.field.vectors.RankVectors", "getDims", "dims", 0);
+    }
+
     private Object execWithWhitelist(String whitelistResource, String script) {
         Map<ScriptContext<?>, List<Whitelist>> contexts = new HashMap<>();
         List<Whitelist> whitelists = new ArrayList<>(JAVASCRIPT_BASE_WHITELIST);
@@ -83,5 +149,19 @@ public class BuiltinAliasTests extends ScriptTestCase {
         JavascriptScriptEngine engine = new JavascriptScriptEngine(scriptEngineSettings(), contexts);
         JavascriptTestScript.Factory factory = engine.compile(null, script, JavascriptTestScript.CONTEXT, Collections.emptyMap());
         return factory.newInstance(Collections.emptyMap()).execute();
+    }
+
+    private void assertMethodAlias(
+        JavascriptLookup lookup,
+        String canonicalClassName,
+        String originalMethodName,
+        String aliasMethodName,
+        int arity
+    ) {
+        JavascriptMethod originalMethod = lookup.lookupJavascriptMethod(canonicalClassName, false, originalMethodName, arity);
+        JavascriptMethod aliasMethod = lookup.lookupJavascriptMethod(canonicalClassName, false, aliasMethodName, arity);
+        assertNotNull(originalMethod);
+        assertNotNull(aliasMethod);
+        assertEquals(originalMethod.javaMethod(), aliasMethod.javaMethod());
     }
 }

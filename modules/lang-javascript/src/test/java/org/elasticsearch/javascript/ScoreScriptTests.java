@@ -57,5 +57,13 @@ public class ScoreScriptTests extends ESSingleNodeTestCase {
         factory = service.compile(null, "doc['d'].value * _termStats.docFreq().getSum()", ScoreScript.CONTEXT, Collections.emptyMap());
         ss = factory.newFactory(Collections.emptyMap(), searchExecutionContext.lookup());
         assertTrue(ss.needs_termStats());
+
+        factory = service.compile(null, "1/_termStats.totalTermFreq().avg()", ScoreScript.CONTEXT, Collections.emptyMap());
+        ss = factory.newFactory(Collections.emptyMap(), searchExecutionContext.lookup());
+        assertTrue(ss.needs_termStats());
+
+        factory = service.compile(null, "doc['d'].value * _termStats.docFreq().sum()", ScoreScript.CONTEXT, Collections.emptyMap());
+        ss = factory.newFactory(Collections.emptyMap(), searchExecutionContext.lookup());
+        assertTrue(ss.needs_termStats());
     }
 }

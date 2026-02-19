@@ -134,11 +134,11 @@ class org.elasticsearch.script.field.VersionDocValuesField @dynamic_type {
 
 class org.elasticsearch.script.field.vectors.RankVectors {
     RankVectors EMPTY
-    float[] getMagnitudes()
+    float[] getMagnitudes() @alias[method="magnitudes"]
 
-    Iterator getVectors()
+    Iterator getVectors() @alias[method="vectors"]
     boolean isEmpty()
-    int getDims()
+    int getDims() @alias[method="dims"]
     int size()
 }
 
@@ -149,7 +149,7 @@ class org.elasticsearch.script.field.vectors.RankVectorsDocValuesField {
 
 class org.elasticsearch.script.field.vectors.DenseVector {
     DenseVector EMPTY
-    float getMagnitude()
+    float getMagnitude() @alias[method="magnitude"]
 
     # handle List<Number>, float[], and byte[] arguments
     double dotProduct(Object)
@@ -157,9 +157,9 @@ class org.elasticsearch.script.field.vectors.DenseVector {
     double l2Norm(Object)
     double cosineSimilarity(Object)
 
-    float[] getVector()
+    float[] getVector() @alias[method="vector"]
     boolean isEmpty()
-    int getDims()
+    int getDims() @alias[method="dims"]
     int size()
 }
 

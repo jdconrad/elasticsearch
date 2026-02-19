@@ -64,22 +64,22 @@ class org.elasticsearch.common.geo.GeoBoundingBox {
 
 class org.elasticsearch.index.fielddata.ScriptDocValues$Strings {
   String get(int)
-  String getValue()
+  String getValue() @alias[method="value"]
 }
 
 class org.elasticsearch.index.fielddata.ScriptDocValues$Longs {
   Long get(int)
-  long getValue()
+  long getValue() @alias[method="value"]
 }
 
 class org.elasticsearch.index.fielddata.ScriptDocValues$Dates {
   ZonedDateTime get(int)
-  ZonedDateTime getValue()
+  ZonedDateTime getValue() @alias[method="value"]
 }
 
 class org.elasticsearch.index.fielddata.ScriptDocValues$Doubles {
   Double get(int)
-  double getValue()
+  double getValue() @alias[method="value"]
 }
 
 class org.elasticsearch.index.fielddata.ScriptDocValues$Geometry {
@@ -93,7 +93,7 @@ class org.elasticsearch.index.fielddata.ScriptDocValues$Geometry {
 
 class org.elasticsearch.index.fielddata.ScriptDocValues$GeoPoints {
   org.elasticsearch.common.geo.GeoPoint get(int)
-  org.elasticsearch.common.geo.GeoPoint getValue()
+  org.elasticsearch.common.geo.GeoPoint getValue() @alias[method="value"]
   double getLat()
   double getLon()
   double[] getLats()
@@ -110,22 +110,22 @@ class org.elasticsearch.index.fielddata.ScriptDocValues$GeoPoints {
 
 class org.elasticsearch.index.fielddata.ScriptDocValues$Booleans {
   Boolean get(int)
-  boolean getValue()
+  boolean getValue() @alias[method="value"]
 }
 
 class org.elasticsearch.index.fielddata.ScriptDocValues$BytesRefs {
   BytesRef get(int)
-  BytesRef getValue()
+  BytesRef getValue() @alias[method="value"]
 }
 
 class org.elasticsearch.index.mapper.vectors.DenseVectorScriptDocValues {
-    float[] getVectorValue()
-    float getMagnitude()
+    float[] getVectorValue() @alias[method="vector"]
+    float getMagnitude() @alias[method="magnitude"]
 }
 
 class org.elasticsearch.index.mapper.vectors.RankVectorsScriptDocValues {
-    Iterator getVectorValues()
-    float[] getMagnitudes()
+    Iterator getVectorValues() @alias[method="vectors"]
+    float[] getMagnitudes() @alias[method="magnitudes"]
 }
 
 class org.apache.lucene.util.BytesRef {
@@ -137,8 +137,8 @@ class org.apache.lucene.util.BytesRef {
 }
 
 class org.elasticsearch.search.lookup.FieldLookup {
-  def getValue()
-  List getValues()
+  def getValue() @alias[method="value"]
+  List getValues() @alias[method="values"]
   boolean isEmpty()
 }
 

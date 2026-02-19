@@ -15,11 +15,11 @@ class org.elasticsearch.script.ScoreScript$Factory @no_import {
 }
 
 class org.elasticsearch.script.StatsSummary {
-    double getMin()
-    double getMax()
-    double getAverage()
-    double getSum()
-    long getCount()
+    double getMin() @alias[method="min"]
+    double getMax() @alias[method="max"]
+    double getAverage() @alias[method="avg"]
+    double getSum() @alias[method="sum"]
+    long getCount() @alias[method="count"]
 }
 
 class org.elasticsearch.script.ScriptTermStats {
