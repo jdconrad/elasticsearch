@@ -97,7 +97,7 @@ public class ArrayTests extends ArrayLikeObjectTestCase {
         assertEquals(300, exec("let x = [100, 200]; let s = 0; for (let l of x) s += l; return s"));
         assertEquals(200, exec("let x = [100, 200]; let s = 0; for (let l of x) s = l; return s"));
 
-        assertEquals('b', exec("let x = ['a', 'b']; let s = 0; for (let l of x) s = l; return s"));
+        assertEquals("b", exec("let x = ['a', 'b']; let s = 0; for (let l of x) s = l; return s"));
     }
 
     @Ignore("Painless-only: typed for-each with wrong element type yields ClassCastException; JS has no typed iteration")
