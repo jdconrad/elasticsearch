@@ -74,7 +74,7 @@ public class CrossClusterJavascriptExecuteIT extends AbstractMultiClustersTestCa
 
         Script script = new Script(
             ScriptType.INLINE,
-            Script.DEFAULT_SCRIPT_LANG,
+            "javascript",
             Strings.format("doc['%s'].value.length() <= params.max_length", KEYWORD_FIELD),
             Map.of("max_length", 4)
         );
@@ -102,7 +102,7 @@ public class CrossClusterJavascriptExecuteIT extends AbstractMultiClustersTestCa
 
         Script script = new Script(
             ScriptType.INLINE,
-            Script.DEFAULT_SCRIPT_LANG,
+            "javascript",
             Strings.format("doc['%s'].value.length() <= params.max_length", KEYWORD_FIELD),
             Map.of("max_length", 4)
         );
