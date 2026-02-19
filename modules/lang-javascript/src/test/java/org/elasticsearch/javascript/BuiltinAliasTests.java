@@ -19,6 +19,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 public class BuiltinAliasTests extends ScriptTestCase {
 
@@ -44,7 +45,7 @@ public class BuiltinAliasTests extends ScriptTestCase {
         );
     }
 
-    public void testJsonMethodAliasesAcrossContexts() {
+    public void testJsonClassAndMethodAliasesAcrossContexts() {
         List<String> whitelistResources = List.of(
             "org.elasticsearch.json.txt",
             "org.elasticsearch.script.ingest.txt",
@@ -52,13 +53,25 @@ public class BuiltinAliasTests extends ScriptTestCase {
             "org.elasticsearch.script.update_by_query.txt",
             "org.elasticsearch.script.reindex.txt"
         );
-        String script = "let value = Json.parse('{\"x\":1}');"
-            + "let compact = Json.stringify(value);"
-            + "let pretty = Json.stringify(value, true);"
+        String script = "let value = JSON.parse('{\"x\":1}');"
+            + "let compact = JSON.stringify(value);"
+            + "let pretty = JSON.stringify(value, true);"
             + "return Json.parse(compact).x + Json.parse(pretty).x;";
         for (String whitelistResource : whitelistResources) {
             assertEquals(2, execWithWhitelist(whitelistResource, script));
         }
+    }
+
+    public void testRegExpClassAlias() {
+        assertEquals("\\Qa.b\\E", exec("return RegExp.quote('a.b')"));
+        assertEquals("\\Qa.b\\E", exec("return Pattern.quote('a.b')"));
+    }
+
+    public void testRegExpSourceAlias() {
+        Map<String, Object> vars = Map.of("p", Pattern.compile("a+b"));
+        assertEquals("a+b", exec("return params.p.source()", vars, true));
+        assertEquals(true, exec("return params.p instanceof RegExp", vars, true));
+        assertEquals(true, exec("return params.p instanceof Pattern", vars, true));
     }
 
     private Object execWithWhitelist(String whitelistResource, String script) {

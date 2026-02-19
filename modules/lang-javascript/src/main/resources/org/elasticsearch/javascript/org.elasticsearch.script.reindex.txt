@@ -15,7 +15,7 @@ class java.lang.String {
   String org.elasticsearch.javascript.api.Augmentation sha512()
 }
 
-class org.elasticsearch.javascript.api.Json {
+class org.elasticsearch.javascript.api.Json @alias[class="JSON"] {
   def load(String) @alias[method="parse"]
   String dump(def) @alias[method="stringify"]
   String dump(def, boolean) @alias[method="stringify"]

@@ -7,7 +7,7 @@
  # License v3.0 only", or the "Server Side Public License, v 1".
 #
 
-class org.elasticsearch.javascript.api.Json {
+class org.elasticsearch.javascript.api.Json @alias[class="JSON"] {
   def load(String) @alias[method="parse"]
   String dump(def) @alias[method="stringify"]
   String dump(def, boolean) @alias[method="stringify"]
