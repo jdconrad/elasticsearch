@@ -481,16 +481,20 @@ public final class Walker extends JavascriptParserBaseVisitor<ANode> {
     }
 
     @Override
-    public ANode visitVariableStatement(VariableStatementContext ctx) {
-        VariableDeclarationListContext list = ctx.variableDeclarationList();
-        String modifier = list.varModifier().getText();
+    public ANode visitVariableDeclarationList(VariableDeclarationListContext ctx) {
+        String modifier = ctx.varModifier().getText();
         List<SDeclaration> declarations = new ArrayList<>();
-        for (VariableDeclarationContext vd : list.variableDeclaration()) {
+        for (VariableDeclarationContext vd : ctx.variableDeclaration()) {
             String name = vd.assignable().identifier() != null ? vd.assignable().identifier().getText() : vd.getText();
             AExpression init = vd.singleExpression() != null ? (AExpression) visit(vd.singleExpression()) : null;
             declarations.add(new SDeclaration(nextIdentifier(), location(vd), modifier, name, init));
         }
         return new SDeclBlock(nextIdentifier(), location(ctx), declarations);
+    }
+
+    @Override
+    public ANode visitVariableStatement(VariableStatementContext ctx) {
+        return visit(ctx.variableDeclarationList());
     }
 
     @Override
