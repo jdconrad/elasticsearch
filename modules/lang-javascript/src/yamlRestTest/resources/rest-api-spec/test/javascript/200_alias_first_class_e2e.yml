@@ -14,6 +14,10 @@ setup:
                 type: integer
               hasSale:
                 type: boolean
+              seenSale:
+                type: boolean
+              deletedSeen:
+                type: boolean
               tail:
                 type: keyword
               tags:
@@ -41,15 +45,20 @@ setup:
                   let hasSale = (s) => s.includes('sale');
                   ctx.hasSale = hasSale(ctx.title);
                   ctx.tail = ctx.title.slice(-4);
-                  let labels = new ArrayList();
+                  let labels = new List();
                   let addLabel = (v) => labels.push(v);
                   addLabel('ingested');
                   if (ctx.hasSale) { addLabel('sale'); }
                   ctx.tags = labels;
-                  let meta = new HashMap();
+                  let meta = new Map();
                   meta.set('tail', ctx.tail).set('title', ctx.title);
                   meta.delete('title');
                   ctx.meta = meta;
+                  let seen = new Set();
+                  seen.add('ingested');
+                  if (ctx.hasSale) { seen.add('sale'); }
+                  ctx.seenSale = seen.has('sale');
+                  ctx.deletedSeen = seen.delete('ingested');
 
   - do:
       index:
@@ -95,6 +104,8 @@ setup:
   - match: { _source.rank: 4 }
   - match: { _source.hasSale: true }
   - match: { _source.tail: ffee }
+  - match: { _source.seenSale: true }
+  - match: { _source.deletedSeen: true }
   - match: { _source.tags.0: ingested }
   - match: { _source.tags.1: sale }
   - match: { _source.meta.tail: ffee }
@@ -107,6 +118,8 @@ setup:
   - match: { _source.rank: 6 }
   - match: { _source.hasSale: false }
   - match: { _source.tail: pack }
+  - match: { _source.seenSale: false }
+  - match: { _source.deletedSeen: true }
   - match: { _source.tags.0: ingested }
   - length: { _source.tags: 1 }
   - match: { _source.meta.tail: pack }
@@ -134,19 +147,29 @@ setup:
                 lang: javascript
                 source: >
                   let mkTail = (s) => s.slice(-4);
-                  let labels = new ArrayList();
+                  let labels = new List();
                   let add = (v) => labels.push(v);
                   add('x');
                   add('y');
-                  let m = new HashMap();
+                  let m = new Map();
                   m.set('tail', mkTail(doc['title'].value));
                   m.set('label', labels.at(1));
                   if (doc['title'].value.includes('sale') == false) { m.delete('tail'); }
                   m.get('label') + ':' + (m.has('tail') ? m.get('tail') : 'none')
+            set_projection:
+              script:
+                lang: javascript
+                source: >
+                  let s = new Set();
+                  let add = (v) => s.add(v);
+                  add('x');
+                  add('y');
+                  s.delete('x') && s.has('y')
 
   - match: { hits.total: 1 }
   - match: { hits.hits.0.fields.rank_projection.0: 12 }
   - match: { hits.hits.0.fields.alias_projection.0: y:ffee }
+  - match: { hits.hits.0.fields.set_projection.0: true }
 
 ---
 "Script score uses callable wrapper and l1Norm alias":
