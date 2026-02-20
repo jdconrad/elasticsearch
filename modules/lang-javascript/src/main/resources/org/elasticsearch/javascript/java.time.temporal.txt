@@ -57,7 +57,7 @@ class java.time.temporal.TemporalField {
   boolean isTimeBased()
   ValueRange range()
   ValueRange rangeRefinedBy(TemporalAccessor)
-  TemporalAccessor resolve(Map,TemporalAccessor,ResolverStyle)
+  TemporalAccessor resolve(java.util.Map,TemporalAccessor,ResolverStyle)
   String toString()
 }
 

@@ -90,7 +90,7 @@ class java.time.chrono.Chronology {
   ChronoPeriod period(int,int,int)
   int prolepticYear(Era,int)
   ValueRange range(ChronoField)
-  ChronoLocalDate resolveDate(Map,ResolverStyle)
+  ChronoLocalDate resolveDate(java.util.Map,ResolverStyle)
   String toString()
   ChronoZonedDateTime zonedDateTime(TemporalAccessor)
   ChronoZonedDateTime zonedDateTime(Instant,ZoneId)
@@ -162,7 +162,7 @@ class java.time.chrono.HijrahChronology {
   HijrahDate dateYearDay(int,int)
   HijrahDate dateYearDay(Era,int,int)
   HijrahEra eraOf(int)
-  HijrahDate resolveDate(Map,ResolverStyle)
+  HijrahDate resolveDate(java.util.Map,ResolverStyle)
 }
 
 class java.time.chrono.HijrahDate {
@@ -190,7 +190,7 @@ class java.time.chrono.IsoChronology {
   IsoEra eraOf(int)
   LocalDateTime localDateTime(TemporalAccessor)
   Period period(int,int,int)
-  LocalDate resolveDate(Map,ResolverStyle)
+  LocalDate resolveDate(java.util.Map,ResolverStyle)
   ZonedDateTime zonedDateTime(TemporalAccessor)
   ZonedDateTime zonedDateTime(Instant,ZoneId)
 }
@@ -204,7 +204,7 @@ class java.time.chrono.JapaneseChronology {
   JapaneseDate dateYearDay(int,int)
   JapaneseDate dateYearDay(Era,int,int)
   JapaneseEra eraOf(int)
-  JapaneseDate resolveDate(Map,ResolverStyle)
+  JapaneseDate resolveDate(java.util.Map,ResolverStyle)
 }
 
 class java.time.chrono.JapaneseDate {
@@ -240,7 +240,7 @@ class java.time.chrono.MinguoChronology {
   MinguoDate dateYearDay(int,int)
   MinguoDate dateYearDay(Era,int,int)
   MinguoEra eraOf(int)
-  MinguoDate resolveDate(Map,ResolverStyle)
+  MinguoDate resolveDate(java.util.Map,ResolverStyle)
 }
 
 class java.time.chrono.MinguoDate {
@@ -265,7 +265,7 @@ class java.time.chrono.ThaiBuddhistChronology {
   ThaiBuddhistDate dateYearDay(int,int)
   ThaiBuddhistDate dateYearDay(Era,int,int)
   ThaiBuddhistEra eraOf(int)
-  ThaiBuddhistDate resolveDate(Map,ResolverStyle)
+  ThaiBuddhistDate resolveDate(java.util.Map,ResolverStyle)
 }
 
 class java.time.chrono.ThaiBuddhistDate {

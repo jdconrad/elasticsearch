@@ -456,6 +456,10 @@ public final class JavascriptLookupBuilder {
         String javaClassName = clazz.getName();
         String importedCanonicalClassName = javaClassName.substring(javaClassName.lastIndexOf('.') + 1).replace('$', '.');
         boolean importClassName = annotations.containsKey(NoImportAnnotation.class) == false;
+        AliasAnnotation classAlias = null;
+        if (annotations.get(AliasAnnotation.class) instanceof AliasAnnotation alias) {
+            classAlias = requireAliasType(alias, AliasType.CLASS, "class [" + canonicalClassName + "]");
+        }
 
         if (canonicalClassName.equals(importedCanonicalClassName)) {
             if (importClassName) {
@@ -471,23 +475,26 @@ public final class JavascriptLookupBuilder {
                     }
 
                     canonicalClassNamesToClasses.put(importedCanonicalClassName.intern(), clazz);
-                    if (annotations.get(AliasAnnotation.class) instanceof AliasAnnotation alias) {
-                        String classAlias = requireAliasType(alias, AliasType.CLASS, "class [" + canonicalClassName + "]").alias();
-                        Class<?> existing = canonicalClassNamesToClasses.put(classAlias, clazz);
-                        if (existing != null) {
-                            throw lookupException("Cannot add alias [%s] for [%s] that shadows class [%s]", classAlias, clazz, existing);
-                        }
-                    }
                 }
             } else if (importedClass != clazz) {
-                throw lookupException(
-                    "imported class [%s] cannot represent multiple classes [%s] and [%s]",
-                    importedCanonicalClassName,
-                    canonicalClassName,
-                    typeToCanonicalTypeName(importedClass)
-                );
+                if (importClassName) {
+                    throw lookupException(
+                        "imported class [%s] cannot represent multiple classes [%s] and [%s]",
+                        importedCanonicalClassName,
+                        canonicalClassName,
+                        typeToCanonicalTypeName(importedClass)
+                    );
+                }
             } else if (importClassName == false) {
                 throw new IllegalArgumentException("inconsistent no_import parameter found for class [" + canonicalClassName + "]");
+            }
+        }
+
+        if (classAlias != null) {
+            String alias = classAlias.alias();
+            Class<?> existing = canonicalClassNamesToClasses.put(alias.intern(), clazz);
+            if (existing != null && existing != clazz) {
+                throw lookupException("Cannot add alias [%s] for [%s] that shadows class [%s]", alias, clazz, existing);
             }
         }
     }

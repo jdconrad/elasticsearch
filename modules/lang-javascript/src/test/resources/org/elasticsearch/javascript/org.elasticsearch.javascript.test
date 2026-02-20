@@ -20,8 +20,8 @@ class java.lang.Integer {
     List STRINGS @augmented[augmented_canonical_class_name="org.elasticsearch.javascript.FeatureTestObject"]
 }
 
-class java.util.Map {
-    Map STRINGS @augmented[augmented_canonical_class_name="org.elasticsearch.javascript.FeatureTestObject3"]
+class java.util.Map @no_import @alias[class="JavaMap"] {
+    java.util.Map STRINGS @augmented[augmented_canonical_class_name="org.elasticsearch.javascript.FeatureTestObject3"]
 }
 
 class org.elasticsearch.javascript.FeatureTestObject @no_import {

@@ -57,9 +57,12 @@ public class BuiltinAliasTests extends ScriptTestCase {
             "a1",
             exec("let m = new TreeMap(); m.put('a',1); let e = m.entries().iterator().next(); return e.getKey() + e.getValue()")
         );
-        assertEquals(2, exec("let m = new HashMap(); m.set('a', 1).set('b', 2); return m.size()"));
-        assertEquals(true, exec("let m = new HashMap(); m.set('a', null); return m.delete('a')"));
-        assertEquals(false, exec("let m = new HashMap(); return m.delete('a')"));
+        assertEquals(2, exec("let m = new Map(); m.set('a', 1).set('b', 2); return m.size()"));
+        assertEquals(true, exec("let m = new Map(); m.set('a', null); return m.delete('a')"));
+        assertEquals(false, exec("let m = new Map(); return m.delete('a')"));
+        assertEquals(true, exec("let m = new Map(); return m instanceof JavaMap"));
+        assertEquals(true, exec("let m = new HashMap(); return m instanceof JavaMap"));
+        assertEquals(false, exec("let m = new TreeMap(); return m instanceof Map"));
     }
 
     public void testJsonClassAndMethodAliasesAcrossContexts() {
@@ -136,6 +139,8 @@ public class BuiltinAliasTests extends ScriptTestCase {
     public void testScriptFieldGetterAliasesAreRegistered() {
         JavascriptLookup lookup = scriptEngine.getContextsToLookups().get(JavascriptTestScript.CONTEXT);
         assertNotNull(lookup);
+        assertEquals(java.util.HashMap.class, lookup.canonicalTypeNameToType("Map"));
+        assertEquals(java.util.Map.class, lookup.canonicalTypeNameToType("JavaMap"));
 
         assertNotNull(lookup.lookupJavascriptMethod("java.lang.String", false, "slice", 1));
         assertNotNull(lookup.lookupJavascriptMethod("java.lang.String", false, "slice", 2));

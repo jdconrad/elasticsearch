@@ -18,5 +18,5 @@ class org.elasticsearch.script.CompositeFieldScript$Factory @no_import {
 static_import {
     # The `emit` callback to collect values for the fields
     void emit(org.elasticsearch.script.CompositeFieldScript, String, Object) bound_to org.elasticsearch.script.CompositeFieldScript$EmitField
-    void emit(org.elasticsearch.script.CompositeFieldScript, Map) bound_to org.elasticsearch.script.CompositeFieldScript$EmitMap
+    void emit(org.elasticsearch.script.CompositeFieldScript, java.util.Map) bound_to org.elasticsearch.script.CompositeFieldScript$EmitMap
 }

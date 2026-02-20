@@ -50,7 +50,7 @@ class java.lang.Iterable {
   def org.elasticsearch.javascript.api.Augmentation eachWithIndex(ObjIntConsumer)
   boolean org.elasticsearch.javascript.api.Augmentation every(Predicate)
   List org.elasticsearch.javascript.api.Augmentation findResults(Function)
-  Map org.elasticsearch.javascript.api.Augmentation groupBy(Function)
+  java.util.Map org.elasticsearch.javascript.api.Augmentation groupBy(Function)
   String org.elasticsearch.javascript.api.Augmentation join(String)
   double org.elasticsearch.javascript.api.Augmentation sum()
   double org.elasticsearch.javascript.api.Augmentation sum(ToDoubleFunction)

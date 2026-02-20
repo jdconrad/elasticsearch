@@ -129,7 +129,7 @@ class java.util.ListIterator {
   void set(def)
 }
 
-class java.util.Map {
+class java.util.Map @no_import @alias[class="JavaMap"] {
   void clear()
   def compute(def,BiFunction)
   def computeIfAbsent(def,Function)
@@ -145,7 +145,7 @@ class java.util.Map {
   Set keySet() @alias[method="keys"]
   def merge(def,def,BiFunction)
   def put(def,def)
-  void putAll(Map)
+  void putAll(java.util.Map)
   def putIfAbsent(def,def)
   def remove(def)
   boolean remove(def,def)
@@ -154,7 +154,7 @@ class java.util.Map {
   void replaceAll(BiFunction)
   int size()
   Collection values()
-  Map org.elasticsearch.javascript.api.Augmentation set(def,def)
+  java.util.Map org.elasticsearch.javascript.api.Augmentation set(def,def)
   boolean org.elasticsearch.javascript.api.Augmentation delete(def)
   Object org.elasticsearch.javascript.api.Augmentation getByPath(String)
   Object org.elasticsearch.javascript.api.Augmentation getByPath(String, Object)
@@ -165,15 +165,15 @@ class java.util.Map {
   int org.elasticsearch.javascript.api.Augmentation count(BiPredicate)
   def org.elasticsearch.javascript.api.Augmentation each(BiConsumer)
   boolean org.elasticsearch.javascript.api.Augmentation every(BiPredicate)
-  Map.Entry org.elasticsearch.javascript.api.Augmentation find(BiPredicate)
-  Map org.elasticsearch.javascript.api.Augmentation findAll(BiPredicate)
+  java.util.Map.Entry org.elasticsearch.javascript.api.Augmentation find(BiPredicate)
+  java.util.Map org.elasticsearch.javascript.api.Augmentation findAll(BiPredicate)
   def org.elasticsearch.javascript.api.Augmentation findResult(BiFunction)
   def org.elasticsearch.javascript.api.Augmentation findResult(def,BiFunction)
   List org.elasticsearch.javascript.api.Augmentation findResults(BiFunction)
-  Map org.elasticsearch.javascript.api.Augmentation groupBy(BiFunction)
+  java.util.Map org.elasticsearch.javascript.api.Augmentation groupBy(BiFunction)
 }
 
-class java.util.Map$Entry {
+class java.util.Map$Entry @alias[class="JavaMap.Entry"] {
   Comparator comparingByKey()
   Comparator comparingByKey(Comparator)
   Comparator comparingByValue()
@@ -186,21 +186,21 @@ class java.util.Map$Entry {
 }
 
 class java.util.NavigableMap {
-  Map.Entry ceilingEntry(def)
+  java.util.Map.Entry ceilingEntry(def)
   def ceilingKey(def)
   NavigableSet descendingKeySet()
   NavigableMap descendingMap()
-  Map.Entry firstEntry()
-  Map.Entry floorEntry(def)
+  java.util.Map.Entry firstEntry()
+  java.util.Map.Entry floorEntry(def)
   def floorKey(def)
   NavigableMap headMap(def,boolean)
-  Map.Entry higherEntry(def)
+  java.util.Map.Entry higherEntry(def)
   def higherKey(def)
-  Map.Entry lastEntry()
-  Map.Entry lowerEntry(def)
+  java.util.Map.Entry lastEntry()
+  java.util.Map.Entry lowerEntry(def)
   NavigableSet navigableKeySet()
-  Map.Entry pollFirstEntry()
-  Map.Entry pollLastEntry()
+  java.util.Map.Entry pollFirstEntry()
+  java.util.Map.Entry pollLastEntry()
   NavigableMap subMap(def,boolean,def,boolean)
   NavigableMap tailMap(def,boolean)
 }
@@ -328,12 +328,12 @@ class java.util.AbstractMap {
 
 class java.util.AbstractMap$SimpleEntry {
   (def,def)
-  (Map.Entry)
+  (java.util.Map.Entry)
 }
 
 class java.util.AbstractMap$SimpleImmutableEntry {
   (def,def)
-  (Map.Entry)
+  (java.util.Map.Entry)
 }
 
 class java.util.AbstractQueue {
@@ -481,7 +481,7 @@ class java.util.Calendar {
   Locale[] getAvailableLocales()
   String getCalendarType()
   String getDisplayName(int,int,Locale)
-  Map getDisplayNames(int,int,Locale)
+  java.util.Map getDisplayNames(int,int,Locale)
   int getFirstDayOfWeek()
   int getGreatestMinimum(int)
   Calendar getInstance() @nondeterministic
@@ -533,7 +533,7 @@ class java.util.Calendar$Builder {
 
 class java.util.Collections {
   List EMPTY_LIST
-  Map EMPTY_MAP
+  java.util.Map EMPTY_MAP
   Set EMPTY_SET
   boolean addAll(Collection,def[])
   Queue asLifoQueue(Deque)
@@ -545,7 +545,7 @@ class java.util.Collections {
   Iterator emptyIterator()
   List emptyList()
   ListIterator emptyListIterator()
-  Map emptyMap()
+  java.util.Map emptyMap()
   NavigableMap emptyNavigableMap()
   NavigableSet emptyNavigableSet()
   Set emptySet()
@@ -562,7 +562,7 @@ class java.util.Collections {
   def min(Collection)
   def min(Collection,Comparator)
   List nCopies(int,def)
-  Set newSetFromMap(Map)
+  Set newSetFromMap(java.util.Map)
   boolean replaceAll(List,def,def)
   void reverse(List)
   Comparator reverseOrder()
@@ -572,13 +572,13 @@ class java.util.Collections {
   void shuffle(List,Random)
   Set singleton(def)
   List singletonList(def)
-  Map singletonMap(def,def)
+  java.util.Map singletonMap(def,def)
   void sort(List)
   void sort(List,Comparator)
   void swap(List,int,int)
   Collection unmodifiableCollection(Collection)
   List unmodifiableList(List)
-  Map unmodifiableMap(Map)
+  java.util.Map unmodifiableMap(java.util.Map)
   NavigableMap unmodifiableNavigableMap(NavigableMap)
   NavigableSet unmodifiableNavigableSet(NavigableSet)
   Set unmodifiableSet(Set)
@@ -671,9 +671,9 @@ class java.util.GregorianCalendar {
   ZonedDateTime toZonedDateTime()
 }
 
-class java.util.HashMap {
+class java.util.HashMap @alias[class="Map"] {
   ()
-  (Map)
+  (java.util.Map)
   def clone()
 }
 
@@ -685,7 +685,7 @@ class java.util.HashSet {
 
 class java.util.Hashtable {
   ()
-  (Map)
+  (java.util.Map)
   def clone()
 }
 
@@ -709,7 +709,7 @@ class java.util.HexFormat {
 
 class java.util.IdentityHashMap {
   ()
-  (Map)
+  (java.util.Map)
   def clone()
 }
 
@@ -725,7 +725,7 @@ class java.util.IntSummaryStatistics {
 
 class java.util.LinkedHashMap {
   ()
-  (Map)
+  (java.util.Map)
 }
 
 class java.util.LinkedHashSet {
@@ -828,9 +828,9 @@ class java.util.Locale$LanguageRange {
   (String,double)
   String getRange()
   double getWeight()
-  List mapEquivalents(List,Map)
+  List mapEquivalents(List,java.util.Map)
   List parse(String)
-  List parse(String,Map)
+  List parse(String,java.util.Map)
 }
 
 class java.util.LongSummaryStatistics {

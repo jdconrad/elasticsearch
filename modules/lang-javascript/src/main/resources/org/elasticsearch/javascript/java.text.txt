@@ -17,7 +17,7 @@
 class java.text.AttributedCharacterIterator {
   Set getAllAttributeKeys()
   def getAttribute(AttributedCharacterIterator.Attribute)
-  Map getAttributes()
+  java.util.Map getAttributes()
   int getRunLimit()
   int getRunLimit(Set)
   int getRunStart()
@@ -53,10 +53,10 @@ class java.text.AttributedCharacterIterator$Attribute {
 
 class java.text.AttributedString {
   (String)
-  (String,Map)
+  (String,java.util.Map)
   void addAttribute(AttributedCharacterIterator.Attribute,Object)
   void addAttribute(AttributedCharacterIterator.Attribute,Object,int,int)
-  void addAttributes(Map,int,int)
+  void addAttributes(java.util.Map,int,int)
   AttributedCharacterIterator getIterator()
   AttributedCharacterIterator getIterator(AttributedCharacterIterator.Attribute[])
   AttributedCharacterIterator getIterator(AttributedCharacterIterator.Attribute[],int,int)

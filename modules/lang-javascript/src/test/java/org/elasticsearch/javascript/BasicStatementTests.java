@@ -303,7 +303,8 @@ public class BasicStatementTests extends ScriptTestCase {
         assertEquals(double[].class, exec("let a = new double[1]; return a;").getClass());
         assertEquals(boolean[].class, exec("let a = new boolean[1]; return a;").getClass());
         assertEquals(String[].class, exec("let a = new String[1]; return a;").getClass());
-        assertEquals(Map[].class, exec("let a = new Map[1]; return a;").getClass());
+        assertEquals(HashMap[].class, exec("let a = new Map[1]; return a;").getClass());
+        assertEquals(Map[].class, exec("let a = new JavaMap[1]; return a;").getClass());
 
         assertEquals(byte[][].class, exec("let a = new byte[1][2]; return a;").getClass());
         assertEquals(short[][][].class, exec("let a = new short[1][2][3]; return a;").getClass());
@@ -314,7 +315,8 @@ public class BasicStatementTests extends ScriptTestCase {
         assertEquals(double[][][][].class, exec("let a = new double[1][2][3][4]; return a;").getClass());
         assertEquals(boolean[][][][][].class, exec("let a = new boolean[1][2][3][4][5]; return a;").getClass());
         assertEquals(String[][].class, exec("let a = new String[1][2]; return a;").getClass());
-        assertEquals(Map[][][].class, exec("let a = new Map[1][2][3]; return a;").getClass());
+        assertEquals(HashMap[][][].class, exec("let a = new Map[1][2][3]; return a;").getClass());
+        assertEquals(Map[][][].class, exec("let a = new JavaMap[1][2][3]; return a;").getClass());
     }
 
     public void testContinueStatement() {

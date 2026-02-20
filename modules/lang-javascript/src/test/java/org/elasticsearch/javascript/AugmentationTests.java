@@ -346,7 +346,7 @@ public class AugmentationTests extends ScriptTestCase {
     public void testAugmentedField() {
         assertEquals(Integer.MAX_VALUE, exec("org.elasticsearch.javascript.FeatureTestObject.MAX_VALUE"));
         assertEquals("test_string", exec("Integer.STRINGS[0]"));
-        assertEquals("test_value", exec("Map.STRINGS['test_key']"));
-        assertTrue((boolean) exec("Integer.STRINGS[0].substring(0, 4) == Map.STRINGS['test_key'].substring(0, 4)"));
+        assertEquals("test_value", exec("JavaMap.STRINGS['test_key']"));
+        assertTrue((boolean) exec("Integer.STRINGS[0].substring(0, 4) == JavaMap.STRINGS['test_key'].substring(0, 4)"));
     }
 }
