@@ -551,7 +551,7 @@ class java.time.ZonedDateTime {
 
 class java.time.ZoneId {
   java.util.Map SHORT_IDS
-  Set getAvailableZoneIds()
+  java.util.Set getAvailableZoneIds()
   ZoneId of(String)
   ZoneId of(String,java.util.Map)
   ZoneId ofOffset(String,ZoneOffset)

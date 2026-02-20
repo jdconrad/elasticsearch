@@ -35,7 +35,7 @@ class java.time.format.DateTimeFormatter {
   Chronology getChronology()
   DecimalStyle getDecimalStyle()
   Locale getLocale()
-  Set getResolverFields()
+  java.util.Set getResolverFields()
   ResolverStyle getResolverStyle()
   ZoneId getZone()
   DateTimeFormatter ofLocalizedDate(FormatStyle)
@@ -55,7 +55,7 @@ class java.time.format.DateTimeFormatter {
   DateTimeFormatter withChronology(Chronology)
   DateTimeFormatter withDecimalStyle(DecimalStyle)
   DateTimeFormatter withLocale(Locale)
-  DateTimeFormatter withResolverFields(Set)
+  DateTimeFormatter withResolverFields(java.util.Set)
   DateTimeFormatter withResolverStyle(ResolverStyle)
   DateTimeFormatter withZone(ZoneId)
 }
@@ -85,7 +85,7 @@ class java.time.format.DateTimeFormatterBuilder {
   DateTimeFormatterBuilder appendZoneOrOffsetId()
   DateTimeFormatterBuilder appendZoneRegionId()
   DateTimeFormatterBuilder appendZoneText(TextStyle)
-  DateTimeFormatterBuilder appendZoneText(TextStyle,Set)
+  DateTimeFormatterBuilder appendZoneText(TextStyle,java.util.Set)
   String getLocalizedDateTimePattern(FormatStyle,FormatStyle,Chronology,Locale)
   DateTimeFormatterBuilder optionalEnd()
   DateTimeFormatterBuilder optionalStart()
@@ -102,7 +102,7 @@ class java.time.format.DateTimeFormatterBuilder {
 
 class java.time.format.DecimalStyle {
   DecimalStyle STANDARD
-  Set getAvailableLocales()
+  java.util.Set getAvailableLocales()
   char getDecimalSeparator()
   char getNegativeSign()
   char getPositiveSign()

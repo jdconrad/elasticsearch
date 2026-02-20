@@ -25,7 +25,7 @@ class java.util.stream.BaseStream {
 
 class java.util.stream.Collector {
   BiConsumer accumulator()
-  Set characteristics()
+  java.util.Set characteristics()
   BinaryOperator combiner()
   Function finisher()
   Collector of(Supplier,BiConsumer,BinaryOperator,Function,Collector.Characteristics[])

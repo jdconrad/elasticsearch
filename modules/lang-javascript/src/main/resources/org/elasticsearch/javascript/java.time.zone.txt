@@ -61,7 +61,7 @@ class java.time.zone.ZoneRules {
 }
 
 class java.time.zone.ZoneRulesProvider {
-  Set getAvailableZoneIds()
+  java.util.Set getAvailableZoneIds()
   ZoneRules getRules(String,boolean)
   NavigableMap getVersions(String)
 }

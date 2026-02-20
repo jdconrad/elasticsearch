@@ -49,9 +49,12 @@ public class BuiltinAliasTests extends ScriptTestCase {
     }
 
     public void testSetAndMapAliases() {
-        assertEquals(true, exec("let s = new HashSet(); s.add('a'); return s.has('a')"));
-        assertEquals(true, exec("let s = new HashSet(); s.add('a'); return s.delete('a')"));
-        assertEquals(false, exec("let s = new HashSet(); return s.delete('a')"));
+        assertEquals(true, exec("let s = new Set(); s.add('a'); return s.has('a')"));
+        assertEquals(true, exec("let s = new Set(); s.add('a'); return s.delete('a')"));
+        assertEquals(false, exec("let s = new Set(); return s.delete('a')"));
+        assertEquals(true, exec("let s = new Set(); return s instanceof JavaSet"));
+        assertEquals(true, exec("let s = new HashSet(); return s instanceof JavaSet"));
+        assertEquals(false, exec("let s = new TreeSet(); return s instanceof Set"));
         assertEquals(true, exec("let m = new TreeMap(); m.put('a',1); return m.has('a')"));
         assertEquals(true, exec("let m = new TreeMap(); m.put('a',1); return m.keys().has('a')"));
         assertEquals(
@@ -144,6 +147,8 @@ public class BuiltinAliasTests extends ScriptTestCase {
         assertEquals(java.util.Map.class, lookup.canonicalTypeNameToType("JavaMap"));
         assertEquals(java.util.ArrayList.class, lookup.canonicalTypeNameToType("List"));
         assertEquals(java.util.List.class, lookup.canonicalTypeNameToType("JavaList"));
+        assertEquals(java.util.HashSet.class, lookup.canonicalTypeNameToType("Set"));
+        assertEquals(java.util.Set.class, lookup.canonicalTypeNameToType("JavaSet"));
 
         assertNotNull(lookup.lookupJavascriptMethod("java.lang.String", false, "slice", 1));
         assertNotNull(lookup.lookupJavascriptMethod("java.lang.String", false, "slice", 2));

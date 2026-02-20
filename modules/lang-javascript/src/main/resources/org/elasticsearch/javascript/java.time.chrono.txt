@@ -78,7 +78,7 @@ class java.time.chrono.Chronology {
   Era eraOf(int)
   java.util.List eras()
   Chronology from(TemporalAccessor)
-  Set getAvailableChronologies()
+  java.util.Set getAvailableChronologies()
   String getDisplayName(TextStyle,Locale)
   String getId()
   String getCalendarType()

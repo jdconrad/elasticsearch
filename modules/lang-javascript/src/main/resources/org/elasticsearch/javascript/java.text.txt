@@ -15,13 +15,13 @@
 #### Interfaces
 
 class java.text.AttributedCharacterIterator {
-  Set getAllAttributeKeys()
+  java.util.Set getAllAttributeKeys()
   def getAttribute(AttributedCharacterIterator.Attribute)
   java.util.Map getAttributes()
   int getRunLimit()
-  int getRunLimit(Set)
+  int getRunLimit(java.util.Set)
   int getRunStart()
-  int getRunStart(Set)
+  int getRunStart(java.util.Set)
 }
 
 class java.text.CharacterIterator {

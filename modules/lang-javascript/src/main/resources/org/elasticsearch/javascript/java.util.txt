@@ -136,13 +136,13 @@ class java.util.Map @no_import @alias[class="JavaMap"] {
   def computeIfPresent(def,BiFunction)
   boolean containsKey(def) @alias[method="has"]
   boolean containsValue(def)
-  Set entrySet() @alias[method="entries"]
+  java.util.Set entrySet() @alias[method="entries"]
   boolean equals(Object)
   void forEach(BiConsumer)
   def get(def)
   def getOrDefault(def,def)
   boolean isEmpty()
-  Set keySet() @alias[method="keys"]
+  java.util.Set keySet() @alias[method="keys"]
   def merge(def,def,BiFunction)
   def put(def,def)
   void putAll(java.util.Map)
@@ -290,7 +290,7 @@ class java.util.Queue {
 class java.util.RandomAccess {
 }
 
-class java.util.Set {
+class java.util.Set @no_import @alias[class="JavaSet"] {
   boolean contains(def) @alias[method="has"]
   boolean equals(Object)
   int hashCode()
@@ -477,7 +477,7 @@ class java.util.Calendar {
   int get(int)
   int getActualMaximum(int)
   int getActualMinimum(int)
-  Set getAvailableCalendarTypes()
+  java.util.Set getAvailableCalendarTypes()
   Locale[] getAvailableLocales()
   String getCalendarType()
   String getDisplayName(int,int,Locale)
@@ -534,7 +534,7 @@ class java.util.Calendar$Builder {
 class java.util.Collections {
   java.util.List EMPTY_LIST
   java.util.Map EMPTY_MAP
-  Set EMPTY_SET
+  java.util.Set EMPTY_SET
   boolean addAll(Collection,def[])
   Queue asLifoQueue(Deque)
   int binarySearch(java.util.List,def)
@@ -548,7 +548,7 @@ class java.util.Collections {
   java.util.Map emptyMap()
   NavigableMap emptyNavigableMap()
   NavigableSet emptyNavigableSet()
-  Set emptySet()
+  java.util.Set emptySet()
   SortedMap emptySortedMap()
   SortedSet emptySortedSet()
   Enumeration enumeration(Collection)
@@ -562,7 +562,7 @@ class java.util.Collections {
   def min(Collection)
   def min(Collection,Comparator)
   java.util.List nCopies(int,def)
-  Set newSetFromMap(java.util.Map)
+  java.util.Set newSetFromMap(java.util.Map)
   boolean replaceAll(java.util.List,def,def)
   void reverse(java.util.List)
   Comparator reverseOrder()
@@ -570,7 +570,7 @@ class java.util.Collections {
   void rotate(java.util.List,int)
   void shuffle(java.util.List) @nondeterministic
   void shuffle(java.util.List,Random)
-  Set singleton(def)
+  java.util.Set singleton(def)
   java.util.List singletonList(def)
   java.util.Map singletonMap(def,def)
   void sort(java.util.List)
@@ -581,13 +581,13 @@ class java.util.Collections {
   java.util.Map unmodifiableMap(java.util.Map)
   NavigableMap unmodifiableNavigableMap(NavigableMap)
   NavigableSet unmodifiableNavigableSet(NavigableSet)
-  Set unmodifiableSet(Set)
+  java.util.Set unmodifiableSet(java.util.Set)
   SortedMap unmodifiableSortedMap(SortedMap)
   SortedSet unmodifiableSortedSet(SortedSet)
 }
 
 class java.util.Currency {
-  Set getAvailableCurrencies()
+  java.util.Set getAvailableCurrencies()
   String getCurrencyCode()
   int getDefaultFractionDigits()
   String getDisplayName()
@@ -677,7 +677,7 @@ class java.util.HashMap @alias[class="Map"] {
   def clone()
 }
 
-class java.util.HashSet {
+class java.util.HashSet @alias[class="Set"] {
   ()
   (Collection)
   def clone()
@@ -786,15 +786,15 @@ class java.util.Locale {
   String getDisplayVariant()
   String getDisplayVariant(Locale)
   String getExtension(char)
-  Set getExtensionKeys()
+  java.util.Set getExtensionKeys()
   String getISO3Country()
   String getISO3Language()
   String[] getISOCountries()
   String[] getISOLanguages()
   String getLanguage()
   String getScript()
-  Set getUnicodeLocaleAttributes()
-  Set getUnicodeLocaleKeys()
+  java.util.Set getUnicodeLocaleAttributes()
+  java.util.Set getUnicodeLocaleKeys()
   String getUnicodeLocaleType(String)
   String getVariant()
   boolean hasExtensions()
