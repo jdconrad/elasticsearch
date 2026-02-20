@@ -365,6 +365,46 @@ public final class JavascriptLookupBuilder {
         }
     }
 
+    private void addClassBindingAlias(
+        String methodName,
+        int methodArity,
+        AliasAnnotation alias,
+        JavascriptClassBinding javascriptClassBinding
+    ) {
+        String methodAlias = requireAliasType(alias, AliasType.METHOD, "class binding [" + methodName + "/" + methodArity + "]").alias();
+
+        if (METHOD_AND_FIELD_NAME_PATTERN.matcher(methodAlias).matches() == false) {
+            throw new IllegalArgumentException("invalid class binding alias name [" + methodAlias + "].");
+        }
+
+        String methodAliasKey = buildJavascriptMethodKey(methodAlias, methodArity);
+        if (buildJavascriptMethodKey(methodName, methodArity).equals(methodAliasKey)) {
+            return;
+        }
+
+        if (javascriptMethodKeysToImportedJavascriptMethods.containsKey(methodAliasKey)) {
+            throw new IllegalArgumentException("class binding and imported method cannot have the same name [" + methodAlias + "]");
+        }
+
+        if (javascriptMethodKeysToJavascriptInstanceBindings.containsKey(methodAliasKey)) {
+            throw new IllegalArgumentException("class binding and instance binding cannot have the same name [" + methodAlias + "]");
+        }
+
+        JavascriptClassBinding existingClassBinding = javascriptMethodKeysToJavascriptClassBindings.get(methodAliasKey);
+        if (existingClassBinding == null) {
+            javascriptMethodKeysToJavascriptClassBindings.put(methodAliasKey.intern(), javascriptClassBinding);
+        } else if (existingClassBinding.equals(javascriptClassBinding) == false) {
+            throw lookupException(
+                "cannot add class binding alias [%s] for method [%s/%s] that shadows class binding [%s/%s]",
+                methodAlias,
+                methodName,
+                methodArity,
+                existingClassBinding.javaMethod().getName(),
+                existingClassBinding.typeParameters().size()
+            );
+        }
+    }
+
     private void addJavascriptClass(Class<?> clazz, Map<Class<?>, Object> annotations) {
         Objects.requireNonNull(clazz);
         Objects.requireNonNull(annotations);
@@ -1534,7 +1574,8 @@ public final class JavascriptLookupBuilder {
             );
         }
 
-        String javascriptMethodKey = buildJavascriptMethodKey(methodName, constructorParameterTypes.length + methodParameterTypes.length);
+        int methodArity = constructorParameterTypes.length + methodParameterTypes.length;
+        String javascriptMethodKey = buildJavascriptMethodKey(methodName, methodArity);
 
         if (javascriptMethodKeysToImportedJavascriptMethods.containsKey(javascriptMethodKey)) {
             throw new IllegalArgumentException("class binding and imported method cannot have the same name [" + methodName + "]");
@@ -1578,6 +1619,13 @@ public final class JavascriptLookupBuilder {
                 typeToCanonicalTypeName(existingJavascriptClassBinding.returnType()),
                 typesToCanonicalTypeNames(existingJavascriptClassBinding.typeParameters())
             );
+        }
+
+        JavascriptClassBinding javascriptClassBinding = existingJavascriptClassBinding == null
+            ? newJavascriptClassBinding
+            : existingJavascriptClassBinding;
+        if (annotations.get(AliasAnnotation.class) instanceof AliasAnnotation alias) {
+            addClassBindingAlias(methodName, methodArity, alias, javascriptClassBinding);
         }
     }
 

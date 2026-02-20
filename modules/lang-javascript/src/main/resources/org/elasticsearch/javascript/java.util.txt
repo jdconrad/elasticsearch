@@ -114,6 +114,7 @@ class java.util.List {
   void replaceAll(UnaryOperator)
   def set(int,def)
   int org.elasticsearch.javascript.api.Augmentation getLength()
+  int org.elasticsearch.javascript.api.Augmentation push(def)
   void sort(Comparator)
   List subList(int,int)
   Object org.elasticsearch.javascript.api.Augmentation getByPath(String)
@@ -153,6 +154,8 @@ class java.util.Map {
   void replaceAll(BiFunction)
   int size()
   Collection values()
+  Map org.elasticsearch.javascript.api.Augmentation set(def,def)
+  boolean org.elasticsearch.javascript.api.Augmentation delete(def)
   Object org.elasticsearch.javascript.api.Augmentation getByPath(String)
   Object org.elasticsearch.javascript.api.Augmentation getByPath(String, Object)
 
@@ -291,7 +294,7 @@ class java.util.Set {
   boolean contains(def) @alias[method="has"]
   boolean equals(Object)
   int hashCode()
-  boolean remove(def)
+  boolean remove(def) @alias[method="delete"]
 }
 
 class java.util.SortedMap {

@@ -769,6 +769,8 @@ class java.lang.String {
   boolean startsWith(String,int)
   String substring(int)
   String substring(int,int)
+  String org.elasticsearch.javascript.api.Augmentation slice(int)
+  String org.elasticsearch.javascript.api.Augmentation slice(int,int)
   char[] toCharArray()
   String toLowerCase()
   String toLowerCase(Locale)

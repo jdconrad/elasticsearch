@@ -66,4 +66,17 @@ public class ScoreScriptTests extends ESSingleNodeTestCase {
         ss = factory.newFactory(Collections.emptyMap(), searchExecutionContext.lookup());
         assertTrue(ss.needs_termStats());
     }
+
+    public void testVectorScoreFunctionAliasesCompile() {
+        Map<ScriptContext<?>, List<Whitelist>> contexts = new HashMap<>();
+        List<Whitelist> whitelists = new ArrayList<>(JAVASCRIPT_BASE_WHITELIST);
+        whitelists.add(WhitelistLoader.loadFromResourceFiles(JavascriptPlugin.class, "org.elasticsearch.script.score.txt"));
+        contexts.put(ScoreScript.CONTEXT, whitelists);
+        JavascriptScriptEngine service = new JavascriptScriptEngine(Settings.EMPTY, contexts);
+
+        assertNotNull(service.compile(null, "return l1norm(params.q, 'v')", ScoreScript.CONTEXT, Collections.emptyMap()));
+        assertNotNull(service.compile(null, "return l1Norm(params.q, 'v')", ScoreScript.CONTEXT, Collections.emptyMap()));
+        assertNotNull(service.compile(null, "return l2norm(params.q, 'v')", ScoreScript.CONTEXT, Collections.emptyMap()));
+        assertNotNull(service.compile(null, "return l2Norm(params.q, 'v')", ScoreScript.CONTEXT, Collections.emptyMap()));
+    }
 }

@@ -9,8 +9,8 @@
 
 class org.elasticsearch.script.field.IPAddress {
     (String)
-    boolean isV4()
-    boolean isV6()
+    boolean isV4() @alias[method="isIPv4"]
+    boolean isV6() @alias[method="isIPv6"]
 }
 
 class org.elasticsearch.javascript.api.CIDR {

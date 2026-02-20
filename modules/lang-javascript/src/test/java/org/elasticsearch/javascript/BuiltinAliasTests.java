@@ -11,6 +11,7 @@ package org.elasticsearch.javascript;
 
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.javascript.lookup.JavascriptLookup;
+import org.elasticsearch.javascript.lookup.JavascriptLookupBuilder;
 import org.elasticsearch.javascript.lookup.JavascriptMethod;
 import org.elasticsearch.javascript.spi.JavascriptTestScript;
 import org.elasticsearch.javascript.spi.Whitelist;
@@ -35,6 +36,10 @@ public class BuiltinAliasTests extends ScriptTestCase {
         assertEquals(false, exec("return 'foobarbaz'.includes('qux')"));
         assertArrayEquals(new String[] { "a", "", "b" }, (String[]) exec("return 'a,,b'.split(',')"));
         assertArrayEquals((String[]) exec("return 'a,,b'.splitOnToken(',', 2)"), (String[]) exec("return 'a,,b'.split(',', 2)"));
+        assertEquals("bar", exec("return 'foobarbaz'.slice(3,6)"));
+        assertEquals("baz", exec("return 'foobarbaz'.slice(-3)"));
+        assertEquals("bar", exec("return 'foobarbaz'.slice(-6,-3)"));
+        assertEquals("", exec("return 'foobarbaz'.slice(6,3)"));
     }
 
     public void testCollectionAndListAliases() {
@@ -44,12 +49,17 @@ public class BuiltinAliasTests extends ScriptTestCase {
 
     public void testSetAndMapAliases() {
         assertEquals(true, exec("let s = new HashSet(); s.add('a'); return s.has('a')"));
+        assertEquals(true, exec("let s = new HashSet(); s.add('a'); return s.delete('a')"));
+        assertEquals(false, exec("let s = new HashSet(); return s.delete('a')"));
         assertEquals(true, exec("let m = new TreeMap(); m.put('a',1); return m.has('a')"));
         assertEquals(true, exec("let m = new TreeMap(); m.put('a',1); return m.keys().has('a')"));
         assertEquals(
             "a1",
             exec("let m = new TreeMap(); m.put('a',1); let e = m.entries().iterator().next(); return e.getKey() + e.getValue()")
         );
+        assertEquals(2, exec("let m = new HashMap(); m.set('a', 1).set('b', 2); return m.size()"));
+        assertEquals(true, exec("let m = new HashMap(); m.set('a', null); return m.delete('a')"));
+        assertEquals(false, exec("let m = new HashMap(); return m.delete('a')"));
     }
 
     public void testJsonClassAndMethodAliasesAcrossContexts() {
@@ -79,6 +89,11 @@ public class BuiltinAliasTests extends ScriptTestCase {
         assertEquals("a+b", exec("return params.p.source()", vars, true));
         assertEquals(true, exec("return params.p instanceof RegExp", vars, true));
         assertEquals(true, exec("return params.p instanceof Pattern", vars, true));
+    }
+
+    public void testIPAddressVersionAliases() {
+        assertEquals(true, exec("let ip = new IPAddress('192.168.1.7'); return ip.isV4() && ip.isIPv4()"));
+        assertEquals(true, exec("let ip = new IPAddress('2001:db8::1'); return ip.isV6() && ip.isIPv6()"));
     }
 
     public void testVectorGetterAliases() {
@@ -112,9 +127,22 @@ public class BuiltinAliasTests extends ScriptTestCase {
         );
     }
 
+    public void testListPushAlias() {
+        assertEquals(1, exec("let l = new ArrayList(); return l.push('x')"));
+        assertEquals(2, exec("let l = new ArrayList(); l.push('x'); return l.push('y')"));
+        assertEquals("xy", exec("let l = new ArrayList(); l.push('x'); l.push('y'); return l.at(0) + l.at(1)"));
+    }
+
     public void testScriptFieldGetterAliasesAreRegistered() {
         JavascriptLookup lookup = scriptEngine.getContextsToLookups().get(JavascriptTestScript.CONTEXT);
         assertNotNull(lookup);
+
+        assertNotNull(lookup.lookupJavascriptMethod("java.lang.String", false, "slice", 1));
+        assertNotNull(lookup.lookupJavascriptMethod("java.lang.String", false, "slice", 2));
+        assertMethodAlias(lookup, "java.util.Set", "remove", "delete", 1);
+        assertNotNull(lookup.lookupJavascriptMethod("java.util.List", false, "push", 1));
+        assertNotNull(lookup.lookupJavascriptMethod("java.util.Map", false, "set", 2));
+        assertNotNull(lookup.lookupJavascriptMethod("java.util.Map", false, "delete", 1));
 
         assertMethodAlias(lookup, "org.elasticsearch.index.fielddata.ScriptDocValues.Strings", "getValue", "value", 0);
         assertMethodAlias(lookup, "org.elasticsearch.index.fielddata.ScriptDocValues.Longs", "getValue", "value", 0);
@@ -138,6 +166,17 @@ public class BuiltinAliasTests extends ScriptTestCase {
         assertMethodAlias(lookup, "org.elasticsearch.script.field.vectors.RankVectors", "getVectors", "vectors", 0);
         assertMethodAlias(lookup, "org.elasticsearch.script.field.vectors.RankVectors", "getMagnitudes", "magnitudes", 0);
         assertMethodAlias(lookup, "org.elasticsearch.script.field.vectors.RankVectors", "getDims", "dims", 0);
+        assertMethodAlias(lookup, "org.elasticsearch.script.field.IPAddress", "isV4", "isIPv4", 0);
+        assertMethodAlias(lookup, "org.elasticsearch.script.field.IPAddress", "isV6", "isIPv6", 0);
+    }
+
+    public void testScoreFunctionAliasesAreRegistered() {
+        List<Whitelist> whitelists = new ArrayList<>(JAVASCRIPT_BASE_WHITELIST);
+        whitelists.add(WhitelistLoader.loadFromResourceFiles(JavascriptPlugin.class, "org.elasticsearch.script.score.txt"));
+        JavascriptLookup lookup = JavascriptLookupBuilder.buildFromWhitelists(whitelists, new HashMap<>(), new HashMap<>());
+
+        assertClassBindingAlias(lookup, "l1norm", "l1Norm", 3);
+        assertClassBindingAlias(lookup, "l2norm", "l2Norm", 3);
     }
 
     private Object execWithWhitelist(String whitelistResource, String script) {
@@ -163,5 +202,13 @@ public class BuiltinAliasTests extends ScriptTestCase {
         assertNotNull(originalMethod);
         assertNotNull(aliasMethod);
         assertEquals(originalMethod.javaMethod(), aliasMethod.javaMethod());
+    }
+
+    private void assertClassBindingAlias(JavascriptLookup lookup, String originalMethodName, String aliasMethodName, int arity) {
+        var originalBinding = lookup.lookupJavascriptClassBinding(originalMethodName, arity);
+        var aliasBinding = lookup.lookupJavascriptClassBinding(aliasMethodName, arity);
+        assertNotNull(originalBinding);
+        assertNotNull(aliasBinding);
+        assertEquals(originalBinding.javaMethod(), aliasBinding.javaMethod());
     }
 }

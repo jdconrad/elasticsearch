@@ -302,6 +302,14 @@ public class Augmentation {
         return result;
     }
 
+    /**
+     * Appends an element to a list and returns the new size, matching JavaScript Array#push semantics.
+     */
+    public static <T> int push(List<T> receiver, T value) {
+        receiver.add(value);
+        return receiver.size();
+    }
+
     // some groovy methods on map
     // see http://docs.groovy-lang.org/latest/html/groovy-jdk/java/util/Map.html
 
@@ -449,6 +457,25 @@ public class Augmentation {
         return map;
     }
 
+    /**
+     * Adds or replaces a map entry and returns the receiver, matching JavaScript Map#set chaining behavior.
+     */
+    public static <K, V> Map<K, V> set(Map<K, V> receiver, K key, V value) {
+        receiver.put(key, value);
+        return receiver;
+    }
+
+    /**
+     * Removes a map entry and returns whether the key existed, matching JavaScript Map#delete semantics.
+     */
+    public static <K, V> boolean delete(Map<K, V> receiver, K key) {
+        boolean exists = receiver.containsKey(key);
+        if (exists) {
+            receiver.remove(key);
+        }
+        return exists;
+    }
+
     // CharSequence augmentation
     /**
      * Replace all matches. Similar to {@link Matcher#replaceAll(String)} but allows you to customize the replacement based on the match.
@@ -554,6 +581,38 @@ public class Augmentation {
 
         // O(N) or faster depending on implementation
         return result.toArray(new String[0]);
+    }
+
+    /**
+     * JavaScript-like String#slice(start) semantics with support for negative indices.
+     */
+    public static String slice(String receiver, int start) {
+        int beginIndex = normalizeSliceIndex(start, receiver.length());
+        return receiver.substring(beginIndex);
+    }
+
+    /**
+     * JavaScript-like String#slice(start, end) semantics with support for negative indices.
+     */
+    public static String slice(String receiver, int start, int end) {
+        int length = receiver.length();
+        int beginIndex = normalizeSliceIndex(start, length);
+        int endIndex = normalizeSliceIndex(end, length);
+        if (endIndex < beginIndex) {
+            return "";
+        }
+        return receiver.substring(beginIndex, endIndex);
+    }
+
+    private static int normalizeSliceIndex(int index, int length) {
+        int normalized = index < 0 ? length + index : index;
+        if (normalized < 0) {
+            return 0;
+        }
+        if (normalized > length) {
+            return length;
+        }
+        return normalized;
     }
 
     /**
