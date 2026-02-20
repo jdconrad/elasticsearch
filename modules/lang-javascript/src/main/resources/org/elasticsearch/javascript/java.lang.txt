@@ -45,11 +45,11 @@ class java.lang.Iterable {
   # some adaptations of groovy wmethods
   boolean org.elasticsearch.javascript.api.Augmentation any(Predicate)
   Collection org.elasticsearch.javascript.api.Augmentation asCollection()
-  List org.elasticsearch.javascript.api.Augmentation asList()
+  java.util.List org.elasticsearch.javascript.api.Augmentation asList()
   def org.elasticsearch.javascript.api.Augmentation each(Consumer)
   def org.elasticsearch.javascript.api.Augmentation eachWithIndex(ObjIntConsumer)
   boolean org.elasticsearch.javascript.api.Augmentation every(Predicate)
-  List org.elasticsearch.javascript.api.Augmentation findResults(Function)
+  java.util.List org.elasticsearch.javascript.api.Augmentation findResults(Function)
   java.util.Map org.elasticsearch.javascript.api.Augmentation groupBy(Function)
   String org.elasticsearch.javascript.api.Augmentation join(String)
   double org.elasticsearch.javascript.api.Augmentation sum()

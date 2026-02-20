@@ -138,7 +138,7 @@ class org.apache.lucene.util.BytesRef {
 
 class org.elasticsearch.search.lookup.FieldLookup {
   def getValue() @alias[method="value"]
-  List getValues() @alias[method="values"]
+  java.util.List getValues() @alias[method="values"]
   boolean isEmpty()
 }
 

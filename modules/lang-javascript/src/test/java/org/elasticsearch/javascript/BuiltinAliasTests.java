@@ -43,8 +43,9 @@ public class BuiltinAliasTests extends ScriptTestCase {
     }
 
     public void testCollectionAndListAliases() {
-        assertEquals(true, exec("let l = new ArrayList(); l.add('x'); return l.includes('x')"));
-        assertEquals("y", exec("let l = new ArrayList(); l.add('x'); l.add('y'); return l.at(1)"));
+        assertEquals(true, exec("let l = new List(); l.add('x'); return l.includes('x')"));
+        assertEquals("y", exec("let l = new List(); l.add('x'); l.add('y'); return l.at(1)"));
+        assertEquals(true, exec("let l = new List(); return l instanceof JavaList"));
     }
 
     public void testSetAndMapAliases() {
@@ -141,6 +142,8 @@ public class BuiltinAliasTests extends ScriptTestCase {
         assertNotNull(lookup);
         assertEquals(java.util.HashMap.class, lookup.canonicalTypeNameToType("Map"));
         assertEquals(java.util.Map.class, lookup.canonicalTypeNameToType("JavaMap"));
+        assertEquals(java.util.ArrayList.class, lookup.canonicalTypeNameToType("List"));
+        assertEquals(java.util.List.class, lookup.canonicalTypeNameToType("JavaList"));
 
         assertNotNull(lookup.lookupJavascriptMethod("java.lang.String", false, "slice", 1));
         assertNotNull(lookup.lookupJavascriptMethod("java.lang.String", false, "slice", 2));

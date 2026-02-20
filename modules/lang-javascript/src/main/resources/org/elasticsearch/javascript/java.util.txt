@@ -31,13 +31,13 @@ class java.util.Collection {
   def[] toArray(def[])
 
   # some adaptations of groovy methods
-  List org.elasticsearch.javascript.api.Augmentation collect(Function)
+  java.util.List org.elasticsearch.javascript.api.Augmentation collect(Function)
   def org.elasticsearch.javascript.api.Augmentation collect(Collection,Function)
   def org.elasticsearch.javascript.api.Augmentation find(Predicate)
-  List org.elasticsearch.javascript.api.Augmentation findAll(Predicate)
+  java.util.List org.elasticsearch.javascript.api.Augmentation findAll(Predicate)
   def org.elasticsearch.javascript.api.Augmentation findResult(Function)
   def org.elasticsearch.javascript.api.Augmentation findResult(def,Function)
-  List org.elasticsearch.javascript.api.Augmentation split(Predicate)
+  java.util.List org.elasticsearch.javascript.api.Augmentation split(Predicate)
 }
 
 class java.util.Comparator {
@@ -100,7 +100,7 @@ class java.util.Iterator {
   void remove()
 }
 
-class java.util.List {
+class java.util.List @no_import @alias[class="JavaList"] {
   void add(int,def)
   boolean addAll(int,Collection)
   boolean equals(Object)
@@ -116,7 +116,7 @@ class java.util.List {
   int org.elasticsearch.javascript.api.Augmentation getLength()
   int org.elasticsearch.javascript.api.Augmentation push(def)
   void sort(Comparator)
-  List subList(int,int)
+  java.util.List subList(int,int)
   Object org.elasticsearch.javascript.api.Augmentation getByPath(String)
   Object org.elasticsearch.javascript.api.Augmentation getByPath(String, Object)
 }
@@ -160,7 +160,7 @@ class java.util.Map @no_import @alias[class="JavaMap"] {
   Object org.elasticsearch.javascript.api.Augmentation getByPath(String, Object)
 
   # some adaptations of groovy methods
-  List org.elasticsearch.javascript.api.Augmentation collect(BiFunction)
+  java.util.List org.elasticsearch.javascript.api.Augmentation collect(BiFunction)
   def org.elasticsearch.javascript.api.Augmentation collect(Collection,BiFunction)
   int org.elasticsearch.javascript.api.Augmentation count(BiPredicate)
   def org.elasticsearch.javascript.api.Augmentation each(BiConsumer)
@@ -169,7 +169,7 @@ class java.util.Map @no_import @alias[class="JavaMap"] {
   java.util.Map org.elasticsearch.javascript.api.Augmentation findAll(BiPredicate)
   def org.elasticsearch.javascript.api.Augmentation findResult(BiFunction)
   def org.elasticsearch.javascript.api.Augmentation findResult(def,BiFunction)
-  List org.elasticsearch.javascript.api.Augmentation findResults(BiFunction)
+  java.util.List org.elasticsearch.javascript.api.Augmentation findResults(BiFunction)
   java.util.Map org.elasticsearch.javascript.api.Augmentation groupBy(BiFunction)
 }
 
@@ -351,7 +351,7 @@ class java.util.ArrayDeque {
   ArrayDeque clone()
 }
 
-class java.util.ArrayList {
+class java.util.ArrayList @alias[class="List"] {
   ()
   (Collection)
   def clone()
@@ -359,7 +359,7 @@ class java.util.ArrayList {
 }
 
 class java.util.Arrays {
-  List asList(Object[])
+  java.util.List asList(Object[])
   boolean deepEquals(Object[],Object[])
   int deepHashCode(Object[])
   String deepToString(Object[])
@@ -532,18 +532,18 @@ class java.util.Calendar$Builder {
 }
 
 class java.util.Collections {
-  List EMPTY_LIST
+  java.util.List EMPTY_LIST
   java.util.Map EMPTY_MAP
   Set EMPTY_SET
   boolean addAll(Collection,def[])
   Queue asLifoQueue(Deque)
-  int binarySearch(List,def)
-  int binarySearch(List,def,Comparator)
-  void copy(List,List)
+  int binarySearch(java.util.List,def)
+  int binarySearch(java.util.List,def,Comparator)
+  void copy(java.util.List,java.util.List)
   boolean disjoint(Collection,Collection)
   Enumeration emptyEnumeration()
   Iterator emptyIterator()
-  List emptyList()
+  java.util.List emptyList()
   ListIterator emptyListIterator()
   java.util.Map emptyMap()
   NavigableMap emptyNavigableMap()
@@ -552,32 +552,32 @@ class java.util.Collections {
   SortedMap emptySortedMap()
   SortedSet emptySortedSet()
   Enumeration enumeration(Collection)
-  void fill(List,def)
+  void fill(java.util.List,def)
   int frequency(Collection,def)
-  int indexOfSubList(List,List)
-  int lastIndexOfSubList(List,List)
+  int indexOfSubList(java.util.List,java.util.List)
+  int lastIndexOfSubList(java.util.List,java.util.List)
   ArrayList list(Enumeration)
   def max(Collection)
   def max(Collection,Comparator)
   def min(Collection)
   def min(Collection,Comparator)
-  List nCopies(int,def)
+  java.util.List nCopies(int,def)
   Set newSetFromMap(java.util.Map)
-  boolean replaceAll(List,def,def)
-  void reverse(List)
+  boolean replaceAll(java.util.List,def,def)
+  void reverse(java.util.List)
   Comparator reverseOrder()
   Comparator reverseOrder(Comparator)
-  void rotate(List,int)
-  void shuffle(List) @nondeterministic
-  void shuffle(List,Random)
+  void rotate(java.util.List,int)
+  void shuffle(java.util.List) @nondeterministic
+  void shuffle(java.util.List,Random)
   Set singleton(def)
-  List singletonList(def)
+  java.util.List singletonList(def)
   java.util.Map singletonMap(def,def)
-  void sort(List)
-  void sort(List,Comparator)
-  void swap(List,int,int)
+  void sort(java.util.List)
+  void sort(java.util.List,Comparator)
+  void swap(java.util.List,int,int)
   Collection unmodifiableCollection(Collection)
-  List unmodifiableList(List)
+  java.util.List unmodifiableList(java.util.List)
   java.util.Map unmodifiableMap(java.util.Map)
   NavigableMap unmodifiableNavigableMap(NavigableMap)
   NavigableSet unmodifiableNavigableSet(NavigableSet)
@@ -768,8 +768,8 @@ class java.util.Locale {
   (String,String)
   (String,String,String)
   def clone()
-  List filter(List,Collection)
-  List filterTags(List,Collection)
+  java.util.List filter(java.util.List,Collection)
+  java.util.List filterTags(java.util.List,Collection)
   Locale forLanguageTag(String)
   Locale[] getAvailableLocales()
   String getCountry()
@@ -798,8 +798,8 @@ class java.util.Locale {
   String getUnicodeLocaleType(String)
   String getVariant()
   boolean hasExtensions()
-  Locale lookup(List,Collection)
-  String lookupTag(List,Collection)
+  Locale lookup(java.util.List,Collection)
+  String lookupTag(java.util.List,Collection)
   Locale stripExtensions()
   String toLanguageTag()
 }
@@ -828,9 +828,9 @@ class java.util.Locale$LanguageRange {
   (String,double)
   String getRange()
   double getWeight()
-  List mapEquivalents(List,java.util.Map)
-  List parse(String)
-  List parse(String,java.util.Map)
+  java.util.List mapEquivalents(java.util.List,java.util.Map)
+  java.util.List parse(String)
+  java.util.List parse(String,java.util.Map)
 }
 
 class java.util.LongSummaryStatistics {

@@ -42,7 +42,7 @@ class java.time.temporal.TemporalAdjuster {
 class java.time.temporal.TemporalAmount {
   Temporal addTo(Temporal)
   long get(TemporalUnit)
-  List getUnits()
+  java.util.List getUnits()
   Temporal subtractFrom(Temporal)
 }
 
