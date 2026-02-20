@@ -44,6 +44,7 @@ dependencies {
     api 'org.ow2.asm:asm:9.9'
     spi project('spi')
     clusterModules project(':modules:mapper-extras')
+    clusterModules project(':modules:ingest-common')
 }
 
 tasks.named("dependencyLicenses").configure {
@@ -56,7 +57,7 @@ tasks.named("yamlRestCompatTestTransform").configure({ task ->
 
 restResources {
     restApi {
-        include '_common', 'cluster', 'nodes', 'indices', 'index', 'search', 'get', 'bulk', 'update',
+        include '_common', 'cluster', 'nodes', 'indices', 'index', 'search', 'get', 'bulk', 'update', 'ingest',
                 'scripts_javascript_execute', 'put_script', 'delete_script', 'capabilities'
     }
 }

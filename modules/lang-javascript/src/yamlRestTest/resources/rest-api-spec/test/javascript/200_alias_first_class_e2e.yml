@@ -1,0 +1,174 @@
+setup:
+  - do:
+      indices.create:
+        index: test_alias_fc_e2e
+        body:
+          settings:
+            number_of_shards: 1
+            number_of_replicas: 0
+          mappings:
+            properties:
+              title:
+                type: keyword
+              rank:
+                type: integer
+              hasSale:
+                type: boolean
+              tail:
+                type: keyword
+              tags:
+                type: keyword
+              meta:
+                type: object
+                dynamic: true
+              v:
+                type: dense_vector
+                dims: 3
+                index: false
+
+  - do:
+      ingest.put_pipeline:
+        id: test_alias_fc_e2e_ingest
+        body:
+          description: "E2E alias and first-class function ingest checks"
+          processors:
+            - script:
+                lang: javascript
+                source: >
+                  let transforms = [(x) => x + 1, (x) => x * 2];
+                  let apply = transforms[1];
+                  ctx.rank = apply(ctx.rank);
+                  let hasSale = (s) => s.includes('sale');
+                  ctx.hasSale = hasSale(ctx.title);
+                  ctx.tail = ctx.title.slice(-4);
+                  let labels = new ArrayList();
+                  let addLabel = (v) => labels.push(v);
+                  addLabel('ingested');
+                  if (ctx.hasSale) { addLabel('sale'); }
+                  ctx.tags = labels;
+                  let meta = new HashMap();
+                  meta.set('tail', ctx.tail).set('title', ctx.title);
+                  meta.delete('title');
+                  ctx.meta = meta;
+
+  - do:
+      index:
+        index: test_alias_fc_e2e
+        id: "1"
+        pipeline: test_alias_fc_e2e_ingest
+        body:
+          title: flash-sale-coffee
+          rank: 2
+          v: [1.0, 1.0, 1.0]
+
+  - do:
+      index:
+        index: test_alias_fc_e2e
+        id: "2"
+        pipeline: test_alias_fc_e2e_ingest
+        body:
+          title: regular-tea-pack
+          rank: 3
+          v: [2.0, 2.0, 2.0]
+
+  - do:
+      index:
+        index: test_alias_fc_e2e
+        id: "3"
+        pipeline: test_alias_fc_e2e_ingest
+        body:
+          title: sale-cocoa-box
+          rank: 1
+          v: [1.0, 1.2, 1.1]
+
+  - do:
+      indices.refresh:
+        index: test_alias_fc_e2e
+
+---
+"Ingest pipeline uses first-class functions and aliases":
+  - do:
+      get:
+        index: test_alias_fc_e2e
+        id: "1"
+
+  - match: { _source.rank: 4 }
+  - match: { _source.hasSale: true }
+  - match: { _source.tail: ffee }
+  - match: { _source.tags.0: ingested }
+  - match: { _source.tags.1: sale }
+  - match: { _source.meta.tail: ffee }
+
+  - do:
+      get:
+        index: test_alias_fc_e2e
+        id: "2"
+
+  - match: { _source.rank: 6 }
+  - match: { _source.hasSale: false }
+  - match: { _source.tail: pack }
+  - match: { _source.tags.0: ingested }
+  - length: { _source.tags: 1 }
+  - match: { _source.meta.tail: pack }
+
+---
+"Script fields use first-class functions and aliases":
+  - do:
+      search:
+        rest_total_hits_as_int: true
+        index: test_alias_fc_e2e
+        body:
+          query:
+            term:
+              title: flash-sale-coffee
+          script_fields:
+            rank_projection:
+              script:
+                lang: javascript
+                source: >
+                  let transforms = [(x) => x + 1, (x) => x * 3];
+                  let f = transforms[1];
+                  f(doc['rank'].value)
+            alias_projection:
+              script:
+                lang: javascript
+                source: >
+                  let mkTail = (s) => s.slice(-4);
+                  let labels = new ArrayList();
+                  let add = (v) => labels.push(v);
+                  add('x');
+                  add('y');
+                  let m = new HashMap();
+                  m.set('tail', mkTail(doc['title'].value));
+                  m.set('label', labels.at(1));
+                  if (doc['title'].value.includes('sale') == false) { m.delete('tail'); }
+                  m.get('label') + ':' + (m.has('tail') ? m.get('tail') : 'none')
+
+  - match: { hits.total: 1 }
+  - match: { hits.hits.0.fields.rank_projection.0: 12 }
+  - match: { hits.hits.0.fields.alias_projection.0: y:ffee }
+
+---
+"Script score uses callable wrapper and l1Norm alias":
+  - do:
+      search:
+        rest_total_hits_as_int: true
+        index: test_alias_fc_e2e
+        body:
+          query:
+            script_score:
+              query:
+                match_all: {}
+              script:
+                lang: javascript
+                source: >
+                  function metric(q) { return l1Norm(q, 'v'); }
+                  let f = metric;
+                  1.0 / (1.0 + f(params.q))
+                params:
+                  q: [1.0, 1.0, 1.0]
+
+  - match: { hits.total: 3 }
+  - match: { hits.hits.0._id: "1" }
+  - match: { hits.hits.1._id: "3" }
+  - match: { hits.hits.2._id: "2" }
