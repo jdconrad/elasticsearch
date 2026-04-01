@@ -14,27 +14,37 @@ import org.elasticsearch.painless.lookup.PainlessConstructor;
 
 import java.util.List;
 
+/**
+ * Object instantiation ({@code new Type(args...)}).
+ *
+ * <p>{@code canonicalTypeName} is set by the Walker; {@code constructor} is null until
+ * the SemanticAnalysisPhase resolves the type and argument types.
+ */
 public final class NewObjectNode extends ArgumentsExpressionNode {
 
+    private final String canonicalTypeName;
     private final PainlessConstructor constructor;
 
-    public NewObjectNode(Location location, List<ExpressionNode> argumentNodes,
+    public NewObjectNode(Location location, String canonicalTypeName,
+                         List<ExpressionNode> argumentNodes,
                          PainlessConstructor constructor, Class<?> expressionType) {
         super(location, argumentNodes, expressionType);
+        this.canonicalTypeName = canonicalTypeName;
         this.constructor = constructor;
     }
 
+    public String getCanonicalTypeName() { return canonicalTypeName; }
     public PainlessConstructor getConstructor() { return constructor; }
 
     public NewObjectNode withArgumentNodes(List<ExpressionNode> argumentNodes) {
-        return new NewObjectNode(getLocation(), argumentNodes, constructor, getExpressionType());
+        return new NewObjectNode(getLocation(), canonicalTypeName, argumentNodes, constructor, getExpressionType());
     }
 
     public NewObjectNode withExpressionType(Class<?> expressionType) {
-        return new NewObjectNode(getLocation(), getArgumentNodes(), constructor, expressionType);
+        return new NewObjectNode(getLocation(), canonicalTypeName, getArgumentNodes(), constructor, expressionType);
     }
 
     public NewObjectNode withConstructor(PainlessConstructor constructor) {
-        return new NewObjectNode(getLocation(), getArgumentNodes(), constructor, getExpressionType());
+        return new NewObjectNode(getLocation(), canonicalTypeName, getArgumentNodes(), constructor, getExpressionType());
     }
 }

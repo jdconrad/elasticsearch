@@ -13,22 +13,33 @@ import org.elasticsearch.painless.Location;
 
 import java.util.List;
 
+/**
+ * Array creation ({@code new Type[dim]} or {@code new Type[] { elems }}).
+ *
+ * <p>{@code canonicalTypeName} is set by the Walker; {@code expressionType} is null
+ * until the SemanticAnalysisPhase resolves the element type.
+ */
 public final class NewArrayNode extends ArgumentsExpressionNode {
 
+    private final String canonicalTypeName;
     private final boolean initialize;
 
-    public NewArrayNode(Location location, List<ExpressionNode> argumentNodes, boolean initialize, Class<?> expressionType) {
+    public NewArrayNode(Location location, String canonicalTypeName,
+                        List<ExpressionNode> argumentNodes, boolean initialize,
+                        Class<?> expressionType) {
         super(location, argumentNodes, expressionType);
+        this.canonicalTypeName = canonicalTypeName;
         this.initialize = initialize;
     }
 
+    public String getCanonicalTypeName() { return canonicalTypeName; }
     public boolean isInitialize() { return initialize; }
 
     public NewArrayNode withArgumentNodes(List<ExpressionNode> argumentNodes) {
-        return new NewArrayNode(getLocation(), argumentNodes, initialize, getExpressionType());
+        return new NewArrayNode(getLocation(), canonicalTypeName, argumentNodes, initialize, getExpressionType());
     }
 
     public NewArrayNode withExpressionType(Class<?> expressionType) {
-        return new NewArrayNode(getLocation(), getArgumentNodes(), initialize, expressionType);
+        return new NewArrayNode(getLocation(), canonicalTypeName, getArgumentNodes(), initialize, expressionType);
     }
 }

@@ -212,8 +212,11 @@ final class Compiler {
     ScriptScope compile(Loader loader, String name, String source, CompilerSettings settings) {
         String scriptName = Location.computeSourceName(name);
         ScriptClassInfo scriptClassInfo = new ScriptClassInfo(painlessLookup, scriptClass);
-        SClass root = Walker.buildPainlessTree(scriptName, source, settings);
-        ScriptScope scriptScope = new ScriptScope(painlessLookup, settings, scriptClassInfo, scriptName, source, root.getIdentifier() + 1);
+        // TODO Step 9: Walker now returns node.ClassNode; this cast fails at runtime until
+        // the pipeline is fully rewritten. Compilation is preserved for incremental progress.
+        @SuppressWarnings("unchecked")
+        SClass root = (SClass) (Object) Walker.buildPainlessTree(scriptName, source, settings);
+        ScriptScope scriptScope = new ScriptScope(painlessLookup, settings, scriptClassInfo, scriptName, source, 0);
         new PainlessSemanticHeaderPhase().visitClass(root, scriptScope);
         new PainlessSemanticAnalysisPhase().visitClass(root, scriptScope);
         new PainlessUserTreeToIRTreePhase().visitClass(root, scriptScope);
@@ -249,8 +252,11 @@ final class Compiler {
     byte[] compile(String name, String source, CompilerSettings settings, Printer debugStream) {
         String scriptName = Location.computeSourceName(name);
         ScriptClassInfo scriptClassInfo = new ScriptClassInfo(painlessLookup, scriptClass);
-        SClass root = Walker.buildPainlessTree(scriptName, source, settings);
-        ScriptScope scriptScope = new ScriptScope(painlessLookup, settings, scriptClassInfo, scriptName, source, root.getIdentifier() + 1);
+        // TODO Step 9: Walker now returns node.ClassNode; this cast fails at runtime until
+        // the pipeline is fully rewritten. Compilation is preserved for incremental progress.
+        @SuppressWarnings("unchecked")
+        SClass root = (SClass) (Object) Walker.buildPainlessTree(scriptName, source, settings);
+        ScriptScope scriptScope = new ScriptScope(painlessLookup, settings, scriptClassInfo, scriptName, source, 0);
         new PainlessSemanticHeaderPhase().visitClass(root, scriptScope);
         new PainlessSemanticAnalysisPhase().visitClass(root, scriptScope);
         new PainlessUserTreeToIRTreePhase().visitClass(root, scriptScope);
@@ -280,8 +286,11 @@ final class Compiler {
     ) {
         String scriptName = Location.computeSourceName(name);
         ScriptClassInfo scriptClassInfo = new ScriptClassInfo(painlessLookup, scriptClass);
-        SClass root = Walker.buildPainlessTree(scriptName, source, settings);
-        ScriptScope scriptScope = new ScriptScope(painlessLookup, settings, scriptClassInfo, scriptName, source, root.getIdentifier() + 1);
+        // TODO Step 9: Walker now returns node.ClassNode; this cast fails at runtime until
+        // the pipeline is fully rewritten. Compilation is preserved for incremental progress.
+        @SuppressWarnings("unchecked")
+        SClass root = (SClass) (Object) Walker.buildPainlessTree(scriptName, source, settings);
+        ScriptScope scriptScope = new ScriptScope(painlessLookup, settings, scriptClassInfo, scriptName, source, 0);
 
         new PainlessSemanticHeaderPhase().visitClass(root, scriptScope);
         new PainlessSemanticAnalysisPhase().visitClass(root, scriptScope);

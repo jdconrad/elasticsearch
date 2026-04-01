@@ -389,6 +389,75 @@ public final class CoreNodeRegistrar {
             return node.withArgumentNodes(args);
         });
 
+        // ---- Source-level expression nodes (produced by Walker, lowered by later phases) --
+
+        traversals.register(AssignmentNode.class, (node, t) -> {
+            var left  = t.transform(node.getLeftNode());
+            var right = t.transform(node.getRightNode());
+            if (left == node.getLeftNode() && right == node.getRightNode()) return node;
+            return node.withLeftNode(left).withRightNode(right);
+        });
+
+        traversals.register(BraceAccessNode.class, (node, t) -> {
+            var prefix = t.transform(node.getPrefixNode());
+            var index  = t.transform(node.getIndexNode());
+            if (prefix == node.getPrefixNode() && index == node.getIndexNode()) return node;
+            return node.withPrefixNode(prefix).withIndexNode(index);
+        });
+
+        traversals.register(DecimalNode.class,                (node, t) -> node); // leaf
+        traversals.register(NumericNode.class,                (node, t) -> node); // leaf
+        traversals.register(RegexNode.class,                  (node, t) -> node); // leaf
+        traversals.register(VariableNode.class,               (node, t) -> node); // leaf
+        traversals.register(FunctionReferenceNode.class,      (node, t) -> node); // leaf
+        traversals.register(NewArrayFunctionReferenceNode.class, (node, t) -> node); // leaf
+
+        traversals.register(DotAccessNode.class, (node, t) -> {
+            var prefix = t.transform(node.getPrefixNode());
+            if (prefix == node.getPrefixNode()) return node;
+            return node.withPrefixNode(prefix);
+        });
+
+        traversals.register(ExplicitCastNode.class, (node, t) -> {
+            var child = t.transform(node.getChildNode());
+            if (child == node.getChildNode()) return node;
+            return node.withChildNode(child);
+        });
+
+        traversals.register(SourceInstanceofNode.class, (node, t) -> {
+            var expr = t.transform(node.getExpressionNode());
+            if (expr == node.getExpressionNode()) return node;
+            return node.withExpressionNode(expr);
+        });
+
+        traversals.register(LambdaNode.class, (node, t) -> {
+            var block = (BlockNode) t.transform(node.getBlockNode());
+            if (block == node.getBlockNode()) return node;
+            return node.withBlockNode(block);
+        });
+
+        traversals.register(MethodCallNode.class, (node, t) -> {
+            var prefix = t.transform(node.getPrefixNode());
+            var args   = transformExprList(node.getArgumentNodes(), t);
+            if (prefix == node.getPrefixNode() && args == node.getArgumentNodes()) return node;
+            return node.withPrefixNode(prefix).withArgumentNodes(args);
+        });
+
+        traversals.register(LocalFunctionCallNode.class, (node, t) -> {
+            var args = transformExprList(node.getArgumentNodes(), t);
+            if (args == node.getArgumentNodes()) return node;
+            return node.withArgumentNodes(args);
+        });
+
+        // ---- Source-level statement nodes -----------------------------------
+
+        traversals.register(ForEachSourceNode.class, (node, t) -> {
+            var iterable = t.transform(node.getIterableNode());
+            var block    = node.getBlockNode() != null ? (BlockNode) t.transform(node.getBlockNode()) : null;
+            if (iterable == node.getIterableNode() && block == node.getBlockNode()) return node;
+            return node.withIterableNode(iterable).withBlockNode(block);
+        });
+
         // ---- Leaf expression nodes ------------------------------------------
 
         traversals.register(ConstantNode.class,              (node, t) -> node);

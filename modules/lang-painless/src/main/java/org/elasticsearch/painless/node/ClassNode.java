@@ -82,4 +82,8 @@ public final class ClassNode extends Node {
     public ClassNode withFieldNodes(List<FieldNode> fieldNodes) {
         return new ClassNode(getLocation(), fieldNodes, functionNodes, clinitBlockNode, scriptScope);
     }
+
+    public ClassNode withScriptScope(ScriptScope scriptScope) {
+        return new ClassNode(getLocation(), fieldNodes, functionNodes, clinitBlockNode, scriptScope);
+    }
 }

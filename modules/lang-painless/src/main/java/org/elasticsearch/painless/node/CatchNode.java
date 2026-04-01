@@ -11,24 +11,41 @@ package org.elasticsearch.painless.node;
 
 import org.elasticsearch.painless.Location;
 
+/**
+ * A catch block as part of a try-catch statement.
+ *
+ * <p>Before semantic analysis, {@code exceptionTypeName} holds the string type name from
+ * source; {@code exceptionType} is null. The SemanticAnalysisPhase resolves the name and
+ * fills in {@code exceptionType}.
+ */
 public final class CatchNode extends StatementNode {
 
     private final BlockNode blockNode;
+    // resolved by SemanticAnalysisPhase; null before that phase
     private final Class<?> exceptionType;
+    // string name from source; set by Walker, used by SemanticAnalysisPhase
+    private final String exceptionTypeName;
     private final String name;
 
-    public CatchNode(Location location, BlockNode blockNode, Class<?> exceptionType, String name) {
+    public CatchNode(Location location, BlockNode blockNode, Class<?> exceptionType,
+                     String exceptionTypeName, String name) {
         super(location);
         this.blockNode = blockNode;
         this.exceptionType = exceptionType;
+        this.exceptionTypeName = exceptionTypeName;
         this.name = name;
     }
 
     public BlockNode getBlockNode() { return blockNode; }
     public Class<?> getExceptionType() { return exceptionType; }
+    public String getExceptionTypeName() { return exceptionTypeName; }
     public String getName() { return name; }
 
     public CatchNode withBlockNode(BlockNode blockNode) {
-        return new CatchNode(getLocation(), blockNode, exceptionType, name);
+        return new CatchNode(getLocation(), blockNode, exceptionType, exceptionTypeName, name);
+    }
+
+    public CatchNode withExceptionType(Class<?> exceptionType) {
+        return new CatchNode(getLocation(), blockNode, exceptionType, exceptionTypeName, name);
     }
 }
