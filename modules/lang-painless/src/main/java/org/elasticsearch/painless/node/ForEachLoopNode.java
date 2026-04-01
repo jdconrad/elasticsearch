@@ -12,20 +12,21 @@ package org.elasticsearch.painless.node;
 import org.elasticsearch.painless.Location;
 
 /**
- * Base class for all nodes that produce a value. Carries {@code expressionType},
- * the resolved Java type of the expression result, which is null before semantic
- * analysis and set by the semantic analysis phase.
+ * Container for a for-each loop. The {@code conditionNode} is either a
+ * {@link ForEachSubArrayNode} or a {@link ForEachSubIterableNode}.
  */
-public abstract class ExpressionNode extends Node {
+public final class ForEachLoopNode extends StatementNode {
 
-    private final Class<?> expressionType;
+    private final StatementNode conditionNode;
 
-    public ExpressionNode(Location location, Class<?> expressionType) {
+    public ForEachLoopNode(Location location, StatementNode conditionNode) {
         super(location);
-        this.expressionType = expressionType;
+        this.conditionNode = conditionNode;
     }
 
-    public Class<?> getExpressionType() {
-        return expressionType;
+    public StatementNode getConditionNode() { return conditionNode; }
+
+    public ForEachLoopNode withConditionNode(StatementNode conditionNode) {
+        return new ForEachLoopNode(getLocation(), conditionNode);
     }
 }

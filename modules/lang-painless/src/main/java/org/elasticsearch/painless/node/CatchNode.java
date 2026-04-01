@@ -11,23 +11,24 @@ package org.elasticsearch.painless.node;
 
 import org.elasticsearch.painless.Location;
 
-/**
- * Represents a field (class member) in a compiled Painless script.
- */
-public final class FieldNode extends Node {
+public final class CatchNode extends StatementNode {
 
-    private final int modifiers;
-    private final Class<?> fieldType;
+    private final BlockNode blockNode;
+    private final Class<?> exceptionType;
     private final String name;
 
-    public FieldNode(Location location, int modifiers, Class<?> fieldType, String name) {
+    public CatchNode(Location location, BlockNode blockNode, Class<?> exceptionType, String name) {
         super(location);
-        this.modifiers = modifiers;
-        this.fieldType = fieldType;
+        this.blockNode = blockNode;
+        this.exceptionType = exceptionType;
         this.name = name;
     }
 
-    public int getModifiers() { return modifiers; }
-    public Class<?> getFieldType() { return fieldType; }
+    public BlockNode getBlockNode() { return blockNode; }
+    public Class<?> getExceptionType() { return exceptionType; }
     public String getName() { return name; }
+
+    public CatchNode withBlockNode(BlockNode blockNode) {
+        return new CatchNode(getLocation(), blockNode, exceptionType, name);
+    }
 }

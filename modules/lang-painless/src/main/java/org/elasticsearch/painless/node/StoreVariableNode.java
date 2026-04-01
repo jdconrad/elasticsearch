@@ -11,23 +11,22 @@ package org.elasticsearch.painless.node;
 
 import org.elasticsearch.painless.Location;
 
-/**
- * Represents a field (class member) in a compiled Painless script.
- */
-public final class FieldNode extends Node {
+public final class StoreVariableNode extends UnaryExpressionNode {
 
-    private final int modifiers;
-    private final Class<?> fieldType;
     private final String name;
 
-    public FieldNode(Location location, int modifiers, Class<?> fieldType, String name) {
-        super(location);
-        this.modifiers = modifiers;
-        this.fieldType = fieldType;
+    public StoreVariableNode(Location location, ExpressionNode childNode, String name, Class<?> expressionType) {
+        super(location, childNode, expressionType);
         this.name = name;
     }
 
-    public int getModifiers() { return modifiers; }
-    public Class<?> getFieldType() { return fieldType; }
     public String getName() { return name; }
+
+    public StoreVariableNode withChildNode(ExpressionNode childNode) {
+        return new StoreVariableNode(getLocation(), childNode, name, getExpressionType());
+    }
+
+    public StoreVariableNode withExpressionType(Class<?> expressionType) {
+        return new StoreVariableNode(getLocation(), getChildNode(), name, expressionType);
+    }
 }

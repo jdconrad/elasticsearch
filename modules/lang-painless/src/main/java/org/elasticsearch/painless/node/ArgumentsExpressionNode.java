@@ -11,21 +11,22 @@ package org.elasticsearch.painless.node;
 
 import org.elasticsearch.painless.Location;
 
+import java.util.List;
+
 /**
- * Base class for all nodes that produce a value. Carries {@code expressionType},
- * the resolved Java type of the expression result, which is null before semantic
- * analysis and set by the semantic analysis phase.
+ * Abstract base for expression nodes that take a list of expression arguments
+ * (calls, constructors, list/map initializers, etc.).
  */
-public abstract class ExpressionNode extends Node {
+public abstract class ArgumentsExpressionNode extends ExpressionNode {
 
-    private final Class<?> expressionType;
+    private final List<ExpressionNode> argumentNodes;
 
-    public ExpressionNode(Location location, Class<?> expressionType) {
-        super(location);
-        this.expressionType = expressionType;
+    public ArgumentsExpressionNode(Location location, List<ExpressionNode> argumentNodes, Class<?> expressionType) {
+        super(location, expressionType);
+        this.argumentNodes = List.copyOf(argumentNodes);
     }
 
-    public Class<?> getExpressionType() {
-        return expressionType;
+    public List<ExpressionNode> getArgumentNodes() {
+        return argumentNodes;
     }
 }
