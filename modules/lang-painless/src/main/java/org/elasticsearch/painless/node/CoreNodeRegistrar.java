@@ -473,6 +473,7 @@ public final class CoreNodeRegistrar {
         traversals.register(LoadMapShortcutNode.class,        (node, t) -> node);
         traversals.register(LoadVariableNode.class,           (node, t) -> node);
         traversals.register(NullNode.class,                   (node, t) -> node);
+        traversals.register(PartialTypeNode.class,            (node, t) -> node); // transient — exists only during semantic analysis
         traversals.register(StaticNode.class,                 (node, t) -> node);
         traversals.register(TypedCaptureReferenceNode.class,  (node, t) -> node);
         traversals.register(TypedInterfaceReferenceNode.class, (node, t) -> node);
