@@ -57,7 +57,7 @@ public class AllocatesAnnotationParserTests extends ESTestCase {
 
     public void testDynamicParsesClassAndMethod() {
         AllocatesDynamicAnnotation annotation = (AllocatesDynamicAnnotation) DYNAMIC.parse(
-            Map.of(AllocatesDynamicAnnotationParser.ESTIMATOR, "com.example.Foo#estimate")
+            Map.of(AllocatesDynamicAnnotationParser.CLASS, "com.example.Foo", AllocatesDynamicAnnotationParser.METHOD, "estimate")
         );
         assertEquals("com.example.Foo", annotation.estimatorClassName());
         assertEquals("estimate", annotation.estimatorMethodName());
@@ -65,34 +65,53 @@ public class AllocatesAnnotationParserTests extends ESTestCase {
 
     public void testDynamicAcceptsInnerClassDollarForm() {
         AllocatesDynamicAnnotation annotation = (AllocatesDynamicAnnotation) DYNAMIC.parse(
-            Map.of(AllocatesDynamicAnnotationParser.ESTIMATOR, "com.example.Outer$Inner#estimate")
+            Map.of(AllocatesDynamicAnnotationParser.CLASS, "com.example.Outer$Inner", AllocatesDynamicAnnotationParser.METHOD, "estimate")
         );
         assertEquals("com.example.Outer$Inner", annotation.estimatorClassName());
         assertEquals("estimate", annotation.estimatorMethodName());
     }
 
-    public void testDynamicRejectsMissingHash() {
+    public void testDynamicRejectsMissingClass() {
+        expectThrows(IllegalArgumentException.class, () -> DYNAMIC.parse(Map.of(AllocatesDynamicAnnotationParser.METHOD, "estimate")));
+    }
+
+    public void testDynamicRejectsMissingMethod() {
         expectThrows(
             IllegalArgumentException.class,
-            () -> DYNAMIC.parse(Map.of(AllocatesDynamicAnnotationParser.ESTIMATOR, "com.example.Foo.estimate"))
+            () -> DYNAMIC.parse(Map.of(AllocatesDynamicAnnotationParser.CLASS, "com.example.Foo"))
         );
     }
 
-    public void testDynamicRejectsTrailingHash() {
+    public void testDynamicRejectsEmptyValues() {
         expectThrows(
             IllegalArgumentException.class,
-            () -> DYNAMIC.parse(Map.of(AllocatesDynamicAnnotationParser.ESTIMATOR, "com.example.Foo#"))
+            () -> DYNAMIC.parse(Map.of(AllocatesDynamicAnnotationParser.CLASS, " ", AllocatesDynamicAnnotationParser.METHOD, "estimate"))
+        );
+        expectThrows(
+            IllegalArgumentException.class,
+            () -> DYNAMIC.parse(
+                Map.of(AllocatesDynamicAnnotationParser.CLASS, "com.example.Foo", AllocatesDynamicAnnotationParser.METHOD, " ")
+            )
         );
     }
 
-    public void testDynamicRejectsMultipleHashes() {
+    public void testDynamicRejectsUnknownArgument() {
         expectThrows(
             IllegalArgumentException.class,
-            () -> DYNAMIC.parse(Map.of(AllocatesDynamicAnnotationParser.ESTIMATOR, "com.example.Foo#bar#baz"))
+            () -> DYNAMIC.parse(
+                Map.of(
+                    AllocatesDynamicAnnotationParser.CLASS,
+                    "com.example.Foo",
+                    AllocatesDynamicAnnotationParser.METHOD,
+                    "estimate",
+                    "extra",
+                    "nope"
+                )
+            )
         );
     }
 
-    public void testDynamicRejectsMissingArgument() {
+    public void testDynamicRejectsMissingArguments() {
         expectThrows(IllegalArgumentException.class, () -> DYNAMIC.parse(Map.of()));
     }
 }

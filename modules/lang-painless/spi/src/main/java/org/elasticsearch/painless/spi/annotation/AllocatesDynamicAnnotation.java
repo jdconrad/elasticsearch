@@ -13,8 +13,8 @@ package org.elasticsearch.painless.spi.annotation;
  * Marks a whitelisted constructor or method whose allocation size depends on its arguments. An <i>estimator</i> — a
  * {@code public static long} method taking the target's full Java signature (receiver first for instance methods) — is invoked
  * at runtime and its result charged against the per-context allocation limit before the call executes. The estimator is named
- * by a fully-qualified {@code Class#method} reference (JVM {@code $} form for inner classes), resolved at whitelist load time
- * through the annotated class's class loader so plugins may ship their own.
+ * by its {@code class} (fully-qualified binary name; JVM {@code $} form for inner classes) and {@code method}, resolved at
+ * whitelist load time through the annotated class's class loader so plugins may ship their own.
  *
  * @param estimatorClassName fully-qualified binary class name declaring the estimator
  * @param estimatorMethodName name of the estimator method

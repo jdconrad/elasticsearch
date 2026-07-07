@@ -10,5 +10,5 @@
 # Bad whitelist: @allocates_dynamic names an estimator class that does not exist; loading must fail.
 
 class org.elasticsearch.painless.AllocationEstimatorTestObject {
-  int negativeEstimated() @allocates_dynamic[estimator="org.elasticsearch.painless.DoesNotExist#estimate"]
+  int negativeEstimated() @allocates_dynamic[class="org.elasticsearch.painless.DoesNotExist", method="estimate"]
 }

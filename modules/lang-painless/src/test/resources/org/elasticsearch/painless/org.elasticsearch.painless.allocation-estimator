@@ -10,11 +10,11 @@
 # Whitelist for @allocates_dynamic tests: methods paired with deliberately misbehaving estimators.
 
 class org.elasticsearch.painless.AllocationEstimatorTestObject {
-  int negativeEstimated() @allocates_dynamic[estimator="org.elasticsearch.painless.AllocationEstimatorTestObject#negativeEstimate"]
-  int hugeEstimated() @allocates_dynamic[estimator="org.elasticsearch.painless.AllocationEstimatorTestObject#hugeEstimate"]
+  int negativeEstimated() @allocates_dynamic[class="org.elasticsearch.painless.AllocationEstimatorTestObject", method="negativeEstimate"]
+  int hugeEstimated() @allocates_dynamic[class="org.elasticsearch.painless.AllocationEstimatorTestObject", method="hugeEstimate"]
 }
 
 # An augmented method's estimator matches the underlying Java static signature (receiver first), not the Painless surface.
 class java.lang.String {
-  int org.elasticsearch.painless.AllocationEstimatorTestObject augmentedEstimated(int) @allocates_dynamic[estimator="org.elasticsearch.painless.AllocationEstimatorTestObject#augmentedEstimate"]
+  int org.elasticsearch.painless.AllocationEstimatorTestObject augmentedEstimated(int) @allocates_dynamic[class="org.elasticsearch.painless.AllocationEstimatorTestObject", method="augmentedEstimate"]
 }

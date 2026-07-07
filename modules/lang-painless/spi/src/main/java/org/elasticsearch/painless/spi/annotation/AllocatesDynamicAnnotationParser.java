@@ -12,12 +12,13 @@ package org.elasticsearch.painless.spi.annotation;
 import java.util.Map;
 
 /**
- * Parses {@code @allocates_dynamic[estimator="fully.qualified.Class#methodName"]}. Only the {@code Class#methodName} shape is
- * validated here; resolution happens at whitelist load time so a missing estimator fails loudly.
+ * Parses {@code @allocates_dynamic[class="fully.qualified.Class", method="methodName"]}. Only the shape is validated here;
+ * resolution happens at whitelist load time so a missing estimator fails loudly.
  */
 public class AllocatesDynamicAnnotationParser implements WhitelistAnnotationParser {
 
-    public static final String ESTIMATOR = "estimator";
+    public static final String CLASS = "class";
+    public static final String METHOD = "method";
 
     public static final AllocatesDynamicAnnotationParser INSTANCE = new AllocatesDynamicAnnotationParser();
 
@@ -25,44 +26,21 @@ public class AllocatesDynamicAnnotationParser implements WhitelistAnnotationPars
 
     @Override
     public Object parse(Map<String, String> arguments) {
-        if (arguments.size() != 1 || arguments.containsKey(ESTIMATOR) == false) {
+        if (arguments.size() != 2 || arguments.containsKey(CLASS) == false || arguments.containsKey(METHOD) == false) {
             throw new IllegalArgumentException(
-                "[@"
-                    + AllocatesDynamicAnnotation.NAME
-                    + "] requires a single ["
-                    + ESTIMATOR
-                    + "] argument of the form [fully.qualified.Class#methodName]"
+                "[@" + AllocatesDynamicAnnotation.NAME + "] requires [" + CLASS + "] and [" + METHOD + "] arguments"
             );
         }
 
-        String estimator = arguments.get(ESTIMATOR).trim();
-        int hash = estimator.indexOf('#');
+        String className = arguments.get(CLASS).trim();
+        String methodName = arguments.get(METHOD).trim();
 
-        if (hash < 1 || hash != estimator.lastIndexOf('#') || hash == estimator.length() - 1) {
-            throw new IllegalArgumentException(
-                "[@"
-                    + AllocatesDynamicAnnotation.NAME
-                    + "] ["
-                    + ESTIMATOR
-                    + "] must be of the form [fully.qualified.Class#methodName] ["
-                    + estimator
-                    + "]"
-            );
+        if (className.isEmpty()) {
+            throw new IllegalArgumentException("[@" + AllocatesDynamicAnnotation.NAME + "] [" + CLASS + "] must not be empty");
         }
 
-        String className = estimator.substring(0, hash).trim();
-        String methodName = estimator.substring(hash + 1).trim();
-
-        if (className.isEmpty() || methodName.isEmpty()) {
-            throw new IllegalArgumentException(
-                "[@"
-                    + AllocatesDynamicAnnotation.NAME
-                    + "] ["
-                    + ESTIMATOR
-                    + "] must be of the form [fully.qualified.Class#methodName] ["
-                    + estimator
-                    + "]"
-            );
+        if (methodName.isEmpty()) {
+            throw new IllegalArgumentException("[@" + AllocatesDynamicAnnotation.NAME + "] [" + METHOD + "] must not be empty");
         }
 
         return new AllocatesDynamicAnnotation(className, methodName);
