@@ -354,7 +354,7 @@ class java.util.ArrayDeque {
 }
 
 class java.util.ArrayList {
-  () @allocates_constant[bytes="40"]
+  () @allocates_constant[bytes="40b"]
   (Collection) @allocates_dynamic[class="org.elasticsearch.painless.AllocationEstimators", method="arrayListCollectionBytes"]
   def clone()
   void trimToSize()

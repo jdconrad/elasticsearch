@@ -10,5 +10,5 @@
 # Bad allowlist: @allocates_constant and @allocates_dynamic are mutually exclusive; loading must fail.
 
 class org.elasticsearch.painless.AllocationEstimatorTestObject {
-  int negativeEstimated() @allocates_constant[bytes="8"] @allocates_dynamic[class="org.elasticsearch.painless.AllocationEstimatorTestObject", method="negativeEstimate"]
+  int negativeEstimated() @allocates_constant[bytes="8b"] @allocates_dynamic[class="org.elasticsearch.painless.AllocationEstimatorTestObject", method="negativeEstimate"]
 }

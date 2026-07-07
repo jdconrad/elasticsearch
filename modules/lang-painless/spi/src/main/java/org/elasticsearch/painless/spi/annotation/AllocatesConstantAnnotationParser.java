@@ -9,10 +9,14 @@
 
 package org.elasticsearch.painless.spi.annotation;
 
+import org.elasticsearch.ElasticsearchParseException;
+import org.elasticsearch.common.unit.ByteSizeValue;
+
 import java.util.Map;
 
 /**
- * Parses {@code @allocates_constant[bytes="N"]}: a single {@code bytes} argument holding a non-negative {@code long}.
+ * Parses {@code @allocates_constant[bytes="40b"]}: a single {@code bytes} argument holding a non-negative
+ * {@link ByteSizeValue} (a unit is required except for {@code "0"}).
  */
 public class AllocatesConstantAnnotationParser implements WhitelistAnnotationParser {
 
@@ -32,17 +36,17 @@ public class AllocatesConstantAnnotationParser implements WhitelistAnnotationPar
         long bytes;
 
         try {
-            bytes = Long.parseLong(value);
-        } catch (NumberFormatException nfe) {
+            bytes = ByteSizeValue.parseBytesSizeValue(value, "[@" + AllocatesConstantAnnotation.NAME + "] [" + BYTES + "]").getBytes();
+        } catch (ElasticsearchParseException epe) {
             throw new IllegalArgumentException(
-                "[@" + AllocatesConstantAnnotation.NAME + "] [" + BYTES + "] argument must be a long [" + value + "]",
-                nfe
+                "[@" + AllocatesConstantAnnotation.NAME + "] [" + BYTES + "] argument must be a byte size value [" + value + "]",
+                epe
             );
         }
 
         if (bytes < 0) {
             throw new IllegalArgumentException(
-                "[@" + AllocatesConstantAnnotation.NAME + "] [" + BYTES + "] argument must not be negative [" + bytes + "]"
+                "[@" + AllocatesConstantAnnotation.NAME + "] [" + BYTES + "] argument must not be negative [" + value + "]"
             );
         }
 

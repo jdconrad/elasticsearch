@@ -18,7 +18,7 @@ import org.elasticsearch.painless.spi.PainlessTestScript;
 public class AllocationNewObjectPreCheckTests extends AllocationTestCase {
 
     public void testAnnotatedConstructorCharged() {
-        // new ArrayList() is annotated @allocates_constant[bytes="40"] in java.util.txt.
+        // new ArrayList() is annotated @allocates_constant[bytes="40b"] in java.util.txt.
         assertEquals(40L, allocatedBytes("new ArrayList(); return \"x\";"));
     }
 

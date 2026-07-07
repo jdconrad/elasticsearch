@@ -25,14 +25,26 @@ public class AllocatesAnnotationParserTests extends ESTestCase {
 
     public void testAllocatesParsesBytes() {
         AllocatesConstantAnnotation annotation = (AllocatesConstantAnnotation) ALLOCATES.parse(
-            Map.of(AllocatesConstantAnnotationParser.BYTES, "40")
+            Map.of(AllocatesConstantAnnotationParser.BYTES, "40b")
         );
         assertEquals(40L, annotation.bytes());
+    }
+
+    public void testAllocatesParsesUnits() {
+        assertEquals(
+            1024L,
+            ((AllocatesConstantAnnotation) ALLOCATES.parse(Map.of(AllocatesConstantAnnotationParser.BYTES, "1kb"))).bytes()
+        );
     }
 
     public void testAllocatesAcceptsZero() {
         // @allocates_constant[bytes="0"] is a valid no-op ("audited: does not allocate").
         assertEquals(0L, ((AllocatesConstantAnnotation) ALLOCATES.parse(Map.of(AllocatesConstantAnnotationParser.BYTES, "0"))).bytes());
+    }
+
+    public void testAllocatesRejectsMissingUnits() {
+        // ByteSizeValue requires a unit for anything but "0"; a bare number must not parse.
+        expectThrows(IllegalArgumentException.class, () -> ALLOCATES.parse(Map.of(AllocatesConstantAnnotationParser.BYTES, "40")));
     }
 
     public void testAllocatesRejectsNegative() {
