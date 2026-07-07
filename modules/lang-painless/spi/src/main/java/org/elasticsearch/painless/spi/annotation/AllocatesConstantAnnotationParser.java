@@ -12,8 +12,7 @@ package org.elasticsearch.painless.spi.annotation;
 import java.util.Map;
 
 /**
- * Parses {@code @allocates_constant[bytes="N"]} into an {@link AllocatesConstantAnnotation}. Requires a single {@code bytes} argument holding a
- * non-negative {@code long}; any other shape is rejected at whitelist load time.
+ * Parses {@code @allocates_constant[bytes="N"]}: a single {@code bytes} argument holding a non-negative {@code long}.
  */
 public class AllocatesConstantAnnotationParser implements WhitelistAnnotationParser {
 

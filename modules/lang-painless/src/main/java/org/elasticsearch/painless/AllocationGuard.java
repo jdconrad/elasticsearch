@@ -22,31 +22,27 @@ public final class AllocationGuard {
 
     private static final Logger logger = LogManager.getLogger(AllocationGuard.class);
 
-    /**
-     * Conservative byte charge substituted when an {@code @allocates_dynamic} estimator misbehaves by returning a negative
-     * value. Large enough that a runaway loop of misestimated allocations still trips a sane limit reasonably quickly.
-     */
+    /** Conservative charge substituted when an {@code @allocates_dynamic} estimator misbehaves by returning a negative value. */
     public static final long ESTIMATE_FALLBACK_BYTES = 4096;
 
-    /** One-time flag so a misbehaving estimator warns once per JVM instead of flooding the log from a hot loop. */
+    /** Warn once per JVM for a misbehaving estimator instead of flooding the log from a hot loop. */
     private static volatile boolean warnedNegativeEstimate = false;
 
     private AllocationGuard() {}
 
     /**
-     * Normalizes an {@code @allocates_dynamic} estimator's result before it is charged. A negative value signals a buggy
-     * estimator: substitute {@link #ESTIMATE_FALLBACK_BYTES} (and {@code WARN} once per JVM). Huge values are clamped to
-     * {@code Long.MAX_VALUE / 2}, which still unconditionally trips any configurable limit (bounded at 1gb) without risking
-     * overflow of the running total; estimators may return {@code Long.MAX_VALUE} to signal "definitely over any limit".
-     * Estimators must not throw; a thrown exception propagates and fails the script.
+     * Normalizes an {@code @allocates_dynamic} estimator's result before it is charged: negative (a buggy estimator) becomes
+     * {@link #ESTIMATE_FALLBACK_BYTES} with a one-time WARN; values are clamped to {@code Long.MAX_VALUE / 2}, which trips any
+     * configurable limit without overflowing the running total (so estimators may return {@code Long.MAX_VALUE} for
+     * "definitely over"). Estimators must not throw; a thrown exception propagates and fails the script.
      */
     public static long sanitizeEstimate(long estimatedBytes) {
         if (estimatedBytes < 0) {
             if (warnedNegativeEstimate == false) {
                 warnedNegativeEstimate = true;
                 logger.warn(
-                    "a Painless allocation estimator returned a negative size [{}]; substituting the conservative fallback of "
-                        + "[{}] bytes (this is a bug in the estimator; further occurrences will not be logged)",
+                    "a Painless allocation estimator returned a negative size [{}]; substituting [{}] bytes "
+                        + "(estimator bug; further occurrences will not be logged)",
                     estimatedBytes,
                     ESTIMATE_FALLBACK_BYTES
                 );

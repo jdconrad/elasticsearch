@@ -12,10 +12,8 @@ package org.elasticsearch.painless.spi.annotation;
 import java.util.Map;
 
 /**
- * Parses {@code @allocates_dynamic[estimator="fully.qualified.Class#methodName"]} into an {@link AllocatesDynamicAnnotation}.
- * Validates the {@code Class#methodName} shape (exactly one {@code #}, non-empty class and method); the referenced class and
- * method are resolved later at whitelist load time so that a missing estimator fails loudly rather than silently disabling the
- * pre-check.
+ * Parses {@code @allocates_dynamic[estimator="fully.qualified.Class#methodName"]}. Only the {@code Class#methodName} shape is
+ * validated here; resolution happens at whitelist load time so a missing estimator fails loudly.
  */
 public class AllocatesDynamicAnnotationParser implements WhitelistAnnotationParser {
 

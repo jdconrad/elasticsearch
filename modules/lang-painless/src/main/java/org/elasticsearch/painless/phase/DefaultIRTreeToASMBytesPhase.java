@@ -509,8 +509,7 @@ public class DefaultIRTreeToASMBytesPhase implements IRTreeVisitor<WriteScope> {
      */
     private static void writeAllocationCheck(WriteScope writeScope, long bytes) {
         if (bytes == 0 || isAllocationTrackingActive(writeScope) == false) {
-            // A zero-byte charge is a no-op by definition: @allocates_constant[bytes="0"] documents "audited, does not
-            // allocate" and must emit nothing.
+            // @allocates_constant[bytes="0"] means "audited, does not allocate" and must emit nothing.
             return;
         }
 
@@ -521,9 +520,8 @@ public class DefaultIRTreeToASMBytesPhase implements IRTreeVisitor<WriteScope> {
     }
 
     /**
-     * Spills the top {@code types.length} stack values (typed left-to-right as {@code types}, with the last type on top) into
-     * fresh internal locals so they can be replayed: once to feed an {@code @allocates_dynamic} estimator and once for the real
-     * call. Returns the locals in parameter order.
+     * Spills the top {@code types.length} stack values (last type on top) into fresh locals so they can be replayed: once for
+     * an {@code @allocates_dynamic} estimator and once for the real call. Returns the locals in parameter order.
      */
     private static Variable[] spillCallOperands(WriteScope writeScope, MethodWriter methodWriter, String role, Class<?>[] types) {
         Variable[] operands = new Variable[types.length];
@@ -544,11 +542,10 @@ public class DefaultIRTreeToASMBytesPhase implements IRTreeVisitor<WriteScope> {
     }
 
     /**
-     * Emits the pre-check for an {@code @allocates_dynamic} call site whose operands are already on the stack, typed as
-     * {@code parameterTypes}: spill the operands, feed a replay of them to the {@code public static long} estimator, normalize
-     * via {@link org.elasticsearch.painless.AllocationGuard#sanitizeEstimate(long)}, and charge through {@code $checkAllocBytes}
-     * — all before the allocating call executes. The operands are left spilled; the caller reloads them via
-     * {@link #loadCallOperands} for the real call. Callers must check {@link #isAllocationTrackingActive} first.
+     * Emits an {@code @allocates_dynamic} pre-check for operands already on the stack: spill, replay through the estimator,
+     * normalize via {@link org.elasticsearch.painless.AllocationGuard#sanitizeEstimate(long)}, and charge through
+     * {@code $checkAllocBytes} before the allocating call executes. The caller reloads the returned operands via
+     * {@link #loadCallOperands} for the real call, and must check {@link #isAllocationTrackingActive} first.
      */
     private static Variable[] writeDynamicAllocationCheck(
         WriteScope writeScope,
@@ -1611,10 +1608,9 @@ public class DefaultIRTreeToASMBytesPhase implements IRTreeVisitor<WriteScope> {
 
         PainlessConstructor painlessConstructor = irNewObjectNode.getDecorationValue(IRDConstructor.class);
 
-        // Sizing new T() needs the class's field layout, which is the whitelist's domain, so it is carried as constructor
-        // allocation metadata declaring the total heap cost of the construction (object plus any transitive JDK-internal
-        // allocations): @allocates_constant[bytes="N"] for a fixed cost, or @allocates_dynamic[estimator="..."] when the cost
-        // depends on the arguments. Either way the charge lands before the object is allocated when tracking is active.
+        // Sizing new T() needs the class's field layout, which is the whitelist's domain, so the total construction cost is
+        // carried as constructor metadata: @allocates_constant for a fixed cost, @allocates_dynamic when argument-dependent.
+        // Either way the charge lands before the object is allocated.
         AllocatesConstantAnnotation allocates = (AllocatesConstantAnnotation) painlessConstructor.annotations()
             .get(AllocatesConstantAnnotation.class);
         if (allocates != null) {
@@ -1622,9 +1618,9 @@ public class DefaultIRTreeToASMBytesPhase implements IRTreeVisitor<WriteScope> {
         }
 
         if (painlessConstructor.allocationEstimator() != null && isAllocationTrackingActive(writeScope)) {
-            // The standard constructor emission is NEW + DUP + <args> + INVOKESPECIAL, but the estimator needs the argument
-            // values and the charge must land before NEW allocates. Reorder: evaluate the arguments first (preserving source
-            // order and side effects), spill them, estimate + charge, and only then allocate and replay the arguments.
+            // Standard emission is NEW + DUP + <args> + INVOKESPECIAL, but the estimator needs the argument values and the
+            // charge must land before NEW allocates. Reorder: evaluate args in source order, spill, estimate + charge, then
+            // allocate and replay the args.
             for (ExpressionNode irArgumentNode : irNewObjectNode.getArgumentNodes()) {
                 visit(irArgumentNode, writeScope);
             }
@@ -2131,8 +2127,7 @@ public class DefaultIRTreeToASMBytesPhase implements IRTreeVisitor<WriteScope> {
 
         PainlessMethod painlessMethod = irInvokeCallNode.getMethod();
 
-        // A constant charge has net-zero stack effect, so it can precede the call emission entirely (no-op when tracking is
-        // inactive or the declared cost is zero).
+        // A constant charge has net-zero stack effect, so it can precede the call emission entirely.
         AllocatesConstantAnnotation allocatesConstant = (AllocatesConstantAnnotation) painlessMethod.annotations()
             .get(AllocatesConstantAnnotation.class);
         if (allocatesConstant != null) {
@@ -2152,9 +2147,8 @@ public class DefaultIRTreeToASMBytesPhase implements IRTreeVisitor<WriteScope> {
         }
 
         // Just before the invoke, the stack holds exactly the method's Java signature (receiver first for instance methods;
-        // the PainlessScript prefix and injected constants of @script_aware/@inject_constant methods are argument values like
-        // any other). For an @allocates_dynamic method, replay those operands through the estimator and charge the estimate
-        // before the allocating call runs.
+        // @script_aware/@inject_constant extras are ordinary operands). Replay those operands through the estimator and
+        // charge the estimate before the allocating call runs.
         if (painlessMethod.allocationEstimator() != null && isAllocationTrackingActive(writeScope)) {
             Variable[] operands = writeDynamicAllocationCheck(
                 writeScope,

@@ -11,8 +11,8 @@ package org.elasticsearch.painless;
 
 /**
  * Support class for {@code @allocates_dynamic} tests: whitelisted methods paired with deliberately misbehaving estimators (see
- * the {@code org.elasticsearch.painless.allocation-estimator*} test whitelist resources). Resolving these estimators by FQCN
- * from a whitelist file also covers the plugin-style path where the estimator lives outside the Painless module's own sources.
+ * the {@code org.elasticsearch.painless.allocation-estimator*} test whitelist resources). Resolving these by FQCN also covers
+ * the plugin-style path where the estimator lives outside the Painless module.
  */
 public class AllocationEstimatorTestObject {
 
@@ -47,9 +47,8 @@ public class AllocationEstimatorTestObject {
     }
 
     /**
-     * Estimator for {@link #augmentedEstimated}: matches the augmentation's underlying Java static signature (receiver first),
-     * not the Painless surface signature. Returns a value derived from both parameters so tests can prove the estimator saw
-     * the receiver and the argument.
+     * Estimator for {@link #augmentedEstimated}: matches the underlying Java static signature (receiver first), returning a
+     * value derived from both parameters so tests can prove the estimator saw each.
      */
     public static long augmentedEstimate(String receiver, int n) {
         return receiver.length() * 100L + n;

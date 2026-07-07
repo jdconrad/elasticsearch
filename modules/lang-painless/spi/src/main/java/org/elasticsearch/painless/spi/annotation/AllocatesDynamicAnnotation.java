@@ -10,18 +10,14 @@
 package org.elasticsearch.painless.spi.annotation;
 
 /**
- * Marks a whitelisted constructor or method whose call allocates an argument-dependent number of bytes, sized at runtime by an
- * <i>estimator</i>: a {@code public static} method returning {@code long} that takes the same parameter types as the annotated
- * target (for an instance method, the receiver is the estimator's first parameter). When per-context allocation tracking is
- * enabled, the compiler invokes the estimator and charges its result before the annotated call executes.
- * <p>
- * The estimator is named by a fully-qualified {@code Class#method} reference resolved at whitelist load time against the same
- * class loader as the annotated class, so plugins may ship their own estimators. Inner classes use the JVM {@code $} form
- * (e.g. {@code com.example.Outer$Inner#estimate}). The estimator's returned cost is the <b>total</b> heap allocation
- * attributable to the call, including transitive JDK-internal allocations.
+ * Marks a whitelisted constructor or method whose allocation size depends on its arguments. An <i>estimator</i> — a
+ * {@code public static long} method taking the target's full Java signature (receiver first for instance methods) — is invoked
+ * at runtime and its result charged against the per-context allocation limit before the call executes. The estimator is named
+ * by a fully-qualified {@code Class#method} reference (JVM {@code $} form for inner classes), resolved at whitelist load time
+ * through the annotated class's class loader so plugins may ship their own.
  *
- * @param estimatorClassName fully-qualified binary class name declaring the estimator (JVM {@code $} form for inner classes)
- * @param estimatorMethodName name of the {@code public static long} estimator method
+ * @param estimatorClassName fully-qualified binary class name declaring the estimator
+ * @param estimatorMethodName name of the estimator method
  */
 public record AllocatesDynamicAnnotation(String estimatorClassName, String estimatorMethodName) {
 

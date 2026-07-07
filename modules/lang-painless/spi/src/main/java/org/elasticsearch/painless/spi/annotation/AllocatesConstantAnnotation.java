@@ -10,16 +10,10 @@
 package org.elasticsearch.painless.spi.annotation;
 
 /**
- * Marks a whitelisted constructor or method whose call allocates a fixed, compile-time-known number of {@code bytes} on the
- * heap. When per-context allocation tracking is enabled, the Painless compiler charges {@code bytes} against the running total
- * and trips the limit before the annotated call executes.
- * <p>
- * The declared cost is the <b>total</b> heap allocation attributable to the call, including any transitive allocations the JDK
- * makes internally (e.g. a collection's backing array), not merely the returned object's own header. Use this for allocations
- * whose size does not depend on the call arguments; use {@link AllocatesDynamicAnnotation} when the size is argument-dependent.
- * <p>
- * A value of {@code 0} is a valid no-op ("audited: does not allocate") and emits no pre-check. Negative values are rejected at
- * whitelist load time.
+ * Marks a whitelisted constructor or method that allocates a fixed number of {@code bytes}, charged against the per-context
+ * allocation limit before the call executes. The declared cost is the total heap allocation attributable to the call,
+ * including transitive JDK-internal allocations. Use {@link AllocatesDynamicAnnotation} when the size is argument-dependent.
+ * {@code 0} is a valid no-op ("audited: does not allocate") and emits no pre-check; negatives are rejected at load time.
  */
 public record AllocatesConstantAnnotation(long bytes) {
 

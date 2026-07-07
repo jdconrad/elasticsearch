@@ -23,10 +23,9 @@ import java.util.Map;
 import static org.hamcrest.Matchers.containsString;
 
 /**
- * End-to-end tests for PR 6 {@code @allocates_dynamic} pre-checks: the estimator named in the whitelist annotation is invoked
- * with a replay of the call's operands and its (sanitized) result is charged before the allocating call executes. Covers the
- * built-in estimators on {@code String.substring(int,int)} and {@code new ArrayList(Collection)}, misbehaving-estimator
- * sanitization via test-only whitelisted methods, and load-time failures for badly declared estimators.
+ * End-to-end tests for {@code @allocates_dynamic} pre-checks: the annotated call's operands are replayed through the estimator
+ * and its sanitized result charged before the call executes. Covers the built-in estimators, misbehaving-estimator
+ * sanitization, and load-time failures for badly declared estimators.
  */
 public class AllocationEstimatorTests extends AllocationTestCase {
 
@@ -40,13 +39,12 @@ public class AllocationEstimatorTests extends AllocationTestCase {
     }
 
     public void testSubstringChargedFromArguments() {
-        // The estimator sees the receiver and both indices: 5 chars at 2 bytes each plus the result overhead.
         long expected = AllocationEstimators.substringBytes("hello world", 0, 5);
         assertEquals(expected, allocatedBytes("String s = \"hello world\"; s.substring(0, 5); return \"x\";"));
     }
 
     public void testSubstringChargeVariesWithArguments() {
-        // Same method, different arguments, different charge — the point of the dynamic form.
+        // Same method, different arguments, different charge.
         long expected = AllocationEstimators.substringBytes("hello world", 0, 11);
         assertEquals(expected, allocatedBytes("String s = \"hello world\"; s.substring(0, 11); return \"x\";"));
     }
@@ -56,14 +54,13 @@ public class AllocationEstimatorTests extends AllocationTestCase {
     }
 
     public void testConstructorChargedFromArguments() {
-        // Inner new ArrayList() charges its constant 40; the outer copy constructor charges shell + backing array via the
-        // estimator (empty source, so just the shell and an empty-array header).
+        // Inner new ArrayList() charges its constant 40; the outer copy constructor charges via the estimator.
         long expected = 40L + AllocationEstimators.arrayListCollectionBytes(new ArrayList<>());
         assertEquals(expected, allocatedBytes("new ArrayList(new ArrayList()); return \"x\";"));
     }
 
     public void testConstructorArgumentsEvaluatedExactlyOnce() {
-        // The dynamic-constructor emission reorders evaluation (args before NEW); side effects must still happen exactly once.
+        // The dynamic-constructor emission reorders evaluation (args before NEW); side effects must happen exactly once.
         PainlessTestScript script = compile(
             "List once(List l) { l.add(1); return l; } List src = new ArrayList(); new ArrayList(once(src)); return src.size();",
             "1mb"
@@ -72,7 +69,6 @@ public class AllocationEstimatorTests extends AllocationTestCase {
     }
 
     public void testNegativeEstimateFallsBackConservatively() {
-        // A buggy estimator returning a negative size charges the conservative fallback instead.
         assertEquals(
             AllocationGuard.ESTIMATE_FALLBACK_BYTES,
             allocatedBytes("AllocationEstimatorTestObject.negativeEstimated(); return \"x\";")
@@ -80,7 +76,7 @@ public class AllocationEstimatorTests extends AllocationTestCase {
     }
 
     public void testHugeEstimateTripsAnyLimit() {
-        // Long.MAX_VALUE from an estimator must trip even a roomy limit (and not overflow the running total).
+        // Long.MAX_VALUE from an estimator must trip a roomy limit without overflowing the running total.
         PainlessTestScript script = compile("AllocationEstimatorTestObject.hugeEstimated(); return \"x\";", "1mb");
         Exception e = expectThrows(Exception.class, script::execute);
         for (Throwable t = e; t != null; t = t.getCause()) {
@@ -92,14 +88,12 @@ public class AllocationEstimatorTests extends AllocationTestCase {
     }
 
     public void testAugmentedMethodEstimatorSeesReceiverFirst() {
-        // The augmentation's estimator matches the underlying Java static signature: (String receiver, int n). The charge
-        // proves the estimator saw both the receiver ("abc".length() == 3) and the argument.
+        // The charge (receiver.length() * 100 + n) proves the estimator saw the receiver and the argument.
         assertEquals(3 * 100L + 7, allocatedBytes("String s = \"abc\"; s.augmentedEstimated(7); return \"x\";"));
     }
 
     public void testConflictingAnnotationsAcrossWhitelistsRejected() {
-        // Two whitelists (e.g. two plugins) annotating the same method differently follow the existing duplicate-entry rule:
-        // the entries are not equivalent, so loading fails.
+        // Two whitelists annotating the same method differently fail via the existing duplicate-entry equivalence rule.
         IllegalArgumentException e = expectThrows(IllegalArgumentException.class, () -> {
             List<Whitelist> whitelists = new ArrayList<>(PAINLESS_BASE_WHITELIST);
             whitelists.add(WhitelistLoader.loadFromResourceFiles(PainlessPlugin.class, "org.elasticsearch.painless.allocation-estimator"));
@@ -145,7 +139,7 @@ public class AllocationEstimatorTests extends AllocationTestCase {
     }
 
     private static void loadTestWhitelist(String resource) {
-        // Load alongside the base whitelist, as a plugin whitelist would be, so common type names resolve.
+        // Load alongside the base whitelist, as a plugin's would be, so common type names resolve.
         List<Whitelist> whitelists = new ArrayList<>(PAINLESS_BASE_WHITELIST);
         whitelists.add(WhitelistLoader.loadFromResourceFiles(PainlessPlugin.class, resource));
         PainlessLookupBuilder.buildFromWhitelists(whitelists, new HashMap<>(), new HashMap<>());

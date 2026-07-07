@@ -12,9 +12,8 @@ package org.elasticsearch.painless;
 import org.elasticsearch.painless.spi.PainlessTestScript;
 
 /**
- * End-to-end tests for PR 6 {@code new T()} object-allocation pre-checks driven by the {@code @allocates_constant[bytes="N"]} whitelist
- * annotation on a constructor. The declared byte cost is charged against the running counter before the object is allocated and
- * trips the per-context limit when it exceeds it. Constructors without the annotation charge nothing (annotation-only sizing).
+ * End-to-end tests for {@code new T()} pre-checks driven by {@code @allocates_constant[bytes="N"]} on a constructor: the
+ * declared cost is charged before the object is allocated. Un-annotated constructors charge nothing (annotation-only sizing).
  */
 public class AllocationNewObjectPreCheckTests extends AllocationTestCase {
 
@@ -28,12 +27,11 @@ public class AllocationNewObjectPreCheckTests extends AllocationTestCase {
     }
 
     public void testUnannotatedConstructorNotCharged() {
-        // A constructor without @allocates_constant charges nothing: object sizing is annotation-only, a documented v1 gap.
+        // Annotation-only sizing: an un-annotated constructor charges nothing (documented v1 gap).
         assertEquals(0L, allocatedBytes("new StringBuilder(); return \"x\";"));
     }
 
     public void testUnannotatedConstructorDoesNotTripLimit() {
-        // With nothing charged, even a 1b limit is untouched by the construction itself.
         PainlessTestScript script = compile("new StringBuilder(); return \"x\";", "1b");
         script.execute();
         assertEquals(0L, ((PainlessScript) script).getAllocBytes());

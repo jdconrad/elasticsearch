@@ -17,9 +17,8 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * @param allocationEstimator resolved {@code @allocates_dynamic} estimator (a {@code public static long} method matching this
- *                            method's {@code methodType} parameters), or {@code null} when the method is not annotated. Like
- *                            {@code methodHandle}, it is derived state and excluded from {@code equals}/{@code hashCode}.
+ * @param allocationEstimator resolved {@code @allocates_dynamic} estimator, or {@code null} when not annotated; derived state
+ *                            excluded from {@code equals}/{@code hashCode} like {@code methodHandle}
  */
 public record PainlessMethod(
     Method javaMethod,
