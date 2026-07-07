@@ -1117,13 +1117,13 @@ public class DefaultIRTreeToASMBytesPhase implements IRTreeVisitor<WriteScope> {
         // for the actual concat after the check.
         int argCount = irArgumentNodes.size();
         Class<?>[] argTypes = new Class<?>[argCount];
-        Variable[] spills = new Variable[argCount];
+        Variable[] concatOperands = new Variable[argCount];
         for (int i = 0; i < argCount; ++i) {
             ExpressionNode argumentNode = irArgumentNodes.get(i);
             argTypes[i] = argumentNode.getDecorationValue(IRDExpressionType.class);
             visit(argumentNode, writeScope);
-            spills[i] = writeScope.defineInternalVariable(argTypes[i], "concatSpill" + i);
-            methodWriter.visitVarInsn(spills[i].getAsmType().getOpcode(Opcodes.ISTORE), spills[i].getSlot());
+            concatOperands[i] = writeScope.defineInternalVariable(argTypes[i], "concatOperand" + i);
+            methodWriter.visitVarInsn(concatOperands[i].getAsmType().getOpcode(Opcodes.ISTORE), concatOperands[i].getSlot());
         }
 
         loadScriptPointer(writeScope, methodWriter);
@@ -1132,7 +1132,7 @@ public class DefaultIRTreeToASMBytesPhase implements IRTreeVisitor<WriteScope> {
             if (argTypes[i].isPrimitive()) {
                 methodWriter.push(AllocSizes.stringConcatPrimitiveBytes(argTypes[i]));
             } else {
-                methodWriter.visitVarInsn(spills[i].getAsmType().getOpcode(Opcodes.ILOAD), spills[i].getSlot());
+                methodWriter.visitVarInsn(concatOperands[i].getAsmType().getOpcode(Opcodes.ILOAD), concatOperands[i].getSlot());
                 methodWriter.invokeStatic(WriterConstants.ALLOC_SIZES_TYPE, WriterConstants.ALLOC_STRING_CONCAT_OPERAND_BYTES);
             }
             methodWriter.math(MethodWriter.ADD, Type.LONG_TYPE);
@@ -1142,7 +1142,7 @@ public class DefaultIRTreeToASMBytesPhase implements IRTreeVisitor<WriteScope> {
         // Reload the spilled operands and perform the actual concat.
         methodWriter.writeNewStrings();
         for (int i = 0; i < argCount; ++i) {
-            methodWriter.visitVarInsn(spills[i].getAsmType().getOpcode(Opcodes.ILOAD), spills[i].getSlot());
+            methodWriter.visitVarInsn(concatOperands[i].getAsmType().getOpcode(Opcodes.ILOAD), concatOperands[i].getSlot());
             methodWriter.writeAppendStrings(argTypes[i]);
         }
         methodWriter.writeToStrings();
