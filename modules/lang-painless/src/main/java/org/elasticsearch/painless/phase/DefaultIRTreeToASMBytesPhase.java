@@ -99,6 +99,7 @@ import org.elasticsearch.painless.lookup.PainlessInstanceBinding;
 import org.elasticsearch.painless.lookup.PainlessLookupUtility;
 import org.elasticsearch.painless.lookup.PainlessMethod;
 import org.elasticsearch.painless.lookup.def;
+import org.elasticsearch.painless.spi.annotation.AllocatesConstantAnnotation;
 import org.elasticsearch.painless.spi.annotation.ScriptAwareAnnotation;
 import org.elasticsearch.painless.symbol.FunctionTable.LocalFunction;
 import org.elasticsearch.painless.symbol.IRDecorations.IRCAllEscape;
@@ -1558,8 +1559,18 @@ public class DefaultIRTreeToASMBytesPhase implements IRTreeVisitor<WriteScope> {
         MethodWriter methodWriter = writeScope.getMethodWriter();
         methodWriter.writeDebugInfo(irNewObjectNode.getLocation());
 
-        // No allocation pre-check here: sizing new T() needs the class's field layout, which is the whitelist's domain.
-        // It is handled at whitelist-load time via constructor allocation metadata (the @allocates annotation work).
+        PainlessConstructor painlessConstructor = irNewObjectNode.getDecorationValue(IRDConstructor.class);
+
+        // Sizing new T() needs the class's field layout, which is the whitelist's domain, so it is carried as constructor
+        // allocation metadata: an @allocates_constant[bytes="N"] annotation declares the total heap cost of the construction
+        // (object plus any transitive JDK-internal allocations). Charge it before the object is allocated when tracking is
+        // active. Argument-dependent constructors instead use @allocates_dynamic (handled at the call site, not here).
+        AllocatesConstantAnnotation allocates = (AllocatesConstantAnnotation) painlessConstructor.annotations()
+            .get(AllocatesConstantAnnotation.class);
+        if (allocates != null) {
+            writeAllocationCheck(writeScope, allocates.bytes());
+        }
+
         methodWriter.newInstance(MethodWriter.getType(irNewObjectNode.getDecorationValue(IRDExpressionType.class)));
 
         // Always dup so that visitStatementExpression's always has something to pop
@@ -1569,7 +1580,6 @@ public class DefaultIRTreeToASMBytesPhase implements IRTreeVisitor<WriteScope> {
             visit(irArgumentNode, writeScope);
         }
 
-        PainlessConstructor painlessConstructor = irNewObjectNode.getDecorationValue(IRDConstructor.class);
         methodWriter.invokeConstructor(
             Type.getType(painlessConstructor.javaConstructor().getDeclaringClass()),
             Method.getMethod(painlessConstructor.javaConstructor())

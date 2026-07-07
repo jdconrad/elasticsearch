@@ -80,4 +80,16 @@ public class AllocationDisabledBytecodeTests extends ScriptTestCase {
         String asm = bytecode("String a = 'ab'; String b = 'cd'; return a + b;", 1024 * 1024L);
         assertThat(asm, containsString("$checkAllocBytes"));
     }
+
+    public void testNoCounterBytecodeForNewObjectWhenDisabled() {
+        // An @allocates_constant-annotated constructor (new ArrayList()) takes the visitNewObject path; it too must be clean when off.
+        String asm = bytecode("new ArrayList(); return 1;", -1L);
+        assertThat(asm, not(containsString("$checkAllocBytes")));
+        assertThat(asm, not(containsString("AllocationGuard")));
+    }
+
+    public void testPreCheckEmittedForNewObjectWhenEnabled() {
+        String asm = bytecode("new ArrayList(); return 1;", 1024 * 1024L);
+        assertThat(asm, containsString("$checkAllocBytes"));
+    }
 }

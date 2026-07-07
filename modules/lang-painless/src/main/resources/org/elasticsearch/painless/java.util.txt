@@ -354,7 +354,7 @@ class java.util.ArrayDeque {
 }
 
 class java.util.ArrayList {
-  ()
+  () @allocates_constant[bytes="40"]
   (Collection)
   def clone()
   void trimToSize()
