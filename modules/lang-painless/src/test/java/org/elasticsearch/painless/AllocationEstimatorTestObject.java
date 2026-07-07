@@ -10,18 +10,18 @@
 package org.elasticsearch.painless;
 
 /**
- * Support class for {@code @allocates_dynamic} tests: whitelisted methods paired with deliberately misbehaving estimators (see
- * the {@code org.elasticsearch.painless.allocation-estimator*} test whitelist resources). Resolving these by FQCN also covers
+ * Support class for {@code @allocates_dynamic} tests: allowlisted methods paired with deliberately misbehaving estimators (see
+ * the {@code org.elasticsearch.painless.allocation-estimator*} test allowlist resources). Resolving these by FQCN also covers
  * the plugin-style path where the estimator lives outside the Painless module.
  */
 public class AllocationEstimatorTestObject {
 
-    /** Whitelisted with an estimator that misbehaves by returning a negative size, which must clamp to a zero charge. */
+    /** Allowlisted with an estimator that misbehaves by returning a negative size, which must clamp to a zero charge. */
     public static int negativeEstimated() {
         return 1;
     }
 
-    /** Whitelisted with an estimator that signals "definitely over any limit". */
+    /** Allowlisted with an estimator that signals "definitely over any limit". */
     public static int hugeEstimated() {
         return 2;
     }
@@ -36,7 +36,7 @@ public class AllocationEstimatorTestObject {
         return Long.MAX_VALUE;
     }
 
-    /** Estimator with a non-{@code long} return type; referencing it from a whitelist must fail at load time. */
+    /** Estimator with a non-{@code long} return type; referencing it from an allowlist must fail at load time. */
     public static int notLongEstimate() {
         return 0;
     }

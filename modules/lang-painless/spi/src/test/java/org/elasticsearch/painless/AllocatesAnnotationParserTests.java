@@ -17,7 +17,7 @@ import org.elasticsearch.test.ESTestCase;
 
 import java.util.Map;
 
-/** Unit tests for the {@code @allocates_constant} and {@code @allocates_dynamic} whitelist annotation parsers. */
+/** Unit tests for the {@code @allocates_constant} and {@code @allocates_dynamic} allowlist annotation parsers. */
 public class AllocatesAnnotationParserTests extends ESTestCase {
 
     private static final AllocatesConstantAnnotationParser ALLOCATES = AllocatesConstantAnnotationParser.INSTANCE;

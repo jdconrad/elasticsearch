@@ -91,7 +91,7 @@ public class AllocationEstimatorTests extends AllocationTestCase {
     }
 
     public void testConflictingAnnotationsAcrossWhitelistsRejected() {
-        // Two whitelists annotating the same method differently fail via the existing duplicate-entry equivalence rule.
+        // Two allowlists annotating the same method differently fail via the existing duplicate-entry equivalence rule.
         IllegalArgumentException e = expectThrows(IllegalArgumentException.class, () -> {
             List<Whitelist> whitelists = new ArrayList<>(PAINLESS_BASE_WHITELIST);
             whitelists.add(WhitelistLoader.loadFromResourceFiles(PainlessPlugin.class, "org.elasticsearch.painless.allocation-estimator"));
@@ -137,7 +137,7 @@ public class AllocationEstimatorTests extends AllocationTestCase {
     }
 
     private static void loadTestWhitelist(String resource) {
-        // Load alongside the base whitelist, as a plugin's would be, so common type names resolve.
+        // Load alongside the base allowlist, as a plugin's would be, so common type names resolve.
         List<Whitelist> whitelists = new ArrayList<>(PAINLESS_BASE_WHITELIST);
         whitelists.add(WhitelistLoader.loadFromResourceFiles(PainlessPlugin.class, resource));
         PainlessLookupBuilder.buildFromWhitelists(whitelists, new HashMap<>(), new HashMap<>());

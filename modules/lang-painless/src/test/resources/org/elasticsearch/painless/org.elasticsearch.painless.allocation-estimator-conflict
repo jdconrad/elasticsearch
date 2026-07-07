@@ -8,7 +8,7 @@
 #
 
 # Conflicts with org.elasticsearch.painless.allocation-estimator: the same method carries a different allocation annotation.
-# Loading both must fail via the existing duplicate-whitelist-entry equivalence rule.
+# Loading both must fail via the existing duplicate-allowlist-entry equivalence rule.
 
 class org.elasticsearch.painless.AllocationEstimatorTestObject {
   int negativeEstimated() @allocates_constant[bytes="8"]

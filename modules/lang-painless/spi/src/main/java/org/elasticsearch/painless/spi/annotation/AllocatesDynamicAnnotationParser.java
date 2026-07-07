@@ -13,7 +13,7 @@ import java.util.Map;
 
 /**
  * Parses {@code @allocates_dynamic[class="fully.qualified.Class", method="methodName"]}. Only the shape is validated here;
- * resolution happens at whitelist load time so a missing estimator fails loudly.
+ * resolution happens at allowlist load time so a missing estimator fails loudly.
  */
 public class AllocatesDynamicAnnotationParser implements WhitelistAnnotationParser {
 

@@ -236,9 +236,9 @@ public final class PainlessLookupBuilder {
 
     /**
      * Resolves the {@code @allocates_dynamic} estimator for an annotated method or constructor, or {@code null} when the
-     * annotation is absent. The estimator class is loaded through the whitelist's class loader (so plugins can ship their own)
+     * annotation is absent. The estimator class is loaded through the allowlist's class loader (so plugins can ship their own)
      * and must declare a {@code public static long} method matching {@code methodType}'s parameters (receiver first for
-     * instance methods; the underlying Java static signature for augmented ones). Any mismatch throws at whitelist-load time:
+     * instance methods; the underlying Java static signature for augmented ones). Any mismatch throws at allowlist-load time:
      * a mistyped estimator must fail loudly rather than silently disable the pre-check.
      */
     private static Method resolveAllocationEstimator(

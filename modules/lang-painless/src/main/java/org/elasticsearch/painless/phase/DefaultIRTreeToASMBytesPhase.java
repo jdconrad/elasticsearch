@@ -1609,7 +1609,7 @@ public class DefaultIRTreeToASMBytesPhase implements IRTreeVisitor<WriteScope> {
 
         PainlessConstructor painlessConstructor = irNewObjectNode.getDecorationValue(IRDConstructor.class);
 
-        // Sizing new T() needs the class's field layout, which is the whitelist's domain, so the total construction cost is
+        // Sizing new T() needs the class's field layout, which is the allowlist's domain, so the total construction cost is
         // carried as constructor metadata: @allocates_constant for a fixed cost, @allocates_dynamic when argument-dependent.
         // Either way the charge lands before the object is allocated.
         AllocatesConstantAnnotation allocates = (AllocatesConstantAnnotation) painlessConstructor.annotations()
