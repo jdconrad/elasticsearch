@@ -57,4 +57,22 @@ public class AllocationGuardTests extends ESTestCase {
         assertThat(error.getMessage(), containsString("[110] bytes"));
         assertThat(error.getMessage(), containsString("limit of [100] bytes"));
     }
+
+    public void testSanitizeEstimatePassesThroughSaneValues() {
+        assertEquals(0L, AllocationGuard.sanitizeEstimate(0L));
+        assertEquals(42L, AllocationGuard.sanitizeEstimate(42L));
+    }
+
+    public void testSanitizeEstimateReplacesNegativeWithFallback() {
+        // A negative estimate signals a buggy estimator and is replaced with the conservative fallback.
+        assertEquals(AllocationGuard.ESTIMATE_FALLBACK_BYTES, AllocationGuard.sanitizeEstimate(-1L));
+        assertEquals(AllocationGuard.ESTIMATE_FALLBACK_BYTES, AllocationGuard.sanitizeEstimate(Long.MIN_VALUE));
+    }
+
+    public void testSanitizeEstimateClampsHugeValues() {
+        // Huge values are clamped so charging them cannot overflow the running total, while still tripping any real limit.
+        assertEquals(Long.MAX_VALUE / 2, AllocationGuard.sanitizeEstimate(Long.MAX_VALUE));
+        assertEquals(Long.MAX_VALUE / 2, AllocationGuard.sanitizeEstimate(Long.MAX_VALUE / 2));
+        assertEquals(Long.MAX_VALUE / 2 - 1, AllocationGuard.sanitizeEstimate(Long.MAX_VALUE / 2 - 1));
+    }
 }

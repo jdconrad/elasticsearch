@@ -21,6 +21,8 @@ import org.elasticsearch.painless.spi.WhitelistField;
 import org.elasticsearch.painless.spi.WhitelistInstanceBinding;
 import org.elasticsearch.painless.spi.WhitelistMethod;
 import org.elasticsearch.painless.spi.annotation.AliasAnnotation;
+import org.elasticsearch.painless.spi.annotation.AllocatesConstantAnnotation;
+import org.elasticsearch.painless.spi.annotation.AllocatesDynamicAnnotation;
 import org.elasticsearch.painless.spi.annotation.AugmentedAnnotation;
 import org.elasticsearch.painless.spi.annotation.CompileTimeOnlyAnnotation;
 import org.elasticsearch.painless.spi.annotation.InjectConstantAnnotation;
@@ -89,6 +91,7 @@ public final class PainlessLookupBuilder {
                     for (WhitelistConstructor whitelistConstructor : whitelistClass.whitelistConstructors) {
                         origin = whitelistConstructor.origin;
                         painlessLookupBuilder.addPainlessConstructor(
+                            whitelist.classLoader,
                             targetCanonicalClassName,
                             whitelistConstructor.canonicalTypeNameParameters,
                             whitelistConstructor.painlessAnnotations,
@@ -225,6 +228,85 @@ public final class PainlessLookupBuilder {
                 throw iae;
             }
         }
+    }
+
+    /**
+     * Resolves the {@code @allocates_dynamic} estimator for an annotated method or constructor, or returns {@code null} when
+     * the annotation is absent. The estimator class is loaded through the same class loader as the annotated class (so plugin
+     * whitelists can ship their own estimators) and must declare a {@code public static long} method whose parameters exactly
+     * match {@code methodType}'s parameters — for an instance method that means the receiver comes first; for an augmented
+     * method it is the underlying Java static signature. Any failure (missing class, missing method, wrong modifiers or return
+     * type) throws at whitelist-load time: a mistyped estimator must fail loudly rather than silently disable the pre-check.
+     */
+    private static Method resolveAllocationEstimator(
+        ClassLoader classLoader,
+        Map<Class<?>, Object> annotations,
+        MethodType methodType,
+        Supplier<String> targetDescription
+    ) {
+        AllocatesDynamicAnnotation dynamicAnnotation = (AllocatesDynamicAnnotation) annotations.get(AllocatesDynamicAnnotation.class);
+
+        if (annotations.containsKey(AllocatesConstantAnnotation.class) && dynamicAnnotation != null) {
+            throw new IllegalArgumentException(
+                "cannot use both [@"
+                    + AllocatesConstantAnnotation.NAME
+                    + "] and [@"
+                    + AllocatesDynamicAnnotation.NAME
+                    + "] on "
+                    + targetDescription.get()
+            );
+        }
+
+        if (dynamicAnnotation == null) {
+            return null;
+        }
+
+        String estimatorClassName = dynamicAnnotation.estimatorClassName();
+        String estimatorMethodName = dynamicAnnotation.estimatorMethodName();
+        Class<?> estimatorClass = loadClass(
+            classLoader,
+            estimatorClassName,
+            () -> "estimator class ["
+                + estimatorClassName
+                + "] not found for [@"
+                + AllocatesDynamicAnnotation.NAME
+                + "] on "
+                + targetDescription.get()
+        );
+
+        Method estimator;
+
+        try {
+            estimator = estimatorClass.getMethod(estimatorMethodName, methodType.parameterArray());
+        } catch (NoSuchMethodException nsme) {
+            throw new IllegalArgumentException(
+                "estimator method [public static long "
+                    + estimatorClassName
+                    + "#"
+                    + estimatorMethodName
+                    + Arrays.toString(methodType.parameterArray())
+                    + "] not found for [@"
+                    + AllocatesDynamicAnnotation.NAME
+                    + "] on "
+                    + targetDescription.get(),
+                nsme
+            );
+        }
+
+        if (Modifier.isStatic(estimator.getModifiers()) == false || estimator.getReturnType() != long.class) {
+            throw new IllegalArgumentException(
+                "estimator method ["
+                    + estimatorClassName
+                    + "#"
+                    + estimatorMethodName
+                    + "] must be public static and return long for [@"
+                    + AllocatesDynamicAnnotation.NAME
+                    + "] on "
+                    + targetDescription.get()
+            );
+        }
+
+        return estimator;
     }
 
     /**
@@ -365,11 +447,13 @@ public final class PainlessLookupBuilder {
     }
 
     private void addPainlessConstructor(
+        ClassLoader classLoader,
         String targetCanonicalClassName,
         List<String> canonicalTypeNameParameters,
         Map<Class<?>, Object> annotations,
         Map<Object, Object> dedup
     ) {
+        Objects.requireNonNull(classLoader);
         Objects.requireNonNull(targetCanonicalClassName);
         Objects.requireNonNull(canonicalTypeNameParameters);
 
@@ -401,10 +485,11 @@ public final class PainlessLookupBuilder {
             typeParameters.add(typeParameter);
         }
 
-        addPainlessConstructor(targetClass, typeParameters, annotations, dedup);
+        addPainlessConstructor(classLoader, targetClass, typeParameters, annotations, dedup);
     }
 
     private void addPainlessConstructor(
+        ClassLoader classLoader,
         Class<?> targetClass,
         List<Class<?>> typeParameters,
         Map<Class<?>, Object> annotations,
@@ -476,6 +561,12 @@ public final class PainlessLookupBuilder {
         }
 
         MethodType methodType = methodHandle.type();
+        Method allocationEstimator = resolveAllocationEstimator(
+            classLoader,
+            annotations,
+            methodType,
+            () -> "constructor [[" + targetCanonicalClassName + "], " + typesToCanonicalTypeNames(typeParameters) + "]"
+        );
 
         String painlessConstructorKey = buildPainlessConstructorKey(typeParametersSize);
         PainlessConstructor existingPainlessConstructor = painlessClassBuilder.constructors.get(painlessConstructorKey);
@@ -484,7 +575,8 @@ public final class PainlessLookupBuilder {
             typeParameters,
             methodHandle,
             methodType,
-            annotations
+            annotations,
+            allocationEstimator
         );
 
         if (existingPainlessConstructor == null) {
@@ -577,10 +669,11 @@ public final class PainlessLookupBuilder {
             );
         }
 
-        addPainlessMethod(targetClass, augmentedClass, methodName, returnType, typeParameters, annotations, dedup);
+        addPainlessMethod(classLoader, targetClass, augmentedClass, methodName, returnType, typeParameters, annotations, dedup);
     }
 
     public void addPainlessMethod(
+        ClassLoader classLoader,
         Class<?> targetClass,
         Class<?> augmentedClass,
         String methodName,
@@ -590,6 +683,7 @@ public final class PainlessLookupBuilder {
         Map<Object, Object> dedup
     ) {
 
+        Objects.requireNonNull(classLoader);
         Objects.requireNonNull(targetClass);
         Objects.requireNonNull(methodName);
         Objects.requireNonNull(returnType);
@@ -769,6 +863,12 @@ public final class PainlessLookupBuilder {
         }
 
         MethodType methodType = methodHandle.type();
+        Method allocationEstimator = resolveAllocationEstimator(
+            classLoader,
+            annotations,
+            methodType,
+            () -> "method [[" + targetCanonicalClassName + "], [" + methodName + "], " + typesToCanonicalTypeNames(typeParameters) + "]"
+        );
         boolean isStatic = augmentedClass == null && Modifier.isStatic(javaMethod.getModifiers());
         String painlessMethodKey = buildPainlessMethodKey(methodName, typeParametersSize);
         for (Class<?> annotationType : annotations.keySet()) {
@@ -784,7 +884,8 @@ public final class PainlessLookupBuilder {
             typeParameters,
             methodHandle,
             methodType,
-            annotations
+            annotations,
+            allocationEstimator
         );
 
         if (existingPainlessMethod == null) {
@@ -1089,10 +1190,11 @@ public final class PainlessLookupBuilder {
             );
         }
 
-        addImportedPainlessMethod(targetClass, methodName, returnType, typeParameters, annotations, dedup);
+        addImportedPainlessMethod(classLoader, targetClass, methodName, returnType, typeParameters, annotations, dedup);
     }
 
     public void addImportedPainlessMethod(
+        ClassLoader classLoader,
         Class<?> targetClass,
         String methodName,
         Class<?> returnType,
@@ -1100,6 +1202,7 @@ public final class PainlessLookupBuilder {
         Map<Class<?>, Object> annotations,
         Map<Object, Object> dedup
     ) {
+        Objects.requireNonNull(classLoader);
         Objects.requireNonNull(targetClass);
         Objects.requireNonNull(methodName);
         Objects.requireNonNull(returnType);
@@ -1213,6 +1316,18 @@ public final class PainlessLookupBuilder {
         }
 
         MethodType methodType = methodHandle.type();
+        Method allocationEstimator = resolveAllocationEstimator(
+            classLoader,
+            annotations,
+            methodType,
+            () -> "imported method [["
+                + targetCanonicalClassName
+                + "], ["
+                + methodName
+                + "], "
+                + typesToCanonicalTypeNames(typeParameters)
+                + "]"
+        );
 
         PainlessMethod existingImportedPainlessMethod = painlessMethodKeysToImportedPainlessMethods.get(painlessMethodKey);
         PainlessMethod newImportedPainlessMethod = new PainlessMethod(
@@ -1222,7 +1337,8 @@ public final class PainlessLookupBuilder {
             typeParameters,
             methodHandle,
             methodType,
-            annotations
+            annotations,
+            allocationEstimator
         );
 
         if (existingImportedPainlessMethod == null) {
@@ -1943,6 +2059,8 @@ public final class PainlessLookupBuilder {
                     }
                 }
 
+                // Like annotations, the allocation estimator is not carried onto the runtime bridge; def dispatch reads the
+                // original PainlessMethod when it needs annotation-driven behavior.
                 filteredPainlessMethod = new PainlessMethod(
                     painlessMethod.javaMethod(),
                     targetClass,
@@ -1950,7 +2068,8 @@ public final class PainlessLookupBuilder {
                     filteredTypeParameters,
                     filteredMethodHandle,
                     filteredMethodType,
-                    Map.of()
+                    Map.of(),
+                    null
                 );
                 painlessClassBuilder.runtimeMethods.put(painlessMethodKey.intern(), filteredPainlessMethod);
                 filteredMethodCache.put(painlessMethod, filteredPainlessMethod);
