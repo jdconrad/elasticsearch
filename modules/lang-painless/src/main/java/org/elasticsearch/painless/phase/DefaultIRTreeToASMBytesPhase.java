@@ -1612,8 +1612,7 @@ public class DefaultIRTreeToASMBytesPhase implements IRTreeVisitor<WriteScope> {
         // Sizing new T() needs the class's field layout, which is the allowlist's domain, so the total construction cost is
         // carried as constructor metadata: @allocates_constant for a fixed cost, @allocates_dynamic when argument-dependent.
         // Either way the charge lands before the object is allocated.
-        AllocatesConstantAnnotation allocates = (AllocatesConstantAnnotation) painlessConstructor.annotations()
-            .get(AllocatesConstantAnnotation.class);
+        AllocatesConstantAnnotation allocates = painlessConstructor.annotation(AllocatesConstantAnnotation.class);
         if (allocates != null) {
             writeAllocationCheck(writeScope, allocates.bytes());
         }
@@ -2130,8 +2129,7 @@ public class DefaultIRTreeToASMBytesPhase implements IRTreeVisitor<WriteScope> {
         PainlessMethod painlessMethod = irInvokeCallNode.getMethod();
 
         // A constant charge has net-zero stack effect, so it can precede the call emission entirely.
-        AllocatesConstantAnnotation allocatesConstant = (AllocatesConstantAnnotation) painlessMethod.annotations()
-            .get(AllocatesConstantAnnotation.class);
+        AllocatesConstantAnnotation allocatesConstant = painlessMethod.annotation(AllocatesConstantAnnotation.class);
         if (allocatesConstant != null) {
             writeAllocationCheck(writeScope, allocatesConstant.bytes());
         }
@@ -2205,8 +2203,7 @@ public class DefaultIRTreeToASMBytesPhase implements IRTreeVisitor<WriteScope> {
             );
             methodWriter.invokeVirtual(CLASS_TYPE, asmMethod);
         } else if (importedMethod != null) {
-            AllocatesConstantAnnotation allocatesConstant = (AllocatesConstantAnnotation) importedMethod.annotations()
-                .get(AllocatesConstantAnnotation.class);
+            AllocatesConstantAnnotation allocatesConstant = importedMethod.annotation(AllocatesConstantAnnotation.class);
             if (allocatesConstant != null) {
                 writeAllocationCheck(writeScope, allocatesConstant.bytes());
             }
