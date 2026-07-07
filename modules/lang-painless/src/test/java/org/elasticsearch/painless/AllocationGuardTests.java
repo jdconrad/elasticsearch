@@ -63,10 +63,10 @@ public class AllocationGuardTests extends ESTestCase {
         assertEquals(42L, AllocationGuard.sanitizeEstimate(42L));
     }
 
-    public void testSanitizeEstimateReplacesNegativeWithFallback() {
-        // A negative estimate signals a buggy estimator and is replaced with the conservative fallback.
-        assertEquals(AllocationGuard.ESTIMATE_FALLBACK_BYTES, AllocationGuard.sanitizeEstimate(-1L));
-        assertEquals(AllocationGuard.ESTIMATE_FALLBACK_BYTES, AllocationGuard.sanitizeEstimate(Long.MIN_VALUE));
+    public void testSanitizeEstimateClampsNegativeToZero() {
+        // A negative estimate (an estimator bug) must not credit the running total.
+        assertEquals(0L, AllocationGuard.sanitizeEstimate(-1L));
+        assertEquals(0L, AllocationGuard.sanitizeEstimate(Long.MIN_VALUE));
     }
 
     public void testSanitizeEstimateClampsHugeValues() {

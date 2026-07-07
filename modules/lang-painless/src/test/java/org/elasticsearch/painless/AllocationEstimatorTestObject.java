@@ -16,7 +16,7 @@ package org.elasticsearch.painless;
  */
 public class AllocationEstimatorTestObject {
 
-    /** Whitelisted with an estimator that misbehaves by returning a negative size. */
+    /** Whitelisted with an estimator that misbehaves by returning a negative size, which must clamp to a zero charge. */
     public static int negativeEstimated() {
         return 1;
     }
@@ -26,7 +26,7 @@ public class AllocationEstimatorTestObject {
         return 2;
     }
 
-    /** Estimator for {@link #negativeEstimated()}: buggy on purpose; sanitization must substitute the conservative fallback. */
+    /** Estimator for {@link #negativeEstimated()}: buggy on purpose. */
     public static long negativeEstimate() {
         return -1;
     }

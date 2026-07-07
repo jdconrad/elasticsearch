@@ -68,11 +68,9 @@ public class AllocationEstimatorTests extends AllocationTestCase {
         assertEquals(1, script.execute());
     }
 
-    public void testNegativeEstimateFallsBackConservatively() {
-        assertEquals(
-            AllocationGuard.ESTIMATE_FALLBACK_BYTES,
-            allocatedBytes("AllocationEstimatorTestObject.negativeEstimated(); return \"x\";")
-        );
+    public void testNegativeEstimateClampsToZero() {
+        // A negative estimate (an estimator bug) charges nothing rather than crediting the running total.
+        assertEquals(0L, allocatedBytes("AllocationEstimatorTestObject.negativeEstimated(); return \"x\";"));
     }
 
     public void testHugeEstimateTripsAnyLimit() {

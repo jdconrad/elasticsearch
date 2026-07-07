@@ -22,34 +22,16 @@ public final class AllocationGuard {
 
     private static final Logger logger = LogManager.getLogger(AllocationGuard.class);
 
-    /** Conservative charge substituted when an {@code @allocates_dynamic} estimator misbehaves by returning a negative value. */
-    public static final long ESTIMATE_FALLBACK_BYTES = 4096;
-
-    /** Warn once per JVM for a misbehaving estimator instead of flooding the log from a hot loop. */
-    private static volatile boolean warnedNegativeEstimate = false;
-
     private AllocationGuard() {}
 
     /**
-     * Normalizes an {@code @allocates_dynamic} estimator's result before it is charged: negative (a buggy estimator) becomes
-     * {@link #ESTIMATE_FALLBACK_BYTES} with a one-time WARN; values are clamped to {@code Long.MAX_VALUE / 2}, which trips any
-     * configurable limit without overflowing the running total (so estimators may return {@code Long.MAX_VALUE} for
-     * "definitely over"). Estimators must not throw; a thrown exception propagates and fails the script.
+     * Clamps an {@code @allocates_dynamic} estimator's result to {@code [0, Long.MAX_VALUE / 2]} before it is charged: a
+     * negative result (an estimator bug) must not credit the running total, and a huge one must trip any configurable limit
+     * without overflowing it (so estimators may return {@code Long.MAX_VALUE} for "definitely over"). Estimators must not
+     * throw; a thrown exception propagates and fails the script.
      */
     public static long sanitizeEstimate(long estimatedBytes) {
-        if (estimatedBytes < 0) {
-            if (warnedNegativeEstimate == false) {
-                warnedNegativeEstimate = true;
-                logger.warn(
-                    "a Painless allocation estimator returned a negative size [{}]; substituting [{}] bytes "
-                        + "(estimator bug; further occurrences will not be logged)",
-                    estimatedBytes,
-                    ESTIMATE_FALLBACK_BYTES
-                );
-            }
-            return ESTIMATE_FALLBACK_BYTES;
-        }
-        return Math.min(estimatedBytes, Long.MAX_VALUE / 2);
+        return Math.clamp(estimatedBytes, 0L, Long.MAX_VALUE / 2);
     }
 
     /**
