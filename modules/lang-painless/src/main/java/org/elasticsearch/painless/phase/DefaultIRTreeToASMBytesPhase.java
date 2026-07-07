@@ -113,6 +113,7 @@ import org.elasticsearch.painless.symbol.IRDecorations.IRCStatic;
 import org.elasticsearch.painless.symbol.IRDecorations.IRCStaticCancellationCheck;
 import org.elasticsearch.painless.symbol.IRDecorations.IRCSynthetic;
 import org.elasticsearch.painless.symbol.IRDecorations.IRCVarArgs;
+import org.elasticsearch.painless.symbol.IRDecorations.IRDAllocationEstimator;
 import org.elasticsearch.painless.symbol.IRDecorations.IRDArrayName;
 import org.elasticsearch.painless.symbol.IRDecorations.IRDArrayType;
 import org.elasticsearch.painless.symbol.IRDecorations.IRDBinaryType;
@@ -1617,7 +1618,8 @@ public class DefaultIRTreeToASMBytesPhase implements IRTreeVisitor<WriteScope> {
             writeAllocationCheck(writeScope, allocates.bytes());
         }
 
-        if (painlessConstructor.allocationEstimator() != null && isAllocationTrackingActive(writeScope)) {
+        java.lang.reflect.Method constructorEstimator = irNewObjectNode.getDecorationValue(IRDAllocationEstimator.class);
+        if (constructorEstimator != null && isAllocationTrackingActive(writeScope)) {
             // Standard emission is NEW + DUP + <args> + INVOKESPECIAL, but the estimator needs the argument values and the
             // charge must land before NEW allocates. Reorder: evaluate args in source order, spill, estimate + charge, then
             // allocate and replay the args.
@@ -1630,7 +1632,7 @@ public class DefaultIRTreeToASMBytesPhase implements IRTreeVisitor<WriteScope> {
                 methodWriter,
                 "newObjectArg",
                 painlessConstructor.methodType().parameterArray(),
-                painlessConstructor.allocationEstimator()
+                constructorEstimator
             );
 
             methodWriter.newInstance(MethodWriter.getType(irNewObjectNode.getDecorationValue(IRDExpressionType.class)));
@@ -2149,13 +2151,14 @@ public class DefaultIRTreeToASMBytesPhase implements IRTreeVisitor<WriteScope> {
         // Just before the invoke, the stack holds exactly the method's Java signature (receiver first for instance methods;
         // @script_aware/@inject_constant extras are ordinary operands). Replay those operands through the estimator and
         // charge the estimate before the allocating call runs.
-        if (painlessMethod.allocationEstimator() != null && isAllocationTrackingActive(writeScope)) {
+        java.lang.reflect.Method methodEstimator = irInvokeCallNode.getDecorationValue(IRDAllocationEstimator.class);
+        if (methodEstimator != null && isAllocationTrackingActive(writeScope)) {
             Variable[] operands = writeDynamicAllocationCheck(
                 writeScope,
                 methodWriter,
                 "callOperand",
                 painlessMethod.methodType().parameterArray(),
-                painlessMethod.allocationEstimator()
+                methodEstimator
             );
             loadCallOperands(methodWriter, operands);
         }
@@ -2212,13 +2215,14 @@ public class DefaultIRTreeToASMBytesPhase implements IRTreeVisitor<WriteScope> {
                 visit(irArgumentNode, writeScope);
             }
 
-            if (importedMethod.allocationEstimator() != null && isAllocationTrackingActive(writeScope)) {
+            java.lang.reflect.Method importedEstimator = irInvokeCallMemberNode.getDecorationValue(IRDAllocationEstimator.class);
+            if (importedEstimator != null && isAllocationTrackingActive(writeScope)) {
                 Variable[] operands = writeDynamicAllocationCheck(
                     writeScope,
                     methodWriter,
                     "callOperand",
                     importedMethod.methodType().parameterArray(),
-                    importedMethod.allocationEstimator()
+                    importedEstimator
                 );
                 loadCallOperands(methodWriter, operands);
             }

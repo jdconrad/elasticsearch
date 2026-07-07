@@ -16,10 +16,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-/**
- * @param allocationEstimator resolved {@code @allocates_dynamic} estimator, or {@code null} when not annotated; derived state
- *                            excluded from {@code equals}/{@code hashCode} like {@code methodHandle}
- */
 public record PainlessMethod(
     Method javaMethod,
     Class<?> targetClass,
@@ -27,8 +23,7 @@ public record PainlessMethod(
     List<Class<?>> typeParameters,
     MethodHandle methodHandle,
     MethodType methodType,
-    Map<Class<?>, Object> annotations,
-    Method allocationEstimator
+    Map<Class<?>, Object> annotations
 ) {
 
     public PainlessMethod(
@@ -38,8 +33,7 @@ public record PainlessMethod(
         List<Class<?>> typeParameters,
         MethodHandle methodHandle,
         MethodType methodType,
-        Map<Class<?>, Object> annotations,
-        Method allocationEstimator
+        Map<Class<?>, Object> annotations
     ) {
         this.javaMethod = javaMethod;
         this.targetClass = targetClass;
@@ -48,7 +42,6 @@ public record PainlessMethod(
         this.methodHandle = methodHandle;
         this.methodType = methodType;
         this.annotations = Map.copyOf(annotations);
-        this.allocationEstimator = allocationEstimator;
     }
 
     @Override
