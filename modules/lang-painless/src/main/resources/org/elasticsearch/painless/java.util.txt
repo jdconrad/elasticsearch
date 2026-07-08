@@ -27,8 +27,8 @@ class java.util.Collection {
   int size()
   Spliterator spliterator()
   Stream stream()
-  def[] toArray()
-  def[] toArray(def[])
+  def[] toArray() @allocates_dynamic[class="org.elasticsearch.painless.AllocationEstimators", method="toArrayBytes"]
+  def[] toArray(def[]) @allocates_dynamic[class="org.elasticsearch.painless.AllocationEstimators", method="toArrayBytes"]
 
   # some adaptations of groovy methods
   List org.elasticsearch.painless.api.Augmentation collect(Function) @script_aware

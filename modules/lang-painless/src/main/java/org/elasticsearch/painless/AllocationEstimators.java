@@ -77,6 +77,19 @@ public final class AllocationEstimators {
         return ARRAY_LIST_SHELL_BYTES + AllocSizes.arrayBytes(size, AllocSizes.REFERENCE_SIZE);
     }
 
+    /** Cost of {@code Collection.toArray()}: a new {@code Object[]} sized to the collection. */
+    public static long toArrayBytes(Collection<?> receiver) {
+        return AllocSizes.arrayBytes(receiver == null ? 0 : receiver.size(), AllocSizes.REFERENCE_SIZE);
+    }
+
+    /**
+     * Cost of {@code Collection.toArray(array)}: a new {@code Object[]} sized to the collection (the call reuses {@code array}
+     * only when it is already large enough, so this is the worst case).
+     */
+    public static long toArrayBytes(Collection<?> receiver, Object[] array) {
+        return AllocSizes.arrayBytes(receiver == null ? 0 : receiver.size(), AllocSizes.REFERENCE_SIZE);
+    }
+
     /**
      * Heap cost of an {@code ArrayList} instance excluding its backing array; matches the {@code @allocates_constant} value on
      * the no-arg {@code new ArrayList()}, whose backing array is lazily created.
