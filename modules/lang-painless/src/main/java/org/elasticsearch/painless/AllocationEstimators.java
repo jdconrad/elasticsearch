@@ -10,6 +10,7 @@
 package org.elasticsearch.painless;
 
 import java.util.Collection;
+import java.util.Locale;
 
 /**
  * Built-in {@code @allocates_dynamic} estimators: {@code public static long} methods matching the annotated target's full Java
@@ -22,12 +23,49 @@ public final class AllocationEstimators {
     private AllocationEstimators() {}
 
     /**
-     * Cost of {@code String.substring(begin, end)}: result overhead plus {@code end - begin} chars at 2 bytes each (UTF-16
-     * worst case). An inverted range costs just the overhead; the real call rejects invalid indices after the pre-check.
+     * Heap cost of a freshly allocated {@link String} holding {@code chars} UTF-16 characters: the {@code String} object plus
+     * its backing array, {@link AllocSizes#STRING_CONCAT_RESULT_OVERHEAD} for the fixed part plus 2 bytes per char. A negative
+     * length (from an out-of-range argument the real call will reject) costs just the overhead.
+     */
+    private static long newStringBytes(long chars) {
+        return AllocSizes.STRING_CONCAT_RESULT_OVERHEAD + AllocSizes.mulSat(2L, Math.max(0L, chars));
+    }
+
+    /**
+     * Cost of {@code String.substring(begin, end)}: a new String of {@code end - begin} chars. An inverted range costs just the
+     * overhead; the real call rejects invalid indices after the pre-check.
      */
     public static long substringBytes(String receiver, int begin, int end) {
-        long chars = Math.max(0L, (long) end - begin);
-        return AllocSizes.STRING_CONCAT_RESULT_OVERHEAD + AllocSizes.mulSat(2L, chars);
+        return newStringBytes((long) end - begin);
+    }
+
+    /** Cost of {@code String.substring(begin)}: a new String from {@code begin} to the receiver's end. */
+    public static long substringBytes(String receiver, int begin) {
+        return newStringBytes((long) receiver.length() - begin);
+    }
+
+    /** Cost of {@code String.concat(arg)}: a new String of {@code receiver.length() + arg.length()} chars. */
+    public static long concatBytes(String receiver, String arg) {
+        return newStringBytes((long) receiver.length() + (arg == null ? 0 : arg.length()));
+    }
+
+    /** Cost of {@code String.toCharArray()}: a {@code char[]} of the receiver's length. */
+    public static long toCharArrayBytes(String receiver) {
+        return AllocSizes.arrayBytes(receiver.length(), 2);
+    }
+
+    /**
+     * Cost of {@code String.trim()}/{@code strip()} and {@code toLowerCase()}/{@code toUpperCase()}: a new String whose length
+     * is approximately the receiver's. This is a heuristic — case mapping can change the length slightly (e.g. {@code ß} to
+     * {@code SS}) — but the result tracks the receiver length closely enough for allocation accounting.
+     */
+    public static long recaseBytes(String receiver) {
+        return newStringBytes(receiver.length());
+    }
+
+    /** Locale-aware overload of {@link #recaseBytes(String)} for {@code toLowerCase(Locale)}/{@code toUpperCase(Locale)}. */
+    public static long recaseBytes(String receiver, Locale locale) {
+        return newStringBytes(receiver.length());
     }
 
     /**
