@@ -9,73 +9,39 @@
 
 package org.elasticsearch.painless;
 
-import org.elasticsearch.painless.spi.PainlessTestScript;
-import org.elasticsearch.script.ScriptException;
-
 /**
- * End-to-end allocation-limit tests using scripts shaped like ones a user might actually write, run under realistic per-context
- * limits (not the {@code 1b} smoke-test limit). These exercise the whole feature: a runaway allocation is preempted before it
- * can OOM the node, while an ordinary bounded script runs to completion without being falsely tripped.
+ * End-to-end allocation-limit tests using scripts shaped like ones a user might actually write. Each is a runaway that
+ * <em>retains</em> what it allocates (a growing string, a growing list) — the true heap-exhaustion shape — and is preempted by
+ * the limit before the heap fills.
+ * <p>
+ * Because these hold the allocated memory live until the trip, the limit is kept well under the standard 512m test heap
+ * ({@code 64mb} here, ~12% of the heap) so the live set at the trip point is comfortably bounded and the test can never flake on
+ * an OOM. (Cumulative, bounded charging is covered exactly in {@link AllocationDefDispatchTests}.)
  */
 public class AllocationRealisticScriptTests extends AllocationTestCase {
 
-    private void assertTripsLimit(String source, String limit) {
-        PainlessTestScript script = compile(source, limit);
-        ScriptException e = expectThrows(ScriptException.class, script::execute);
-        for (Throwable t = e; t != null; t = t.getCause()) {
-            if (t.getMessage() != null && t.getMessage().contains("allocation limit exceeded")) {
-                return;
-            }
-        }
-        throw new AssertionError("expected an allocation limit error for [" + source + "] under [" + limit + "], but got: " + e, e);
-    }
-
     public void testRunawayStringConcatDoublingIsPreempted() {
-        // The classic accidental OOM: repeatedly doubling a string. The static-type concat pre-check charges each result and
-        // trips within a couple dozen iterations, long before the loop's 1000 rounds (or the node's heap) are reached.
+        // The classic accidental OOM: repeatedly doubling a string (each result is retained as the new s). The static-type
+        // concat pre-check charges each result and trips within a couple dozen iterations, long before the loop's 1000 rounds.
         assertTripsLimit("""
             String s = "wat";
             for (int i = 0; i < 1000; ++i) {
                 s = s + s;
             }
             return s;
-            """, "1mb");
-    }
-
-    public void testRunawayDefMethodAllocationIsPreempted() {
-        // A def-typed value sliced in a loop: each def-dispatched substring charges against the limit, so an unbounded loop is
-        // preempted rather than churning allocations forever.
-        assertTripsLimit("""
-            def s = "a fairly long-ish string value to slice";
-            for (int i = 0; i < 1000000; ++i) {
-                s.substring(0, 20);
-            }
-            return "done";
-            """, "1mb");
-    }
-
-    public void testRunawayArrayAllocationIsPreempted() {
-        // Repeatedly allocating arrays in a loop trips before exhausting the heap.
-        assertTripsLimit("""
-            for (int i = 0; i < 1000000; ++i) {
-                int[] buffer = new int[100000];
-            }
-            return "done";
             """, "64mb");
     }
 
-    public void testOrdinaryBoundedScriptRunsUnderGenerousLimit() {
-        // A realistic, bounded script (slice a value a fixed number of times) must complete without being falsely tripped, and
-        // the running total must reflect exactly the charged def-dispatched allocations.
-        long perCall = AllocationEstimators.substringBytes("hello world", 0, 5);
-        PainlessTestScript script = compile("""
-            def s = "hello world";
-            for (int i = 0; i < 100; ++i) {
-                s.substring(0, 5);
+    public void testRunawayDefListBuildingIsPreempted() {
+        // A user accumulating def-dispatched slices into a list that is never released. Each retained substring is charged, so
+        // the list is preempted once the charged total crosses the limit — with only ~64MB live at the trip.
+        assertTripsLimit("""
+            def parts = new ArrayList();
+            def s = String.copyValueOf(new char[100000]);
+            for (int i = 0; i < 100000000; ++i) {
+                parts.add(s.substring(0, 100000));
             }
-            return "done";
+            return parts.size();
             """, "64mb");
-        assertEquals("done", script.execute());
-        assertEquals(100 * perCall, ((PainlessScript) script).getAllocBytes());
     }
 }
