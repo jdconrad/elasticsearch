@@ -674,13 +674,13 @@ class java.util.GregorianCalendar {
 }
 
 class java.util.HashMap {
-  ()
+  () @allocates_constant[bytes="64b"]
   (Map)
   def clone()
 }
 
 class java.util.HashSet {
-  ()
+  () @allocates_constant[bytes="88b"]
   (Collection)
   def clone()
 }
@@ -726,17 +726,17 @@ class java.util.IntSummaryStatistics {
 }
 
 class java.util.LinkedHashMap {
-  ()
+  () @allocates_constant[bytes="80b"]
   (Map)
 }
 
 class java.util.LinkedHashSet {
-  ()
+  () @allocates_constant[bytes="104b"]
   (Collection)
 }
 
 class java.util.LinkedList {
-  ()
+  () @allocates_constant[bytes="32b"]
   (Collection)
   def clone()
 }
@@ -1027,13 +1027,13 @@ class java.util.TimeZone {
 }
 
 class java.util.TreeMap {
-  ()
+  () @allocates_constant[bytes="40b"]
   (Comparator)
   def clone()
 }
 
 class java.util.TreeSet {
-  ()
+  () @allocates_constant[bytes="64b"]
   (Comparator)
   def clone()
 }

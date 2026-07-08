@@ -780,7 +780,7 @@ class java.lang.String {
 }
 
 class java.lang.StringBuffer {
-  ()
+  () @allocates_constant[bytes="72b"]
   (CharSequence)
   StringBuffer append(def)
   StringBuffer append(CharSequence,int,int)
@@ -807,7 +807,7 @@ class java.lang.StringBuffer {
 }
 
 class java.lang.StringBuilder {
-  ()
+  () @allocates_constant[bytes="64b"]
   (CharSequence)
   StringBuilder append(def)
   StringBuilder append(CharSequence,int,int)
