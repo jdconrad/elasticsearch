@@ -675,13 +675,13 @@ class java.util.GregorianCalendar {
 
 class java.util.HashMap {
   () @allocates_constant[bytes="64b"]
-  (Map)
+  (Map) @allocates_dynamic[class="org.elasticsearch.painless.AllocationEstimators", method="mapCopyBytes"]
   def clone()
 }
 
 class java.util.HashSet {
   () @allocates_constant[bytes="88b"]
-  (Collection)
+  (Collection) @allocates_dynamic[class="org.elasticsearch.painless.AllocationEstimators", method="setCopyBytes"]
   def clone()
 }
 
@@ -727,17 +727,17 @@ class java.util.IntSummaryStatistics {
 
 class java.util.LinkedHashMap {
   () @allocates_constant[bytes="80b"]
-  (Map)
+  (Map) @allocates_dynamic[class="org.elasticsearch.painless.AllocationEstimators", method="mapCopyBytes"]
 }
 
 class java.util.LinkedHashSet {
   () @allocates_constant[bytes="104b"]
-  (Collection)
+  (Collection) @allocates_dynamic[class="org.elasticsearch.painless.AllocationEstimators", method="setCopyBytes"]
 }
 
 class java.util.LinkedList {
   () @allocates_constant[bytes="32b"]
-  (Collection)
+  (Collection) @allocates_dynamic[class="org.elasticsearch.painless.AllocationEstimators", method="linkedListCopyBytes"]
   def clone()
 }
 

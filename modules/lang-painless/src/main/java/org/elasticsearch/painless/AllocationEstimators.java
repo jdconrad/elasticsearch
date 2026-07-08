@@ -77,6 +77,31 @@ public final class AllocationEstimators {
         return ARRAY_LIST_SHELL_BYTES + AllocSizes.arrayBytes(size, AllocSizes.REFERENCE_SIZE);
     }
 
+    /**
+     * Cost of copying a {@link java.util.Map} into a new hash-based map ({@code new HashMap(m)}, {@code new LinkedHashMap(m)}):
+     * the map shell plus a table entry per source mapping. Conservative per-entry cost covers both {@code HashMap.Node} and the
+     * slightly larger {@code LinkedHashMap.Entry}.
+     */
+    public static long mapCopyBytes(java.util.Map<?, ?> source) {
+        long size = source == null ? 0 : source.size();
+        return 64 + AllocSizes.mulSat(size, 56);
+    }
+
+    /**
+     * Cost of copying a {@link Collection} into a new hash-based set ({@code new HashSet(c)}, {@code new LinkedHashSet(c)}): the
+     * set shell plus the backing map's per-element entry.
+     */
+    public static long setCopyBytes(Collection<?> source) {
+        long size = source == null ? 0 : source.size();
+        return 88 + AllocSizes.mulSat(size, 56);
+    }
+
+    /** Cost of copying a {@link Collection} into a {@code new LinkedList(c)}: the list shell plus one node per element. */
+    public static long linkedListCopyBytes(Collection<?> source) {
+        long size = source == null ? 0 : source.size();
+        return 32 + AllocSizes.mulSat(size, 40);
+    }
+
     /** Cost of {@code Collection.toArray()}: a new {@code Object[]} sized to the collection. */
     public static long toArrayBytes(Collection<?> receiver) {
         return AllocSizes.arrayBytes(receiver == null ? 0 : receiver.size(), AllocSizes.REFERENCE_SIZE);
