@@ -44,6 +44,22 @@ public final class AllocationGuard {
      * @param totalBytes the running total after charging the allocation
      * @param limitBytes the per-context limit
      */
+    /**
+     * Charges a {@code def}-dispatched {@code +} before it runs, but only when it is actually a string concat (an operand is a
+     * {@link String}, per {@link DefMath}'s rule) — so numeric {@code def + def} rebox is left untracked by design. The estimate
+     * reuses the statically-typed concat bound (see {@link AllocSizes#stringConcatOperandBytes}). Caller boxes primitive
+     * operands so both arrive as {@link Object}; emitted only when tracking is enabled.
+     */
+    public static void checkDefConcatAlloc(PainlessScript script, Object left, Object right) {
+        if (left instanceof String || right instanceof String) {
+            script.$checkAllocBytes(
+                AllocSizes.STRING_CONCAT_RESULT_OVERHEAD + AllocSizes.stringConcatOperandBytes(left) + AllocSizes.stringConcatOperandBytes(
+                    right
+                )
+            );
+        }
+    }
+
     public static void allocationLimitExceeded(long attemptedBytes, long totalBytes, long limitBytes) {
         logger.warn(
             "Painless script allocation limit exceeded: allocation of [{}] bytes brings running total to [{}] bytes (limit [{}] bytes)",
