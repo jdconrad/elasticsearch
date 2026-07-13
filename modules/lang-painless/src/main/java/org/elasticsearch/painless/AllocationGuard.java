@@ -35,16 +35,6 @@ public final class AllocationGuard {
     }
 
     /**
-     * Logs a {@code WARN} and throws a {@link PainlessError} describing an allocation that pushed a script over its limit.
-     * {@link PainlessError} is an {@link Error}, so it cannot be caught from Painless source. Never returns normally. The
-     * specific allocation that crossed the limit is not reported: it is whichever happened to tip the running total, not
-     * necessarily the dominant cost, so naming it would mislead more than help.
-     *
-     * @param attemptedBytes the size of the allocation that tripped the limit
-     * @param totalBytes the running total after charging the allocation
-     * @param limitBytes the per-context limit
-     */
-    /**
      * Charges a {@code def}-dispatched {@code +} before it runs, but only when it is actually a string concat (an operand is a
      * {@link String}, per {@link DefMath}'s rule) — so numeric {@code def + def} rebox is left untracked by design. The estimate
      * reuses the statically-typed concat bound (see {@link AllocSizes#stringConcatOperandBytes}). Caller boxes primitive
@@ -60,6 +50,16 @@ public final class AllocationGuard {
         }
     }
 
+    /**
+     * Logs a {@code WARN} and throws a {@link PainlessError} describing an allocation that pushed a script over its limit.
+     * {@link PainlessError} is an {@link Error}, so it cannot be caught from Painless source. Never returns normally. The
+     * specific allocation that crossed the limit is not reported: it is whichever happened to tip the running total, not
+     * necessarily the dominant cost, so naming it would mislead more than help.
+     *
+     * @param attemptedBytes the size of the allocation that tripped the limit
+     * @param totalBytes the running total after charging the allocation
+     * @param limitBytes the per-context limit
+     */
     public static void allocationLimitExceeded(long attemptedBytes, long totalBytes, long limitBytes) {
         logger.warn(
             "Painless script allocation limit exceeded: allocation of [{}] bytes brings running total to [{}] bytes (limit [{}] bytes)",
