@@ -9,7 +9,10 @@
 
 package org.elasticsearch.painless;
 
+import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.math.MathContext;
+import java.math.RoundingMode;
 import java.util.Collection;
 import java.util.Locale;
 
@@ -198,6 +201,102 @@ public final class AllocationEstimators {
     /** {@code toString(radix)}: worst case (radix 2) is one char per bit. */
     public static long bigIntegerToStringBytes(BigInteger receiver, int radix) {
         return newStringBytes(bitLen(receiver));
+    }
+
+    // ---- java.math.BigDecimal: the object plus, when the unscaled value exceeds long range, a backing BigInteger. ----
+    // precision() (unscaled decimal digit count) and scale() are allocation-free, so estimators size results from them.
+
+    /** Heap cost of a {@link BigDecimal} whose unscaled value has {@code digits} decimal digits. */
+    private static long bigDecimalBytes(long digits) {
+        // Up to ~18 digits the unscaled value fits in the compact long field; beyond that it is held in a BigInteger.
+        return 48 + (digits > 18 ? bigIntegerBytes(AllocSizes.mulSat(digits, 4)) : 0);
+    }
+
+    private static int bdDigits(BigDecimal value) {
+        return value == null ? 0 : value.precision();
+    }
+
+    private static int bdScale(BigDecimal value) {
+        return value == null ? 0 : value.scale();
+    }
+
+    /** {@code new BigDecimal(String[, MathContext])}: unscaled magnitude scales with the digit count. */
+    public static long bigDecimalFromStringBytes(String value) {
+        return bigDecimalBytes(value == null ? 0 : value.length());
+    }
+
+    public static long bigDecimalFromStringBytes(String value, MathContext mc) {
+        return bigDecimalFromStringBytes(value);
+    }
+
+    /** {@code abs}/{@code negate}/{@code plus}/{@code stripTrailingZeros}/{@code round}: about the receiver's digit count. */
+    public static long bigDecimalUnaryBytes(BigDecimal receiver) {
+        return bigDecimalBytes(bdDigits(receiver));
+    }
+
+    public static long bigDecimalUnaryBytes(BigDecimal receiver, MathContext mc) {
+        return bigDecimalBytes(bdDigits(receiver));
+    }
+
+    /** {@code movePointLeft}/{@code scaleByPowerOfTen}: only shift the scale, leaving the unscaled value unchanged. */
+    public static long bigDecimalUnaryBytes(BigDecimal receiver, int n) {
+        return bigDecimalBytes(bdDigits(receiver));
+    }
+
+    /**
+     * {@code add}/{@code subtract}/{@code multiply}/{@code divide}/{@code remainder}/{@code divideToIntegralValue}: the result
+     * is no wider than the sum of the operand digit counts.
+     */
+    public static long bigDecimalBinaryBytes(BigDecimal a, BigDecimal b) {
+        return bigDecimalBytes((long) bdDigits(a) + bdDigits(b));
+    }
+
+    public static long bigDecimalBinaryBytes(BigDecimal a, BigDecimal b, MathContext mc) {
+        return bigDecimalBinaryBytes(a, b);
+    }
+
+    /** {@code divideAndRemainder}: a length-2 array holding the quotient and the remainder. */
+    public static long bigDecimalDivideAndRemainderBytes(BigDecimal a, BigDecimal b) {
+        return AllocSizes.arrayBytes(2, AllocSizes.REFERENCE_SIZE) + bigDecimalBytes(bdDigits(a)) + bigDecimalBytes(bdDigits(b));
+    }
+
+    public static long bigDecimalDivideAndRemainderBytes(BigDecimal a, BigDecimal b, MathContext mc) {
+        return bigDecimalDivideAndRemainderBytes(a, b);
+    }
+
+    /** {@code pow(exp)}: the unscaled digit count grows by the exponent — the main BigDecimal blow-up. */
+    public static long bigDecimalPowBytes(BigDecimal receiver, int exp) {
+        return bigDecimalBytes(AllocSizes.mulSat(bdDigits(receiver), Math.max(0, exp)));
+    }
+
+    public static long bigDecimalPowBytes(BigDecimal receiver, int exp, MathContext mc) {
+        return bigDecimalPowBytes(receiver, exp);
+    }
+
+    /** {@code setScale(newScale)}: increasing the scale pads the unscaled value with {@code newScale - scale} digits. */
+    public static long bigDecimalSetScaleBytes(BigDecimal receiver, int newScale) {
+        return bigDecimalBytes(bdDigits(receiver) + Math.max(0L, (long) newScale - bdScale(receiver)));
+    }
+
+    public static long bigDecimalSetScaleBytes(BigDecimal receiver, int newScale, RoundingMode rm) {
+        return bigDecimalSetScaleBytes(receiver, newScale);
+    }
+
+    /** {@code movePointRight(n)}: pads the unscaled value when {@code n} exceeds the scale — a blow-up vector. */
+    public static long bigDecimalMovePointRightBytes(BigDecimal receiver, int n) {
+        return bigDecimalBytes(bdDigits(receiver) + Math.max(0L, (long) n - bdScale(receiver)));
+    }
+
+    /** {@code toBigInteger}/{@code toBigIntegerExact}: a BigInteger holding the integer part ({@code precision - scale} digits). */
+    public static long bigDecimalToBigIntegerBytes(BigDecimal receiver) {
+        long intDigits = receiver == null ? 0 : Math.max(0, receiver.precision() - receiver.scale());
+        return bigIntegerBytes(AllocSizes.mulSat(intDigits, 4));
+    }
+
+    /** {@code toEngineeringString}/{@code toPlainString}: a String of roughly the precision plus the scale in chars. */
+    public static long bigDecimalToStringBytes(BigDecimal receiver) {
+        long scale = bdScale(receiver);
+        return newStringBytes((long) bdDigits(receiver) + (scale < 0 ? -scale : scale) + 2);
     }
 
     /** Cost of {@code Collection.toArray()}: a new {@code Object[]} sized to the collection. */
