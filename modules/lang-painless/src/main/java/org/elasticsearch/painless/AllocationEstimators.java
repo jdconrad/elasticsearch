@@ -9,6 +9,7 @@
 
 package org.elasticsearch.painless;
 
+import java.math.BigInteger;
 import java.util.Collection;
 import java.util.Locale;
 
@@ -100,6 +101,103 @@ public final class AllocationEstimators {
     public static long linkedListCopyBytes(Collection<?> source) {
         long size = source == null ? 0 : source.size();
         return 32 + AllocSizes.mulSat(size, 40);
+    }
+
+    // ---- java.math.BigInteger: results are an object plus an int[] magnitude sized by the result's bit length. ----
+
+    /** Heap cost of a {@link BigInteger} with a {@code bits}-bit magnitude: the object plus its backing {@code int[]}. */
+    private static long bigIntegerBytes(long bits) {
+        long ints = Math.max(0L, bits) / 32 + 2; // ceil(bits/32) plus a word of slop
+        return 40 + AllocSizes.arrayBytes(ints, 4);
+    }
+
+    private static int bitLen(BigInteger value) {
+        return value == null ? 0 : value.bitLength();
+    }
+
+    /** {@code new BigInteger(String)} (radix 10): magnitude scales with the digit count (under 4 bits per digit). */
+    public static long bigIntegerFromStringBytes(String value) {
+        return bigIntegerBytes((value == null ? 0L : value.length()) * 4L);
+    }
+
+    /** {@code new BigInteger(String, radix)}: conservative bits-per-digit covering radices up to 36 (under 6 bits per digit). */
+    public static long bigIntegerFromStringRadixBytes(String value, int radix) {
+        return bigIntegerBytes((value == null ? 0L : value.length()) * 6L);
+    }
+
+    /** {@code add}/{@code subtract}: one bit wider than the larger operand. */
+    public static long bigIntegerAddBytes(BigInteger receiver, BigInteger arg) {
+        return bigIntegerBytes((long) Math.max(bitLen(receiver), bitLen(arg)) + 1);
+    }
+
+    /** {@code and}/{@code or}/{@code xor}/{@code andNot}: no wider than the larger operand. */
+    public static long bigIntegerBitwiseBytes(BigInteger receiver, BigInteger arg) {
+        return bigIntegerBytes(Math.max(bitLen(receiver), bitLen(arg)));
+    }
+
+    /** {@code multiply}: the product's width is the sum of the operand widths. */
+    public static long bigIntegerMultiplyBytes(BigInteger receiver, BigInteger arg) {
+        return bigIntegerBytes((long) bitLen(receiver) + bitLen(arg));
+    }
+
+    /** {@code divide}: the quotient is no wider than the dividend. */
+    public static long bigIntegerDivideBytes(BigInteger receiver, BigInteger arg) {
+        return bigIntegerBytes(bitLen(receiver));
+    }
+
+    /** {@code mod}/{@code remainder}/{@code modInverse}: the result is smaller than the modulus/divisor argument. */
+    public static long bigIntegerModBytes(BigInteger receiver, BigInteger arg) {
+        return bigIntegerBytes(bitLen(arg));
+    }
+
+    /** {@code gcd}: no wider than the smaller operand. */
+    public static long bigIntegerGcdBytes(BigInteger receiver, BigInteger arg) {
+        return bigIntegerBytes(Math.min(bitLen(receiver), bitLen(arg)));
+    }
+
+    /** {@code negate}/{@code abs}/{@code not}: about the receiver's width. */
+    public static long bigIntegerUnaryBytes(BigInteger receiver) {
+        return bigIntegerBytes((long) bitLen(receiver) + 1);
+    }
+
+    /** {@code shiftLeft(n)}: widens the receiver by {@code n} bits ({@code n} may be large — an allocation vector). */
+    public static long bigIntegerShiftLeftBytes(BigInteger receiver, int n) {
+        return bigIntegerBytes((long) bitLen(receiver) + Math.max(0, n));
+    }
+
+    /** {@code shiftRight(n)}: narrows the receiver by {@code n} bits. */
+    public static long bigIntegerShiftRightBytes(BigInteger receiver, int n) {
+        return bigIntegerBytes((long) bitLen(receiver) - Math.max(0, n));
+    }
+
+    /** {@code setBit}/{@code clearBit}/{@code flipBit}: at least wide enough to hold bit {@code n}. */
+    public static long bigIntegerSetBitBytes(BigInteger receiver, int n) {
+        return bigIntegerBytes(Math.max(bitLen(receiver), (long) Math.max(0, n) + 1));
+    }
+
+    /** {@code pow(exp)}: the result width is the receiver width times the exponent — the main BigInteger blow-up. */
+    public static long bigIntegerPowBytes(BigInteger receiver, int exp) {
+        return bigIntegerBytes(AllocSizes.mulSat(bitLen(receiver), Math.max(0, exp)));
+    }
+
+    /** {@code modPow(exp, mod)}: the result is smaller than the modulus. */
+    public static long bigIntegerModPowBytes(BigInteger receiver, BigInteger exp, BigInteger mod) {
+        return bigIntegerBytes(bitLen(mod));
+    }
+
+    /** {@code divideAndRemainder}: a length-2 array holding the quotient and the remainder. */
+    public static long bigIntegerDivideAndRemainderBytes(BigInteger receiver, BigInteger arg) {
+        return AllocSizes.arrayBytes(2, AllocSizes.REFERENCE_SIZE) + bigIntegerBytes(bitLen(receiver)) + bigIntegerBytes(bitLen(arg));
+    }
+
+    /** {@code toByteArray}: a {@code byte[]} holding the two's-complement representation. */
+    public static long bigIntegerToByteArrayBytes(BigInteger receiver) {
+        return AllocSizes.arrayBytes((long) bitLen(receiver) / 8 + 1, 1);
+    }
+
+    /** {@code toString(radix)}: worst case (radix 2) is one char per bit. */
+    public static long bigIntegerToStringBytes(BigInteger receiver, int radix) {
+        return newStringBytes(bitLen(receiver));
     }
 
     /** Cost of {@code Collection.toArray()}: a new {@code Object[]} sized to the collection. */

@@ -71,46 +71,46 @@ class java.math.BigInteger {
   BigInteger ONE
   BigInteger TEN
   BigInteger ZERO
-  (String)
-  (String,int)
-  BigInteger abs()
-  BigInteger add(BigInteger)
-  BigInteger and(BigInteger)
-  BigInteger andNot(BigInteger)
+  (String) @allocates_dynamic[class="org.elasticsearch.painless.AllocationEstimators", method="bigIntegerFromStringBytes"]
+  (String,int) @allocates_dynamic[class="org.elasticsearch.painless.AllocationEstimators", method="bigIntegerFromStringRadixBytes"]
+  BigInteger abs() @allocates_dynamic[class="org.elasticsearch.painless.AllocationEstimators", method="bigIntegerUnaryBytes"]
+  BigInteger add(BigInteger) @allocates_dynamic[class="org.elasticsearch.painless.AllocationEstimators", method="bigIntegerAddBytes"]
+  BigInteger and(BigInteger) @allocates_dynamic[class="org.elasticsearch.painless.AllocationEstimators", method="bigIntegerBitwiseBytes"]
+  BigInteger andNot(BigInteger) @allocates_dynamic[class="org.elasticsearch.painless.AllocationEstimators", method="bigIntegerBitwiseBytes"]
   int bitCount()
   int bitLength()
   byte byteValueExact()
-  BigInteger clearBit(int)
+  BigInteger clearBit(int) @allocates_dynamic[class="org.elasticsearch.painless.AllocationEstimators", method="bigIntegerSetBitBytes"]
   int compareTo(BigInteger)
-  BigInteger divide(BigInteger)
-  BigInteger[] divideAndRemainder(BigInteger)
-  BigInteger flipBit(int)
-  BigInteger gcd(BigInteger)
+  BigInteger divide(BigInteger) @allocates_dynamic[class="org.elasticsearch.painless.AllocationEstimators", method="bigIntegerDivideBytes"]
+  BigInteger[] divideAndRemainder(BigInteger) @allocates_dynamic[class="org.elasticsearch.painless.AllocationEstimators", method="bigIntegerDivideAndRemainderBytes"]
+  BigInteger flipBit(int) @allocates_dynamic[class="org.elasticsearch.painless.AllocationEstimators", method="bigIntegerSetBitBytes"]
+  BigInteger gcd(BigInteger) @allocates_dynamic[class="org.elasticsearch.painless.AllocationEstimators", method="bigIntegerGcdBytes"]
   int getLowestSetBit()
   int intValueExact()
   long longValueExact()
   BigInteger max(BigInteger)
   BigInteger min(BigInteger)
-  BigInteger mod(BigInteger)
-  BigInteger modInverse(BigInteger)
-  BigInteger modPow(BigInteger,BigInteger)
-  BigInteger multiply(BigInteger)
-  BigInteger negate()
-  BigInteger not()
-  BigInteger or(BigInteger)
-  BigInteger pow(int)
-  BigInteger remainder(BigInteger)
-  BigInteger setBit(int)
-  BigInteger shiftLeft(int)
-  BigInteger shiftRight(int)
+  BigInteger mod(BigInteger) @allocates_dynamic[class="org.elasticsearch.painless.AllocationEstimators", method="bigIntegerModBytes"]
+  BigInteger modInverse(BigInteger) @allocates_dynamic[class="org.elasticsearch.painless.AllocationEstimators", method="bigIntegerModBytes"]
+  BigInteger modPow(BigInteger,BigInteger) @allocates_dynamic[class="org.elasticsearch.painless.AllocationEstimators", method="bigIntegerModPowBytes"]
+  BigInteger multiply(BigInteger) @allocates_dynamic[class="org.elasticsearch.painless.AllocationEstimators", method="bigIntegerMultiplyBytes"]
+  BigInteger negate() @allocates_dynamic[class="org.elasticsearch.painless.AllocationEstimators", method="bigIntegerUnaryBytes"]
+  BigInteger not() @allocates_dynamic[class="org.elasticsearch.painless.AllocationEstimators", method="bigIntegerUnaryBytes"]
+  BigInteger or(BigInteger) @allocates_dynamic[class="org.elasticsearch.painless.AllocationEstimators", method="bigIntegerBitwiseBytes"]
+  BigInteger pow(int) @allocates_dynamic[class="org.elasticsearch.painless.AllocationEstimators", method="bigIntegerPowBytes"]
+  BigInteger remainder(BigInteger) @allocates_dynamic[class="org.elasticsearch.painless.AllocationEstimators", method="bigIntegerModBytes"]
+  BigInteger setBit(int) @allocates_dynamic[class="org.elasticsearch.painless.AllocationEstimators", method="bigIntegerSetBitBytes"]
+  BigInteger shiftLeft(int) @allocates_dynamic[class="org.elasticsearch.painless.AllocationEstimators", method="bigIntegerShiftLeftBytes"]
+  BigInteger shiftRight(int) @allocates_dynamic[class="org.elasticsearch.painless.AllocationEstimators", method="bigIntegerShiftRightBytes"]
   short shortValueExact()
   int signum()
-  BigInteger subtract(BigInteger)
+  BigInteger subtract(BigInteger) @allocates_dynamic[class="org.elasticsearch.painless.AllocationEstimators", method="bigIntegerAddBytes"]
   boolean testBit(int)
-  byte[] toByteArray()
-  String toString(int)
-  BigInteger valueOf(long)
-  BigInteger xor(BigInteger)
+  byte[] toByteArray() @allocates_dynamic[class="org.elasticsearch.painless.AllocationEstimators", method="bigIntegerToByteArrayBytes"]
+  String toString(int) @allocates_dynamic[class="org.elasticsearch.painless.AllocationEstimators", method="bigIntegerToStringBytes"]
+  BigInteger valueOf(long) @allocates_constant[bytes="48b"]
+  BigInteger xor(BigInteger) @allocates_dynamic[class="org.elasticsearch.painless.AllocationEstimators", method="bigIntegerBitwiseBytes"]
 }
 
 class java.math.MathContext {
