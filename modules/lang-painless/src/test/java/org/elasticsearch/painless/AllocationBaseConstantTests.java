@@ -34,7 +34,7 @@ public class AllocationBaseConstantTests extends AllocationTestCase {
     }
 
     public void testEmptyListFactoryChargesNothing() {
-        // Collections.emptyList() returns a shared singleton; annotated 0b, so it charges nothing.
+        // Collections.emptyList() returns a shared singleton, so it is left unannotated and charges nothing.
         assertEquals(0L, allocatedBytes("Collections.emptyList(); return \"x\";"));
     }
 

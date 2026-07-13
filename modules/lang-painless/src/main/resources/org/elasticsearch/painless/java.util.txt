@@ -545,12 +545,12 @@ class java.util.Collections {
   boolean disjoint(Collection,Collection)
   Enumeration emptyEnumeration()
   Iterator emptyIterator()
-  List emptyList() @allocates_constant[bytes="0b"]
+  List emptyList()
   ListIterator emptyListIterator()
-  Map emptyMap() @allocates_constant[bytes="0b"]
+  Map emptyMap()
   NavigableMap emptyNavigableMap()
   NavigableSet emptyNavigableSet()
-  Set emptySet() @allocates_constant[bytes="0b"]
+  Set emptySet()
   SortedMap emptySortedMap()
   SortedSet emptySortedSet()
   Enumeration enumeration(Collection)
