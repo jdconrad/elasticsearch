@@ -75,6 +75,33 @@ public final class AllocationEstimators {
         return newStringBytes(receiver.length());
     }
 
+    /** A new String repeating {@code value} {@code count} times (e.g. SQL {@code REPEAT}) — a growth vector for large counts. */
+    public static long stringRepeatBytes(String value, Number count) {
+        long len = value == null ? 0 : value.length();
+        long n = count == null ? 0 : count.longValue();
+        return newStringBytes(AllocSizes.mulSat(len, Math.max(0L, n)));
+    }
+
+    /** A new String of {@code count} characters (e.g. SQL {@code SPACE}) — a growth vector for large counts. */
+    public static long stringOfCountBytes(Number count) {
+        return newStringBytes(count == null ? 0 : Math.max(0L, count.longValue()));
+    }
+
+    /** A new String no longer than {@code value} (e.g. SQL {@code SUBSTRING}/{@code LEFT}/{@code RIGHT}); full-length bound. */
+    public static long boundedStringBytes(String value) {
+        return newStringBytes(value == null ? 0 : value.length());
+    }
+
+    /** Overload of {@link #boundedStringBytes(String)} for a {@code (String, Number)} signature (e.g. {@code LEFT}/{@code RIGHT}). */
+    public static long boundedStringBytes(String value, Number a) {
+        return boundedStringBytes(value);
+    }
+
+    /** Overload of {@link #boundedStringBytes(String)} for a {@code (String, Number, Number)} signature (e.g. {@code SUBSTRING}). */
+    public static long boundedStringBytes(String value, Number a, Number b) {
+        return boundedStringBytes(value);
+    }
+
     /**
      * Cost of {@code new ArrayList(collection)}: the list shell plus a backing {@code Object[]} sized to the source. A
      * {@code null} source costs just the shell; the real constructor rejects the {@code null} after the pre-check.

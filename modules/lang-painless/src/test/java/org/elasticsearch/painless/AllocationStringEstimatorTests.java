@@ -62,4 +62,27 @@ public class AllocationStringEstimatorTests extends AllocationTestCase {
     public void testToCharArrayTripsLimit() {
         assertTripsLimit("String s = \"hello\"; s.toCharArray(); return \"x\";");
     }
+
+    // Generic estimators reused by x-pack SQL string functions (repeat/space/substring/left/right). No base allowlist method
+    // uses them, so they are exercised directly; the x-pack SQL whitelist resolution is validated in SQL CI.
+
+    public void testStringRepeatBytes() {
+        // "ab" x 5 = a 10-char String; null value or non-positive count charges just the overhead.
+        assertEquals(AllocationEstimators.substringBytes("", 0, 10), AllocationEstimators.stringRepeatBytes("ab", 5));
+        assertEquals(AllocationEstimators.substringBytes("", 0, 0), AllocationEstimators.stringRepeatBytes(null, 5));
+        assertEquals(AllocationEstimators.substringBytes("", 0, 0), AllocationEstimators.stringRepeatBytes("ab", -1));
+    }
+
+    public void testStringOfCountBytes() {
+        assertEquals(AllocationEstimators.substringBytes("", 0, 7), AllocationEstimators.stringOfCountBytes(7));
+        assertEquals(AllocationEstimators.substringBytes("", 0, 0), AllocationEstimators.stringOfCountBytes(null));
+    }
+
+    public void testBoundedStringBytes() {
+        // Full-length bound of the source across the (String), (String, Number), and (String, Number, Number) overloads.
+        long expected = AllocationEstimators.substringBytes("", 0, 5);
+        assertEquals(expected, AllocationEstimators.boundedStringBytes("hello"));
+        assertEquals(expected, AllocationEstimators.boundedStringBytes("hello", 2));
+        assertEquals(expected, AllocationEstimators.boundedStringBytes("hello", 1, 4));
+    }
 }
