@@ -17,7 +17,7 @@ class org.elasticsearch.xpack.ql.expression.function.scalar.whitelist.InternalQl
   def docValue(java.util.Map, String)
   boolean nullSafeFilter(Boolean)
   double nullSafeSortNumeric(Number)
-  String nullSafeSortString(Object) @allocates_dynamic[class="org.elasticsearch.xpack.eql.expression.function.scalar.whitelist.EqlAllocationEstimators", method="stringValueBytes"]
+  String nullSafeSortString(Object)
   Number nullSafeCastNumeric(Number, String)
   Number nullSafeCastToUnsignedLong(Number)
 
