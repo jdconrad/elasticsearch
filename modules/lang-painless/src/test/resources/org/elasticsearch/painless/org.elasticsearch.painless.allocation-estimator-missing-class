@@ -7,7 +7,7 @@
  # License v3.0 only", or the "Server Side Public License, v 1".
 #
 
-# Bad allowlist: @allocates_dynamic names an estimator class that does not exist; loading must fail.
+# Bad allowlist: @allocates names an estimator class that does not exist; loading must fail.
 
 class org.elasticsearch.painless.AllocationEstimatorTestObject {
   int negativeEstimated() @allocates[class="org.elasticsearch.painless.DoesNotExist", method="estimate"]

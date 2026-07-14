@@ -24,7 +24,7 @@ public record PainlessMethod(
     MethodHandle methodHandle,
     MethodType methodType,
     Map<Class<?>, Object> annotations,
-    // Resolved dynamic @allocates estimator, or null. Derived (like methodHandle) — excluded from equals/hashCode.
+    // Resolved @allocates estimator, or null. Derived (like methodHandle) — excluded from equals/hashCode.
     Method allocationEstimator
 ) {
 

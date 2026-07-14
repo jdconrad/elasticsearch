@@ -194,7 +194,7 @@ public final class Def {
         return MethodHandles.permuteArguments(handle, swapped, reorder);
     }
 
-    /** Unreflects a dynamic estimator into a handle (this-module lookup for built-ins, {@code publicLookup} for plugins). */
+    /** Unreflects an estimator into a handle (this-module lookup for built-ins, {@code publicLookup} for plugins). */
     private static MethodHandle unreflectAllocationEstimator(Method estimator) {
         Class<?> declaringClass = estimator.getDeclaringClass();
         MethodHandles.Lookup lookup = declaringClass.getModule() == Def.class.getModule()
