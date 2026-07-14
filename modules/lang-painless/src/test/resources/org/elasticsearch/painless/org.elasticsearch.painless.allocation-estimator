@@ -16,6 +16,21 @@ class org.elasticsearch.painless.AllocationEstimatorTestObject {
   int constantAllocating() @allocates_constant[bytes="48b"]
   int zeroAllocating() @allocates_constant[bytes="0"]
   int hugeAllocatingInstance() @allocates_dynamic[class="org.elasticsearch.painless.AllocationEstimatorTestObject", method="hugeEstimateInstance"]
+  int constantBoxed(Integer) @allocates_constant[bytes="48b"]
+  int dynamicBoxed(Integer) @allocates_dynamic[class="org.elasticsearch.painless.AllocationEstimatorTestObject", method="boxedEstimate"]
+}
+
+# Annotations live on the interface; the implementation allowlists the same methods unannotated. A def call resolves to the
+# implementation method, so charging must walk to the annotated interface method (allocation annotation inheritance).
+class org.elasticsearch.painless.AllocationInheritanceInterface {
+  int inheritedConstant() @allocates_constant[bytes="56b"]
+  int inheritedDynamic(int) @allocates_dynamic[class="org.elasticsearch.painless.AllocationInheritanceObject", method="inheritedDynamicEstimate"]
+}
+
+class org.elasticsearch.painless.AllocationInheritanceObject {
+  ()
+  int inheritedConstant()
+  int inheritedDynamic(int)
 }
 
 # An augmented method's estimator matches the underlying Java static signature (receiver first), not the Painless surface.

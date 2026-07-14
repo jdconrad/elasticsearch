@@ -9,6 +9,8 @@
 
 package org.elasticsearch.painless.lookup;
 
+import org.elasticsearch.painless.spi.annotation.AllocatesConstantAnnotation;
+
 import java.lang.invoke.MethodHandle;
 import java.lang.reflect.Method;
 import java.util.ArrayDeque;
@@ -76,6 +78,11 @@ public final class PainlessLookup {
     /** Returns the resolved {@code @allocates_dynamic} estimator for a {@link PainlessMethod}/{@link PainlessConstructor}, or null. */
     public Method getAllocationEstimator(Object painlessMethodOrConstructor) {
         return allocationEstimators.get(painlessMethodOrConstructor);
+    }
+
+    /** Whether a method carries allocation metadata: an {@code @allocates_constant} annotation or a resolved estimator. */
+    private boolean hasAllocationMetadata(PainlessMethod painlessMethod) {
+        return painlessMethod.annotation(AllocatesConstantAnnotation.class) != null || allocationEstimators.containsKey(painlessMethod);
     }
 
     public Class<?> javaClassNameToClass(String javaClassName) {
@@ -288,6 +295,60 @@ public final class PainlessLookup {
         );
 
         return lookupPainlessObject(originalTargetClass, objectLookup);
+    }
+
+    /**
+     * Walks the runtime-method resolution order for {@code originalTargetClass} (the same order as
+     * {@link #lookupRuntimePainlessMethod}) and returns the first method carrying allocation metadata — an
+     * {@code @allocates_constant} annotation or a resolved {@code @allocates_dynamic} estimator — or null if none. Because
+     * def dispatch resolves to the first same-(name, arity) method, an unannotated subclass entry can shadow an annotated
+     * supertype/interface method; this lookup walks past it so the inherited annotation is still charged. Returns the
+     * dispatched method itself in the common (non-shadowed) case.
+     */
+    public PainlessMethod lookupRuntimeAllocationMethod(Class<?> originalTargetClass, String methodName, int methodArity) {
+        Objects.requireNonNull(originalTargetClass);
+        Objects.requireNonNull(methodName);
+
+        String painlessMethodKey = buildPainlessMethodKey(methodName, methodArity);
+        Function<PainlessClass, PainlessMethod> objectLookup = targetPainlessClass -> {
+            PainlessMethod painlessMethod = targetPainlessClass.runtimeMethods.get(painlessMethodKey);
+            return painlessMethod != null && hasAllocationMetadata(painlessMethod) ? painlessMethod : null;
+        };
+
+        return lookupPainlessObject(originalTargetClass, objectLookup);
+    }
+
+    /**
+     * The statically-typed-call counterpart of {@link #lookupRuntimeAllocationMethod}: walks the same resolution order as
+     * {@link #lookupPainlessMethod} (over {@code methods}/{@code staticMethods}) and returns the first method carrying
+     * allocation metadata, or null. Lets a direct call charge an annotation inherited from a supertype/interface method even
+     * when an unannotated subclass entry is the one dispatched. Returns the resolved method itself when it is annotated.
+     */
+    public PainlessMethod lookupAllocationMethod(Class<?> targetClass, boolean isStatic, String methodName, int methodArity) {
+        Objects.requireNonNull(targetClass);
+        Objects.requireNonNull(methodName);
+
+        if (classesToPainlessClasses.containsKey(targetClass) == false) {
+            return null;
+        }
+
+        if (targetClass.isPrimitive()) {
+            targetClass = typeToBoxedType(targetClass);
+
+            if (classesToPainlessClasses.containsKey(targetClass) == false) {
+                return null;
+            }
+        }
+
+        String painlessMethodKey = buildPainlessMethodKey(methodName, methodArity);
+        Function<PainlessClass, PainlessMethod> objectLookup = targetPainlessClass -> {
+            PainlessMethod painlessMethod = isStatic
+                ? targetPainlessClass.staticMethods.get(painlessMethodKey)
+                : targetPainlessClass.methods.get(painlessMethodKey);
+            return painlessMethod != null && hasAllocationMetadata(painlessMethod) ? painlessMethod : null;
+        };
+
+        return lookupPainlessObject(targetClass, objectLookup);
     }
 
     public MethodHandle lookupRuntimeGetterMethodHandle(Class<?> originalTargetClass, String getterName) {

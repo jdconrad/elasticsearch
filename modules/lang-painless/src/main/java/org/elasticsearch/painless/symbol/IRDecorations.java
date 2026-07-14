@@ -383,6 +383,18 @@ public class IRDecorations {
         }
     }
 
+    /**
+     * the {@code @allocates_constant} byte cost for a direct call site; attached only when tracking is enabled. It is resolved
+     * across the inheritance tree (so an annotated supertype/interface method is honored even when an unannotated subclass entry
+     * is dispatched), which is why it is carried here rather than read off the dispatched method's own annotation.
+     */
+    public static class IRDAllocationConstant extends IRDecoration<Long> {
+
+        public IRDAllocationConstant(Long value) {
+            super(value);
+        }
+    }
+
     /** opts a function into the cancellation-aware loop guard rather than the legacy {@link IRDMaxLoopCounter} */
     public static class IRCInstanceCancellationCheck implements IRCondition {
 

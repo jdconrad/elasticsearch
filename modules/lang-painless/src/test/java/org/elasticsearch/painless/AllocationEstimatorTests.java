@@ -90,6 +90,22 @@ public class AllocationEstimatorTests extends AllocationTestCase {
         assertEquals(3 * 100L + 7, allocatedBytes("String s = \"abc\"; s.augmentedEstimated(7); return \"x\";"));
     }
 
+    public void testInheritedConstantChargedForStaticTypedCall() {
+        // Statically-typed call to an unannotated implementation method; the constant annotation is on the interface and must be
+        // charged via the inheritance walk (the direct-call counterpart of the def-dispatch inheritance test).
+        assertEquals(
+            56L,
+            allocatedBytes("AllocationInheritanceObject x = new AllocationInheritanceObject(); x.inheritedConstant(); return \"y\";")
+        );
+    }
+
+    public void testInheritedDynamicChargedForStaticTypedCall() {
+        assertEquals(
+            5 * 10L,
+            allocatedBytes("AllocationInheritanceObject x = new AllocationInheritanceObject(); x.inheritedDynamic(5); return \"y\";")
+        );
+    }
+
     public void testConflictingAnnotationsAcrossWhitelistsRejected() {
         // Two allowlists annotating the same method differently fail via the existing duplicate-entry equivalence rule.
         IllegalArgumentException e = expectThrows(IllegalArgumentException.class, () -> {

@@ -113,6 +113,7 @@ import org.elasticsearch.painless.symbol.IRDecorations.IRCStatic;
 import org.elasticsearch.painless.symbol.IRDecorations.IRCStaticCancellationCheck;
 import org.elasticsearch.painless.symbol.IRDecorations.IRCSynthetic;
 import org.elasticsearch.painless.symbol.IRDecorations.IRCVarArgs;
+import org.elasticsearch.painless.symbol.IRDecorations.IRDAllocationConstant;
 import org.elasticsearch.painless.symbol.IRDecorations.IRDAllocationEstimator;
 import org.elasticsearch.painless.symbol.IRDecorations.IRDArrayName;
 import org.elasticsearch.painless.symbol.IRDecorations.IRDArrayType;
@@ -2167,10 +2168,12 @@ public class DefaultIRTreeToASMBytesPhase implements IRTreeVisitor<WriteScope> {
 
         PainlessMethod painlessMethod = irInvokeCallNode.getMethod();
 
-        // A constant charge has net-zero stack effect, so it can precede the call emission entirely.
-        AllocatesConstantAnnotation allocatesConstant = painlessMethod.annotation(AllocatesConstantAnnotation.class);
-        if (allocatesConstant != null) {
-            writeAllocationCheck(writeScope, allocatesConstant.bytes());
+        // A constant charge has net-zero stack effect, so it can precede the call emission entirely. The byte count is carried on
+        // the node (resolved across the inheritance tree in the user-tree phase) rather than read off the dispatched method,
+        // whose own annotation may be absent when it shadows an annotated supertype/interface method.
+        Long allocationConstant = irInvokeCallNode.getDecorationValue(IRDAllocationConstant.class);
+        if (allocationConstant != null) {
+            writeAllocationCheck(writeScope, allocationConstant);
         }
 
         if (irInvokeCallNode.getBox().isPrimitive()) {

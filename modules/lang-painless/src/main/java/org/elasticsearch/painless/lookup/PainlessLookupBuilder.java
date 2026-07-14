@@ -2023,7 +2023,13 @@ public final class PainlessLookupBuilder {
                         || typeParameter == Long.class
                         || typeParameter == Float.class
                         || typeParameter == Double.class) {
-                        generateFilteredMethod(targetClass, painlessClassBuilder, painlessMethod, filteredMethodCache);
+                        generateFilteredMethod(
+                            targetClass,
+                            painlessClassBuilder,
+                            painlessMethod,
+                            filteredMethodCache,
+                            allocationEstimators
+                        );
                     }
                 }
             }
@@ -2034,7 +2040,8 @@ public final class PainlessLookupBuilder {
         Class<?> targetClass,
         PainlessClassBuilder painlessClassBuilder,
         PainlessMethod painlessMethod,
-        Map<PainlessMethod, PainlessMethod> filteredMethodCache
+        Map<PainlessMethod, PainlessMethod> filteredMethodCache,
+        Map<Object, Method> allocationEstimators
     ) {
         String painlessMethodKey = buildPainlessMethodKey(painlessMethod.javaMethod().getName(), painlessMethod.typeParameters().size());
         PainlessMethod filteredPainlessMethod = filteredMethodCache.get(painlessMethod);
@@ -2081,6 +2088,9 @@ public final class PainlessLookupBuilder {
                     }
                 }
 
+                // Carry the source method's annotations onto the bridge so allocation annotations (@allocates_constant /
+                // @allocates_dynamic) survive def dispatch, which resolves through runtimeMethods. Without this the bridge would
+                // report no annotation and silently escape the allocation charge.
                 filteredPainlessMethod = new PainlessMethod(
                     painlessMethod.javaMethod(),
                     targetClass,
@@ -2088,10 +2098,18 @@ public final class PainlessLookupBuilder {
                     filteredTypeParameters,
                     filteredMethodHandle,
                     filteredMethodType,
-                    Map.of()
+                    painlessMethod.annotations()
                 );
                 painlessClassBuilder.runtimeMethods.put(painlessMethodKey.intern(), filteredPainlessMethod);
                 filteredMethodCache.put(painlessMethod, filteredPainlessMethod);
+
+                // The estimator index is keyed by method instance, so mirror the source method's estimator onto the bridge
+                // instance (a distinct object) for the dynamic-charge lookup. The bridge's boxed params are widened to Object;
+                // Def adapts the estimator to that shape at the call site.
+                Method allocationEstimator = allocationEstimators.get(painlessMethod);
+                if (allocationEstimator != null) {
+                    allocationEstimators.put(filteredPainlessMethod, allocationEstimator);
+                }
             } catch (Exception exception) {
                 throw new IllegalStateException(
                     "internal error occurred attempting to generate a runtime method [" + painlessMethodKey + "]",

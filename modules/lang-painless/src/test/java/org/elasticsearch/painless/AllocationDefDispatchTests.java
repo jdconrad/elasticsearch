@@ -111,4 +111,34 @@ public class AllocationDefDispatchTests extends AllocationTestCase {
             """);
         assertEquals(3 * perCall, total);
     }
+
+    public void testDefConstantBoxedParamMethodCharged() {
+        // A boxed (Integer) parameter makes Painless dispatch this via a runtime bridge method; the constant annotation must
+        // survive onto that derived bridge and still charge.
+        assertEquals(48L, allocatedBytes("def x = new AllocationEstimatorTestObject(); x.constantBoxed(5); return \"y\";"));
+    }
+
+    public void testDefDynamicBoxedParamMethodCharged() {
+        // Same for the dynamic path: the estimator survives onto the bridge and reads the (Object-widened) boxed argument.
+        assertEquals(5 * 100L, allocatedBytes("def x = new AllocationEstimatorTestObject(); x.dynamicBoxed(5); return \"y\";"));
+    }
+
+    public void testDefBoxedParamMethodTripsLimit() {
+        assertTripsLimit("def x = new AllocationEstimatorTestObject(); x.constantBoxed(5); return \"y\";");
+    }
+
+    public void testDefInheritedConstantCharged() {
+        // The implementation method is allowlisted unannotated; the annotation is on the interface. Def resolves to the
+        // implementation method, so charging must walk to the annotated interface method.
+        assertEquals(56L, allocatedBytes("def x = new AllocationInheritanceObject(); x.inheritedConstant(); return \"y\";"));
+    }
+
+    public void testDefInheritedDynamicCharged() {
+        // Same for the estimator path — the estimator inherited from the interface reads the argument (receiver widened).
+        assertEquals(5 * 10L, allocatedBytes("def x = new AllocationInheritanceObject(); x.inheritedDynamic(5); return \"y\";"));
+    }
+
+    public void testDefInheritedConstantTripsLimit() {
+        assertTripsLimit("def x = new AllocationInheritanceObject(); x.inheritedConstant(); return \"y\";");
+    }
 }

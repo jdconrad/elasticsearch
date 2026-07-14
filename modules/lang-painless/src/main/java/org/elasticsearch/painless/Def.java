@@ -254,6 +254,11 @@ public final class Def {
         }
         estimate = methodTakesScriptThis ? swapFirstTwoArguments(estimate) : MethodHandles.dropArguments(estimate, 1, PainlessScript.class);
 
+        // Coerce the estimate to the handle's exact parameter shape (returning long). This is a no-op for a normal method, but a
+        // runtime bridge method (generated for a boxed-type parameter) widens that parameter to Object on the handle while the
+        // estimator still declares the boxed type — asType inserts the narrowing casts, which succeed since def boxed the value.
+        estimate = estimate.asType(handle.type().changeReturnType(long.class));
+
         // Fold the estimate into $checkAllocBytes' size parameter. collectArguments leaves a spare leading scriptThis slot
         // (from $checkAllocBytes' own receiver) that permuteArguments then unifies with the estimator's scriptThis slot so
         // both read the single pushed receiver; the combiner consumes all of the handle's arguments and returns void.
@@ -359,8 +364,15 @@ public final class Def {
                 } else {
                     handle = MethodHandles.dropArguments(handle, 1, PainlessScript.class);
                 }
-                // scriptThis is now available on the handle, so charge any allocation the resolved target declares.
-                handle = chargeAllocationBeforeCall(handle, painlessMethod, painlessLookup, injections, methodTakesScriptThis);
+                // scriptThis is now available on the handle, so charge any allocation the resolved target declares. Resolve the
+                // allocation metadata across the inheritance tree rather than off the dispatched method: def resolution returns
+                // the first same-(name,arity) method, which may be an unannotated subclass entry shadowing an annotated
+                // supertype/interface method. lookupRuntimeAllocationMethod walks past it to the annotated one (returns the
+                // dispatched method itself in the common, non-shadowed case).
+                PainlessMethod allocationMethod = painlessLookup.lookupRuntimeAllocationMethod(receiverClass, name, numArguments - 1);
+                if (allocationMethod != null) {
+                    handle = chargeAllocationBeforeCall(handle, allocationMethod, painlessLookup, injections, methodTakesScriptThis);
+                }
             }
 
             return handle;

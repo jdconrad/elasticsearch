@@ -210,6 +210,7 @@ import org.elasticsearch.painless.symbol.IRDecorations.IRCStatic;
 import org.elasticsearch.painless.symbol.IRDecorations.IRCStaticCancellationCheck;
 import org.elasticsearch.painless.symbol.IRDecorations.IRCSynthetic;
 import org.elasticsearch.painless.symbol.IRDecorations.IRCVarArgs;
+import org.elasticsearch.painless.symbol.IRDecorations.IRDAllocationConstant;
 import org.elasticsearch.painless.symbol.IRDecorations.IRDAllocationEstimator;
 import org.elasticsearch.painless.symbol.IRDecorations.IRDArrayName;
 import org.elasticsearch.painless.symbol.IRDecorations.IRDArrayType;
@@ -2003,7 +2004,26 @@ public class DefaultUserTreeToIRTreePhase implements UserTreeVisitor<ScriptScope
             irInvokeCallNode.attachDecoration(new IRDExpressionType(valueType));
             irInvokeCallNode.setMethod(scriptScope.getDecoration(userCallNode, StandardPainlessMethod.class).standardPainlessMethod());
             irInvokeCallNode.setBox(boxType);
-            attachAllocationEstimator(irInvokeCallNode, scriptScope, method);
+            // Source the allocation metadata from the inheritance tree, not the dispatched method: a subclass may allowlist this
+            // method unannotated while a supertype/interface annotates it. lookupAllocationMethod returns the dispatched method
+            // itself when it is annotated. Carry the constant as a decoration (the dispatched method may not hold it) and attach
+            // the estimator from the same effective method.
+            if (scriptScope.getCompilerSettings().isAllocationTrackingEnabled()) {
+                PainlessMethod allocationMethod = scriptScope.getPainlessLookup()
+                    .lookupAllocationMethod(
+                        boxType,
+                        prefixValueType == null,
+                        userCallNode.getMethodName(),
+                        userCallNode.getArgumentNodes().size()
+                    );
+                if (allocationMethod != null) {
+                    attachAllocationEstimator(irInvokeCallNode, scriptScope, allocationMethod);
+                    AllocatesConstantAnnotation allocatesConstant = allocationMethod.annotation(AllocatesConstantAnnotation.class);
+                    if (allocatesConstant != null) {
+                        irInvokeCallNode.attachDecoration(new IRDAllocationConstant(allocatesConstant.bytes()));
+                    }
+                }
+            }
             irExpressionNode = irInvokeCallNode;
 
             if (cancellationAware) {

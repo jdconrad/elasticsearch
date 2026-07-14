@@ -73,4 +73,23 @@ public class AllocationEstimatorTestObject {
     public static long augmentedEstimate(String receiver, int n) {
         return receiver.length() * 100L + n;
     }
+
+    /**
+     * Instance method with a <em>boxed</em> ({@link Integer}) parameter, allowlisted with {@code @allocates_constant}. A boxed
+     * parameter makes Painless generate a runtime bridge method for def dispatch, so calling this via def exercises that the
+     * constant annotation survives onto the derived bridge.
+     */
+    public int constantBoxed(Integer n) {
+        return 0;
+    }
+
+    /** Like {@link #constantBoxed} but dynamic — its estimator survives onto the bridge and reads the (widened) boxed arg. */
+    public int dynamicBoxed(Integer n) {
+        return 0;
+    }
+
+    /** Estimator for {@link #dynamicBoxed}: instance signature (receiver first) with the boxed parameter type. */
+    public static long boxedEstimate(AllocationEstimatorTestObject receiver, Integer n) {
+        return n * 100L;
+    }
 }
