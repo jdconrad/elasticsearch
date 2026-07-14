@@ -780,7 +780,7 @@ class java.lang.String {
 }
 
 class java.lang.StringBuffer {
-  () @allocates[bytes="72b"]
+  () @allocates[class="org.elasticsearch.painless.AllocationEstimators", method="stringBufferShellBytes"]
   (CharSequence)
   StringBuffer append(def)
   StringBuffer append(CharSequence,int,int)
@@ -807,7 +807,7 @@ class java.lang.StringBuffer {
 }
 
 class java.lang.StringBuilder {
-  () @allocates[bytes="64b"]
+  () @allocates[class="org.elasticsearch.painless.AllocationEstimators", method="stringBuilderShellBytes"]
   (CharSequence)
   StringBuilder append(def)
   StringBuilder append(CharSequence,int,int)

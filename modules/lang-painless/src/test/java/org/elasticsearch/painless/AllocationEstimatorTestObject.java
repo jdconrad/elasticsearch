@@ -92,4 +92,19 @@ public class AllocationEstimatorTestObject {
     public static long boxedEstimate(AllocationEstimatorTestObject receiver, Integer n) {
         return n * 100L;
     }
+
+    /** Fixed-cost estimator for {@link #constantAllocating()}: instance signature (receiver first), argument-independent. */
+    public static long constantEstimate(AllocationEstimatorTestObject receiver) {
+        return 48;
+    }
+
+    /** Fixed zero-cost estimator for {@link #zeroAllocating()}: an audited no-op charges nothing. */
+    public static long zeroEstimate(AllocationEstimatorTestObject receiver) {
+        return 0;
+    }
+
+    /** Fixed-cost estimator for {@link #constantBoxed}: instance signature (receiver first) with the boxed parameter type. */
+    public static long constantBoxedEstimate(AllocationEstimatorTestObject receiver, Integer n) {
+        return 48;
+    }
 }

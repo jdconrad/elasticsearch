@@ -209,7 +209,6 @@ import org.elasticsearch.painless.symbol.IRDecorations.IRCStatic;
 import org.elasticsearch.painless.symbol.IRDecorations.IRCStaticCancellationCheck;
 import org.elasticsearch.painless.symbol.IRDecorations.IRCSynthetic;
 import org.elasticsearch.painless.symbol.IRDecorations.IRCVarArgs;
-import org.elasticsearch.painless.symbol.IRDecorations.IRDAllocationConstant;
 import org.elasticsearch.painless.symbol.IRDecorations.IRDAllocationEstimator;
 import org.elasticsearch.painless.symbol.IRDecorations.IRDArrayName;
 import org.elasticsearch.painless.symbol.IRDecorations.IRDArrayType;
@@ -293,13 +292,13 @@ public class DefaultUserTreeToIRTreePhase implements UserTreeVisitor<ScriptScope
         irFunctionNode.attachDecoration(new IRDMaxAllocationBytes(scriptScope.getCompilerSettings().getMaxAllocationBytes()));
     }
 
-    /** Attaches the member's resolved dynamic estimator (when tracking is on) so the ASM phase emits from the decoration. */
+    /** Attaches the member's resolved estimator (when tracking is on) so the ASM phase emits from the decoration. */
     protected static void attachAllocationEstimator(ExpressionNode irExpressionNode, ScriptScope scriptScope, PainlessMethod member) {
-        attachAllocationEstimator(irExpressionNode, scriptScope, scriptScope.getPainlessLookup().getAllocationEstimator(member));
+        attachAllocationEstimator(irExpressionNode, scriptScope, member.allocationEstimator());
     }
 
     protected static void attachAllocationEstimator(ExpressionNode irExpressionNode, ScriptScope scriptScope, PainlessConstructor member) {
-        attachAllocationEstimator(irExpressionNode, scriptScope, scriptScope.getPainlessLookup().getAllocationEstimator(member));
+        attachAllocationEstimator(irExpressionNode, scriptScope, member.allocationEstimator());
     }
 
     private static void attachAllocationEstimator(ExpressionNode irExpressionNode, ScriptScope scriptScope, Method allocationEstimator) {
@@ -410,7 +409,8 @@ public class DefaultUserTreeToIRTreePhase implements UserTreeVisitor<ScriptScope
                     ),
                     null,
                     null,
-                    Map.of()
+                    Map.of(),
+                    null
                 )
             );
             invokeCallNode.setBox(DefBootstrap.class);
@@ -2001,23 +2001,16 @@ public class DefaultUserTreeToIRTreePhase implements UserTreeVisitor<ScriptScope
             irInvokeCallNode.attachDecoration(new IRDExpressionType(valueType));
             irInvokeCallNode.setMethod(scriptScope.getDecoration(userCallNode, StandardPainlessMethod.class).standardPainlessMethod());
             irInvokeCallNode.setBox(boxType);
-            // Resolve @allocates via the inheritance walk (an unannotated subclass may shadow an annotated supertype), then
-            // attach the estimator (dynamic) or a bytes decoration (constant) from that effective method.
+            // Resolve the @allocates estimator via the inheritance walk (an unannotated subclass may shadow an annotated supertype).
             if (scriptScope.getCompilerSettings().isAllocationTrackingEnabled()) {
-                PainlessMethod allocationMethod = scriptScope.getPainlessLookup()
-                    .lookupAllocationMethod(
+                Method estimator = scriptScope.getPainlessLookup()
+                    .lookupAllocationEstimator(
                         boxType,
                         prefixValueType == null,
                         userCallNode.getMethodName(),
                         userCallNode.getArgumentNodes().size()
                     );
-                if (allocationMethod != null) {
-                    attachAllocationEstimator(irInvokeCallNode, scriptScope, allocationMethod);
-                    AllocatesAnnotation allocates = allocationMethod.annotation(AllocatesAnnotation.class);
-                    if (allocates != null && allocates.isConstant()) {
-                        irInvokeCallNode.attachDecoration(new IRDAllocationConstant(allocates.bytes()));
-                    }
-                }
+                attachAllocationEstimator(irInvokeCallNode, scriptScope, estimator);
             }
             irExpressionNode = irInvokeCallNode;
 

@@ -99,7 +99,6 @@ import org.elasticsearch.painless.lookup.PainlessInstanceBinding;
 import org.elasticsearch.painless.lookup.PainlessLookupUtility;
 import org.elasticsearch.painless.lookup.PainlessMethod;
 import org.elasticsearch.painless.lookup.def;
-import org.elasticsearch.painless.spi.annotation.AllocatesAnnotation;
 import org.elasticsearch.painless.spi.annotation.ScriptAwareAnnotation;
 import org.elasticsearch.painless.symbol.FunctionTable.LocalFunction;
 import org.elasticsearch.painless.symbol.IRDecorations.IRCAllEscape;
@@ -113,7 +112,6 @@ import org.elasticsearch.painless.symbol.IRDecorations.IRCStatic;
 import org.elasticsearch.painless.symbol.IRDecorations.IRCStaticCancellationCheck;
 import org.elasticsearch.painless.symbol.IRDecorations.IRCSynthetic;
 import org.elasticsearch.painless.symbol.IRDecorations.IRCVarArgs;
-import org.elasticsearch.painless.symbol.IRDecorations.IRDAllocationConstant;
 import org.elasticsearch.painless.symbol.IRDecorations.IRDAllocationEstimator;
 import org.elasticsearch.painless.symbol.IRDecorations.IRDArrayName;
 import org.elasticsearch.painless.symbol.IRDecorations.IRDArrayType;
@@ -1648,14 +1646,8 @@ public class DefaultIRTreeToASMBytesPhase implements IRTreeVisitor<WriteScope> {
 
         PainlessConstructor painlessConstructor = irNewObjectNode.getDecorationValue(IRDConstructor.class);
 
-        // Sizing new T() needs the class's field layout, which is the allowlist's domain, so the total construction cost is
-        // carried as constructor metadata: @allocates constant form for a fixed cost, dynamic form when argument-dependent.
-        // Either way the charge lands before the object is allocated.
-        AllocatesAnnotation allocates = painlessConstructor.annotation(AllocatesAnnotation.class);
-        if (allocates != null && allocates.isConstant()) {
-            writeAllocationCheck(writeScope, allocates.bytes());
-        }
-
+        // Sizing new T() needs the class's field layout, which is the allowlist's domain, so the construction cost is carried as
+        // an @allocates estimator on the constructor and the charge lands before the object is allocated.
         java.lang.reflect.Method constructorEstimator = irNewObjectNode.getDecorationValue(IRDAllocationEstimator.class);
         if (constructorEstimator != null && isAllocationTrackingActive(writeScope)) {
             // Standard emission is NEW + DUP + <args> + INVOKESPECIAL, but the estimator needs the argument values and the
@@ -2167,13 +2159,6 @@ public class DefaultIRTreeToASMBytesPhase implements IRTreeVisitor<WriteScope> {
 
         PainlessMethod painlessMethod = irInvokeCallNode.getMethod();
 
-        // Constant charge (net-zero stack) precedes the call. Carried on the node from the inheritance walk, not the dispatched
-        // method, which may be an unannotated shadowing override.
-        Long allocationConstant = irInvokeCallNode.getDecorationValue(IRDAllocationConstant.class);
-        if (allocationConstant != null) {
-            writeAllocationCheck(writeScope, allocationConstant);
-        }
-
         if (irInvokeCallNode.getBox().isPrimitive()) {
             methodWriter.box(MethodWriter.getType(irInvokeCallNode.getBox()));
         }
@@ -2243,11 +2228,6 @@ public class DefaultIRTreeToASMBytesPhase implements IRTreeVisitor<WriteScope> {
             );
             methodWriter.invokeVirtual(CLASS_TYPE, asmMethod);
         } else if (importedMethod != null) {
-            AllocatesAnnotation allocates = importedMethod.annotation(AllocatesAnnotation.class);
-            if (allocates != null && allocates.isConstant()) {
-                writeAllocationCheck(writeScope, allocates.bytes());
-            }
-
             for (ExpressionNode irArgumentNode : irArgumentNodes) {
                 visit(irArgumentNode, writeScope);
             }

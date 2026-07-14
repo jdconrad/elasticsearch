@@ -63,8 +63,8 @@ class java.math.BigDecimal {
   BigInteger toBigIntegerExact() @allocates[class="org.elasticsearch.painless.AllocationEstimators", method="bigDecimalToBigIntegerBytes"]
   String toEngineeringString() @allocates[class="org.elasticsearch.painless.AllocationEstimators", method="bigDecimalToStringBytes"]
   String toPlainString() @allocates[class="org.elasticsearch.painless.AllocationEstimators", method="bigDecimalToStringBytes"]
-  BigDecimal ulp() @allocates[bytes="48b"]
-  BigDecimal valueOf(double) @allocates[bytes="48b"]
+  BigDecimal ulp() @allocates[class="org.elasticsearch.painless.AllocationEstimators", method="bigDecimalUlpBytes"]
+  BigDecimal valueOf(double) @allocates[class="org.elasticsearch.painless.AllocationEstimators", method="bigDecimalValueOfBytes"]
 }
 
 class java.math.BigInteger {
@@ -109,7 +109,7 @@ class java.math.BigInteger {
   boolean testBit(int)
   byte[] toByteArray() @allocates[class="org.elasticsearch.painless.AllocationEstimators", method="bigIntegerToByteArrayBytes"]
   String toString(int) @allocates[class="org.elasticsearch.painless.AllocationEstimators", method="bigIntegerToStringBytes"]
-  BigInteger valueOf(long) @allocates[bytes="48b"]
+  BigInteger valueOf(long) @allocates[class="org.elasticsearch.painless.AllocationEstimators", method="bigIntegerValueOfBytes"]
   BigInteger xor(BigInteger) @allocates[class="org.elasticsearch.painless.AllocationEstimators", method="bigIntegerBitwiseBytes"]
 }
 

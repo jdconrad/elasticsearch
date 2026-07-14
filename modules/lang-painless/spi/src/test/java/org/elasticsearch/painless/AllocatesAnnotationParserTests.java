@@ -15,7 +15,7 @@ import org.elasticsearch.test.ESTestCase;
 
 import java.util.Map;
 
-/** Unit tests for the {@code @allocates} allowlist annotation parser (constant and dynamic forms). */
+/** Unit tests for the {@code @allocates[class=…, method=…]} allowlist annotation parser. */
 public class AllocatesAnnotationParserTests extends ESTestCase {
 
     private static final AllocatesAnnotationParser ALLOCATES = AllocatesAnnotationParser.INSTANCE;
@@ -24,71 +24,35 @@ public class AllocatesAnnotationParserTests extends ESTestCase {
         return (AllocatesAnnotation) ALLOCATES.parse(arguments);
     }
 
-    public void testConstantParsesBytes() {
-        AllocatesAnnotation annotation = parse(Map.of(AllocatesAnnotationParser.BYTES, "40b"));
-        assertTrue(annotation.isConstant());
-        assertEquals(40L, annotation.bytes());
-    }
-
-    public void testConstantParsesUnits() {
-        assertEquals(1024L, parse(Map.of(AllocatesAnnotationParser.BYTES, "1kb")).bytes());
-    }
-
-    public void testConstantAcceptsZero() {
-        // @allocates[bytes="0"] is a valid no-op ("audited: does not allocate").
-        assertEquals(0L, parse(Map.of(AllocatesAnnotationParser.BYTES, "0")).bytes());
-    }
-
-    public void testConstantRejectsMissingUnits() {
-        // ByteSizeValue requires a unit for anything but "0"; a bare number must not parse.
-        expectThrows(IllegalArgumentException.class, () -> parse(Map.of(AllocatesAnnotationParser.BYTES, "40")));
-    }
-
-    public void testConstantRejectsNegative() {
-        IllegalArgumentException e = expectThrows(
-            IllegalArgumentException.class,
-            () -> parse(Map.of(AllocatesAnnotationParser.BYTES, "-1"))
+    public void testParsesClassAndMethod() {
+        AllocatesAnnotation annotation = parse(
+            Map.of(AllocatesAnnotationParser.CLASS, "com.example.Foo", AllocatesAnnotationParser.METHOD, "estimate")
         );
-        assertTrue(e.getMessage(), e.getMessage().contains("must not be negative"));
+        assertEquals("com.example.Foo", annotation.estimatorClassName());
+        assertEquals("estimate", annotation.estimatorMethodName());
     }
 
-    public void testConstantRejectsNonNumeric() {
-        expectThrows(IllegalArgumentException.class, () -> parse(Map.of(AllocatesAnnotationParser.BYTES, "big")));
+    public void testAcceptsInnerClassDollarForm() {
+        assertEquals(
+            "com.example.Outer$Inner",
+            parse(Map.of(AllocatesAnnotationParser.CLASS, "com.example.Outer$Inner", AllocatesAnnotationParser.METHOD, "estimate"))
+                .estimatorClassName()
+        );
+    }
+
+    public void testRejectsMissingClass() {
+        expectThrows(IllegalArgumentException.class, () -> parse(Map.of(AllocatesAnnotationParser.METHOD, "estimate")));
+    }
+
+    public void testRejectsMissingMethod() {
+        expectThrows(IllegalArgumentException.class, () -> parse(Map.of(AllocatesAnnotationParser.CLASS, "com.example.Foo")));
     }
 
     public void testRejectsMissingArguments() {
         expectThrows(IllegalArgumentException.class, () -> parse(Map.of()));
     }
 
-    public void testRejectsUnknownArgument() {
-        expectThrows(IllegalArgumentException.class, () -> parse(Map.of("size", "40")));
-    }
-
-    public void testDynamicParsesClassAndMethod() {
-        AllocatesAnnotation annotation = parse(
-            Map.of(AllocatesAnnotationParser.CLASS, "com.example.Foo", AllocatesAnnotationParser.METHOD, "estimate")
-        );
-        assertFalse(annotation.isConstant());
-        assertEquals("com.example.Foo", annotation.estimatorClassName());
-        assertEquals("estimate", annotation.estimatorMethodName());
-    }
-
-    public void testDynamicAcceptsInnerClassDollarForm() {
-        AllocatesAnnotation annotation = parse(
-            Map.of(AllocatesAnnotationParser.CLASS, "com.example.Outer$Inner", AllocatesAnnotationParser.METHOD, "estimate")
-        );
-        assertEquals("com.example.Outer$Inner", annotation.estimatorClassName());
-    }
-
-    public void testDynamicRejectsMissingClass() {
-        expectThrows(IllegalArgumentException.class, () -> parse(Map.of(AllocatesAnnotationParser.METHOD, "estimate")));
-    }
-
-    public void testDynamicRejectsMissingMethod() {
-        expectThrows(IllegalArgumentException.class, () -> parse(Map.of(AllocatesAnnotationParser.CLASS, "com.example.Foo")));
-    }
-
-    public void testDynamicRejectsEmptyValues() {
+    public void testRejectsEmptyValues() {
         expectThrows(
             IllegalArgumentException.class,
             () -> parse(Map.of(AllocatesAnnotationParser.CLASS, " ", AllocatesAnnotationParser.METHOD, "estimate"))
@@ -99,15 +63,7 @@ public class AllocatesAnnotationParserTests extends ESTestCase {
         );
     }
 
-    public void testRejectsMixingBytesWithEstimator() {
-        // The two forms are mutually exclusive.
-        expectThrows(
-            IllegalArgumentException.class,
-            () -> parse(Map.of(AllocatesAnnotationParser.BYTES, "40b", AllocatesAnnotationParser.CLASS, "com.example.Foo"))
-        );
-    }
-
-    public void testDynamicRejectsUnknownArgument() {
+    public void testRejectsUnknownArgument() {
         expectThrows(
             IllegalArgumentException.class,
             () -> parse(

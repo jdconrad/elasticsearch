@@ -14,7 +14,6 @@ import org.elasticsearch.painless.api.ValueIterator;
 import org.elasticsearch.painless.lookup.PainlessLookup;
 import org.elasticsearch.painless.lookup.PainlessLookupUtility;
 import org.elasticsearch.painless.lookup.PainlessMethod;
-import org.elasticsearch.painless.spi.annotation.AllocatesAnnotation;
 import org.elasticsearch.painless.spi.annotation.ScriptAwareAnnotation;
 import org.elasticsearch.painless.symbol.FunctionTable;
 
@@ -209,36 +208,15 @@ public final class Def {
     }
 
     /**
-     * Wraps {@code handle} (shape {@code (receiver, scriptThis, userArgs...)}) to charge {@code method}'s {@code @allocates}
-     * cost via {@link PainlessScript#$checkAllocBytes(long)} before the call. Returns {@code handle} unchanged when unannotated
-     * or {@code [bytes="0"]}. No-lambda shape only (see {@link #lookupMethod}).
+     * Wraps {@code handle} (shape {@code (receiver, scriptThis, userArgs...)}) to charge {@code estimator}'s {@code @allocates}
+     * cost via {@link PainlessScript#$checkAllocBytes(long)} before the call. No-lambda shape only (see {@link #lookupMethod}).
      */
     private static MethodHandle chargeAllocationBeforeCall(
         MethodHandle handle,
-        PainlessMethod method,
-        PainlessLookup painlessLookup,
+        Method estimator,
         Object[] injections,
         boolean methodTakesScriptThis
     ) {
-        AllocatesAnnotation allocates = method.annotation(AllocatesAnnotation.class);
-        if (allocates == null) {
-            return handle;
-        }
-        if (allocates.isConstant()) {
-            if (allocates.bytes() == 0) {
-                return handle;
-            }
-            // Fold scriptThis.$checkAllocBytes(bytes) over the (receiver, scriptThis) prefix; simple and arity-robust.
-            MethodHandle charge = MethodHandles.insertArguments(SCRIPT_CHECK_ALLOC_BYTES, 1, allocates.bytes());
-            charge = MethodHandles.dropArguments(charge, 0, handle.type().parameterType(0));
-            return MethodHandles.foldArguments(handle, charge);
-        }
-
-        Method estimator = painlessLookup.getAllocationEstimator(method);
-        if (estimator == null) {
-            return handle;
-        }
-
         // The estimator shares the raw handle's parameter shape, so apply the same injection binding + scriptThis adaptation.
         MethodHandle estimate = MethodHandles.filterReturnValue(unreflectAllocationEstimator(estimator), SANITIZE_ALLOC_ESTIMATE);
         if (injections.length > 0) {
@@ -354,10 +332,10 @@ public final class Def {
                 } else {
                     handle = MethodHandles.dropArguments(handle, 1, PainlessScript.class);
                 }
-                // Charge via the inheritance-walked annotated method (handles an unannotated subclass shadowing an annotated supertype).
-                PainlessMethod allocationMethod = painlessLookup.lookupRuntimeAllocationMethod(receiverClass, name, numArguments - 1);
-                if (allocationMethod != null) {
-                    handle = chargeAllocationBeforeCall(handle, allocationMethod, painlessLookup, injections, methodTakesScriptThis);
+                // Charge via the inheritance-walked estimator (handles an unannotated subclass shadowing an annotated supertype).
+                Method estimator = painlessLookup.lookupRuntimeAllocationEstimator(receiverClass, name, numArguments - 1);
+                if (estimator != null) {
+                    handle = chargeAllocationBeforeCall(handle, estimator, injections, methodTakesScriptThis);
                 }
             }
 

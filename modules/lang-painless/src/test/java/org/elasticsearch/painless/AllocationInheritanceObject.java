@@ -30,4 +30,9 @@ public class AllocationInheritanceObject implements AllocationInheritanceInterfa
     public static long inheritedDynamicEstimate(AllocationInheritanceInterface receiver, int n) {
         return n * 10L;
     }
+
+    /** Fixed-cost estimator for the interface's {@code inheritedConstant()} — receiver-first, argument-independent. */
+    public static long inheritedConstantEstimate(AllocationInheritanceInterface receiver) {
+        return 56;
+    }
 }

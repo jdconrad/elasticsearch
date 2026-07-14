@@ -50,8 +50,8 @@ class org.elasticsearch.painless.api.Debug {
 #### ES Scripting API
 
 class org.elasticsearch.common.geo.GeoPoint {
-  () @allocates[bytes="32b"]
-  (double, double) @allocates[bytes="32b"]
+  () @allocates[class="org.elasticsearch.painless.AllocationEstimators", method="geoPointBytes"]
+  (double, double) @allocates[class="org.elasticsearch.painless.AllocationEstimators", method="geoPointBytes"]
   double getLat()
   double getLon()
 }

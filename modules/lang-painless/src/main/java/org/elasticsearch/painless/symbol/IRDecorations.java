@@ -375,18 +375,10 @@ public class IRDecorations {
         }
     }
 
-    /** the resolved dynamic {@code @allocates} estimator for a call/construction site; attached only when tracking is enabled */
+    /** the resolved {@code @allocates} estimator for a call/construction site; attached only when tracking is enabled */
     public static class IRDAllocationEstimator extends IRDecoration<Method> {
 
         public IRDAllocationEstimator(Method value) {
-            super(value);
-        }
-    }
-
-    /** the constant {@code @allocates} byte cost for a direct call site (inheritance-resolved); attached only when tracking is on */
-    public static class IRDAllocationConstant extends IRDecoration<Long> {
-
-        public IRDAllocationConstant(Long value) {
             super(value);
         }
     }

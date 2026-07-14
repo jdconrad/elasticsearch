@@ -189,10 +189,6 @@ public final class PainlessLookupBuilder {
 
     private final Map<Class<?>, Set<String>> annotationsToMethodKeys;
 
-    // Resolved dynamic @allocates estimators (constant form keeps its bytes in the annotations map). Split by member kind.
-    private final Map<PainlessMethod, Method> methodAllocationEstimators;
-    private final Map<PainlessConstructor, Method> constructorAllocationEstimators;
-
     public PainlessLookupBuilder() {
         javaClassNamesToClasses = new HashMap<>();
         canonicalClassNamesToClasses = new HashMap<>();
@@ -204,8 +200,6 @@ public final class PainlessLookupBuilder {
         painlessMethodKeysToPainlessInstanceBindings = new HashMap<>();
 
         annotationsToMethodKeys = new HashMap<>();
-        methodAllocationEstimators = new HashMap<>();
-        constructorAllocationEstimators = new HashMap<>();
     }
 
     private Class<?> canonicalTypeNameToType(String canonicalTypeName) {
@@ -250,8 +244,7 @@ public final class PainlessLookupBuilder {
     ) {
         AllocatesAnnotation allocates = (AllocatesAnnotation) annotations.get(AllocatesAnnotation.class);
 
-        // Only the dynamic form resolves to an estimator method; the constant form carries its byte count in the annotation.
-        if (allocates == null || allocates.isConstant()) {
+        if (allocates == null) {
             return null;
         }
 
@@ -569,7 +562,8 @@ public final class PainlessLookupBuilder {
             typeParameters,
             methodHandle,
             methodType,
-            annotations
+            annotations,
+            allocationEstimator
         );
 
         if (existingPainlessConstructor == null) {
@@ -582,14 +576,6 @@ public final class PainlessLookupBuilder {
                 typesToCanonicalTypeNames(typeParameters),
                 targetCanonicalClassName,
                 typesToCanonicalTypeNames(existingPainlessConstructor.typeParameters())
-            );
-        }
-
-        if (allocationEstimator != null) {
-            // Key by the final (deduped or pre-existing) instance, which is what consumers hold.
-            constructorAllocationEstimators.put(
-                existingPainlessConstructor == null ? newPainlessConstructor : existingPainlessConstructor,
-                allocationEstimator
             );
         }
     }
@@ -885,7 +871,8 @@ public final class PainlessLookupBuilder {
             typeParameters,
             methodHandle,
             methodType,
-            annotations
+            annotations,
+            allocationEstimator
         );
 
         if (existingPainlessMethod == null) {
@@ -908,14 +895,6 @@ public final class PainlessLookupBuilder {
                 methodName,
                 typeToCanonicalTypeName(existingPainlessMethod.returnType()),
                 typesToCanonicalTypeNames(existingPainlessMethod.typeParameters())
-            );
-        }
-
-        if (allocationEstimator != null) {
-            // Key by the final (deduped or pre-existing) instance, which is what consumers hold.
-            methodAllocationEstimators.put(
-                existingPainlessMethod == null ? newPainlessMethod : existingPainlessMethod,
-                allocationEstimator
             );
         }
     }
@@ -1345,7 +1324,8 @@ public final class PainlessLookupBuilder {
             typeParameters,
             methodHandle,
             methodType,
-            annotations
+            annotations,
+            allocationEstimator
         );
 
         if (existingImportedPainlessMethod == null) {
@@ -1363,14 +1343,6 @@ public final class PainlessLookupBuilder {
                 methodName,
                 typeToCanonicalTypeName(existingImportedPainlessMethod.returnType()),
                 typesToCanonicalTypeNames(existingImportedPainlessMethod.typeParameters())
-            );
-        }
-
-        if (allocationEstimator != null) {
-            // Key by the final (deduped or pre-existing) instance, which is what consumers hold.
-            methodAllocationEstimators.put(
-                existingImportedPainlessMethod == null ? newImportedPainlessMethod : existingImportedPainlessMethod,
-                allocationEstimator
             );
         }
     }
@@ -1872,9 +1844,7 @@ public final class PainlessLookupBuilder {
             painlessMethodKeysToImportedPainlessMethods,
             painlessMethodKeysToPainlessClassBindings,
             painlessMethodKeysToPainlessInstanceBindings,
-            annotationsToMethodKeys,
-            methodAllocationEstimators,
-            constructorAllocationEstimators
+            annotationsToMethodKeys
         );
     }
 
@@ -2018,13 +1988,7 @@ public final class PainlessLookupBuilder {
                         || typeParameter == Long.class
                         || typeParameter == Float.class
                         || typeParameter == Double.class) {
-                        generateFilteredMethod(
-                            targetClass,
-                            painlessClassBuilder,
-                            painlessMethod,
-                            filteredMethodCache,
-                            methodAllocationEstimators
-                        );
+                        generateFilteredMethod(targetClass, painlessClassBuilder, painlessMethod, filteredMethodCache);
                     }
                 }
             }
@@ -2035,8 +1999,7 @@ public final class PainlessLookupBuilder {
         Class<?> targetClass,
         PainlessClassBuilder painlessClassBuilder,
         PainlessMethod painlessMethod,
-        Map<PainlessMethod, PainlessMethod> filteredMethodCache,
-        Map<PainlessMethod, Method> allocationEstimators
+        Map<PainlessMethod, PainlessMethod> filteredMethodCache
     ) {
         String painlessMethodKey = buildPainlessMethodKey(painlessMethod.javaMethod().getName(), painlessMethod.typeParameters().size());
         PainlessMethod filteredPainlessMethod = filteredMethodCache.get(painlessMethod);
@@ -2083,7 +2046,8 @@ public final class PainlessLookupBuilder {
                     }
                 }
 
-                // Carry the source annotations onto the bridge so @allocates survives def dispatch (which resolves via runtimeMethods).
+                // Carry the source annotations + estimator onto the bridge so @allocates survives def dispatch (which resolves
+                // via runtimeMethods). Def asTypes the estimator to the bridge's Object-widened params at the call site.
                 filteredPainlessMethod = new PainlessMethod(
                     painlessMethod.javaMethod(),
                     targetClass,
@@ -2091,17 +2055,11 @@ public final class PainlessLookupBuilder {
                     filteredTypeParameters,
                     filteredMethodHandle,
                     filteredMethodType,
-                    painlessMethod.annotations()
+                    painlessMethod.annotations(),
+                    painlessMethod.allocationEstimator()
                 );
                 painlessClassBuilder.runtimeMethods.put(painlessMethodKey.intern(), filteredPainlessMethod);
                 filteredMethodCache.put(painlessMethod, filteredPainlessMethod);
-
-                // Mirror the source estimator onto the bridge instance (the index is instance-keyed); Def asTypes it to the
-                // bridge's Object-widened params at the call site.
-                Method allocationEstimator = allocationEstimators.get(painlessMethod);
-                if (allocationEstimator != null) {
-                    allocationEstimators.put(filteredPainlessMethod, allocationEstimator);
-                }
             } catch (Exception exception) {
                 throw new IllegalStateException(
                     "internal error occurred attempting to generate a runtime method [" + painlessMethodKey + "]",
