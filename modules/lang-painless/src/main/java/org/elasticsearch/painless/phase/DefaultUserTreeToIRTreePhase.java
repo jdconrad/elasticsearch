@@ -145,8 +145,7 @@ import org.elasticsearch.painless.node.SReturn;
 import org.elasticsearch.painless.node.SThrow;
 import org.elasticsearch.painless.node.STry;
 import org.elasticsearch.painless.node.SWhile;
-import org.elasticsearch.painless.spi.annotation.AllocatesConstantAnnotation;
-import org.elasticsearch.painless.spi.annotation.AllocatesDynamicAnnotation;
+import org.elasticsearch.painless.spi.annotation.AllocatesAnnotation;
 import org.elasticsearch.painless.spi.annotation.ScriptAwareAnnotation;
 import org.elasticsearch.painless.symbol.Decorations.AccessDepth;
 import org.elasticsearch.painless.symbol.Decorations.AllEscape;
@@ -298,13 +297,17 @@ public class DefaultUserTreeToIRTreePhase implements UserTreeVisitor<ScriptScope
      * Attaches the member's resolved {@code @allocates_dynamic} estimator (from the {@code PainlessLookup} side table) when
      * allocation tracking is enabled, so the ASM phase emits the pre-check from the decoration alone.
      */
-    protected static void attachAllocationEstimator(ExpressionNode irExpressionNode, ScriptScope scriptScope, Object member) {
-        if (scriptScope.getCompilerSettings().isAllocationTrackingEnabled()) {
-            Method allocationEstimator = scriptScope.getPainlessLookup().getAllocationEstimator(member);
+    protected static void attachAllocationEstimator(ExpressionNode irExpressionNode, ScriptScope scriptScope, PainlessMethod member) {
+        attachAllocationEstimator(irExpressionNode, scriptScope, scriptScope.getPainlessLookup().getAllocationEstimator(member));
+    }
 
-            if (allocationEstimator != null) {
-                irExpressionNode.attachDecoration(new IRDAllocationEstimator(allocationEstimator));
-            }
+    protected static void attachAllocationEstimator(ExpressionNode irExpressionNode, ScriptScope scriptScope, PainlessConstructor member) {
+        attachAllocationEstimator(irExpressionNode, scriptScope, scriptScope.getPainlessLookup().getAllocationEstimator(member));
+    }
+
+    private static void attachAllocationEstimator(ExpressionNode irExpressionNode, ScriptScope scriptScope, Method allocationEstimator) {
+        if (allocationEstimator != null && scriptScope.getCompilerSettings().isAllocationTrackingEnabled()) {
+            irExpressionNode.attachDecoration(new IRDAllocationEstimator(allocationEstimator));
         }
     }
 
@@ -1946,8 +1949,7 @@ public class DefaultUserTreeToIRTreePhase implements UserTreeVisitor<ScriptScope
             int argumentCount = userCallNode.getArgumentNodes().size();
             boolean pushScriptThis = painlessLookup.hasAnnotationAwareMethod(ScriptAwareAnnotation.class, methodName, argumentCount)
                 || (scriptScope.getCompilerSettings().isAllocationTrackingEnabled()
-                    && (painlessLookup.hasAnnotationAwareMethod(AllocatesConstantAnnotation.class, methodName, argumentCount)
-                        || painlessLookup.hasAnnotationAwareMethod(AllocatesDynamicAnnotation.class, methodName, argumentCount)));
+                    && painlessLookup.hasAnnotationAwareMethod(AllocatesAnnotation.class, methodName, argumentCount));
             if (pushScriptThis) {
                 irCallSubDefNode.attachCondition(IRCScriptAware.class);
             }
@@ -2017,10 +2019,11 @@ public class DefaultUserTreeToIRTreePhase implements UserTreeVisitor<ScriptScope
                         userCallNode.getArgumentNodes().size()
                     );
                 if (allocationMethod != null) {
+                    // Dynamic form attaches the estimator (constant form resolves no estimator); constant form attaches its bytes.
                     attachAllocationEstimator(irInvokeCallNode, scriptScope, allocationMethod);
-                    AllocatesConstantAnnotation allocatesConstant = allocationMethod.annotation(AllocatesConstantAnnotation.class);
-                    if (allocatesConstant != null) {
-                        irInvokeCallNode.attachDecoration(new IRDAllocationConstant(allocatesConstant.bytes()));
+                    AllocatesAnnotation allocates = allocationMethod.annotation(AllocatesAnnotation.class);
+                    if (allocates != null && allocates.isConstant()) {
+                        irInvokeCallNode.attachDecoration(new IRDAllocationConstant(allocates.bytes()));
                     }
                 }
             }

@@ -9,7 +9,7 @@
 
 package org.elasticsearch.painless.lookup;
 
-import org.elasticsearch.painless.spi.annotation.AllocatesConstantAnnotation;
+import org.elasticsearch.painless.spi.annotation.AllocatesAnnotation;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.reflect.Method;
@@ -43,8 +43,10 @@ public final class PainlessLookup {
 
     private final Map<Class<?>, Set<String>> annotationsToMethodKeys;
 
-    // Resolved @allocates_dynamic estimators keyed by PainlessMethod/PainlessConstructor; a derived index like annotationsToMethodKeys.
-    private final Map<Object, Method> allocationEstimators;
+    // Resolved dynamic @allocates estimators, split by member kind so the keys are type-safe. The constant form carries its
+    // byte count in the member's annotations map, so only the dynamic form appears here. Derived indexes.
+    private final Map<PainlessMethod, Method> methodAllocationEstimators;
+    private final Map<PainlessConstructor, Method> constructorAllocationEstimators;
 
     PainlessLookup(
         Map<String, Class<?>> javaClassNamesToClasses,
@@ -55,7 +57,8 @@ public final class PainlessLookup {
         Map<String, PainlessClassBinding> painlessMethodKeysToPainlessClassBindings,
         Map<String, PainlessInstanceBinding> painlessMethodKeysToPainlessInstanceBindings,
         Map<Class<?>, Set<String>> annotationsToMethodKeys,
-        Map<Object, Method> allocationEstimators
+        Map<PainlessMethod, Method> methodAllocationEstimators,
+        Map<PainlessConstructor, Method> constructorAllocationEstimators
     ) {
         this.javaClassNamesToClasses = Map.copyOf(javaClassNamesToClasses);
         this.canonicalClassNamesToClasses = Map.copyOf(canonicalClassNamesToClasses);
@@ -67,7 +70,8 @@ public final class PainlessLookup {
         this.painlessMethodKeysToPainlessInstanceBindings = Map.copyOf(painlessMethodKeysToPainlessInstanceBindings);
 
         this.annotationsToMethodKeys = Map.copyOf(annotationsToMethodKeys);
-        this.allocationEstimators = Map.copyOf(allocationEstimators);
+        this.methodAllocationEstimators = Map.copyOf(methodAllocationEstimators);
+        this.constructorAllocationEstimators = Map.copyOf(constructorAllocationEstimators);
     }
 
     public boolean hasAnnotationAwareMethod(Class<?> annotationType, String methodName, int methodArity) {
@@ -75,14 +79,19 @@ public final class PainlessLookup {
         return methodKeys != null && methodKeys.contains(buildPainlessMethodKey(methodName, methodArity));
     }
 
-    /** Returns the resolved {@code @allocates_dynamic} estimator for a {@link PainlessMethod}/{@link PainlessConstructor}, or null. */
-    public Method getAllocationEstimator(Object painlessMethodOrConstructor) {
-        return allocationEstimators.get(painlessMethodOrConstructor);
+    /** Returns the resolved dynamic {@code @allocates} estimator for a method, or null (constant/no allocation). */
+    public Method getAllocationEstimator(PainlessMethod painlessMethod) {
+        return methodAllocationEstimators.get(painlessMethod);
     }
 
-    /** Whether a method carries allocation metadata: an {@code @allocates_constant} annotation or a resolved estimator. */
+    /** Returns the resolved dynamic {@code @allocates} estimator for a constructor, or null (constant/no allocation). */
+    public Method getAllocationEstimator(PainlessConstructor painlessConstructor) {
+        return constructorAllocationEstimators.get(painlessConstructor);
+    }
+
+    /** Whether a method carries an {@code @allocates} annotation (constant or dynamic). */
     private boolean hasAllocationMetadata(PainlessMethod painlessMethod) {
-        return painlessMethod.annotation(AllocatesConstantAnnotation.class) != null || allocationEstimators.containsKey(painlessMethod);
+        return painlessMethod.annotation(AllocatesAnnotation.class) != null;
     }
 
     public Class<?> javaClassNameToClass(String javaClassName) {

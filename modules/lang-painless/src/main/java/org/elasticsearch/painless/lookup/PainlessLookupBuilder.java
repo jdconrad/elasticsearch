@@ -21,8 +21,7 @@ import org.elasticsearch.painless.spi.WhitelistField;
 import org.elasticsearch.painless.spi.WhitelistInstanceBinding;
 import org.elasticsearch.painless.spi.WhitelistMethod;
 import org.elasticsearch.painless.spi.annotation.AliasAnnotation;
-import org.elasticsearch.painless.spi.annotation.AllocatesConstantAnnotation;
-import org.elasticsearch.painless.spi.annotation.AllocatesDynamicAnnotation;
+import org.elasticsearch.painless.spi.annotation.AllocatesAnnotation;
 import org.elasticsearch.painless.spi.annotation.AugmentedAnnotation;
 import org.elasticsearch.painless.spi.annotation.CompileTimeOnlyAnnotation;
 import org.elasticsearch.painless.spi.annotation.InjectConstantAnnotation;
@@ -190,8 +189,10 @@ public final class PainlessLookupBuilder {
 
     private final Map<Class<?>, Set<String>> annotationsToMethodKeys;
 
-    // Resolved @allocates_dynamic estimators keyed by PainlessMethod/PainlessConstructor; a derived index like annotationsToMethodKeys.
-    private final Map<Object, Method> allocationEstimators;
+    // Resolved dynamic @allocates estimators, split by member kind so the keys are type-safe. Constant @allocates carries its
+    // byte count in the member's annotations map, so only the dynamic form lands here. Derived indexes like annotationsToMethodKeys.
+    private final Map<PainlessMethod, Method> methodAllocationEstimators;
+    private final Map<PainlessConstructor, Method> constructorAllocationEstimators;
 
     public PainlessLookupBuilder() {
         javaClassNamesToClasses = new HashMap<>();
@@ -204,7 +205,8 @@ public final class PainlessLookupBuilder {
         painlessMethodKeysToPainlessInstanceBindings = new HashMap<>();
 
         annotationsToMethodKeys = new HashMap<>();
-        allocationEstimators = new HashMap<>();
+        methodAllocationEstimators = new HashMap<>();
+        constructorAllocationEstimators = new HashMap<>();
     }
 
     private Class<?> canonicalTypeNameToType(String canonicalTypeName) {
@@ -247,32 +249,22 @@ public final class PainlessLookupBuilder {
         MethodType methodType,
         Supplier<String> targetDescription
     ) {
-        AllocatesDynamicAnnotation dynamicAnnotation = (AllocatesDynamicAnnotation) annotations.get(AllocatesDynamicAnnotation.class);
+        AllocatesAnnotation allocates = (AllocatesAnnotation) annotations.get(AllocatesAnnotation.class);
 
-        if (annotations.containsKey(AllocatesConstantAnnotation.class) && dynamicAnnotation != null) {
-            throw new IllegalArgumentException(
-                "cannot use both [@"
-                    + AllocatesConstantAnnotation.NAME
-                    + "] and [@"
-                    + AllocatesDynamicAnnotation.NAME
-                    + "] on "
-                    + targetDescription.get()
-            );
-        }
-
-        if (dynamicAnnotation == null) {
+        // Only the dynamic form resolves to an estimator method; the constant form carries its byte count in the annotation.
+        if (allocates == null || allocates.isConstant()) {
             return null;
         }
 
-        String estimatorClassName = dynamicAnnotation.estimatorClassName();
-        String estimatorMethodName = dynamicAnnotation.estimatorMethodName();
+        String estimatorClassName = allocates.estimatorClassName();
+        String estimatorMethodName = allocates.estimatorMethodName();
         Class<?> estimatorClass = loadClass(
             classLoader,
             estimatorClassName,
             () -> "estimator class ["
                 + estimatorClassName
                 + "] not found for [@"
-                + AllocatesDynamicAnnotation.NAME
+                + AllocatesAnnotation.NAME
                 + "] on "
                 + targetDescription.get()
         );
@@ -289,7 +281,7 @@ public final class PainlessLookupBuilder {
                     + estimatorMethodName
                     + Arrays.toString(methodType.parameterArray())
                     + "] not found for [@"
-                    + AllocatesDynamicAnnotation.NAME
+                    + AllocatesAnnotation.NAME
                     + "] on "
                     + targetDescription.get(),
                 nsme
@@ -303,7 +295,7 @@ public final class PainlessLookupBuilder {
                     + "#"
                     + estimatorMethodName
                     + "] must be public static and return long for [@"
-                    + AllocatesDynamicAnnotation.NAME
+                    + AllocatesAnnotation.NAME
                     + "] on "
                     + targetDescription.get()
             );
@@ -596,7 +588,7 @@ public final class PainlessLookupBuilder {
 
         if (allocationEstimator != null) {
             // Key by the final (deduped or pre-existing) instance, which is what consumers hold.
-            allocationEstimators.put(
+            constructorAllocationEstimators.put(
                 existingPainlessConstructor == null ? newPainlessConstructor : existingPainlessConstructor,
                 allocationEstimator
             );
@@ -922,7 +914,10 @@ public final class PainlessLookupBuilder {
 
         if (allocationEstimator != null) {
             // Key by the final (deduped or pre-existing) instance, which is what consumers hold.
-            allocationEstimators.put(existingPainlessMethod == null ? newPainlessMethod : existingPainlessMethod, allocationEstimator);
+            methodAllocationEstimators.put(
+                existingPainlessMethod == null ? newPainlessMethod : existingPainlessMethod,
+                allocationEstimator
+            );
         }
     }
 
@@ -1374,7 +1369,7 @@ public final class PainlessLookupBuilder {
 
         if (allocationEstimator != null) {
             // Key by the final (deduped or pre-existing) instance, which is what consumers hold.
-            allocationEstimators.put(
+            methodAllocationEstimators.put(
                 existingImportedPainlessMethod == null ? newImportedPainlessMethod : existingImportedPainlessMethod,
                 allocationEstimator
             );
@@ -1879,7 +1874,8 @@ public final class PainlessLookupBuilder {
             painlessMethodKeysToPainlessClassBindings,
             painlessMethodKeysToPainlessInstanceBindings,
             annotationsToMethodKeys,
-            allocationEstimators
+            methodAllocationEstimators,
+            constructorAllocationEstimators
         );
     }
 
@@ -2028,7 +2024,7 @@ public final class PainlessLookupBuilder {
                             painlessClassBuilder,
                             painlessMethod,
                             filteredMethodCache,
-                            allocationEstimators
+                            methodAllocationEstimators
                         );
                     }
                 }
@@ -2041,7 +2037,7 @@ public final class PainlessLookupBuilder {
         PainlessClassBuilder painlessClassBuilder,
         PainlessMethod painlessMethod,
         Map<PainlessMethod, PainlessMethod> filteredMethodCache,
-        Map<Object, Method> allocationEstimators
+        Map<PainlessMethod, Method> allocationEstimators
     ) {
         String painlessMethodKey = buildPainlessMethodKey(painlessMethod.javaMethod().getName(), painlessMethod.typeParameters().size());
         PainlessMethod filteredPainlessMethod = filteredMethodCache.get(painlessMethod);

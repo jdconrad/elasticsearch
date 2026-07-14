@@ -23,7 +23,7 @@ import java.util.Map;
 import static org.hamcrest.Matchers.containsString;
 
 /**
- * End-to-end tests for {@code @allocates_dynamic} pre-checks: the annotated call's operands are replayed through the estimator
+ * End-to-end tests for {@code @allocates} pre-checks: the annotated call's operands are replayed through the estimator
  * and its sanitized result charged before the call executes. Covers the built-in estimators, misbehaving-estimator
  * sanitization, and load-time failures for badly declared estimators.
  */
@@ -142,14 +142,6 @@ public class AllocationEstimatorTests extends AllocationTestCase {
             () -> loadTestWhitelist("org.elasticsearch.painless.allocation-estimator-not-long")
         );
         assertThat(e.getCause().getMessage(), containsString("must be public static and return long"));
-    }
-
-    public void testBothAnnotationsRejectedAtLoadTime() {
-        IllegalArgumentException e = expectThrows(
-            IllegalArgumentException.class,
-            () -> loadTestWhitelist("org.elasticsearch.painless.allocation-estimator-both-annotations")
-        );
-        assertThat(e.getCause().getMessage(), containsString("cannot use both [@allocates_constant] and [@allocates_dynamic]"));
     }
 
     private static void loadTestWhitelist(String resource) {

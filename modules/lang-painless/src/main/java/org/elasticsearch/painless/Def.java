@@ -14,7 +14,7 @@ import org.elasticsearch.painless.api.ValueIterator;
 import org.elasticsearch.painless.lookup.PainlessLookup;
 import org.elasticsearch.painless.lookup.PainlessLookupUtility;
 import org.elasticsearch.painless.lookup.PainlessMethod;
-import org.elasticsearch.painless.spi.annotation.AllocatesConstantAnnotation;
+import org.elasticsearch.painless.spi.annotation.AllocatesAnnotation;
 import org.elasticsearch.painless.spi.annotation.ScriptAwareAnnotation;
 import org.elasticsearch.painless.symbol.FunctionTable;
 
@@ -228,14 +228,18 @@ public final class Def {
         Object[] injections,
         boolean methodTakesScriptThis
     ) {
-        AllocatesConstantAnnotation constant = method.annotation(AllocatesConstantAnnotation.class);
-        if (constant != null) {
-            if (constant.bytes() == 0) {
+        AllocatesAnnotation allocates = method.annotation(AllocatesAnnotation.class);
+        if (allocates == null) {
+            return handle;
+        }
+        if (allocates.isConstant()) {
+            if (allocates.bytes() == 0) {
                 return handle;
             }
             // combiner (receiver, scriptThis) -> void ==> scriptThis.$checkAllocBytes(bytes); consumes the handle's leading
-            // receiver/scriptThis prefix, leaving userArgs for the real call.
-            MethodHandle charge = MethodHandles.insertArguments(SCRIPT_CHECK_ALLOC_BYTES, 1, constant.bytes());
+            // receiver/scriptThis prefix, leaving userArgs for the real call. The constant fold stays simple (prefix-only) so it
+            // is robust for any arity, rather than routing the constant through the dynamic estimator machinery below.
+            MethodHandle charge = MethodHandles.insertArguments(SCRIPT_CHECK_ALLOC_BYTES, 1, allocates.bytes());
             charge = MethodHandles.dropArguments(charge, 0, handle.type().parameterType(0));
             return MethodHandles.foldArguments(handle, charge);
         }

@@ -99,7 +99,7 @@ import org.elasticsearch.painless.lookup.PainlessInstanceBinding;
 import org.elasticsearch.painless.lookup.PainlessLookupUtility;
 import org.elasticsearch.painless.lookup.PainlessMethod;
 import org.elasticsearch.painless.lookup.def;
-import org.elasticsearch.painless.spi.annotation.AllocatesConstantAnnotation;
+import org.elasticsearch.painless.spi.annotation.AllocatesAnnotation;
 import org.elasticsearch.painless.spi.annotation.ScriptAwareAnnotation;
 import org.elasticsearch.painless.symbol.FunctionTable.LocalFunction;
 import org.elasticsearch.painless.symbol.IRDecorations.IRCAllEscape;
@@ -1650,10 +1650,10 @@ public class DefaultIRTreeToASMBytesPhase implements IRTreeVisitor<WriteScope> {
         PainlessConstructor painlessConstructor = irNewObjectNode.getDecorationValue(IRDConstructor.class);
 
         // Sizing new T() needs the class's field layout, which is the allowlist's domain, so the total construction cost is
-        // carried as constructor metadata: @allocates_constant for a fixed cost, @allocates_dynamic when argument-dependent.
+        // carried as constructor metadata: @allocates constant form for a fixed cost, dynamic form when argument-dependent.
         // Either way the charge lands before the object is allocated.
-        AllocatesConstantAnnotation allocates = painlessConstructor.annotation(AllocatesConstantAnnotation.class);
-        if (allocates != null) {
+        AllocatesAnnotation allocates = painlessConstructor.annotation(AllocatesAnnotation.class);
+        if (allocates != null && allocates.isConstant()) {
             writeAllocationCheck(writeScope, allocates.bytes());
         }
 
@@ -2245,9 +2245,9 @@ public class DefaultIRTreeToASMBytesPhase implements IRTreeVisitor<WriteScope> {
             );
             methodWriter.invokeVirtual(CLASS_TYPE, asmMethod);
         } else if (importedMethod != null) {
-            AllocatesConstantAnnotation allocatesConstant = importedMethod.annotation(AllocatesConstantAnnotation.class);
-            if (allocatesConstant != null) {
-                writeAllocationCheck(writeScope, allocatesConstant.bytes());
+            AllocatesAnnotation allocates = importedMethod.annotation(AllocatesAnnotation.class);
+            if (allocates != null && allocates.isConstant()) {
+                writeAllocationCheck(writeScope, allocates.bytes());
             }
 
             for (ExpressionNode irArgumentNode : irArgumentNodes) {

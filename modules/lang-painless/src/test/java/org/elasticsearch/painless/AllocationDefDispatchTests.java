@@ -22,7 +22,7 @@ import java.util.Map;
 /**
  * End-to-end tests for allocation charging on {@code def}-dispatched method calls. Unlike statically-typed calls (charged with
  * emitted bytecode), a {@code def} call resolves its target at runtime, so the charge is applied inside
- * {@code Def.lookupMethod} when the resolved allowlist method carries {@code @allocates_constant} / {@code @allocates_dynamic}.
+ * {@code Def.lookupMethod} when the resolved allowlist method carries an {@code @allocates} annotation.
  * The script receiver is threaded to the call site via the same {@code 'S'} recipe the cancellation machinery uses.
  */
 public class AllocationDefDispatchTests extends AllocationTestCase {
@@ -60,7 +60,7 @@ public class AllocationDefDispatchTests extends AllocationTestCase {
     }
 
     public void testDefConstantMethodCharged() {
-        // A def call to an @allocates_constant instance method charges the constant; the surrounding new/typed local does not.
+        // A def call to an @allocates instance method charges the constant; the surrounding new/typed local does not.
         assertEquals(48L, allocatedBytes("def x = new AllocationEstimatorTestObject(); x.constantAllocating(); return \"y\";"));
     }
 
@@ -69,7 +69,7 @@ public class AllocationDefDispatchTests extends AllocationTestCase {
     }
 
     public void testDefZeroConstantChargesNothing() {
-        // @allocates_constant[0] is an audited no-op: the receiver is still pushed but nothing is charged.
+        // @allocates[0] is an audited no-op: the receiver is still pushed but nothing is charged.
         assertEquals(0L, allocatedBytes("def x = new AllocationEstimatorTestObject(); x.zeroAllocating(); return \"y\";"));
     }
 
