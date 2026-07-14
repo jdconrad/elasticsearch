@@ -32,7 +32,10 @@ public final class SqlAllocationEstimators {
         }
     }
 
-    /** Heap cost of a {@link String} of {@code chars} UTF-16 characters: fixed overhead plus 2 bytes per char (negative lengths cost only the overhead). */
+    /**
+     * Heap cost of a {@link String} of {@code chars} UTF-16 characters: fixed overhead plus 2 bytes per char (negative lengths
+     * cost only the overhead).
+     */
     private static long newStringBytes(long chars) {
         return STRING_RESULT_OVERHEAD + mulSat(2L, Math.max(0L, chars));
     }
