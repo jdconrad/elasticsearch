@@ -15,12 +15,8 @@ import org.elasticsearch.common.unit.ByteSizeValue;
 import java.util.Map;
 
 /**
- * Parses {@code @allocates}. Two mutually exclusive forms:
- * <ul>
- *   <li>constant: {@code @allocates[bytes="40b"]} — a non-negative {@link ByteSizeValue} (a unit is required except {@code "0"}).</li>
- *   <li>dynamic: {@code @allocates[class="fully.qualified.Class", method="estimate"]} — only the shape is validated here;
- *   estimator resolution happens at allowlist load time so a missing estimator fails loudly.</li>
- * </ul>
+ * Parses {@code @allocates}: {@code [bytes="40b"]} (non-negative {@link ByteSizeValue}, unit required except {@code "0"}) xor
+ * {@code [class=…, method=…]} (shape only; the estimator is resolved at allowlist load time).
  */
 public class AllocatesAnnotationParser implements WhitelistAnnotationParser {
 

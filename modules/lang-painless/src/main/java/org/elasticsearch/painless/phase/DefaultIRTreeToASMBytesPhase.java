@@ -511,7 +511,7 @@ public class DefaultIRTreeToASMBytesPhase implements IRTreeVisitor<WriteScope> {
      */
     private static void writeAllocationCheck(WriteScope writeScope, long bytes) {
         if (bytes == 0 || isAllocationTrackingActive(writeScope) == false) {
-            // @allocates_constant[bytes="0"] means "audited, does not allocate" and must emit nothing.
+            // @allocates[bytes="0"] means "audited, does not allocate" and must emit nothing.
             return;
         }
 
@@ -523,7 +523,7 @@ public class DefaultIRTreeToASMBytesPhase implements IRTreeVisitor<WriteScope> {
 
     /**
      * Spills the top {@code types.length} stack values (last type on top) into fresh locals so they can be replayed: once for
-     * an {@code @allocates_dynamic} estimator and once for the real call. Returns the locals in parameter order.
+     * an {@code @allocates} estimator and once for the real call. Returns the locals in parameter order.
      */
     private static Variable[] spillCallOperands(WriteScope writeScope, MethodWriter methodWriter, String role, Class<?>[] types) {
         Variable[] operands = new Variable[types.length];
@@ -544,7 +544,7 @@ public class DefaultIRTreeToASMBytesPhase implements IRTreeVisitor<WriteScope> {
     }
 
     /**
-     * Emits an {@code @allocates_dynamic} pre-check for operands already on the stack: spill, replay through the estimator,
+     * Emits an {@code @allocates} pre-check for operands already on the stack: spill, replay through the estimator,
      * normalize via {@link org.elasticsearch.painless.AllocationGuard#sanitizeEstimate(long)}, and charge through
      * {@code $checkAllocBytes} before the allocating call executes. The caller reloads the returned operands via
      * {@link #loadCallOperands} for the real call, and must check {@link #isAllocationTrackingActive} first.
@@ -1129,9 +1129,8 @@ public class DefaultIRTreeToASMBytesPhase implements IRTreeVisitor<WriteScope> {
                     && irBinaryMathNode.getDecorationValue(IRDShiftType.class) == def.class);
             int flags = irBinaryMathNode.getDecorationValueOrDefault(IRDFlags.class, 0);
 
-            // A def '+' may be a string concat at runtime, allocating its result inside the dynamic call. Like the
-            // statically-typed concat pre-check, spill the operands, charge the estimate (checkDefConcatAlloc charges only if an
-            // operand is actually a String), then reload and run the real add. Other ops keep the zero-overhead emission.
+            // A def '+' may be a runtime string concat: spill operands, charge (checkDefConcatAlloc charges only if an operand
+            // is a String), reload, then the real add. Other ops keep the zero-overhead emission.
             if (dynamic && operation == Operation.ADD && isAllocationTrackingActive(writeScope)) {
                 visit(irLeftNode, writeScope);
                 Variable left = writeScope.defineInternalVariable(leftType, "defConcatLeft");
@@ -2168,9 +2167,8 @@ public class DefaultIRTreeToASMBytesPhase implements IRTreeVisitor<WriteScope> {
 
         PainlessMethod painlessMethod = irInvokeCallNode.getMethod();
 
-        // A constant charge has net-zero stack effect, so it can precede the call emission entirely. The byte count is carried on
-        // the node (resolved across the inheritance tree in the user-tree phase) rather than read off the dispatched method,
-        // whose own annotation may be absent when it shadows an annotated supertype/interface method.
+        // Constant charge (net-zero stack) precedes the call. Carried on the node from the inheritance walk, not the dispatched
+        // method, which may be an unannotated shadowing override.
         Long allocationConstant = irInvokeCallNode.getDecorationValue(IRDAllocationConstant.class);
         if (allocationConstant != null) {
             writeAllocationCheck(writeScope, allocationConstant);

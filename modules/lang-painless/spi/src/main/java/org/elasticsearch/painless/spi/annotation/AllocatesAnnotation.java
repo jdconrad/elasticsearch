@@ -10,22 +10,14 @@
 package org.elasticsearch.painless.spi.annotation;
 
 /**
- * Marks an allowlisted constructor or method that allocates heap, charged against the per-context allocation limit before the
- * call executes. The declared cost is the total allocation attributable to the call, including transitive JDK-internal
- * allocations. Two forms:
- * <ul>
- *   <li><b>constant</b> — {@code @allocates[bytes="40b"]}: a fixed {@link org.elasticsearch.common.unit.ByteSizeValue} size
- *   (a unit is required except for {@code "0"}, which is a valid no-op meaning "audited: does not allocate").</li>
- *   <li><b>dynamic</b> — {@code @allocates[class="fully.qualified.Class", method="estimate"]}: an <i>estimator</i>, a
- *   {@code public static long} method taking the target's full Java signature (receiver first for instance methods), invoked at
- *   runtime and its result charged. The estimator is resolved at allowlist load time through the annotated class's class loader
- *   so plugins may ship their own.</li>
- * </ul>
- * Exactly one form is present: {@link #isConstant()} distinguishes them ({@code bytes} is {@code -1} for the dynamic form).
+ * Marks an allowlisted method/constructor that allocates, charged against the per-context limit before the call. Two forms,
+ * exactly one present ({@link #isConstant()}): constant {@code @allocates[bytes="40b"]} (fixed size; {@code "0"} = audited
+ * no-op), or dynamic {@code @allocates[class=…, method=…]} naming a {@code public static long} estimator that takes the
+ * target's Java signature (receiver first) and is invoked at runtime.
  *
- * @param bytes the fixed allocation size for the constant form, or {@code -1} for the dynamic form
- * @param estimatorClassName fully-qualified binary class name declaring the estimator (dynamic form), else {@code null}
- * @param estimatorMethodName name of the estimator method (dynamic form), else {@code null}
+ * @param bytes fixed size for the constant form, else {@code -1}
+ * @param estimatorClassName estimator's binary class name for the dynamic form, else {@code null}
+ * @param estimatorMethodName estimator method name for the dynamic form, else {@code null}
  */
 public record AllocatesAnnotation(long bytes, String estimatorClassName, String estimatorMethodName) {
 

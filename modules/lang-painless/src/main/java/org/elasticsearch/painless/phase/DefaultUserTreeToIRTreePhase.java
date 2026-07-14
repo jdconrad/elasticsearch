@@ -293,10 +293,7 @@ public class DefaultUserTreeToIRTreePhase implements UserTreeVisitor<ScriptScope
         irFunctionNode.attachDecoration(new IRDMaxAllocationBytes(scriptScope.getCompilerSettings().getMaxAllocationBytes()));
     }
 
-    /**
-     * Attaches the member's resolved {@code @allocates_dynamic} estimator (from the {@code PainlessLookup} side table) when
-     * allocation tracking is enabled, so the ASM phase emits the pre-check from the decoration alone.
-     */
+    /** Attaches the member's resolved dynamic estimator (when tracking is on) so the ASM phase emits from the decoration. */
     protected static void attachAllocationEstimator(ExpressionNode irExpressionNode, ScriptScope scriptScope, PainlessMethod member) {
         attachAllocationEstimator(irExpressionNode, scriptScope, scriptScope.getPainlessLookup().getAllocationEstimator(member));
     }
@@ -1940,10 +1937,8 @@ public class DefaultUserTreeToIRTreePhase implements UserTreeVisitor<ScriptScope
 
             irCallSubDefNode.attachDecoration(new IRDExpressionType(valueType));
             irCallSubDefNode.attachDecoration(new IRDName(userCallNode.getMethodName()));
-            // The script receiver must be pushed (the 'S' recipe) when the runtime target might be a @script_aware augmentation
-            // (cancellation) or, when allocation tracking is on, an allocation-annotated allocator — the bootstrap needs the
-            // receiver to poll cancellation / charge the allocation once the concrete method is resolved. IRCScriptAware drives
-            // that push regardless of which reason triggered it. Both checks are receiver-independent name/arity lookups.
+            // Push the script receiver (the 'S' recipe) when the target might be @script_aware (cancellation) or, with tracking
+            // on, @allocates — the bootstrap needs it to poll/charge. Receiver-independent name/arity checks.
             PainlessLookup painlessLookup = scriptScope.getPainlessLookup();
             String methodName = userCallNode.getMethodName();
             int argumentCount = userCallNode.getArgumentNodes().size();
@@ -2006,10 +2001,8 @@ public class DefaultUserTreeToIRTreePhase implements UserTreeVisitor<ScriptScope
             irInvokeCallNode.attachDecoration(new IRDExpressionType(valueType));
             irInvokeCallNode.setMethod(scriptScope.getDecoration(userCallNode, StandardPainlessMethod.class).standardPainlessMethod());
             irInvokeCallNode.setBox(boxType);
-            // Source the allocation metadata from the inheritance tree, not the dispatched method: a subclass may allowlist this
-            // method unannotated while a supertype/interface annotates it. lookupAllocationMethod returns the dispatched method
-            // itself when it is annotated. Carry the constant as a decoration (the dispatched method may not hold it) and attach
-            // the estimator from the same effective method.
+            // Resolve @allocates via the inheritance walk (an unannotated subclass may shadow an annotated supertype), then
+            // attach the estimator (dynamic) or a bytes decoration (constant) from that effective method.
             if (scriptScope.getCompilerSettings().isAllocationTrackingEnabled()) {
                 PainlessMethod allocationMethod = scriptScope.getPainlessLookup()
                     .lookupAllocationMethod(
@@ -2019,7 +2012,6 @@ public class DefaultUserTreeToIRTreePhase implements UserTreeVisitor<ScriptScope
                         userCallNode.getArgumentNodes().size()
                     );
                 if (allocationMethod != null) {
-                    // Dynamic form attaches the estimator (constant form resolves no estimator); constant form attaches its bytes.
                     attachAllocationEstimator(irInvokeCallNode, scriptScope, allocationMethod);
                     AllocatesAnnotation allocates = allocationMethod.annotation(AllocatesAnnotation.class);
                     if (allocates != null && allocates.isConstant()) {

@@ -43,8 +43,7 @@ public final class PainlessLookup {
 
     private final Map<Class<?>, Set<String>> annotationsToMethodKeys;
 
-    // Resolved dynamic @allocates estimators, split by member kind so the keys are type-safe. The constant form carries its
-    // byte count in the member's annotations map, so only the dynamic form appears here. Derived indexes.
+    // Resolved dynamic @allocates estimators (constant form keeps its bytes in the annotations map). Split by member kind.
     private final Map<PainlessMethod, Method> methodAllocationEstimators;
     private final Map<PainlessConstructor, Method> constructorAllocationEstimators;
 
@@ -307,12 +306,8 @@ public final class PainlessLookup {
     }
 
     /**
-     * Walks the runtime-method resolution order for {@code originalTargetClass} (the same order as
-     * {@link #lookupRuntimePainlessMethod}) and returns the first method carrying allocation metadata — an
-     * {@code @allocates_constant} annotation or a resolved {@code @allocates_dynamic} estimator — or null if none. Because
-     * def dispatch resolves to the first same-(name, arity) method, an unannotated subclass entry can shadow an annotated
-     * supertype/interface method; this lookup walks past it so the inherited annotation is still charged. Returns the
-     * dispatched method itself in the common (non-shadowed) case.
+     * Like {@link #lookupRuntimePainlessMethod} but returns the first method in resolution order carrying an {@code @allocates}
+     * annotation (walking past an unannotated subclass entry that shadows an annotated supertype), or null. For def dispatch.
      */
     public PainlessMethod lookupRuntimeAllocationMethod(Class<?> originalTargetClass, String methodName, int methodArity) {
         Objects.requireNonNull(originalTargetClass);
@@ -327,12 +322,7 @@ public final class PainlessLookup {
         return lookupPainlessObject(originalTargetClass, objectLookup);
     }
 
-    /**
-     * The statically-typed-call counterpart of {@link #lookupRuntimeAllocationMethod}: walks the same resolution order as
-     * {@link #lookupPainlessMethod} (over {@code methods}/{@code staticMethods}) and returns the first method carrying
-     * allocation metadata, or null. Lets a direct call charge an annotation inherited from a supertype/interface method even
-     * when an unannotated subclass entry is the one dispatched. Returns the resolved method itself when it is annotated.
-     */
+    /** Statically-typed counterpart of {@link #lookupRuntimeAllocationMethod}: walks {@code methods}/{@code staticMethods}. */
     public PainlessMethod lookupAllocationMethod(Class<?> targetClass, boolean isStatic, String methodName, int methodArity) {
         Objects.requireNonNull(targetClass);
         Objects.requireNonNull(methodName);

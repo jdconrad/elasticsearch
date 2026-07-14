@@ -375,7 +375,7 @@ public class IRDecorations {
         }
     }
 
-    /** the resolved {@code @allocates_dynamic} estimator for a call or construction site; attached only when tracking is enabled */
+    /** the resolved dynamic {@code @allocates} estimator for a call/construction site; attached only when tracking is enabled */
     public static class IRDAllocationEstimator extends IRDecoration<Method> {
 
         public IRDAllocationEstimator(Method value) {
@@ -383,11 +383,7 @@ public class IRDecorations {
         }
     }
 
-    /**
-     * the {@code @allocates_constant} byte cost for a direct call site; attached only when tracking is enabled. It is resolved
-     * across the inheritance tree (so an annotated supertype/interface method is honored even when an unannotated subclass entry
-     * is dispatched), which is why it is carried here rather than read off the dispatched method's own annotation.
-     */
+    /** the constant {@code @allocates} byte cost for a direct call site (inheritance-resolved); attached only when tracking is on */
     public static class IRDAllocationConstant extends IRDecoration<Long> {
 
         public IRDAllocationConstant(Long value) {

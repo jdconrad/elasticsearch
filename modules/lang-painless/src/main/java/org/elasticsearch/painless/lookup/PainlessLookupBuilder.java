@@ -189,8 +189,7 @@ public final class PainlessLookupBuilder {
 
     private final Map<Class<?>, Set<String>> annotationsToMethodKeys;
 
-    // Resolved dynamic @allocates estimators, split by member kind so the keys are type-safe. Constant @allocates carries its
-    // byte count in the member's annotations map, so only the dynamic form lands here. Derived indexes like annotationsToMethodKeys.
+    // Resolved dynamic @allocates estimators (constant form keeps its bytes in the annotations map). Split by member kind.
     private final Map<PainlessMethod, Method> methodAllocationEstimators;
     private final Map<PainlessConstructor, Method> constructorAllocationEstimators;
 
@@ -237,7 +236,7 @@ public final class PainlessLookupBuilder {
     }
 
     /**
-     * Resolves the {@code @allocates_dynamic} estimator for an annotated method or constructor, or {@code null} when the
+     * Resolves the {@code @allocates} estimator for an annotated method or constructor, or {@code null} when the
      * annotation is absent. The estimator class is loaded through the allowlist's class loader (so plugins can ship their own)
      * and must declare a {@code public static long} method matching {@code methodType}'s parameters (receiver first for
      * instance methods; the underlying Java static signature for augmented ones). Any mismatch throws at allowlist-load time:
@@ -2084,9 +2083,7 @@ public final class PainlessLookupBuilder {
                     }
                 }
 
-                // Carry the source method's annotations onto the bridge so allocation annotations (@allocates_constant /
-                // @allocates_dynamic) survive def dispatch, which resolves through runtimeMethods. Without this the bridge would
-                // report no annotation and silently escape the allocation charge.
+                // Carry the source annotations onto the bridge so @allocates survives def dispatch (which resolves via runtimeMethods).
                 filteredPainlessMethod = new PainlessMethod(
                     painlessMethod.javaMethod(),
                     targetClass,
@@ -2099,9 +2096,8 @@ public final class PainlessLookupBuilder {
                 painlessClassBuilder.runtimeMethods.put(painlessMethodKey.intern(), filteredPainlessMethod);
                 filteredMethodCache.put(painlessMethod, filteredPainlessMethod);
 
-                // The estimator index is keyed by method instance, so mirror the source method's estimator onto the bridge
-                // instance (a distinct object) for the dynamic-charge lookup. The bridge's boxed params are widened to Object;
-                // Def adapts the estimator to that shape at the call site.
+                // Mirror the source estimator onto the bridge instance (the index is instance-keyed); Def asTypes it to the
+                // bridge's Object-widened params at the call site.
                 Method allocationEstimator = allocationEstimators.get(painlessMethod);
                 if (allocationEstimator != null) {
                     allocationEstimators.put(filteredPainlessMethod, allocationEstimator);
