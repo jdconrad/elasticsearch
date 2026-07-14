@@ -17,7 +17,7 @@ class org.elasticsearch.xpack.ql.expression.function.scalar.whitelist.InternalQl
   def docValue(java.util.Map, String)
   boolean nullSafeFilter(Boolean)
   double nullSafeSortNumeric(Number)
-  String nullSafeSortString(Object)
+  String nullSafeSortString(Object) @allocates_dynamic[class="org.elasticsearch.painless.AllocationEstimators", method="stringValueBytes"]
   Number nullSafeCastNumeric(Number, String)
   Number nullSafeCastToUnsignedLong(Number)
 
@@ -70,16 +70,16 @@ class org.elasticsearch.xpack.eql.expression.function.scalar.whitelist.InternalE
 #
 # ASCII Functions
 #
-  String  between(String, String, String, Boolean, Boolean)
+  String  between(String, String, String, Boolean, Boolean) @allocates_dynamic[class="org.elasticsearch.painless.AllocationEstimators", method="betweenBytes"]
   Boolean cidrMatch(String, java.util.List)
-  String  concat(java.util.List)
+  String  concat(java.util.List) @allocates_dynamic[class="org.elasticsearch.painless.AllocationEstimators", method="listConcatBytes"]
   Boolean endsWith(String, String, Boolean)
   Integer indexOf(String, String, Number, Boolean)
   Integer length(String)
   Number  number(String, Number)
-  String  string(Object)
+  String  string(Object) @allocates_dynamic[class="org.elasticsearch.painless.AllocationEstimators", method="stringValueBytes"]
   Boolean stringContains(String, String, Boolean)
-  String  substring(String, Number, Number)
+  String  substring(String, Number, Number) @allocates_dynamic[class="org.elasticsearch.painless.AllocationEstimators", method="boundedStringBytes"]
 
 #
 # Comparison

@@ -85,4 +85,37 @@ public class AllocationStringEstimatorTests extends AllocationTestCase {
         assertEquals(expected, AllocationEstimators.boundedStringBytes("hello", 2));
         assertEquals(expected, AllocationEstimators.boundedStringBytes("hello", 1, 4));
     }
+
+    public void testStringValueBytes() {
+        // A CharSequence contributes its real length; anything else uses the conservative non-String fallback (256).
+        assertEquals(AllocationEstimators.substringBytes("", 0, 5), AllocationEstimators.stringValueBytes("hello"));
+        assertEquals(256L, AllocationEstimators.stringValueBytes(Integer.valueOf(42)));
+        assertEquals(256L, AllocationEstimators.stringValueBytes(null));
+    }
+
+    public void testListConcatBytes() {
+        assertEquals(AllocationEstimators.substringBytes("", 0, 4), AllocationEstimators.listConcatBytes(java.util.List.of("ab", "cd")));
+        assertEquals(AllocationEstimators.substringBytes("", 0, 0), AllocationEstimators.listConcatBytes(java.util.List.of()));
+        assertEquals(AllocationEstimators.substringBytes("", 0, 0), AllocationEstimators.listConcatBytes(null));
+    }
+
+    public void testBetweenBytesBoundedByFirstArg() {
+        assertEquals(
+            AllocationEstimators.boundedStringBytes("hello world"),
+            AllocationEstimators.betweenBytes("hello world", "he", "ld", Boolean.TRUE, Boolean.FALSE)
+        );
+    }
+
+    public void testVersionBytes() {
+        // Version object (24) plus a byte[] of the source length; "1.2.3" -> 24 + pad8(16+5) = 48, "" -> 24 + 16 = 40.
+        assertEquals(48L, AllocationEstimators.versionBytes("1.2.3"));
+        assertEquals(40L, AllocationEstimators.versionBytes(""));
+    }
+
+    public void testDomainSplitBytes() {
+        // Two-element ArrayList (40 shell + 32 backing) plus the substrings (~ host length).
+        long host = AllocationEstimators.substringBytes("", 0, "www.example.com".length());
+        assertEquals(40L + 32L + host, AllocationEstimators.domainSplitBytes("www.example.com"));
+        assertEquals(40L + 32L + host, AllocationEstimators.domainSplitBytes("www.example.com", java.util.Map.of()));
+    }
 }

@@ -103,6 +103,52 @@ public final class AllocationEstimators {
     }
 
     /**
+     * A new String from an arbitrary value's {@code toString()} (e.g. EQL {@code string}/{@code nullSafeSortString}). A
+     * {@link CharSequence} contributes its real length; anything else falls back to a conservative fixed size, since its
+     * {@code toString()} length is not knowable without allocating it.
+     */
+    public static long stringValueBytes(Object value) {
+        return value instanceof CharSequence cs ? newStringBytes(cs.length()) : AllocSizes.NON_STRING_OBJECT_CONCAT_BYTES;
+    }
+
+    /** A new String concatenating a list's elements (e.g. EQL {@code concat(List)}): summed element lengths. */
+    public static long listConcatBytes(java.util.List<?> values) {
+        if (values == null) {
+            return newStringBytes(0);
+        }
+        long chars = 0;
+        for (Object value : values) {
+            chars += value instanceof CharSequence cs ? cs.length() : 128; // fallback for non-CharSequence elements
+            if (chars > Integer.MAX_VALUE) {
+                break; // already large enough to trip any limit; avoid overflow
+            }
+        }
+        return newStringBytes(chars);
+    }
+
+    /** EQL {@code between}: extracts a substring of the first argument, so it is no larger than that string. */
+    public static long betweenBytes(String value, String left, String right, Boolean greedy, Boolean caseSensitive) {
+        return boundedStringBytes(value);
+    }
+
+    /** {@code new Version(String)}: a wrapper object plus the version encoded to bytes, sized by the source length. */
+    public static long versionBytes(String value) {
+        long len = value == null ? 0 : value.length();
+        return AllocSizes.pad8(AllocSizes.OBJECT_HEADER + AllocSizes.REFERENCE_SIZE) + AllocSizes.arrayBytes(len, 1);
+    }
+
+    /** ML {@code domainSplit}: a fixed two-element list plus the subdomain/domain substrings (~ the host length). */
+    public static long domainSplitBytes(String host) {
+        long len = host == null ? 0 : host.length();
+        return ARRAY_LIST_SHELL_BYTES + AllocSizes.arrayBytes(2, AllocSizes.REFERENCE_SIZE) + newStringBytes(len);
+    }
+
+    /** Overload of {@link #domainSplitBytes(String)} for the {@code (String, Map)} signature. */
+    public static long domainSplitBytes(String host, java.util.Map<?, ?> params) {
+        return domainSplitBytes(host);
+    }
+
+    /**
      * Cost of {@code new ArrayList(collection)}: the list shell plus a backing {@code Object[]} sized to the source. A
      * {@code null} source costs just the shell; the real constructor rejects the {@code null} after the pre-check.
      */
