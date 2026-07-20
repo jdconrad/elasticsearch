@@ -95,8 +95,7 @@ public class FunctionRef {
             MethodType delegateMethodType;
             Object[] delegateInjections;
             boolean isScriptAware = false;
-            // the resolved @allocates estimator for the delegate, when the target is annotated; carried as metadata and
-            // only turned into a per-invocation charge by withAllocationCharge when allocation tracking is enabled
+            // resolved @allocates estimator for the delegate (metadata); turned into a charge only by withAllocationCharge
             java.lang.reflect.Method allocationEstimator = null;
 
             Class<?> delegateMethodReturnType;
@@ -343,10 +342,8 @@ public class FunctionRef {
     /** the resolved {@code @allocates} estimator for the delegate target, or {@code null} when it has none */
     public final java.lang.reflect.Method allocationEstimator;
     /**
-     * whether this reference charges the delegate's allocation per invocation. When true the script is captured as a
-     * leading factory parameter (see {@link #withAllocationCharge}) and the generated lambda's interface method charges
-     * {@link #allocationEstimator} against it before delegating. Only set when allocation tracking is enabled and the
-     * target is annotated; normal references leave this false and emit byte-for-byte unchanged.
+     * whether this reference charges the delegate's allocation per invocation (see {@link #withAllocationCharge}). Set only
+     * when tracking is enabled and the target is annotated; normal references leave it false and emit unchanged.
      */
     public final boolean chargesAllocation;
 
@@ -420,11 +417,10 @@ public class FunctionRef {
     }
 
     /**
-     * Returns a new {@link FunctionRef} that charges the delegate's {@code @allocates} allocation per invocation. Like
-     * {@link #withSyntheticScriptCapture} it prepends the script as a leading factory capture so the generated lambda
-     * holds a reference to it, and additionally flags {@link #chargesAllocation} so the interface method emits a charge
-     * of {@link #allocationEstimator} against that captured script before delegating. Called by the compiler only when
-     * allocation tracking is enabled and {@link #allocationEstimator} is non-null.
+     * Returns a new {@link FunctionRef} that charges the delegate's {@code @allocates} allocation per invocation. Prepends
+     * the script as a leading factory capture (like {@link #withSyntheticScriptCapture}) and flags
+     * {@link #chargesAllocation} so the interface method charges {@link #allocationEstimator} against it before delegating.
+     * Called only when tracking is enabled and {@link #allocationEstimator} is non-null.
      */
     public FunctionRef withAllocationCharge(Class<?> scriptClass) {
         return new FunctionRef(

@@ -132,8 +132,7 @@ public class AllocationDisabledBytecodeTests extends ScriptTestCase {
     }
 
     public void testNoLambdaOrReferenceChargeBytecodeWhenDisabled() {
-        // A static lambda body allocation and a constructor reference to an annotated target must be clean when tracking is
-        // off: no #scriptThis-driven charge in the lambda body and the plain lambdaBootstrap factory (not the alloc variant).
+        // A static lambda body and a constructor reference must be clean when tracking is off: no charge, plain bootstrap.
         String asm = bytecode(
             "int c(Supplier s) { s.get(); return 1; } "
                 + "Optional.empty().orElseGet(() -> { return new int[10]; }); return c(ArrayList::new);",
@@ -151,8 +150,7 @@ public class AllocationDisabledBytecodeTests extends ScriptTestCase {
     }
 
     public void testConstructorReferenceUsesAllocationBootstrapWhenEnabled() {
-        // With tracking on, an annotated constructor reference links through the allocation-charging lambda bootstrap so the
-        // generated lambda charges the delegate per invocation.
+        // With tracking on, an annotated constructor reference links through the allocation-charging lambda bootstrap.
         String asm = bytecode("int c(Supplier s) { s.get(); return 1; } return c(ArrayList::new);", 1024 * 1024L);
         assertThat(asm, containsString("lambdaBootstrapWithAllocation"));
     }

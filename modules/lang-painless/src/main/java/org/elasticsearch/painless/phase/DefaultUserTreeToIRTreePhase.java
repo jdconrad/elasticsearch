@@ -1456,10 +1456,8 @@ public class DefaultUserTreeToIRTreePhase implements UserTreeVisitor<ScriptScope
         attachAllocationLimit(irFunctionNode, scriptScope);
         irClassNode.addFunctionNode(irFunctionNode);
 
-        // Static typed lambdas receive the script as a synthetic leading #scriptThis parameter when either cancellation or
-        // allocation tracking needs it. Cancellation emits the poll (IRCStaticCancellationCheck); allocation tracking uses
-        // the same capture to reach the script's $checkAllocBytes so allocations inside the otherwise script-less static
-        // lambda body are charged. def-typed static lambdas are not covered (no TargetType), matching the cancellation gap.
+        // Inject #scriptThis into a static typed lambda when cancellation or allocation tracking needs it, so its body can
+        // reach $checkAllocBytes. def-typed static lambdas (no TargetType) are not covered, matching the cancellation gap.
         boolean supportsCancellation = scriptScope.getScriptClassInfo().supportsCancellation();
         boolean allocationTracking = scriptScope.getCompilerSettings().isAllocationTrackingEnabled();
         boolean injectScriptThis = irFunctionNode.hasCondition(IRCStatic.class)
@@ -1533,13 +1531,11 @@ public class DefaultUserTreeToIRTreePhase implements UserTreeVisitor<ScriptScope
         } else {
             FunctionRef reference = scriptScope.getDecoration(userFunctionRefNode, ReferenceDecoration.class).reference();
             TypedInterfaceReferenceNode typedInterfaceReferenceNode = new TypedInterfaceReferenceNode(userFunctionRefNode.getLocation());
-            // Charge the delegate's @allocates allocation per invocation for annotated references when allocation tracking
-            // is enabled: capture the script (as a leading factory capture) so the generated lambda can charge against it
-            // before delegating. Covers static-method (H_INVOKESTATIC), constructor (H_NEWINVOKESPECIAL) and unbound
-            // instance-method (H_INVOKEVIRTUAL / H_INVOKEINTERFACE) references — for the latter the receiver is the first
-            // functional-interface argument, matching the estimator's receiver-first signature. Bound instance-method
-            // references (a captured receiver, capturesDecoration != null) are not charged; unannotated references and
-            // tracking-off emit byte-for-byte unchanged.
+            // Charge an annotated reference's allocation per invocation (tracking on): capture the script as a leading
+            // factory capture so the generated lambda can charge before delegating. Covers static-method (H_INVOKESTATIC),
+            // constructor (H_NEWINVOKESPECIAL) and unbound instance-method (H_INVOKEVIRTUAL / H_INVOKEINTERFACE) references;
+            // for the last the receiver is the first argument, matching the estimator's receiver-first signature. Bound
+            // instance-method references (captured receiver) are not charged; unannotated / tracking-off emit unchanged.
             boolean chargeAllocation = scriptScope.getCompilerSettings().isAllocationTrackingEnabled()
                 && reference.allocationEstimator != null
                 && capturesDecoration == null

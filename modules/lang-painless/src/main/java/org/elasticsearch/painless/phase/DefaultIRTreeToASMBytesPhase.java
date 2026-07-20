@@ -418,17 +418,15 @@ public class DefaultIRTreeToASMBytesPhase implements IRTreeVisitor<WriteScope> {
         long maxAllocationBytes = irFunctionNode.getDecorationValueOrDefault(IRDMaxAllocationBytes.class, -1L);
         int maxLoopCounter = irFunctionNode.getDecorationValue(IRDMaxLoopCounter.class);
 
-        // Define #scriptThis for instance functions when cancellation or allocation tracking needs a script pointer that a
-        // nested static lambda can capture at its construction site (see visitTypedInterfaceReference). For instance
-        // functions it is `this`; static lambdas instead receive it as parameter 0, so only instance functions define it here.
+        // Define #scriptThis (= `this`) for instance functions under cancellation or tracking, so a nested static lambda
+        // can capture it at its construction site. Static lambdas instead receive it as parameter 0.
         if (hasThis && (instanceCancellation || maxAllocationBytes > 0L)) {
             Variable scriptThis = writeScope.defineInternalVariable(Object.class, "scriptThis");
             methodWriter.loadThis();
             methodWriter.visitVarInsn(Opcodes.ASTORE, scriptThis.getSlot());
         }
 
-        // Cancellation entry poll: fetch the persistent cancellation Runnable from the script and poll it once at entry.
-        // Uses #scriptThis, defined above for instance functions or received as parameter 0 by static cancellation lambdas.
+        // Cancellation entry poll via #scriptThis (defined above, or parameter 0 for static cancellation lambdas).
         if (instanceCancellation || staticCancellation) {
             Variable scriptThis = writeScope.getInternalVariable("scriptThis");
             Variable cancelRunnable = writeScope.defineInternalVariable(Runnable.class, "cancelRunnable");
@@ -451,11 +449,9 @@ public class DefaultIRTreeToASMBytesPhase implements IRTreeVisitor<WriteScope> {
             methodWriter.putField(WriterConstants.CLASS_TYPE, WriterConstants.ALLOC_BYTES_FIELD, Type.LONG_TYPE);
         }
 
-        // Define the #allocLimit marker when allocation tracking is on and a script pointer is reachable from this function:
-        // either `this` (instance methods and instance-capturing lambdas) or the captured #scriptThis (static lambdas that
-        // capture it, whether for cancellation or for allocation tracking — see IRCStaticScriptCapture). Its presence is the
-        // per-function signal that allocation pre-checks should be emitted at allocation sites (see writeAllocationCheck);
-        // the limit itself is baked into $checkAllocBytes.
+        // Define the #allocLimit marker when tracking is on and a script pointer is reachable: `this` (instance functions)
+        // or the captured #scriptThis (static lambdas, see IRCStaticScriptCapture). Its presence signals allocation sites to
+        // emit pre-checks (see writeAllocationCheck); the limit itself is baked into $checkAllocBytes.
         if (maxAllocationBytes > 0L && (hasThis || staticScriptCapture)) {
             Variable allocLimit = writeScope.defineInternalVariable(long.class, "allocLimit");
             methodWriter.push(maxAllocationBytes);

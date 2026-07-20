@@ -162,10 +162,7 @@ public final class LambdaBootstrap {
      */
     private static final String LAMBDA_FACTORY_METHOD_NAME = "create$lambda";
 
-    /**
-     * The {@code invokedynamic} name used for the per-invocation allocation charge emitted inside an allocation-charging
-     * lambda class's interface method (linked by {@link #chargeBootstrap}).
-     */
+    /** {@code invokedynamic} name for the per-invocation allocation charge (linked by {@link #chargeBootstrap}). */
     private static final String CHARGE_METHOD_NAME = "$chargeAllocation";
 
     /** {@code AllocationGuard.sanitizeEstimate(long) -> long}, used to normalize an estimator result before charging. */
@@ -240,11 +237,9 @@ public final class LambdaBootstrap {
     }
 
     /**
-     * Allocation-charging variant of {@link #lambdaBootstrap}. Identical, except the generated lambda class's interface
-     * method first charges the delegate's {@code @allocates} allocation (per invocation) against the captured script. The
-     * estimator is threaded in by owner/name/descriptor (three Strings) and reconstructed into a method handle for the
-     * {@link #chargeBootstrap} call site. Only annotated static-method and constructor references under allocation
-     * tracking are linked through here; every other reference uses {@link #lambdaBootstrap} unchanged.
+     * Allocation-charging variant of {@link #lambdaBootstrap}: the generated interface method first charges the delegate's
+     * {@code @allocates} allocation against the captured script. The estimator arrives as owner/name/descriptor and is
+     * rebuilt into a {@link #chargeBootstrap} call site. Only annotated references under tracking link through here.
      */
     public static CallSite lambdaBootstrapWithAllocation(
         Lookup lookup,
@@ -491,10 +486,9 @@ public final class LambdaBootstrap {
         );
         iface.visitCode();
 
-        // Allocation charge (only when linked via lambdaBootstrapWithAllocation): the leading capture is the synthetic
-        // script instance. Charge the delegate's estimated allocation against it once per invocation, then treat that
-        // capture as consumed so the delegate call below proceeds exactly as an uncharged reference would. This keeps the
-        // delegate handling untouched; the script never reaches the real delegate.
+        // Allocation charge (only via lambdaBootstrapWithAllocation): the leading capture is the script. Charge the
+        // delegate's estimated allocation against it, then treat the capture as consumed so the delegate call below runs
+        // exactly as an uncharged reference — the script never reaches the real delegate.
         if (estimatorHandle != null) {
             Capture scriptCapture = captures[0];
             Class<?>[] chargeParameters = new Class<?>[1 + interfaceMethodType.parameterCount()];
@@ -671,11 +665,9 @@ public final class LambdaBootstrap {
     }
 
     /**
-     * Links the per-invocation allocation charge emitted inside an allocation-charging lambda class's interface method
-     * (see {@code generateInterfaceMethod}). The call-site type is {@code (scriptType, samArgs...) -> void}: the estimator
-     * is run on the SAM arguments (cast to its declared parameter types), the result is normalized via
-     * {@link AllocationGuard#sanitizeEstimate(long)}, and it is charged through {@link PainlessScript#$checkAllocBytes(long)}
-     * on the captured script. The charge trips the per-context limit before the delegate allocates.
+     * Links the per-invocation allocation charge (call-site type {@code (scriptType, samArgs...) -> void}): run the
+     * estimator on the SAM arguments, normalize via {@link AllocationGuard#sanitizeEstimate(long)}, and charge through
+     * {@link PainlessScript#$checkAllocBytes(long)} on the captured script — tripping the limit before the delegate runs.
      */
     public static CallSite chargeBootstrap(Lookup lookup, String name, MethodType chargeType, MethodHandle estimator) {
         Class<?> scriptType = chargeType.parameterType(0);

@@ -174,10 +174,9 @@ public final class WriterConstants {
     );
 
     /**
-     * Allocation-charging variant of {@link #LAMBDA_BOOTSTRAP_HANDLE}: identical to {@code lambdaBootstrap} but with the
-     * {@code @allocates} estimator's owner/name/descriptor threaded in (as three Strings before the injections varargs) so
-     * the generated lambda's interface method can charge the delegate's allocation per invocation. Used only for annotated
-     * static-method and constructor references when allocation tracking is enabled; normal references use the plain handle.
+     * Allocation-charging variant of {@link #LAMBDA_BOOTSTRAP_HANDLE}: adds the {@code @allocates} estimator's
+     * owner/name/descriptor (three Strings before the injections varargs) so the generated lambda charges per invocation.
+     * Used only for annotated references under tracking; normal references use the plain handle.
      */
     public static final MethodType LAMBDA_ALLOC_BOOTSTRAP_TYPE = MethodType.methodType(
         CallSite.class,
@@ -205,9 +204,9 @@ public final class WriterConstants {
     );
 
     /**
-     * Bootstrap for the per-invocation allocation charge emitted inside an allocation-charging lambda class's interface
-     * method (see {@code LambdaBootstrap.chargeBootstrap}). The single static argument is a method handle to the
-     * {@code @allocates} estimator; the call-site type is {@code (scriptType, samArgs...) -> void}.
+     * Bootstrap for the per-invocation allocation charge inside a charging lambda's interface method (see
+     * {@code LambdaBootstrap.chargeBootstrap}). Static arg: the estimator method handle; call-site type
+     * {@code (scriptType, samArgs...) -> void}.
      */
     public static final MethodType CHARGE_BOOTSTRAP_TYPE = MethodType.methodType(
         CallSite.class,

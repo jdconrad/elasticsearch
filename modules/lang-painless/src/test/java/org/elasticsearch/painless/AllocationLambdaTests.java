@@ -21,21 +21,15 @@ import java.util.Map;
 
 /**
  * Allocation tracking for lambdas and method references (PR 8). The test context ({@link PainlessTestScript}) does not
- * support cancellation, so a static lambda / method reference has no reachable script pointer of its own; before this
- * change allocations reached through them leaked uncharged. These tests confirm:
- * <ul>
- *   <li>allocations inside a static lambda body are charged (a synthetic {@code #scriptThis} capture is injected),</li>
- *   <li>constructor references to {@code @allocates} targets are charged per invocation,</li>
- *   <li>static-method references to {@code @allocates} targets are charged per invocation,</li>
- * </ul>
- * while ordinary bounded lambdas/references still run to completion. Instance-method references are covered separately.
+ * support cancellation, so static lambdas / references have no script pointer of their own; before this change allocations
+ * reached through them leaked. These tests confirm static lambda bodies, constructor references, and static- and
+ * unbound-instance-method references to {@code @allocates} targets are charged, while bounded cases still complete.
  */
 public class AllocationLambdaTests extends AllocationTestCase {
 
     @Override
     protected Map<ScriptContext<?>, List<Whitelist>> scriptContexts() {
-        // Add the shared @allocates test allowlist (AllocationEstimatorTestObject) so static-method references can target a
-        // controlled, well-behaved estimator on top of the base allowlist used for constructor references.
+        // Add the @allocates test allowlist so static-method references have a controlled estimator target.
         Map<ScriptContext<?>, List<Whitelist>> contexts = new HashMap<>();
         List<Whitelist> whitelists = new ArrayList<>(PAINLESS_BASE_WHITELIST);
         whitelists.add(WhitelistLoader.loadFromResourceFiles(PainlessPlugin.class, "org.elasticsearch.painless.allocation-estimator"));
@@ -44,33 +38,30 @@ public class AllocationLambdaTests extends AllocationTestCase {
     }
 
     public void testStaticLambdaBodyArrayAllocationTrips() {
-        // A static lambda (no user captures), invoked because the Optional is empty. The 1kb limit survives building the
-        // lambda instance but the body's array allocation, charged only because #scriptThis is now injected, trips.
+        // Static lambda invoked via empty Optional; its body array allocation is charged only because #scriptThis is injected.
         assertTripsLimit("return Optional.empty().orElseGet(() -> { return new int[1000000]; });", "1kb");
     }
 
     public void testStaticLambdaBodyAllocationCounted() {
-        // The body allocation lands in the running counter, proving the static lambda body reaches the script instance.
+        // The body allocation reaches the counter, proving the static lambda body reaches the script instance.
         long bytes = allocatedBytes("Optional.empty().orElseGet(() -> { return new int[100]; }); return null;");
         assertTrue("expected the static lambda body allocation to be counted, but only [" + bytes + "] bytes charged", bytes >= 400);
     }
 
     public void testBoundedStaticLambdaCompletes() {
-        // A static lambda whose body allocates a small, bounded amount runs to completion well under the limit.
+        // A bounded static lambda body runs to completion well under the limit.
         Object result = compile("int[] a = (int[]) Optional.empty().orElseGet(() -> { return new int[4]; }); return a.length;", "1mb")
             .execute();
         assertEquals(4, result);
     }
 
     public void testConstructorReferenceChargedPerInvocation() {
-        // ArrayList::new is an @allocates-annotated no-arg constructor. Each Supplier.get() allocates a fresh list; the
-        // per-invocation charge accumulates across the loop and trips long before the loop could exhaust the heap.
+        // ArrayList::new is an annotated ctor; the per-invocation charge accumulates across the loop and trips.
         assertTripsLimit("int c(Supplier s) { for (int i = 0; i < 1000000; ++i) { s.get(); } return 1; } return c(ArrayList::new);", "1mb");
     }
 
     public void testStaticMethodReferenceTripsInSingleCall() {
-        // AllocationEstimatorTestObject::staticAllocating is annotated with an estimator returning 16 * n. Invoked once with
-        // a large argument its charge alone exceeds the limit, proving the static-method reference is charged per invocation.
+        // staticAllocating's estimator returns 16 * n; one large-argument call exceeds the limit.
         assertTripsLimit(
             "int c(IntUnaryOperator op) { return op.applyAsInt(1000000); } return c(AllocationEstimatorTestObject::staticAllocating);",
             "1mb"
@@ -78,8 +69,7 @@ public class AllocationLambdaTests extends AllocationTestCase {
     }
 
     public void testStaticMethodReferenceCounted() {
-        // Two invocations of the static-method reference charge 16 * n each; the counter reflects both (plus the small
-        // capture-object cost), proving the estimator runs with the actual argument on every invocation.
+        // Two calls charge 16 * n each, proving the estimator runs with the actual argument on every invocation.
         long bytes = allocatedBytes(
             "int c(IntUnaryOperator op) { return op.applyAsInt(10) + op.applyAsInt(20); } "
                 + "c(AllocationEstimatorTestObject::staticAllocating); return null;"
@@ -88,14 +78,13 @@ public class AllocationLambdaTests extends AllocationTestCase {
     }
 
     public void testBoundedConstructorReferenceCompletes() {
-        // A single constructor-reference invocation stays far under the limit and returns normally.
+        // A single constructor-reference invocation stays under the limit and returns normally.
         Object result = compile("int c(Supplier s) { return ((List) s.get()).size(); } return c(ArrayList::new);", "1mb").execute();
         assertEquals(0, result);
     }
 
     public void testInstanceMethodReferenceTrips() {
-        // An unbound instance-method reference: the receiver is the first functional-interface argument. Its estimator
-        // returns a huge value (sanitized to trip), proving the unbound instance reference is charged per invocation.
+        // Unbound instance-method reference (receiver is the first argument); its estimator is huge, so one call trips.
         assertTripsLimit(
             "int c(ToIntFunction f) { return f.applyAsInt(new AllocationEstimatorTestObject()); } "
                 + "return c(AllocationEstimatorTestObject::hugeAllocatingInstance);",
@@ -104,7 +93,7 @@ public class AllocationLambdaTests extends AllocationTestCase {
     }
 
     public void testInstanceMethodReferenceCounted() {
-        // The estimator sees the receiver on each invocation; constantAllocating charges 48 per call, twice here.
+        // constantAllocating charges 48 per call, invoked twice, proving the estimator sees the receiver each time.
         long bytes = allocatedBytes(
             "int c(ToIntFunction f) { AllocationEstimatorTestObject o = new AllocationEstimatorTestObject(); "
                 + "return f.applyAsInt(o) + f.applyAsInt(o); } "
