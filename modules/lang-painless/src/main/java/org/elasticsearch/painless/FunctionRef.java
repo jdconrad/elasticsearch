@@ -95,7 +95,7 @@ public class FunctionRef {
             MethodType delegateMethodType;
             Object[] delegateInjections;
             boolean isScriptAware = false;
-            // resolved @allocates estimator for the delegate (metadata); turned into a charge only by withAllocationCharge
+            // resolved @allocates estimator for the delegate (metadata); the compiler clears it when not charging
             java.lang.reflect.Method allocationEstimator = null;
 
             Class<?> delegateMethodReturnType;
@@ -303,8 +303,7 @@ public class FunctionRef {
                 factoryMethodType,
                 needsScriptInstance ? WriterConstants.CLASS_TYPE : null,
                 isScriptAware,
-                allocationEstimator,
-                false
+                allocationEstimator
             );
         } catch (IllegalArgumentException iae) {
             if (location != null) {
@@ -339,13 +338,13 @@ public class FunctionRef {
     public final Type factoryMethodReceiver;
     /** whether the delegate is a {@code @script_aware} augmentation (script captured as a leading factory parameter) */
     public final boolean isScriptAware;
-    /** the resolved {@code @allocates} estimator for the delegate target, or {@code null} when it has none */
-    public final java.lang.reflect.Method allocationEstimator;
     /**
-     * whether this reference charges the delegate's allocation per invocation (see {@link #withAllocationCharge}). Set only
-     * when tracking is enabled and the target is annotated; normal references leave it false and emit unchanged.
+     * the resolved {@code @allocates} estimator for the delegate target, or {@code null}. Its presence is the charge signal:
+     * a reference reaching code generation with a non-null estimator is charged per invocation against the captured script.
+     * {@code create} resolves it for every annotated target; the compiler clears it (see {@link #withoutAllocationEstimator})
+     * on references it decides not to charge (tracking off, or ineligible), leaving them to emit unchanged.
      */
-    public final boolean chargesAllocation;
+    public final java.lang.reflect.Method allocationEstimator;
 
     private FunctionRef(
         String interfaceMethodName,
@@ -360,8 +359,7 @@ public class FunctionRef {
         MethodType factoryMethodType,
         Type factoryMethodReceiver,
         boolean isScriptAware,
-        java.lang.reflect.Method allocationEstimator,
-        boolean chargesAllocation
+        java.lang.reflect.Method allocationEstimator
     ) {
 
         this.interfaceMethodName = interfaceMethodName;
@@ -377,7 +375,6 @@ public class FunctionRef {
         this.factoryMethodReceiver = factoryMethodReceiver;
         this.isScriptAware = isScriptAware;
         this.allocationEstimator = allocationEstimator;
-        this.chargesAllocation = chargesAllocation;
     }
 
     /** Get the factory method type, with updated receiver if {@code factoryMethodReceiver} is set */
@@ -391,11 +388,10 @@ public class FunctionRef {
     }
 
     /**
-     * Returns a new {@link FunctionRef} with a synthetic script-instance capture prepended
-     * to the factory method type.  Used by the compiler to augment typed static lambdas in
-     * cancellation-aware scripts so that {@code LambdaBootstrap} captures the script
-     * receiver, giving the lambda body access to both the script's persistent
-     * {@code $cancelPoll} counter and its {@code _getCancellationCheck()} runnable.
+     * Returns a new {@link FunctionRef} with a synthetic script-instance capture prepended to the factory method type, so
+     * {@code LambdaBootstrap} captures the script receiver. Used to give typed static lambdas access to the script — for
+     * cancellation (the persistent {@code $cancelPoll} counter and {@code _getCancellationCheck()} runnable) and, when the
+     * delegate is an annotated {@code @allocates} target, for the per-invocation allocation charge.
      */
     public FunctionRef withSyntheticScriptCapture(Class<?> scriptClass) {
         return new FunctionRef(
@@ -411,18 +407,19 @@ public class FunctionRef {
             factoryMethodType.insertParameterTypes(0, scriptClass),
             factoryMethodReceiver,
             isScriptAware,
-            allocationEstimator,
-            chargesAllocation
+            allocationEstimator
         );
     }
 
     /**
-     * Returns a new {@link FunctionRef} that charges the delegate's {@code @allocates} allocation per invocation. Prepends
-     * the script as a leading factory capture (like {@link #withSyntheticScriptCapture}) and flags
-     * {@link #chargesAllocation} so the interface method charges {@link #allocationEstimator} against it before delegating.
-     * Called only when tracking is enabled and {@link #allocationEstimator} is non-null.
+     * Returns a copy with {@link #allocationEstimator} cleared, so the reference is not charged. Used by the compiler for
+     * annotated targets it decides not to charge (tracking off, or an ineligible reference form), so they emit unchanged.
+     * Returns {@code this} when there is nothing to clear.
      */
-    public FunctionRef withAllocationCharge(Class<?> scriptClass) {
+    public FunctionRef withoutAllocationEstimator() {
+        if (allocationEstimator == null) {
+            return this;
+        }
         return new FunctionRef(
             interfaceMethodName,
             interfaceMethodType,
@@ -433,11 +430,10 @@ public class FunctionRef {
             delegateMethodName,
             delegateMethodType,
             delegateInjections,
-            factoryMethodType.insertParameterTypes(0, scriptClass),
+            factoryMethodType,
             factoryMethodReceiver,
             isScriptAware,
-            allocationEstimator,
-            true
+            null
         );
     }
 

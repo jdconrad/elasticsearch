@@ -466,7 +466,7 @@ public final class MethodWriter extends GeneratorAdapter {
     }
 
     public void invokeLambdaCall(FunctionRef functionRef) {
-        if (functionRef.chargesAllocation) {
+        if (functionRef.allocationEstimator != null) {
             // Charging reference: thread the @allocates estimator's owner/name/descriptor so the generated lambda charges
             // the delegate per invocation against the captured script (see LambdaBootstrap).
             java.lang.reflect.Method estimator = functionRef.allocationEstimator;

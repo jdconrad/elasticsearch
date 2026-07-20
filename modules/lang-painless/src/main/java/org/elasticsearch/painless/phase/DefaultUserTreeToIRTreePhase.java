@@ -1544,8 +1544,13 @@ public class DefaultUserTreeToIRTreePhase implements UserTreeVisitor<ScriptScope
                     || reference.delegateInvokeType == Opcodes.H_INVOKEVIRTUAL
                     || reference.delegateInvokeType == Opcodes.H_INVOKEINTERFACE);
             if (chargeAllocation) {
-                reference = reference.withAllocationCharge(scriptScope.getScriptClassInfo().getBaseClass());
+                // Capture the script so the generated lambda can charge the estimator against it; the retained estimator
+                // is the signal to invokeLambdaCall that this reference charges.
+                reference = reference.withSyntheticScriptCapture(scriptScope.getScriptClassInfo().getBaseClass());
                 typedInterfaceReferenceNode.attachDecoration(new IRDCaptureNames(List.of("#scriptThis")));
+            } else {
+                // Not charging (tracking off, or an ineligible reference form): drop the estimator so it emits unchanged.
+                reference = reference.withoutAllocationEstimator();
             }
             typedInterfaceReferenceNode.attachDecoration(new IRDReference(reference));
             if (scriptScope.getCondition(userFunctionRefNode, InstanceCapturingFunctionRef.class)) {
