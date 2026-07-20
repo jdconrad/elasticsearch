@@ -65,6 +65,7 @@ import static org.elasticsearch.painless.WriterConstants.DEF_TO_P_SHORT_IMPLICIT
 import static org.elasticsearch.painless.WriterConstants.DEF_TO_STRING_EXPLICIT;
 import static org.elasticsearch.painless.WriterConstants.DEF_TO_STRING_IMPLICIT;
 import static org.elasticsearch.painless.WriterConstants.DEF_UTIL_TYPE;
+import static org.elasticsearch.painless.WriterConstants.LAMBDA_ALLOC_BOOTSTRAP_HANDLE;
 import static org.elasticsearch.painless.WriterConstants.LAMBDA_BOOTSTRAP_HANDLE;
 import static org.elasticsearch.painless.WriterConstants.MAX_STRING_CONCAT_ARGS;
 import static org.elasticsearch.painless.WriterConstants.PAINLESS_ERROR_TYPE;
@@ -465,6 +466,27 @@ public final class MethodWriter extends GeneratorAdapter {
     }
 
     public void invokeLambdaCall(FunctionRef functionRef) {
+        if (functionRef.chargesAllocation) {
+            // Allocation-charging reference: thread the @allocates estimator's owner/name/descriptor so the generated
+            // lambda charges the delegate's allocation per invocation against the captured script (see LambdaBootstrap).
+            java.lang.reflect.Method estimator = functionRef.allocationEstimator;
+            Object[] args = new Object[10 + functionRef.delegateInjections.length];
+            args[0] = Type.getMethodType(functionRef.interfaceMethodType.toMethodDescriptorString());
+            args[1] = functionRef.delegateClassName;
+            args[2] = functionRef.delegateInvokeType;
+            args[3] = functionRef.delegateMethodName;
+            args[4] = Type.getMethodType(functionRef.delegateMethodType.toMethodDescriptorString());
+            args[5] = functionRef.isDelegateInterface ? 1 : 0;
+            args[6] = functionRef.isDelegateAugmented ? 1 : 0;
+            args[7] = Type.getInternalName(estimator.getDeclaringClass());
+            args[8] = estimator.getName();
+            args[9] = Method.getMethod(estimator).getDescriptor();
+            System.arraycopy(functionRef.delegateInjections, 0, args, 10, functionRef.delegateInjections.length);
+
+            invokeDynamic(functionRef.interfaceMethodName, functionRef.getFactoryMethodDescriptor(), LAMBDA_ALLOC_BOOTSTRAP_HANDLE, args);
+            return;
+        }
+
         Object[] args = new Object[7 + functionRef.delegateInjections.length];
         args[0] = Type.getMethodType(functionRef.interfaceMethodType.toMethodDescriptorString());
         args[1] = functionRef.delegateClassName;

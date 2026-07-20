@@ -207,6 +207,7 @@ import org.elasticsearch.painless.symbol.IRDecorations.IRCRead;
 import org.elasticsearch.painless.symbol.IRDecorations.IRCScriptAware;
 import org.elasticsearch.painless.symbol.IRDecorations.IRCStatic;
 import org.elasticsearch.painless.symbol.IRDecorations.IRCStaticCancellationCheck;
+import org.elasticsearch.painless.symbol.IRDecorations.IRCStaticScriptCapture;
 import org.elasticsearch.painless.symbol.IRDecorations.IRCSynthetic;
 import org.elasticsearch.painless.symbol.IRDecorations.IRCVarArgs;
 import org.elasticsearch.painless.symbol.IRDecorations.IRDAllocationEstimator;
@@ -1455,11 +1456,20 @@ public class DefaultUserTreeToIRTreePhase implements UserTreeVisitor<ScriptScope
         attachAllocationLimit(irFunctionNode, scriptScope);
         irClassNode.addFunctionNode(irFunctionNode);
 
-        boolean injectCancelCapture = irFunctionNode.hasCondition(IRCStatic.class)
-            && scriptScope.getScriptClassInfo().supportsCancellation()
-            && scriptScope.hasDecoration(userLambdaNode, TargetType.class);
-        if (injectCancelCapture) {
-            irFunctionNode.attachCondition(IRCStaticCancellationCheck.class);
+        // Static typed lambdas receive the script as a synthetic leading #scriptThis parameter when either cancellation or
+        // allocation tracking needs it. Cancellation emits the poll (IRCStaticCancellationCheck); allocation tracking uses
+        // the same capture to reach the script's $checkAllocBytes so allocations inside the otherwise script-less static
+        // lambda body are charged. def-typed static lambdas are not covered (no TargetType), matching the cancellation gap.
+        boolean supportsCancellation = scriptScope.getScriptClassInfo().supportsCancellation();
+        boolean allocationTracking = scriptScope.getCompilerSettings().isAllocationTrackingEnabled();
+        boolean injectScriptThis = irFunctionNode.hasCondition(IRCStatic.class)
+            && scriptScope.hasDecoration(userLambdaNode, TargetType.class)
+            && (supportsCancellation || allocationTracking);
+        if (injectScriptThis) {
+            irFunctionNode.attachCondition(IRCStaticScriptCapture.class);
+            if (supportsCancellation) {
+                irFunctionNode.attachCondition(IRCStaticCancellationCheck.class);
+            }
 
             Class<?> scriptClass = scriptScope.getScriptClassInfo().getBaseClass();
             List<Class<?>> augTypes = new ArrayList<>();
@@ -1484,7 +1494,7 @@ public class DefaultUserTreeToIRTreePhase implements UserTreeVisitor<ScriptScope
             captureNames = null;
         }
 
-        if (injectCancelCapture) {
+        if (injectScriptThis) {
             List<String> augCaptures = new ArrayList<>();
             augCaptures.add("#scriptThis");
             if (captureNames != null) {
@@ -1523,6 +1533,24 @@ public class DefaultUserTreeToIRTreePhase implements UserTreeVisitor<ScriptScope
         } else {
             FunctionRef reference = scriptScope.getDecoration(userFunctionRefNode, ReferenceDecoration.class).reference();
             TypedInterfaceReferenceNode typedInterfaceReferenceNode = new TypedInterfaceReferenceNode(userFunctionRefNode.getLocation());
+            // Charge the delegate's @allocates allocation per invocation for annotated references when allocation tracking
+            // is enabled: capture the script (as a leading factory capture) so the generated lambda can charge against it
+            // before delegating. Covers static-method (H_INVOKESTATIC), constructor (H_NEWINVOKESPECIAL) and unbound
+            // instance-method (H_INVOKEVIRTUAL / H_INVOKEINTERFACE) references — for the latter the receiver is the first
+            // functional-interface argument, matching the estimator's receiver-first signature. Bound instance-method
+            // references (a captured receiver, capturesDecoration != null) are not charged; unannotated references and
+            // tracking-off emit byte-for-byte unchanged.
+            boolean chargeAllocation = scriptScope.getCompilerSettings().isAllocationTrackingEnabled()
+                && reference.allocationEstimator != null
+                && capturesDecoration == null
+                && (reference.delegateInvokeType == Opcodes.H_INVOKESTATIC
+                    || reference.delegateInvokeType == Opcodes.H_NEWINVOKESPECIAL
+                    || reference.delegateInvokeType == Opcodes.H_INVOKEVIRTUAL
+                    || reference.delegateInvokeType == Opcodes.H_INVOKEINTERFACE);
+            if (chargeAllocation) {
+                reference = reference.withAllocationCharge(scriptScope.getScriptClassInfo().getBaseClass());
+                typedInterfaceReferenceNode.attachDecoration(new IRDCaptureNames(List.of("#scriptThis")));
+            }
             typedInterfaceReferenceNode.attachDecoration(new IRDReference(reference));
             if (scriptScope.getCondition(userFunctionRefNode, InstanceCapturingFunctionRef.class)) {
                 typedInterfaceReferenceNode.attachCondition(IRCInstanceCapture.class);

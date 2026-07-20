@@ -95,6 +95,9 @@ public class FunctionRef {
             MethodType delegateMethodType;
             Object[] delegateInjections;
             boolean isScriptAware = false;
+            // the resolved @allocates estimator for the delegate, when the target is annotated; carried as metadata and
+            // only turned into a per-invocation charge by withAllocationCharge when allocation tracking is enabled
+            java.lang.reflect.Method allocationEstimator = null;
 
             Class<?> delegateMethodReturnType;
             List<Class<?>> delegateMethodParameters;
@@ -160,6 +163,7 @@ public class FunctionRef {
                 delegateMethodName = PainlessLookupUtility.CONSTRUCTOR_NAME;
                 delegateMethodType = painlessConstructor.methodType();
                 delegateInjections = new Object[0];
+                allocationEstimator = painlessConstructor.allocationEstimator();
 
                 delegateMethodReturnType = painlessConstructor.javaConstructor().getDeclaringClass();
                 delegateMethodParameters = painlessConstructor.typeParameters();
@@ -222,6 +226,7 @@ public class FunctionRef {
 
                 delegateMethodName = painlessMethod.javaMethod().getName();
                 delegateMethodType = painlessMethod.methodType();
+                allocationEstimator = painlessMethod.allocationEstimator();
 
                 // @script_aware augmentations carry a leading PainlessScript parameter in methodType
                 // (and the underlying Java method) so the body can use the script instance. Strip it
@@ -298,7 +303,9 @@ public class FunctionRef {
                 delegateInjections,
                 factoryMethodType,
                 needsScriptInstance ? WriterConstants.CLASS_TYPE : null,
-                isScriptAware
+                isScriptAware,
+                allocationEstimator,
+                false
             );
         } catch (IllegalArgumentException iae) {
             if (location != null) {
@@ -333,6 +340,15 @@ public class FunctionRef {
     public final Type factoryMethodReceiver;
     /** whether the delegate is a {@code @script_aware} augmentation (script captured as a leading factory parameter) */
     public final boolean isScriptAware;
+    /** the resolved {@code @allocates} estimator for the delegate target, or {@code null} when it has none */
+    public final java.lang.reflect.Method allocationEstimator;
+    /**
+     * whether this reference charges the delegate's allocation per invocation. When true the script is captured as a
+     * leading factory parameter (see {@link #withAllocationCharge}) and the generated lambda's interface method charges
+     * {@link #allocationEstimator} against it before delegating. Only set when allocation tracking is enabled and the
+     * target is annotated; normal references leave this false and emit byte-for-byte unchanged.
+     */
+    public final boolean chargesAllocation;
 
     private FunctionRef(
         String interfaceMethodName,
@@ -346,7 +362,9 @@ public class FunctionRef {
         Object[] delegateInjections,
         MethodType factoryMethodType,
         Type factoryMethodReceiver,
-        boolean isScriptAware
+        boolean isScriptAware,
+        java.lang.reflect.Method allocationEstimator,
+        boolean chargesAllocation
     ) {
 
         this.interfaceMethodName = interfaceMethodName;
@@ -361,6 +379,8 @@ public class FunctionRef {
         this.factoryMethodType = factoryMethodType;
         this.factoryMethodReceiver = factoryMethodReceiver;
         this.isScriptAware = isScriptAware;
+        this.allocationEstimator = allocationEstimator;
+        this.chargesAllocation = chargesAllocation;
     }
 
     /** Get the factory method type, with updated receiver if {@code factoryMethodReceiver} is set */
@@ -393,7 +413,35 @@ public class FunctionRef {
             delegateInjections,
             factoryMethodType.insertParameterTypes(0, scriptClass),
             factoryMethodReceiver,
-            isScriptAware
+            isScriptAware,
+            allocationEstimator,
+            chargesAllocation
+        );
+    }
+
+    /**
+     * Returns a new {@link FunctionRef} that charges the delegate's {@code @allocates} allocation per invocation. Like
+     * {@link #withSyntheticScriptCapture} it prepends the script as a leading factory capture so the generated lambda
+     * holds a reference to it, and additionally flags {@link #chargesAllocation} so the interface method emits a charge
+     * of {@link #allocationEstimator} against that captured script before delegating. Called by the compiler only when
+     * allocation tracking is enabled and {@link #allocationEstimator} is non-null.
+     */
+    public FunctionRef withAllocationCharge(Class<?> scriptClass) {
+        return new FunctionRef(
+            interfaceMethodName,
+            interfaceMethodType,
+            delegateClassName,
+            isDelegateInterface,
+            isDelegateAugmented,
+            delegateInvokeType,
+            delegateMethodName,
+            delegateMethodType,
+            delegateInjections,
+            factoryMethodType.insertParameterTypes(0, scriptClass),
+            factoryMethodReceiver,
+            isScriptAware,
+            allocationEstimator,
+            true
         );
     }
 
