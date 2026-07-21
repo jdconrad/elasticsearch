@@ -61,6 +61,15 @@ public class AllocationDefLambdaTests extends AllocationTestCase {
         assertEquals(5, result);
     }
 
+    public void testDefBoundInstanceMethodReferenceChargedPerInvocation() {
+        // opt is def, so map is a def call and s::concat is a def bound instance-method reference (typed receiver) to an
+        // annotated target; the concat allocation is charged per invocation, tripping across the loop.
+        assertTripsLimit(
+            "String s = 'abcdefghij'; def opt = Optional.of(s); for (int i = 0; i < 1000000; ++i) { opt.map(s::concat); } return 1;",
+            "1mb"
+        );
+    }
+
     public void testDefReferenceNotChargedWhenTrackingOff() {
         // With tracking off, an annotated def constructor reference is not charge-captured and resolves normally.
         Object result = compile("def opt = Optional.empty(); return ((List) opt.orElseGet(ArrayList::new)).size();", "-1b").execute();

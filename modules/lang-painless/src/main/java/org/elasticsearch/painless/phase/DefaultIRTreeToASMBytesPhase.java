@@ -1778,7 +1778,9 @@ public class DefaultIRTreeToASMBytesPhase implements IRTreeVisitor<WriteScope> {
                 Variable captureVariable = writeScope.getVariable(captureName);
                 methodWriter.visitVarInsn(captureVariable.getAsmType().getOpcode(Opcodes.ILOAD), captureVariable.getSlot());
 
-                if (captureBox) {
+                // captureBox boxes the captured receiver of a bound reference. The synthetic #scriptThis capture (prepended
+                // for an allocation charge) is never boxed, so skip it and box the receiver that follows.
+                if (captureBox && "#scriptThis".equals(captureName) == false) {
                     methodWriter.box(captureVariable.getAsmType());
                     captureBox = false;
                 }

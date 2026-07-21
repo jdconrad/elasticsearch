@@ -2556,8 +2556,15 @@ public class DefaultSemanticAnalysisPhase extends UserTreeBaseVisitor<SemanticSc
                     // dynamic implementation
                     encodingDecoration = EncodingDecoration.of(false, false, symbol, methodName, 1);
                 } else {
-                    // typed implementation
-                    encodingDecoration = EncodingDecoration.of(true, false, captured.getCanonicalTypeName(), methodName, 1);
+                    // typed implementation. Under allocation tracking, capture the script (needsInstance=true) for a bound
+                    // reference to an annotated target so it charges per invocation, prepended ahead of the receiver
+                    // capture (see Def.lookupReferenceInternal / LambdaBootstrap); the charge bootstrap drops it.
+                    boolean chargeCapture = scriptScope.getCompilerSettings().isAllocationTrackingEnabled()
+                        && scriptScope.getPainlessLookup().hasAllocationEstimatorMethod(captured.type(), methodName);
+                    if (chargeCapture) {
+                        semanticScope.setCondition(userFunctionRefNode, InstanceCapturingFunctionRef.class);
+                    }
+                    encodingDecoration = EncodingDecoration.of(true, chargeCapture, captured.getCanonicalTypeName(), methodName, 1);
                 }
                 valueType = String.class;
                 semanticScope.putDecoration(userFunctionRefNode, encodingDecoration);

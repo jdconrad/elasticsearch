@@ -104,4 +104,29 @@ public class AllocationLambdaTests extends AllocationTestCase {
             bytes >= 96
         );
     }
+
+    public void testBoundInstanceMethodReferenceTrips() {
+        // A bound instance-method reference (captured receiver) to an annotated target charges per invocation; the script is
+        // captured ahead of the receiver and dropped before the delegate runs. Its huge estimator trips in one call.
+        assertTripsLimit(
+            "int c(IntSupplier s) { return s.getAsInt(); } "
+                + "AllocationEstimatorTestObject o = new AllocationEstimatorTestObject(); return c(o::hugeAllocatingInstance);",
+            "1mb"
+        );
+    }
+
+    public void testBoundInstanceMethodReferenceCounted() {
+        // constantAllocating charges 48 per call; two calls through a bound reference are both counted.
+        long bytes = allocatedBytes(
+            "int c(IntSupplier s) { return s.getAsInt() + s.getAsInt(); } "
+                + "AllocationEstimatorTestObject o = new AllocationEstimatorTestObject(); c(o::constantAllocating); return null;"
+        );
+        assertTrue("expected per-invocation bound instance-method-reference charges to be counted, but only [" + bytes + "]", bytes >= 96);
+    }
+
+    public void testBoundReferenceToUnannotatedTargetCompletes() {
+        // A bound reference to an unannotated target is not charge-captured and resolves normally.
+        Object result = compile("int c(IntSupplier s) { return s.getAsInt(); } String x = 'hello'; return c(x::length);", "1mb").execute();
+        assertEquals(5, result);
+    }
 }

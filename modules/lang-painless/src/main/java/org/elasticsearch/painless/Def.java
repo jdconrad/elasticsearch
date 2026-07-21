@@ -556,6 +556,8 @@ public final class Def {
                 ref.delegateMethodType,
                 ref.isDelegateInterface ? 1 : 0,
                 ref.isDelegateAugmented ? 1 : 0,
+                // needsScriptInstance prepends the script as the first factory parameter, so it is capture 0 here.
+                0,
                 estimator == null ? null : Type.getInternalName(estimator.getDeclaringClass()),
                 estimator == null ? null : estimator.getName(),
                 estimator == null ? null : Type.getMethodDescriptor(estimator),
