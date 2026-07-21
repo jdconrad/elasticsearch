@@ -129,4 +129,13 @@ public class AllocationLambdaTests extends AllocationTestCase {
         Object result = compile("int c(IntSupplier s) { return s.getAsInt(); } String x = 'hello'; return c(x::length);", "1mb").execute();
         assertEquals(5, result);
     }
+
+    public void testNestedStaticLambdaBodyAllocationTrips() {
+        // An inner static lambda inside an outer static lambda body: the inner captures #scriptThis from the outer's
+        // synthetic method, so its own body allocation is charged when both are invoked.
+        assertTripsLimit(
+            "return Optional.empty().orElseGet(() -> { return Optional.empty().orElseGet(() -> { return new int[1000000]; }); });",
+            "1kb"
+        );
+    }
 }

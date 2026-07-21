@@ -70,6 +70,16 @@ public class AllocationDefLambdaTests extends AllocationTestCase {
         );
     }
 
+    public void testNestedDefStaticLambdaBodyAllocationTrips() {
+        // An inner def static lambda inside an outer def static lambda body; the inner's body allocation is charged when
+        // both are invoked, confirming the script reaches a nested def lambda.
+        assertTripsLimit(
+            "def opt = Optional.empty(); return opt.orElseGet(() -> { def inner = Optional.empty(); "
+                + "return inner.orElseGet(() -> { return new int[1000000]; }); });",
+            "1kb"
+        );
+    }
+
     public void testDefReferenceNotChargedWhenTrackingOff() {
         // With tracking off, an annotated def constructor reference is not charge-captured and resolves normally.
         Object result = compile("def opt = Optional.empty(); return ((List) opt.orElseGet(ArrayList::new)).size();", "-1b").execute();
