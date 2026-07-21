@@ -80,6 +80,16 @@ public class AllocationDefLambdaTests extends AllocationTestCase {
         );
     }
 
+    public void testNestedDefConstructorReferenceInLambdaBodyTrips() {
+        // A def constructor reference to an annotated target, built and invoked inside an outer def static lambda body:
+        // its #scriptThis capture resolves against the outer lambda, and the per-invocation charge trips across the loop.
+        assertTripsLimit(
+            "def opt = Optional.empty(); return opt.orElseGet(() -> { "
+                + "for (int i = 0; i < 1000000; ++i) { def inner = Optional.empty(); inner.orElseGet(ArrayList::new); } return 1; });",
+            "1mb"
+        );
+    }
+
     public void testDefReferenceNotChargedWhenTrackingOff() {
         // With tracking off, an annotated def constructor reference is not charge-captured and resolves normally.
         Object result = compile("def opt = Optional.empty(); return ((List) opt.orElseGet(ArrayList::new)).size();", "-1b").execute();

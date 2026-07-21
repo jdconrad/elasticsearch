@@ -138,4 +138,15 @@ public class AllocationLambdaTests extends AllocationTestCase {
             "1kb"
         );
     }
+
+    public void testNestedConstructorReferenceInLambdaBodyTrips() {
+        // A constructor reference to an annotated target, built and invoked inside an outer static lambda body: its
+        // #scriptThis capture resolves against the outer lambda's synthetic-method #scriptThis, and the per-invocation
+        // charge accumulates across the loop and trips.
+        assertTripsLimit(
+            "return Optional.empty().orElseGet(() -> { "
+                + "for (int i = 0; i < 1000000; ++i) { Optional.empty().orElseGet(ArrayList::new); } return 1; });",
+            "1mb"
+        );
+    }
 }
