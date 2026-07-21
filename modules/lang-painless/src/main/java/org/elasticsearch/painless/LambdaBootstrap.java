@@ -231,15 +231,18 @@ public final class LambdaBootstrap {
             delegateMethodType,
             isDelegateInterface,
             isDelegateAugmented,
+            false,
             null,
             injections
         );
     }
 
     /**
-     * Allocation-charging variant of {@link #lambdaBootstrap}: the generated interface method first charges the delegate's
-     * {@code @allocates} allocation against the captured script. The estimator arrives as owner/name/descriptor and is
-     * rebuilt into a {@link #chargeBootstrap} call site. Only annotated references under tracking link through here.
+     * Allocation-charging variant of {@link #lambdaBootstrap}: the leading capture is the script, which the generated
+     * interface method drops before delegating and, when an estimator is supplied (owner/name/descriptor non-null), charges
+     * against via a {@link #chargeBootstrap} call site. The typed path (compile-time indy) always supplies an estimator; the
+     * def path (runtime, {@code Def.lookupReferenceInternal}) may supply nulls when the resolved target is not annotated —
+     * then the script capture is still dropped but nothing is charged. Only charge-capable references link through here.
      */
     public static CallSite lambdaBootstrapWithAllocation(
         Lookup lookup,
@@ -257,7 +260,9 @@ public final class LambdaBootstrap {
         String estimatorDescriptor,
         Object... injections
     ) throws LambdaConversionException {
-        Handle estimatorHandle = new Handle(H_INVOKESTATIC, estimatorOwner, estimatorName, estimatorDescriptor, false);
+        Handle estimatorHandle = estimatorOwner == null
+            ? null
+            : new Handle(H_INVOKESTATIC, estimatorOwner, estimatorName, estimatorDescriptor, false);
         return doLambdaBootstrap(
             lookup,
             interfaceMethodName,
@@ -269,6 +274,7 @@ public final class LambdaBootstrap {
             delegateMethodType,
             isDelegateInterface,
             isDelegateAugmented,
+            true,
             estimatorHandle,
             injections
         );
@@ -285,6 +291,7 @@ public final class LambdaBootstrap {
         MethodType delegateMethodType,
         int isDelegateInterface,
         int isDelegateAugmented,
+        boolean chargeScriptCapture,
         Handle estimatorHandle,
         Object... injections
     ) throws LambdaConversionException {
@@ -322,6 +329,7 @@ public final class LambdaBootstrap {
             isDelegateInterface == 1,
             isDelegateAugmented == 1,
             captures,
+            chargeScriptCapture,
             estimatorHandle,
             injections
         );
@@ -471,6 +479,7 @@ public final class LambdaBootstrap {
         boolean isDelegateInterface,
         boolean isDelegateAugmented,
         Capture[] captures,
+        boolean chargeScriptCapture,
         Handle estimatorHandle,
         Object... injections
     ) throws LambdaConversionException {
@@ -486,20 +495,23 @@ public final class LambdaBootstrap {
         );
         iface.visitCode();
 
-        // Allocation charge (only via lambdaBootstrapWithAllocation): the leading capture is the script. Charge the
-        // delegate's estimated allocation against it, then treat the capture as consumed so the delegate call below runs
-        // exactly as an uncharged reference — the script never reaches the real delegate.
-        if (estimatorHandle != null) {
+        // Allocation charge (only via lambdaBootstrapWithAllocation): the leading capture is the script. When an estimator
+        // is supplied, charge the delegate's estimated allocation against it. Then drop the capture so the delegate call
+        // below runs exactly as an uncharged reference — the script never reaches the real delegate. The drop happens even
+        // with no estimator (def references to an unannotated runtime target still capture the script but do not charge).
+        if (chargeScriptCapture) {
             Capture scriptCapture = captures[0];
-            Class<?>[] chargeParameters = new Class<?>[1 + interfaceMethodType.parameterCount()];
-            chargeParameters[0] = factoryMethodType.parameterType(0);
-            System.arraycopy(interfaceMethodType.parameterArray(), 0, chargeParameters, 1, interfaceMethodType.parameterCount());
-            MethodType chargeType = MethodType.methodType(void.class, chargeParameters);
+            if (estimatorHandle != null) {
+                Class<?>[] chargeParameters = new Class<?>[1 + interfaceMethodType.parameterCount()];
+                chargeParameters[0] = factoryMethodType.parameterType(0);
+                System.arraycopy(interfaceMethodType.parameterArray(), 0, chargeParameters, 1, interfaceMethodType.parameterCount());
+                MethodType chargeType = MethodType.methodType(void.class, chargeParameters);
 
-            iface.loadThis();
-            iface.getField(lambdaClassType, scriptCapture.name, scriptCapture.type);
-            iface.loadArgs();
-            iface.invokeDynamic(CHARGE_METHOD_NAME, chargeType.toMethodDescriptorString(), CHARGE_BOOTSTRAP_HANDLE, estimatorHandle);
+                iface.loadThis();
+                iface.getField(lambdaClassType, scriptCapture.name, scriptCapture.type);
+                iface.loadArgs();
+                iface.invokeDynamic(CHARGE_METHOD_NAME, chargeType.toMethodDescriptorString(), CHARGE_BOOTSTRAP_HANDLE, estimatorHandle);
+            }
 
             Capture[] remaining = new Capture[captures.length - 1];
             System.arraycopy(captures, 1, remaining, 0, remaining.length);

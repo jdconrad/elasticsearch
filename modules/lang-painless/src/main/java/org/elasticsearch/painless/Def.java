@@ -16,6 +16,7 @@ import org.elasticsearch.painless.lookup.PainlessLookupUtility;
 import org.elasticsearch.painless.lookup.PainlessMethod;
 import org.elasticsearch.painless.spi.annotation.ScriptAwareAnnotation;
 import org.elasticsearch.painless.symbol.FunctionTable;
+import org.objectweb.asm.Type;
 
 import java.lang.invoke.CallSite;
 import java.lang.invoke.MethodHandle;
@@ -519,6 +520,11 @@ public final class Def {
         boolean needsScriptInstance
     ) throws Throwable {
 
+        // An external reference (symbol != "this") that needs the script instance was encoded that way by allocation
+        // tracking to capture the script for a possible per-invocation charge (see the semantic function-reference
+        // lowering). "this" references need the script as a real delegate argument and are not charged here.
+        boolean chargesAllocation = needsScriptInstance && "this".equals(type) == false;
+
         final FunctionRef ref = FunctionRef.create(
             painlessLookup,
             functions,
@@ -532,19 +538,44 @@ public final class Def {
         );
         Class<?>[] parameters = ref.factoryMethodParameters(needsScriptInstance ? methodHandlesLookup.lookupClass() : null);
         MethodType factoryMethodType = MethodType.methodType(clazz, parameters);
-        final CallSite callSite = LambdaBootstrap.lambdaBootstrap(
-            methodHandlesLookup,
-            ref.interfaceMethodName,
-            factoryMethodType,
-            ref.interfaceMethodType,
-            ref.delegateClassName,
-            ref.delegateInvokeType,
-            ref.delegateMethodName,
-            ref.delegateMethodType,
-            ref.isDelegateInterface ? 1 : 0,
-            ref.isDelegateAugmented ? 1 : 0,
-            ref.delegateInjections
-        );
+        final CallSite callSite;
+        // A charge-capturing reference (needsScriptInstance forced for an external @allocates target under tracking, see the
+        // semantic function-reference lowering) routes through the charging bootstrap: it drops the leading script capture
+        // and, when the runtime-resolved target is annotated, charges the estimated allocation per invocation. The estimator
+        // may be null if the resolved overload is not annotated — the capture is still dropped, nothing is charged.
+        if (chargesAllocation) {
+            Method estimator = ref.allocationEstimator;
+            callSite = LambdaBootstrap.lambdaBootstrapWithAllocation(
+                methodHandlesLookup,
+                ref.interfaceMethodName,
+                factoryMethodType,
+                ref.interfaceMethodType,
+                ref.delegateClassName,
+                ref.delegateInvokeType,
+                ref.delegateMethodName,
+                ref.delegateMethodType,
+                ref.isDelegateInterface ? 1 : 0,
+                ref.isDelegateAugmented ? 1 : 0,
+                estimator == null ? null : Type.getInternalName(estimator.getDeclaringClass()),
+                estimator == null ? null : estimator.getName(),
+                estimator == null ? null : Type.getMethodDescriptor(estimator),
+                ref.delegateInjections
+            );
+        } else {
+            callSite = LambdaBootstrap.lambdaBootstrap(
+                methodHandlesLookup,
+                ref.interfaceMethodName,
+                factoryMethodType,
+                ref.interfaceMethodType,
+                ref.delegateClassName,
+                ref.delegateInvokeType,
+                ref.delegateMethodName,
+                ref.delegateMethodType,
+                ref.isDelegateInterface ? 1 : 0,
+                ref.isDelegateAugmented ? 1 : 0,
+                ref.delegateInjections
+            );
+        }
         return callSite.dynamicInvoker().asType(MethodType.methodType(clazz, parameters));
     }
 
@@ -1889,13 +1920,11 @@ public final class Def {
                 if (isStatic == false) {
                     throw new IllegalArgumentException("Def.Encoding must be static if symbol is 'this', encoding [" + encoding + "]");
                 }
-            } else {
-                if (needsInstance) {
-                    throw new IllegalArgumentException(
-                        "Def.Encoding symbol must be 'this', not [" + symbol + "] if needsInstance," + " encoding [" + encoding + "]"
-                    );
-                }
             }
+            // needsInstance on a non-'this' symbol is permitted: allocation tracking encodes an external reference to an
+            // @allocates target with needsInstance=true to capture the script, which the charging lambda bootstrap drops
+            // before delegating (see the semantic function-reference lowering and Def.lookupReferenceInternal). This keeps
+            // the encoding format unchanged, so tracking-off scripts encode byte-for-byte as before.
 
             if (methodName.isEmpty()) {
                 throw new IllegalArgumentException("methodName must be non-empty, encoding [" + encoding + "]");
