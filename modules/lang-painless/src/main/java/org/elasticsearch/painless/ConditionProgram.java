@@ -80,22 +80,28 @@ public final class ConditionProgram {
         private final boolean fromParams;
 
         /**
-         * Resolved getter for the last-seen receiver class, mirroring {@link DefBootstrap}'s monomorphic
-         * inline cache. Written as an immutable pair so a race can only cost a recompute, never tear.
+         * Resolution for the last-seen receiver class at each segment, mirroring {@link DefBootstrap}'s
+         * monomorphic inline cache. Not volatile: {@link Resolved} is a record, so its final fields are
+         * safely published even through a data race, and a stale or missing entry only costs a recompute.
          */
-        private volatile CachedGetter[] cache;
+        private final Resolved[] cache;
 
-        private record CachedGetter(Class<?> receiver, MethodHandle getter) {}
+        /**
+         * A resolved segment access. {@code mapGet} records that {@link Def#lookupGetter} would have
+         * returned its bound {@code Map.get} handle -- the receiver is a Map and no allowlisted getter
+         * shadows the name -- in which case the call is made directly, avoiding a MethodHandle entirely.
+         * That matters because for ingest every hop off ctx is a map lookup.
+         */
+        private record Resolved(Class<?> receiver, boolean mapGet, MethodHandle getter) {}
 
         public Path(Segment[] segments, boolean fromParams) {
             this.segments = segments;
             this.fromParams = fromParams;
-            this.cache = new CachedGetter[segments.length];
+            this.cache = new Resolved[segments.length];
         }
 
         public Object load(Map<String, Object> ctx, Map<String, Object> params, PainlessLookup lookup) throws Throwable {
             Object value = fromParams ? params : ctx;
-            CachedGetter[] local = cache;
 
             for (int i = 0; i < segments.length; i++) {
                 Segment segment = segments[i];
@@ -108,15 +114,33 @@ public final class ConditionProgram {
                 }
 
                 Class<?> receiver = value.getClass();
-                CachedGetter cached = local[i];
-                if (cached == null || cached.receiver() != receiver) {
-                    cached = new CachedGetter(receiver, Def.lookupGetter(lookup, receiver, segment.name()));
-                    local[i] = cached;
+                Resolved resolved = cache[i];
+
+                if (resolved == null || resolved.receiver() != receiver) {
+                    resolved = resolve(lookup, receiver, segment.name());
+                    cache[i] = resolved;
                 }
-                value = cached.getter().invoke(value);
+
+                value = resolved.mapGet() ? ((Map<?, ?>) value).get(segment.name()) : (Object) resolved.getter().invokeExact(value);
             }
 
             return value;
+        }
+
+        /**
+         * Mirrors the branch {@link Def#lookupGetter} would take. The allowlist is consulted first there,
+         * so a name such as {@code empty} resolves to {@code isEmpty()} rather than to a map key, and this
+         * has to make the same call before claiming the map fast path.
+         */
+        private static Resolved resolve(PainlessLookup lookup, Class<?> receiver, String name) {
+            if (lookup.lookupRuntimeGetterMethodHandle(receiver, name) == null && Map.class.isAssignableFrom(receiver)) {
+                return new Resolved(receiver, true, null);
+            }
+
+            // cast once so the hot path can use invokeExact rather than the slower generic invoke
+            MethodHandle getter = Def.lookupGetter(lookup, receiver, name).asType(MethodType.methodType(Object.class, Object.class));
+
+            return new Resolved(receiver, false, getter);
         }
     }
 
