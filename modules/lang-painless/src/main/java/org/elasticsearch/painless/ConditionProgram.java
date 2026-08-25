@@ -62,6 +62,8 @@ public final class ConditionProgram {
     // operand kinds
     public static final byte OPERAND_PATH = 0;
     public static final byte OPERAND_CONSTANT = 1;
+    /** An allowlisted method call on another operand, such as {@code ctx.tags.contains('x')}. */
+    public static final byte OPERAND_CALL = 2;
 
     /**
      * One step of a {@code ctx.a.b} navigation.
@@ -121,11 +123,36 @@ public final class ConditionProgram {
     /** A single comparison. {@code right} is unused for {@link #TRUTHY}. */
     public record Check(byte leftKind, int leftIndex, byte op, byte rightKind, int rightIndex, boolean negate) {}
 
+    /**
+     * A method call whose receiver and arguments are themselves operands.
+     * <p>
+     * {@code handle} is bound by {@link org.elasticsearch.painless.phase.ConditionRecognitionPhase}: for a
+     * statically resolved call it is the {@code PainlessMethod}'s own handle, and for a def call it is the
+     * dynamic invoker of a {@link DefBootstrap#METHOD_CALL} site built with the same name and method type
+     * code generation would have emitted. Either way the dispatch is the one the compiled script performs.
+     */
+    public record Call(byte receiverKind, int receiverIndex, MethodHandle handle, byte[] argKinds, int[] argIndexes) {}
+
+    /**
+     * The boolean structure of the condition. A flat {@code a && b && c} is a single {@link All}, while a
+     * mixed expression keeps its nesting, which a flat list of checks cannot express. Both short-circuit.
+     */
+    public sealed interface Node permits Leaf, All, Any {}
+
+    /** A single {@link Check}, by index into the check table. */
+    public record Leaf(int check) implements Node {}
+
+    /** Conjunction. */
+    public record All(Node[] children) implements Node {}
+
+    /** Disjunction. */
+    public record Any(Node[] children) implements Node {}
+
     private final Path[] paths;
     private final Object[] constants;
+    private final Call[] calls;
     private final Check[] checks;
-    /** true when the checks are joined by {@code &&}, false for {@code ||}. */
-    private final boolean all;
+    private final Node root;
     private final PainlessLookup lookup;
 
     /**
@@ -137,11 +164,12 @@ public final class ConditionProgram {
      */
     private final MethodHandle[] comparators;
 
-    public ConditionProgram(Path[] paths, Object[] constants, Check[] checks, boolean all, PainlessLookup lookup) {
+    public ConditionProgram(Path[] paths, Object[] constants, Call[] calls, Check[] checks, Node root, PainlessLookup lookup) {
         this.paths = paths;
         this.constants = constants;
+        this.calls = calls;
         this.checks = checks;
-        this.all = all;
+        this.root = root;
         this.lookup = lookup;
         this.comparators = new MethodHandle[checks.length];
 
@@ -181,13 +209,29 @@ public final class ConditionProgram {
     }
 
     public boolean execute(Map<String, Object> ctx, Map<String, Object> params) throws Throwable {
-        for (int i = 0; i < checks.length; i++) {
-            boolean result = test(checks[i], i, ctx, params);
-            if (result != all) {
-                return result; // short-circuits for both && and ||
+        return evaluate(root, ctx, params);
+    }
+
+    private boolean evaluate(Node node, Map<String, Object> ctx, Map<String, Object> params) throws Throwable {
+        return switch (node) {
+            case Leaf leaf -> test(checks[leaf.check()], leaf.check(), ctx, params);
+            case All all -> {
+                for (Node child : all.children()) {
+                    if (evaluate(child, ctx, params) == false) {
+                        yield false; // short-circuits
+                    }
+                }
+                yield true;
             }
-        }
-        return all;
+            case Any any -> {
+                for (Node child : any.children()) {
+                    if (evaluate(child, ctx, params)) {
+                        yield true; // short-circuits
+                    }
+                }
+                yield false;
+            }
+        };
     }
 
     private boolean test(Check check, int index, Map<String, Object> ctx, Map<String, Object> params) throws Throwable {
@@ -214,6 +258,30 @@ public final class ConditionProgram {
     }
 
     private Object operand(byte kind, int index, Map<String, Object> ctx, Map<String, Object> params) throws Throwable {
-        return kind == OPERAND_PATH ? paths[index].load(ctx, params, lookup) : constants[index];
+        return switch (kind) {
+            case OPERAND_PATH -> paths[index].load(ctx, params, lookup);
+            case OPERAND_CONSTANT -> constants[index];
+            case OPERAND_CALL -> call(calls[index], ctx, params);
+            default -> throw new IllegalStateException("unexpected operand kind [" + kind + "]");
+        };
+    }
+
+    private Object call(Call call, Map<String, Object> ctx, Map<String, Object> params) throws Throwable {
+        Object receiver = operand(call.receiverKind(), call.receiverIndex(), ctx, params);
+
+        if (receiver == null) {
+            // the compiled call would dereference null here, and reports it the same way
+            throw new NullPointerException("cannot call method on a null def reference");
+        }
+
+        byte[] argKinds = call.argKinds();
+        Object[] arguments = new Object[argKinds.length + 1];
+        arguments[0] = receiver;
+
+        for (int i = 0; i < argKinds.length; i++) {
+            arguments[i + 1] = operand(argKinds[i], call.argIndexes()[i], ctx, params);
+        }
+
+        return call.handle().invokeWithArguments(arguments);
     }
 }

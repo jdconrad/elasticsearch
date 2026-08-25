@@ -12,6 +12,7 @@ package org.elasticsearch.painless.phase;
 import org.elasticsearch.logging.LogManager;
 import org.elasticsearch.logging.Logger;
 import org.elasticsearch.painless.ConditionProgram;
+import org.elasticsearch.painless.DefBootstrap;
 import org.elasticsearch.painless.Operation;
 import org.elasticsearch.painless.ir.BinaryImplNode;
 import org.elasticsearch.painless.ir.BlockNode;
@@ -20,9 +21,11 @@ import org.elasticsearch.painless.ir.ClassNode;
 import org.elasticsearch.painless.ir.ComparisonNode;
 import org.elasticsearch.painless.ir.ConstantNode;
 import org.elasticsearch.painless.ir.DeclarationNode;
+import org.elasticsearch.painless.ir.DefInterfaceReferenceNode;
 import org.elasticsearch.painless.ir.ExpressionNode;
 import org.elasticsearch.painless.ir.FunctionNode;
 import org.elasticsearch.painless.ir.InstanceofNode;
+import org.elasticsearch.painless.ir.InvokeCallDefNode;
 import org.elasticsearch.painless.ir.InvokeCallNode;
 import org.elasticsearch.painless.ir.LoadDotDefNode;
 import org.elasticsearch.painless.ir.LoadMapShortcutNode;
@@ -32,9 +35,12 @@ import org.elasticsearch.painless.ir.NullSafeSubNode;
 import org.elasticsearch.painless.ir.ReturnNode;
 import org.elasticsearch.painless.ir.StatementNode;
 import org.elasticsearch.painless.ir.TryNode;
+import org.elasticsearch.painless.ir.TypedInterfaceReferenceNode;
 import org.elasticsearch.painless.ir.UnaryMathNode;
 import org.elasticsearch.painless.lookup.PainlessLookup;
 import org.elasticsearch.painless.lookup.def;
+import org.elasticsearch.painless.symbol.FunctionTable;
+import org.elasticsearch.painless.symbol.IRDecorations.IRCScriptAware;
 import org.elasticsearch.painless.symbol.IRDecorations.IRDComparisonType;
 import org.elasticsearch.painless.symbol.IRDecorations.IRDConstant;
 import org.elasticsearch.painless.symbol.IRDecorations.IRDInstanceType;
@@ -42,9 +48,14 @@ import org.elasticsearch.painless.symbol.IRDecorations.IRDName;
 import org.elasticsearch.painless.symbol.IRDecorations.IRDOperation;
 import org.elasticsearch.painless.symbol.IRDecorations.IRDValue;
 
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -83,6 +94,8 @@ public class ConditionRecognitionPhase {
     private final PainlessLookup painlessLookup;
     private final List<ConditionProgram.Path> paths = new ArrayList<>();
     private final List<Object> constants = new ArrayList<>();
+    private final List<ConditionProgram.Call> calls = new ArrayList<>();
+    private final List<ConditionProgram.Check> checks = new ArrayList<>();
 
     private ConditionRecognitionPhase(PainlessLookup painlessLookup) {
         this.painlessLookup = painlessLookup;
@@ -111,14 +124,14 @@ public class ConditionRecognitionPhase {
             }
 
             ConditionRecognitionPhase phase = new ConditionRecognitionPhase(painlessLookup);
-            List<ConditionProgram.Check> checks = new ArrayList<>();
-            Boolean all = phase.flatten(irExpressionNode, checks, null);
+            ConditionProgram.Node root = phase.node(irExpressionNode);
 
             return new ConditionProgram(
                 phase.paths.toArray(new ConditionProgram.Path[0]),
                 phase.constants.toArray(),
-                checks.toArray(new ConditionProgram.Check[0]),
-                all == null || all,
+                phase.calls.toArray(new ConditionProgram.Call[0]),
+                phase.checks.toArray(new ConditionProgram.Check[0]),
+                root,
                 painlessLookup
             );
         } catch (Unsupported unsupported) {
@@ -203,13 +216,11 @@ public class ConditionRecognitionPhase {
     }
 
     /**
-     * Flattens a uniformly {@code &&}-joined or {@code ||}-joined expression into a list of checks.
-     * Mixed operators are rejected because their precedence is not expressible in a flat list.
-     *
-     * @param all the operator seen so far, or {@code null} if none yet
-     * @return the operator for the whole expression
+     * Builds the boolean structure, preserving nesting so that mixed {@code &&} and {@code ||} keep their
+     * precedence. Runs of the same operator are flattened into one node so the common uniform case stays a
+     * single short-circuiting loop.
      */
-    private Boolean flatten(ExpressionNode irExpressionNode, List<ConditionProgram.Check> checks, Boolean all) {
+    private ConditionProgram.Node node(ExpressionNode irExpressionNode) {
         if (irExpressionNode instanceof BooleanNode irBooleanNode) {
             Operation operation = irBooleanNode.getDecorationValue(IRDOperation.class);
 
@@ -217,18 +228,27 @@ public class ConditionRecognitionPhase {
                 throw unsupported("boolean operator other than && or ||");
             }
 
-            boolean and = operation == Operation.AND;
+            List<ConditionProgram.Node> children = new ArrayList<>();
+            collect(irBooleanNode, operation, children);
+            ConditionProgram.Node[] array = children.toArray(new ConditionProgram.Node[0]);
 
-            if (all != null && all != and) {
-                throw unsupported("mixed && and ||");
-            }
-
-            return flatten(irBooleanNode.getRightNode(), checks, flatten(irBooleanNode.getLeftNode(), checks, and));
+            return operation == Operation.AND ? new ConditionProgram.All(array) : new ConditionProgram.Any(array);
         }
 
         checks.add(check(irExpressionNode));
 
-        return all;
+        return new ConditionProgram.Leaf(checks.size() - 1);
+    }
+
+    /** Flattens a run of the same operator; a different operator starts a nested node. */
+    private void collect(BooleanNode irBooleanNode, Operation operation, List<ConditionProgram.Node> children) {
+        for (ExpressionNode irChildNode : List.of(irBooleanNode.getLeftNode(), irBooleanNode.getRightNode())) {
+            if (irChildNode instanceof BooleanNode irNestedNode && irNestedNode.getDecorationValue(IRDOperation.class) == operation) {
+                collect(irNestedNode, operation, children);
+            } else {
+                children.add(node(irChildNode));
+            }
+        }
     }
 
     private ConditionProgram.Check check(ExpressionNode irExpressionNode) {
@@ -268,7 +288,31 @@ public class ConditionRecognitionPhase {
         if (irExpressionNode instanceof BinaryImplNode irBinaryImplNode) {
             ConditionProgram.Check stringEquals = constantStringEquals(irBinaryImplNode);
 
-            return stringEquals != null ? stringEquals : constantSetContains(irBinaryImplNode);
+            if (stringEquals != null) {
+                return stringEquals;
+            }
+
+            ConditionProgram.Check setContains = constantSetContains(irBinaryImplNode);
+
+            if (setContains != null) {
+                return setContains;
+            }
+
+            // a boolean-valued call used directly as the condition, such as ctx.tags.contains('x')
+            Operand call = methodCall(irBinaryImplNode);
+
+            if (call != null) {
+                return new ConditionProgram.Check(
+                    call.kind(),
+                    call.index(),
+                    ConditionProgram.TRUTHY,
+                    ConditionProgram.OPERAND_CONSTANT,
+                    0,
+                    false
+                );
+            }
+
+            throw unsupported("binary impl that is not a recognised call");
         }
 
         throw unsupported("check: unhandled node " + irExpressionNode.getClass().getSimpleName());
@@ -395,7 +439,7 @@ public class ConditionRecognitionPhase {
             Operand argument = operand(irInvokeCallNode.getArgumentNodes().get(0));
 
             if (argument.kind() != ConditionProgram.OPERAND_PATH) {
-                throw unsupported("contains argument is not a ctx path");
+                return null;
             }
 
             return new ConditionProgram.Check(
@@ -408,10 +452,94 @@ public class ConditionRecognitionPhase {
             );
         }
 
-        throw unsupported("not a constant-set contains");
+        return null;
     }
 
     private record Operand(byte kind, int index) {}
+
+    /**
+     * Recognises {@code <operand>.method(args)} in either dispatch form, or returns null.
+     * <p>
+     * A statically resolved call carries its own {@code PainlessMethod} handle. A def call is bound to a
+     * {@link DefBootstrap#METHOD_CALL} site with the same name and an all-Object method type, which is what
+     * code generation emits once the recipe is empty -- so calls taking a lambda or needing the script
+     * instance are rejected, since those require bootstrap arguments this cannot reconstruct.
+     */
+    private Operand methodCall(BinaryImplNode irBinaryImplNode) {
+        ExpressionNode irReceiverNode = irBinaryImplNode.getLeftNode();
+        ExpressionNode irCallNode = irBinaryImplNode.getRightNode();
+        List<ExpressionNode> irArgumentNodes;
+        MethodHandle handle;
+
+        if (irCallNode instanceof InvokeCallNode irInvokeCallNode) {
+            if (irInvokeCallNode.getMethod() == null) {
+                return null;
+            }
+            irArgumentNodes = irInvokeCallNode.getArgumentNodes();
+            handle = irInvokeCallNode.getMethod().methodHandle();
+        } else if (irCallNode instanceof InvokeCallDefNode irInvokeCallDefNode) {
+            /*
+             * A @script_aware call pushes the script instance so it can check cancellation and charge
+             * allocations, which changes the call site shape and, more importantly, is the mechanism that
+             * makes the call interruptible. Leaving these compiled preserves that; on real pipelines they
+             * are almost all `contains`, so this is the bulk of what still generates a class.
+             */
+            if (irInvokeCallDefNode.hasCondition(IRCScriptAware.class)) {
+                return null;
+            }
+            irArgumentNodes = irInvokeCallDefNode.getArgumentNodes();
+            handle = defCall(irInvokeCallDefNode.getDecorationValue(IRDName.class), irArgumentNodes.size());
+        } else {
+            return null;
+        }
+
+        if (handle == null) {
+            return null;
+        }
+
+        // a lambda or method reference argument needs a bootstrap recipe, which is out of scope here
+        for (ExpressionNode irArgumentNode : irArgumentNodes) {
+            if (irArgumentNode instanceof DefInterfaceReferenceNode || irArgumentNode instanceof TypedInterfaceReferenceNode) {
+                return null;
+            }
+        }
+
+        Operand receiver = operand(irReceiverNode);
+        byte[] argKinds = new byte[irArgumentNodes.size()];
+        int[] argIndexes = new int[irArgumentNodes.size()];
+
+        for (int i = 0; i < irArgumentNodes.size(); i++) {
+            Operand argument = operand(irArgumentNodes.get(i));
+            argKinds[i] = argument.kind();
+            argIndexes[i] = argument.index();
+        }
+
+        calls.add(new ConditionProgram.Call(receiver.kind(), receiver.index(), handle, argKinds, argIndexes));
+
+        return new Operand(ConditionProgram.OPERAND_CALL, calls.size() - 1);
+    }
+
+    /** A def call site of the shape code generation emits for a call with no recipe entries. */
+    private MethodHandle defCall(String name, int arity) {
+        if (name == null) {
+            return null;
+        }
+
+        Class<?>[] parameters = new Class<?>[arity + 1];
+        Arrays.fill(parameters, Object.class);
+
+        return DefBootstrap.bootstrap(
+            painlessLookup,
+            new FunctionTable(),
+            Map.of(),
+            MethodHandles.lookup(),
+            name,
+            MethodType.methodType(Object.class, parameters),
+            0,
+            DefBootstrap.METHOD_CALL,
+            ""
+        ).dynamicInvoker();
+    }
 
     private Operand operand(ExpressionNode irExpressionNode) {
         if (irExpressionNode instanceof NullNode) {
@@ -420,6 +548,14 @@ public class ConditionRecognitionPhase {
 
         if (irExpressionNode instanceof ConstantNode irConstantNode) {
             return new Operand(ConditionProgram.OPERAND_CONSTANT, constant(irConstantNode.getDecorationValue(IRDConstant.class)));
+        }
+
+        if (irExpressionNode instanceof BinaryImplNode irBinaryImplNode) {
+            Operand call = methodCall(irBinaryImplNode);
+
+            if (call != null) {
+                return call;
+            }
         }
 
         List<ConditionProgram.Segment> segments = new ArrayList<>();

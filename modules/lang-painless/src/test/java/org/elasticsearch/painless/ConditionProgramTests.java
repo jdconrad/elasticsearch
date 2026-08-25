@@ -176,8 +176,33 @@ public class ConditionProgramTests extends ScriptTestCase {
     public void testUnsupportedShapesFallBackToCompilation() {
         assertNotRecognised("def x = ctx.a; return x != null");        // a local
         assertNotRecognised("if (ctx.a != null) { return true } return false"); // control flow
-        assertNotRecognised("ctx.a != null && ctx.b == null || ctx.c != null"); // mixed && and ||
-        assertNotRecognised("ctx.a.size() > 2");                        // an unrecognised call
+    }
+
+    /** Mixed operators must keep their precedence rather than collapsing into a flat list. */
+    public void testNestedBooleanStructureIsRecognised() {
+        assertRecognisedAndAgrees(
+            "(ctx.a != null && ctx.b == null) || ctx.c != null",
+            Arrays.asList(ctx(), ctx("a", "x"), ctx("c", "z"), ctx("a", "x", "b", "y"), ctx("a", "x", "c", "z"))
+        );
+        assertRecognisedAndAgrees(
+            "ctx.a != null && (ctx.b == null || ctx.c != null)",
+            Arrays.asList(ctx(), ctx("a", "x"), ctx("a", "x", "b", "y"), ctx("a", "x", "b", "y", "c", "z"))
+        );
+    }
+
+    public void testMethodCallOnAPathIsRecognised() {
+        assertRecognisedAndAgrees(
+            "ctx.tags != null && ctx.tags.containsKey('k')",
+            Arrays.asList(ctx(), ctx("tags", ctx("k", "v")), ctx("tags", new HashMap<String, Object>()), ctx("tags", "notamap"))
+        );
+    }
+
+    /**
+     * A {@code @script_aware} call pushes the script instance so it can check cancellation, so it keeps its
+     * generated class rather than being reduced to data.
+     */
+    public void testScriptAwareCallFallsBackToCompilation() {
+        assertNotRecognised("ctx.tags != null && ctx.tags.contains('x')");
     }
 
     /** {@code ===} is reference equality and must not be folded into {@code ==}. */
