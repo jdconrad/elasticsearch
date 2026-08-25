@@ -53,6 +53,11 @@ public final class ConditionProgram {
     public static final byte IS_NOT_NULL = 10;
     /** {@code ['a','b'].contains(x)}, after the constant list optimisation has folded the list to a Set. */
     public static final byte CONTAINED_BY = 8;
+    /**
+     * {@code x == "literal"}, which {@link org.elasticsearch.painless.phase.DefaultEqualityMethodOptimizationPhase}
+     * has already rewritten into a direct {@code String.equals} call with the constant as the receiver.
+     */
+    public static final byte CONSTANT_STRING_EQUALS = 11;
 
     // operand kinds
     public static final byte OPERAND_PATH = 0;
@@ -194,6 +199,7 @@ public final class ConditionProgram {
             case IS_NOT_NULL -> result = left != null;
             case TRUTHY -> result = (Boolean) left;
             case INSTANCEOF -> result = ((Class<?>) constants[check.rightIndex()]).isInstance(left);
+            case CONSTANT_STRING_EQUALS -> result = constants[check.rightIndex()].equals(left);
             case CONTAINED_BY ->
                 // matches HashSet.contains, which the generated code calls once the list has been folded
                 result = ((java.util.Set<?>) constants[check.rightIndex()]).contains(left);

@@ -266,7 +266,9 @@ public class ConditionRecognitionPhase {
         }
 
         if (irExpressionNode instanceof BinaryImplNode irBinaryImplNode) {
-            return constantSetContains(irBinaryImplNode);
+            ConditionProgram.Check stringEquals = constantStringEquals(irBinaryImplNode);
+
+            return stringEquals != null ? stringEquals : constantSetContains(irBinaryImplNode);
         }
 
         throw unsupported("check: unhandled node " + irExpressionNode.getClass().getSimpleName());
@@ -346,6 +348,37 @@ public class ConditionRecognitionPhase {
             constant(instanceType),
             false
         );
+    }
+
+    /**
+     * Recognises {@code x == "literal"} in the form {@link DefaultEqualityMethodOptimizationPhase} leaves it:
+     * the constant hoisted to the receiver and a direct {@code String.equals} call taking the value. That
+     * phase runs immediately before this one, so a string comparison never arrives as a ComparisonNode.
+     * {@code !=} arrives wrapped in a NOT, which {@link #check} has already folded into the negate flag.
+     */
+    private ConditionProgram.Check constantStringEquals(BinaryImplNode irBinaryImplNode) {
+        if (irBinaryImplNode.getLeftNode() instanceof ConstantNode irConstantNode
+            && irBinaryImplNode.getRightNode() instanceof InvokeCallNode irInvokeCallNode
+            && irConstantNode.getDecorationValue(IRDConstant.class) instanceof String constant
+            && irInvokeCallNode.getMethod() != null
+            // painless resolves this to the inherited Object.equals, so match on name and arity; the
+            // receiver being a constant String is what makes String.equals semantics the right ones
+            && "equals".equals(irInvokeCallNode.getMethod().javaMethod().getName())
+            && irInvokeCallNode.getArgumentNodes().size() == 1) {
+
+            Operand value = operand(irInvokeCallNode.getArgumentNodes().get(0));
+
+            return new ConditionProgram.Check(
+                value.kind(),
+                value.index(),
+                ConditionProgram.CONSTANT_STRING_EQUALS,
+                ConditionProgram.OPERAND_CONSTANT,
+                constant(constant),
+                false
+            );
+        }
+
+        return null;
     }
 
     /**
