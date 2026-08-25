@@ -17,6 +17,7 @@ import org.elasticsearch.painless.lookup.PainlessLookupBuilder;
 import org.elasticsearch.painless.lookup.PainlessMethod;
 import org.elasticsearch.painless.spi.Whitelist;
 import org.elasticsearch.painless.symbol.ScriptScope;
+import org.elasticsearch.script.IngestConditionalScript;
 import org.elasticsearch.script.ScriptContext;
 import org.elasticsearch.script.ScriptEngine;
 import org.elasticsearch.script.ScriptException;
@@ -62,6 +63,7 @@ public final class PainlessScriptEngine implements ScriptEngine {
      */
     public PainlessScriptEngine(Settings settings, Map<ScriptContext<?>, List<Whitelist>> contexts) {
         CompilerSettings.RegexEnabled regexEnabled = CompilerSettings.REGEX_ENABLED.get(settings);
+        boolean conditionPrograms = CompilerSettings.CONDITION_PROGRAMS_ENABLED.get(settings);
         int regexLimitFactor = CompilerSettings.REGEX_LIMIT_FACTOR.get(settings);
 
         Map<ScriptContext<?>, Compiler> mutableContextsToCompilers = new HashMap<>();
@@ -83,7 +85,13 @@ public final class PainlessScriptEngine implements ScriptEngine {
 
             mutableContextsToCompilers.put(
                 context,
-                new Compiler(context.instanceClazz, context.factoryClazz, context.statefulFactoryClazz, lookup)
+                new Compiler(
+                    context.instanceClazz,
+                    context.factoryClazz,
+                    context.statefulFactoryClazz,
+                    lookup,
+                    conditionPrograms && context.instanceClazz == IngestConditionalScript.class
+                )
             );
             mutableContextsToLookups.put(context, lookup);
             mutableContextsToDefaultCompilerSettings.put(context, contextDefaults);
@@ -118,7 +126,7 @@ public final class PainlessScriptEngine implements ScriptEngine {
 
         final Loader loader = compiler.createLoader(getClass().getClassLoader());
 
-        ScriptScope scriptScope = compile(
+        Compiler.Compiled compiled = compile(
             compiler,
             contextsToDefaultCompilerSettings.get(context),
             loader,
@@ -127,11 +135,18 @@ public final class PainlessScriptEngine implements ScriptEngine {
             params
         );
 
-        if (context.statefulFactoryClazz != null) {
-            return generateFactory(loader, context, generateStatefulFactory(loader, context, scriptScope), scriptScope);
-        } else {
-            return generateFactory(loader, context, WriterConstants.CLASS_TYPE, scriptScope);
-        }
+        /*
+         * A recognised condition generated no class, so there is nothing for the factory generator to
+         * instantiate; one shared factory class serves every such condition.
+         */
+        return switch (compiled) {
+            case Compiler.Compiled.Recognized(ConditionProgram conditionProgram) -> context.factoryClazz.cast(
+                new ProgramConditionalFactory(conditionProgram, scriptName, scriptSource)
+            );
+            case Compiler.Compiled.Generated(ScriptScope scriptScope) -> context.statefulFactoryClazz != null
+                ? generateFactory(loader, context, generateStatefulFactory(loader, context, scriptScope), scriptScope)
+                : generateFactory(loader, context, WriterConstants.CLASS_TYPE, scriptScope);
+        };
     }
 
     @Override
@@ -388,7 +403,7 @@ public final class PainlessScriptEngine implements ScriptEngine {
         }
     }
 
-    ScriptScope compile(
+    Compiler.Compiled compile(
         Compiler compiler,
         CompilerSettings contextDefaults,
         Loader loader,

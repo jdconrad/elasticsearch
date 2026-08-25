@@ -13,6 +13,7 @@ import org.elasticsearch.painless.antlr.Walker;
 import org.elasticsearch.painless.ir.ClassNode;
 import org.elasticsearch.painless.lookup.PainlessLookup;
 import org.elasticsearch.painless.node.SClass;
+import org.elasticsearch.painless.phase.ConditionRecognitionPhase;
 import org.elasticsearch.painless.phase.DefaultConstantFoldingOptimizationPhase;
 import org.elasticsearch.painless.phase.DefaultConstantListOptimizationPhase;
 import org.elasticsearch.painless.phase.DefaultEqualityMethodOptimizationPhase;
@@ -138,6 +139,12 @@ final class Compiler {
     private final Map<String, Class<?>> additionalClasses;
 
     /**
+     * Whether a simple boolean condition may be represented as a {@link ConditionProgram} rather than
+     * compiled to a class. Only enabled for contexts whose scripts are plain predicates over {@code ctx}.
+     */
+    private final boolean recognizeConditions;
+
+    /**
      * Standard constructor.
      * @param scriptClass The class/interface the script will implement.
      * @param factoryClass An optional class/interface to create the {@code scriptClass} instance.
@@ -145,8 +152,19 @@ final class Compiler {
      * @param painlessLookup The whitelist the script will use.
      */
     Compiler(Class<?> scriptClass, Class<?> factoryClass, Class<?> statefulFactoryClass, PainlessLookup painlessLookup) {
+        this(scriptClass, factoryClass, statefulFactoryClass, painlessLookup, false);
+    }
+
+    Compiler(
+        Class<?> scriptClass,
+        Class<?> factoryClass,
+        Class<?> statefulFactoryClass,
+        PainlessLookup painlessLookup,
+        boolean recognizeConditions
+    ) {
         this.scriptClass = scriptClass;
         this.painlessLookup = painlessLookup;
+        this.recognizeConditions = recognizeConditions;
         Map<String, Class<?>> additionalClassMap = new HashMap<>();
         additionalClassMap.put(scriptClass.getName(), scriptClass);
         addFactoryMethod(additionalClassMap, factoryClass, "newInstance");
@@ -186,7 +204,19 @@ final class Compiler {
      * @param settings The CompilerSettings to be used during the compilation.
      * @return The ScriptScope used to compile
      */
-    ScriptScope compile(Loader loader, String name, String source, CompilerSettings settings) {
+    /**
+     * The outcome of compiling. Either bytecode was generated and defined, described by the
+     * {@link ScriptScope}, or the script was recognised as a simple condition and is carried as a
+     * {@link ConditionProgram}, in which case no class and no classloader were created. Modelling this
+     * as a result rather than a flag means a caller cannot forget to handle the second case.
+     */
+    sealed interface Compiled {
+        record Generated(ScriptScope scriptScope) implements Compiled {}
+
+        record Recognized(ConditionProgram conditionProgram) implements Compiled {}
+    }
+
+    Compiled compile(Loader loader, String name, String source, CompilerSettings settings) {
         String scriptName = Location.computeSourceName(name);
         ScriptClassInfo scriptClassInfo = new ScriptClassInfo(painlessLookup, scriptClass);
         SClass root = Walker.buildPainlessTree(scriptName, source, settings);
@@ -199,6 +229,22 @@ final class Compiler {
         new DefaultConstantFoldingOptimizationPhase().visitClass(classNode, null);
         new DefaultConstantListOptimizationPhase(scriptScope).visitClass(classNode, null);
         new DefaultEqualityMethodOptimizationPhase(scriptScope).visitClass(classNode, null);
+
+        /*
+         * A simple boolean condition can be represented as data instead of as a generated class. When it
+         * is recognised, code generation is skipped entirely and no class or classloader is created; the
+         * program travels back to the engine on the ScriptScope. This must run after the optimisation
+         * phases above so constants are already folded, and before the static constant extraction below,
+         * which would move a folded Set out to a static field.
+         */
+        if (recognizeConditions) {
+            ConditionProgram conditionProgram = ConditionRecognitionPhase.recognize(classNode, painlessLookup);
+
+            if (conditionProgram != null) {
+                return new Compiled.Recognized(conditionProgram);
+            }
+        }
+
         new DefaultStaticConstantExtractionPhase().visitClass(classNode, scriptScope);
         new DefaultIRTreeToASMBytesPhase().visitScript(classNode);
         byte[] bytes = classNode.getBytes();
@@ -210,7 +256,7 @@ final class Compiler {
                 clazz.getField(staticConstant.getKey()).set(null, staticConstant.getValue());
             }
 
-            return scriptScope;
+            return new Compiled.Generated(scriptScope);
         } catch (Exception exception) {
             // Catch everything to let the user know this is something caused internally.
             throw new IllegalStateException("An internal error occurred attempting to define the script [" + name + "].", exception);
